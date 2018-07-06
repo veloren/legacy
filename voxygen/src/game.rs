@@ -172,6 +172,9 @@ impl Game {
                     // Mount inputs ---------------------------------------------------------------
                     // placeholder
                     // ----------------------------------------------------------------------------
+
+                    // UI Code
+                    self.ui.lock().unwrap().ui_event_keyboard_input(i);
                 },
                 Event::Resized { w, h } => {
                     self.camera.lock().unwrap().set_aspect_ratio(w as f32 / h as f32);
@@ -179,7 +182,6 @@ impl Game {
                 },
                 Event::MouseButton { state, button } => {
                     self.ui.lock().unwrap().ui_event_mouse_button(state, button);
-                    println!("Clicked");
                 },
                 Event::CursorPosition { x, y} => {
                     self.ui.lock().unwrap().ui_event_mouse_pos(x, y);

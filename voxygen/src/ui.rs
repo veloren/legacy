@@ -20,11 +20,19 @@ use conrod::{
     text::font::Id as fid,
     event::Input,
     backend::gfx::Renderer as ConrodRenderer,
-    input,
+    input:: {
+        self,
+        Key,
+    }
 };
 
-use glutin::ElementState;
-use glutin::MouseButton;
+use glutin:: {
+    ElementState,
+    MouseButton,
+    KeyboardInput,
+    VirtualKeyCode,
+};
+
 use renderer::Renderer;
 
 use std::collections::HashMap;
@@ -41,15 +49,13 @@ pub struct Ui {
     image_map: ImageMap,
     fid: Option<fid>,
     ids: HashMap<String, widget::Id>,
+    start: f64,
+    end: f64,
 }
-
 
 impl Ui {
     pub fn new(renderer: &mut Renderer, size: [f64; 2]) -> Self {
-        let mut ui = UiBuilder::new(size).build();
-
-//        ui.handle_event(Input::Motion(input::Motion::MouseCursor {x: 0.0, y: 0.0}));
-
+        let ui = UiBuilder::new(size).build();
         let image_map = Map::new();
 
         let color_view = renderer.color_view().clone();
@@ -63,6 +69,8 @@ impl Ui {
             image_map,
             fid: None,
             ids: HashMap::new(),
+            start: 0.25,
+            end: 0.75,
         }
     }
 
@@ -71,6 +79,148 @@ impl Ui {
         self.conrodRenderer.on_resize(renderer.color_view().clone());
         self.conrodRenderer.fill(&mut renderer.encoder_mut(), (window_size[0] as f32 , window_size[1] as f32), 1.0, self.ui.draw(), &self.image_map);
         self.conrodRenderer.draw(&mut renderer.factory_mut().clone(), &mut renderer.encoder_mut(), &self.image_map);
+    }
+
+    pub fn map_key(keycode: VirtualKeyCode) -> input::keyboard::Key {
+
+        match keycode {
+            VirtualKeyCode::Key0 => Key::D0,
+            VirtualKeyCode::Key1 => Key::D1,
+            VirtualKeyCode::Key2 => Key::D2,
+            VirtualKeyCode::Key3 => Key::D3,
+            VirtualKeyCode::Key4 => Key::D4,
+            VirtualKeyCode::Key5 => Key::D5,
+            VirtualKeyCode::Key6 => Key::D6,
+            VirtualKeyCode::Key7 => Key::D7,
+            VirtualKeyCode::Key8 => Key::D8,
+            VirtualKeyCode::Key9 => Key::D9,
+            VirtualKeyCode::A => Key::A,
+            VirtualKeyCode::B => Key::B,
+            VirtualKeyCode::C => Key::C,
+            VirtualKeyCode::D => Key::D,
+            VirtualKeyCode::E => Key::E,
+            VirtualKeyCode::F => Key::F,
+            VirtualKeyCode::G => Key::G,
+            VirtualKeyCode::H => Key::H,
+            VirtualKeyCode::I => Key::I,
+            VirtualKeyCode::J => Key::J,
+            VirtualKeyCode::K => Key::K,
+            VirtualKeyCode::L => Key::L,
+            VirtualKeyCode::M => Key::M,
+            VirtualKeyCode::N => Key::N,
+            VirtualKeyCode::O => Key::O,
+            VirtualKeyCode::P => Key::P,
+            VirtualKeyCode::Q => Key::Q,
+            VirtualKeyCode::R => Key::R,
+            VirtualKeyCode::S => Key::S,
+            VirtualKeyCode::T => Key::T,
+            VirtualKeyCode::U => Key::U,
+            VirtualKeyCode::V => Key::V,
+            VirtualKeyCode::W => Key::W,
+            VirtualKeyCode::X => Key::X,
+            VirtualKeyCode::Y => Key::Y,
+            VirtualKeyCode::Z => Key::Z,
+            VirtualKeyCode::Apostrophe => Key::Unknown,
+            VirtualKeyCode::Backslash => Key::Backslash,
+            VirtualKeyCode::Back => Key::Backspace,
+            // K::CapsLock => Key::CapsLock,
+            VirtualKeyCode::Delete => Key::Delete,
+            VirtualKeyCode::Comma => Key::Comma,
+            VirtualKeyCode::Down => Key::Down,
+            VirtualKeyCode::End => Key::End,
+            VirtualKeyCode::Return => Key::Return,
+            VirtualKeyCode::Equals => Key::Equals,
+            VirtualKeyCode::Escape => Key::Escape,
+            VirtualKeyCode::F1 => Key::F1,
+            VirtualKeyCode::F2 => Key::F2,
+            VirtualKeyCode::F3 => Key::F3,
+            VirtualKeyCode::F4 => Key::F4,
+            VirtualKeyCode::F5 => Key::F5,
+            VirtualKeyCode::F6 => Key::F6,
+            VirtualKeyCode::F7 => Key::F7,
+            VirtualKeyCode::F8 => Key::F8,
+            VirtualKeyCode::F9 => Key::F9,
+            VirtualKeyCode::F10 => Key::F10,
+            VirtualKeyCode::F11 => Key::F11,
+            VirtualKeyCode::F12 => Key::F12,
+            VirtualKeyCode::F13 => Key::F13,
+            VirtualKeyCode::F14 => Key::F14,
+            VirtualKeyCode::F15 => Key::F15,
+            // K::F16 => Key::F16,
+            // K::F17 => Key::F17,
+            // K::F18 => Key::F18,
+            // K::F19 => Key::F19,
+            // K::F20 => Key::F20,
+            // K::F21 => Key::F21,
+            // K::F22 => Key::F22,
+            // K::F23 => Key::F23,
+            // K::F24 => Key::F24,
+            // Possibly next code.
+            // K::F25 => Key::Unknown,
+            VirtualKeyCode::Numpad0 => Key::NumPad0,
+            VirtualKeyCode::Numpad1 => Key::NumPad1,
+            VirtualKeyCode::Numpad2 => Key::NumPad2,
+            VirtualKeyCode::Numpad3 => Key::NumPad3,
+            VirtualKeyCode::Numpad4 => Key::NumPad4,
+            VirtualKeyCode::Numpad5 => Key::NumPad5,
+            VirtualKeyCode::Numpad6 => Key::NumPad6,
+            VirtualKeyCode::Numpad7 => Key::NumPad7,
+            VirtualKeyCode::Numpad8 => Key::NumPad8,
+            VirtualKeyCode::Numpad9 => Key::NumPad9,
+            VirtualKeyCode::NumpadComma => Key::NumPadDecimal,
+            VirtualKeyCode::Divide => Key::NumPadDivide,
+            VirtualKeyCode::Multiply => Key::NumPadMultiply,
+            VirtualKeyCode::Subtract => Key::NumPadMinus,
+            VirtualKeyCode::Add => Key::NumPadPlus,
+            VirtualKeyCode::NumpadEnter => Key::NumPadEnter,
+            VirtualKeyCode::NumpadEquals => Key::NumPadEquals,
+            VirtualKeyCode::LShift => Key::LShift,
+            VirtualKeyCode::LControl => Key::LCtrl,
+            VirtualKeyCode::LAlt => Key::LAlt,
+            VirtualKeyCode::LMenu => Key::LGui,
+            VirtualKeyCode::RShift => Key::RShift,
+            VirtualKeyCode::RControl => Key::RCtrl,
+            VirtualKeyCode::RAlt => Key::RAlt,
+            VirtualKeyCode::RMenu => Key::RGui,
+            // Map to backslash?
+            // K::GraveAccent => Key::Unknown,
+            VirtualKeyCode::Home => Key::Home,
+            VirtualKeyCode::Insert => Key::Insert,
+            VirtualKeyCode::Left => Key::Left,
+            VirtualKeyCode::LBracket => Key::LeftBracket,
+            // K::Menu => Key::Menu,
+            VirtualKeyCode::Minus => Key::Minus,
+            VirtualKeyCode::Numlock => Key::NumLockClear,
+            VirtualKeyCode::PageDown => Key::PageDown,
+            VirtualKeyCode::PageUp => Key::PageUp,
+            VirtualKeyCode::Pause => Key::Pause,
+            VirtualKeyCode::Period => Key::Period,
+            // K::PrintScreen => Key::PrintScreen,
+            VirtualKeyCode::Right => Key::Right,
+            VirtualKeyCode::RBracket => Key::RightBracket,
+            // K::ScrollLock => Key::ScrollLock,
+            VirtualKeyCode::Semicolon => Key::Semicolon,
+            VirtualKeyCode::Slash => Key::Slash,
+            VirtualKeyCode::Space => Key::Space,
+            VirtualKeyCode::Tab => Key::Tab,
+            VirtualKeyCode::Up => Key::Up,
+            // K::World1 => Key::Unknown,
+            // K::World2 => Key::Unknown,
+            _ => Key::Unknown,
+        }
+    }
+
+    pub fn ui_event_keyboard_input(&mut self, input: KeyboardInput) {
+        if let Some(event) = input.virtual_keycode.map(|key| {
+            match input.state {
+                ElementState::Pressed =>
+                    Input::Press(input::Button::Keyboard(Self::map_key(key))),
+                ElementState::Released =>
+                    Input::Release(input::Button::Keyboard(Self::map_key(key))),
+            }
+        }) {
+            self.ui.handle_event(event);
+        }
     }
 
     fn map_mouse(mouse_button: MouseButton) -> input::MouseButton {
@@ -139,40 +289,8 @@ impl Ui {
 
     pub fn set_ui(&mut self) {
         let left_text = self.get_widget_id("left_text");
-        let range_slider = self.get_widget_id("range_slider");
-        let canvas = self.get_widget_id("canvas");
-        let oval = self.get_widget_id("oval");
-        let font = self.fid.unwrap();
-
         let mut ui = &mut self.ui.set_widgets();
-
-        widget::Canvas::new().color(color::DARK_CHARCOAL).set(canvas, ui);
-
-        const PAD: conrod::Scalar = 20.0;
-        let (ref mut start, ref mut end) = (0.25, 0.75);
-        let min = 0.0;
-        let max = 1.0;
-        for (edge, value) in widget::RangeSlider::new(*start, *end, min, max)
-            .color(color::LIGHT_BLUE)
-            .padded_w_of(canvas, PAD)
-            .h(30.0)
-            .mid_top_with_margin_on(canvas, PAD)
-            .set(range_slider, ui)
-            {
-                match edge {
-                    widget::range_slider::Edge::Start => *start = value,
-                    widget::range_slider::Edge::End => *end = value,
-                }
-            }
-
-        let range_slider_w = ui.w_of(range_slider).unwrap();
-        let w = (*end - *start) * range_slider_w;
-        let h = 200.0;
-        widget::Oval::fill([w, h])
-            .mid_left_with_margin_on(canvas, PAD + *start * range_slider_w)
-            .color(color::LIGHT_BLUE)
-            .down(50.0)
-            .set(oval, ui);
+        let font = self.fid.unwrap();
 
         widget::Text::new(&format!("Version {}", env!("CARGO_PKG_VERSION")))
             .font_id(font)
@@ -181,6 +299,5 @@ impl Ui {
             .left_justify()
             .line_spacing(10.0)
             .set(left_text, ui);
-
     }
 }

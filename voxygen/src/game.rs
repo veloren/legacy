@@ -175,8 +175,18 @@ impl Game {
                 },
                 Event::Resized { w, h } => {
                     self.camera.lock().unwrap().set_aspect_ratio(w as f32 / h as f32);
+                    self.ui.lock().unwrap().ui_event_window_resize(w, h);
                 },
-                //_ => {},
+                Event::MouseButton { state, button } => {
+                    self.ui.lock().unwrap().ui_event_mouse_button(state, button);
+                    println!("Clicked");
+                },
+                Event::CursorPosition { x, y} => {
+                    self.ui.lock().unwrap().ui_event_mouse_pos(x, y);
+                },
+                Event::Raw { event } => {
+//                    println!("{:?}", event);
+                },
             }
         });
 

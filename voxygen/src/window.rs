@@ -1,7 +1,7 @@
 use gfx_window_glutin;
 use glutin;
 
-use glutin::{EventsLoop, WindowBuilder, ContextBuilder, GlContext, GlRequest, GlWindow, DeviceEvent, WindowEvent, CursorState, MouseCursor};
+use glutin::{Event as glutinEvent, EventsLoop, WindowBuilder, ContextBuilder, GlContext, GlRequest, GlWindow, DeviceEvent, WindowEvent, CursorState, MouseCursor};
 use glutin::Api::OpenGl;
 
 use renderer::{Renderer, ColorFormat, DepthFormat};
@@ -15,6 +15,9 @@ pub enum Event {
     MouseWheel { dx: f64, dy: f64, modifiers: glutin::ModifiersState },
     KeyboardInput { i: glutin::KeyboardInput, device: glutin::DeviceId },
     Resized { w: u32, h: u32 },
+    CursorPosition {x: f64, y: f64},
+    MouseButton { state: glutin::ElementState, button: glutin::MouseButton },
+    Raw { event: glutinEvent },
 }
 
 pub struct RenderWindow {
@@ -56,19 +59,19 @@ impl RenderWindow {
             match event {
                 glutin::Event::DeviceEvent { event, .. } => match event {
                     DeviceEvent::MouseMotion { delta: (dx, dy), .. } => {
-                        if self.cursor_trapped.load(Ordering::Relaxed) {
-                            if let Err(_) = gl_window.set_cursor_state(CursorState::Grab) {
-                                warn!("Could not grap cursor");
-                                self.cursor_trapped.store(false, Ordering::Relaxed)
-                            }
-                            gl_window.set_cursor(MouseCursor::NoneCursor);
-                        } else {
-                            if let Err(_) = gl_window.set_cursor_state(CursorState::Normal) {
-                                warn!("Could not ungrap cursor");
-                                self.cursor_trapped.store(true, Ordering::Relaxed)
-                            }
-                            gl_window.set_cursor(MouseCursor::Default);
-                        }
+//                        if self.cursor_trapped.load(Ordering::Relaxed) {
+//                            if let Err(_) = gl_window.set_cursor_state(CursorState::Grab) {
+//                                warn!("Could not grap cursor");
+//                                self.cursor_trapped.store(false, Ordering::Relaxed)
+//                            }
+//                            gl_window.set_cursor(MouseCursor::NoneCursor);
+//                        } else {
+//                            if let Err(_) = gl_window.set_cursor_state(CursorState::Normal) {
+//                                warn!("Could not ungrap cursor");
+//                                self.cursor_trapped.store(true, Ordering::Relaxed)
+//                            }
+//                            gl_window.set_cursor(MouseCursor::Default);
+//                        }
                         func(Event::CursorMoved { dx, dy });
                     }
                     _ => {},
@@ -114,20 +117,27 @@ impl RenderWindow {
                             i: input,
                         });
                     },
-                    WindowEvent::MouseInput { button, .. } => {
+                    WindowEvent::MouseInput { state, button, .. } => {
                         if button == glutin::MouseButton::Left {
                             self.cursor_trapped.store(true, Ordering::Relaxed);
                             let _ = gl_window.set_cursor_state(CursorState::Grab);
                         }
+
+                        func(Event::MouseButton { state, button });
                     },
                     WindowEvent::CloseRequested => func(Event::CloseRequest),
 
                     WindowEvent::Focused(is_focused) => {
                             self.cursor_trapped.store(is_focused, Ordering::Relaxed);
-                    }
+                    },
+                    WindowEvent::CursorMoved { position, .. } => {
+                        func(Event::CursorPosition {x: position.0, y: position.1 });
+                    },
                     _ => {},
                 },
-                _ => {},
+                _ => {
+                    func(Event::Raw {event});
+                },
             }
         });
     }

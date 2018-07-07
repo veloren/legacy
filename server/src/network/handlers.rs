@@ -25,7 +25,7 @@ pub fn handle_packet(relay: &Relay<ServerContext>, ctx: &mut ServerContext, sess
                         ClientMode::Character => {
                             let uid = ctx.new_uid();
                             info!("Player '{}' connected in character mode. Assigned entity uid: {}", alias, uid);
-                            ctx.add_entity(uid, box Entity::new(vec3!(0.0, 0.0, 100.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)));
+                            ctx.add_entity(uid, box Entity::new(vec3!(0.0, 0.0, 100.0), vec3!(0.0, 0.0, 0.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)));
                             Some(uid)
                         }
                     };
@@ -70,7 +70,7 @@ pub fn handle_packet(relay: &Relay<ServerContext>, ctx: &mut ServerContext, sess
             }
         }
         &ClientMessage::SendCmd { ref cmd } => handle_command(relay, ctx, session_id, cmd.to_string()),
-        &ClientMessage::PlayerEntityUpdate { pos, move_dir, look_dir } => {
+        &ClientMessage::PlayerEntityUpdate { pos, vel, ctrl_vel, look_dir } => {
             if let Some(ref player) = ctx.get_session(session_id)
                 .and_then(|it| it.get_player_id())
                 .and_then(|id| ctx.get_player(id)) {
@@ -79,17 +79,18 @@ pub fn handle_packet(relay: &Relay<ServerContext>, ctx: &mut ServerContext, sess
 
                 if let Some(entity_uid) = player.get_entity_uid() {
                     if let Some(e) = ctx.get_entity(entity_uid) {
-                        let dist = (e.pos() - pos).length();
+                        let dist = (*e.pos() - pos).length();
                         if dist > 80.0 { // 80 effectivly makes this never apear
                             info!("player: {} moved to fast, resetting him", player_name);
-                            let (pos, move_dir, look_dir) = (e.pos(), e.move_dir(), e.look_dir());
+                            let (pos, vel, ctrl_vel, look_dir) = (*e.pos(), *e.vel(), *e.ctrl_vel(), *e.look_dir());
                             ctx.send_message(
                                 session_id,
-                                ServerMessage::EntityUpdate { uid: entity_uid, pos, move_dir, look_dir }
+                                ServerMessage::EntityUpdate { uid: entity_uid, pos, vel, ctrl_vel, look_dir }
                             );
                         } else {
                             *e.pos_mut() = pos;
-                            *e.move_dir_mut() = move_dir;
+                            *e.vel_mut() = vel;
+                            *e.ctrl_vel_mut() = ctrl_vel;
                             *e.look_dir_mut() = look_dir;
                         }
                     }

@@ -1,5 +1,7 @@
+extern crate conrod;
+extern crate glutin;
+
 use conrod::{
-    self,
     Ui as conrod_ui,
     UiBuilder,
     image::Map,

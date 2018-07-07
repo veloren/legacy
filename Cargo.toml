@@ -1,10 +1,9 @@
 [workspace]
 members = [
     "server",
-	"client",
-	"common",
-	"world",
-
+    "client",
+    "common",
+    "world",
     "voxygen",
     "server-cli",
     "headless"

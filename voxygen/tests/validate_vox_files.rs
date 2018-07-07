@@ -3,7 +3,7 @@ use std::fs;
 
 #[test]
 fn validate_vox_files() {
-    let paths = fs::read_dir("./vox").unwrap();
+    let paths = fs::read_dir("./data/vox").unwrap();
     let mut files_checked = 0;
 
     for path in paths {

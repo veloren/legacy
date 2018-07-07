@@ -34,10 +34,6 @@ impl Camera {
         (mat, *Perspective3::<f32>::new(self.aspect_ratio, self.fov, 0.1, 1000.0).as_matrix())
     }
 
-    pub fn ori(&self) -> Vector2<f32> {
-        self.ori
-    }
-
     pub fn rotate_by(&mut self, dangle: Vector2<f32>) {
         self.ori += dangle;
         if self.ori.y < -PI / 2.0 {
@@ -47,26 +43,17 @@ impl Camera {
         }
     }
 
-    pub fn set_aspect_ratio(&mut self, ratio: f32) {
-        self.aspect_ratio = ratio;
-    }
-
-    pub fn set_fov(&mut self, fov: f32) {
-        self.fov = fov;
-    }
-
-    pub fn set_focus(&mut self, focus: Vector3<f32>) {
-        self.focus = focus;
-    }
-
-    pub fn set_zoom(&mut self, zoom: f32) {
-        self.zoom = zoom;
-    }
-
     pub fn zoom_by(&mut self, delta: f32) {
         self.zoom += delta;
         if self.zoom < 0.0 {
             self.zoom = 0.0;
         }
     }
+
+    #[allow(dead_code)] pub fn ori(&self) -> &Vector2<f32> { &self.ori }
+
+    #[allow(dead_code)] pub fn set_aspect_ratio(&mut self, ratio: f32) { self.aspect_ratio = ratio; }
+    #[allow(dead_code)] pub fn set_fov(&mut self, fov: f32) { self.fov = fov; }
+    #[allow(dead_code)] pub fn set_focus(&mut self, focus: Vector3<f32>) { self.focus = focus; }
+    #[allow(dead_code)] pub fn set_zoom(&mut self, zoom: f32) { self.zoom = zoom; }
 }

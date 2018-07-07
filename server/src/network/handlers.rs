@@ -100,7 +100,7 @@ pub fn handle_packet(relay: &Relay<ServerContext>, ctx: &mut ServerContext, sess
     }
 }
 
-fn handle_command(relay: &Relay<ServerContext>, world: &mut ServerContext, session_id: u32, command_str: String) {
+fn handle_command(_relay: &Relay<ServerContext>, _world: &mut ServerContext, _session_id: u32, _command_str: String) {
     /*
     // TODO: Implement some sort of command structure with a hashmap of Commands.
     if let Some(p) = self.players.get(&sock_addr) {

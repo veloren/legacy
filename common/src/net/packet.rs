@@ -91,6 +91,8 @@ impl OutgoingPacket {
             return Ok(frame);
         }
     }
+
+    #[allow(dead_code)] pub fn prio(&self) -> &u8 { &self.prio }
 }
 
 impl IncommingPacket {
@@ -136,7 +138,5 @@ impl IncommingPacket {
         }
     }
 
-    pub fn data(&self) -> &Vec<u8> {
-        return &self.data.bytes;
-    }
+    #[allow(dead_code)] pub fn data(&self) -> &Vec<u8> { &self.data.bytes }
 }

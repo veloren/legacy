@@ -195,7 +195,7 @@ impl Game {
         });
 
         // Calculate movement player movement vector
-        let ori = self.camera.lock().unwrap().ori();
+        let ori = *self.camera.lock().unwrap().ori();
         let unit_vecs = (
             Vector2::new(f32::cos(-ori.x), f32::sin(-ori.x)),
             Vector2::new(f32::sin(ori.x), f32::cos(ori.x))
@@ -212,7 +212,7 @@ impl Game {
                 player_entry.ctrl_vel_mut().x = mov_vec.x;
                 player_entry.ctrl_vel_mut().y = mov_vec.y;
                 player_entry.ctrl_vel_mut().z = fly_vec * 5.0;
-                let ori = self.camera.lock().unwrap().ori();
+                let ori = *self.camera.lock().unwrap().ori();
                 *player_entry.look_dir_mut() = vec2!(ori.x, ori.y);
             }
         }

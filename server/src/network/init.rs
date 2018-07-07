@@ -15,7 +15,7 @@ use common::net::UdpMgr;
 use network::event::NewSessionEvent;
 use server_context::ServerContext;
 
-pub fn init_network(relay: Relay<ServerContext>, world: &mut ServerContext, port: u16) -> bool {
+pub fn init_network(relay: Relay<ServerContext>, _world: &mut ServerContext, port: u16) -> bool {
 
     let listener = TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port))).unwrap();
 

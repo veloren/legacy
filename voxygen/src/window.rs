@@ -50,21 +50,6 @@ impl RenderWindow {
             cursor_trapped: AtomicBool::new(true),
         }
     }
-    
-    pub fn get_size(&self) -> [f64; 2] {
-        let window = self.gl_window.lock().unwrap();
-        match window.get_inner_size() {
-            Some((w, h)) => [w as f64, h as f64],
-            None => [0.0, 0.0]
-        }
-    }
-
-    pub fn renderer<'a>(&'a self) -> RwLockReadGuard<'a, Renderer> { self.renderer.read().unwrap() }
-    pub fn renderer_mut<'a>(&'a self) -> RwLockWriteGuard<'a, Renderer> { self.renderer.write().unwrap() }
-
-    pub fn cursor_trapped(&self) -> &AtomicBool {
-        &self.cursor_trapped
-    }
 
     pub fn handle_events<'a, F: FnMut(Event)>(&self, mut func: F) {
         // We need to mutate these inside the closure, so we take a mutable reference
@@ -164,4 +149,17 @@ impl RenderWindow {
     pub fn swap_buffers(&self) {
         self.gl_window.lock().unwrap().swap_buffers().expect("Failed to swap window buffers");
     }
+
+    pub fn get_size(&self) -> [f64; 2] {
+        let window = self.gl_window.lock().unwrap();
+        match window.get_inner_size() {
+            Some((w, h)) => [w as f64, h as f64],
+            None => [0.0, 0.0]
+        }
+    }
+
+    #[allow(dead_code)] pub fn renderer(&self) -> RwLockReadGuard<Renderer> { self.renderer.read().unwrap() }
+    #[allow(dead_code)] pub fn renderer_mut(&self) -> RwLockWriteGuard<Renderer> { self.renderer.write().unwrap() }
+
+    #[allow(dead_code)] pub fn cursor_trapped(&self) -> &AtomicBool { &self.cursor_trapped }
 }

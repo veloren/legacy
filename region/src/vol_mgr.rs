@@ -3,11 +3,8 @@ use {Volume, Voxel};
 use collide::VolCollider;
 
 // Standard
-use std::thread;
 use std::sync::{Arc, RwLock, RwLockReadGuard, Mutex};
 use std::collections::HashMap;
-use std::marker::PhantomData;
-use std::any::Any;
 
 // Library
 use coord::prelude::*;

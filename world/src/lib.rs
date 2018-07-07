@@ -29,7 +29,5 @@ impl World {
         self.map.tick(secs);
     }
 
-    pub fn map<'a>(&'a mut self) -> &'a mut Map {
-        &mut self.map
-    }
+    #[allow(dead_code)] pub fn map(&mut self) -> &mut Map { &mut self.map }
 }

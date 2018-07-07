@@ -1,4 +1,3 @@
-use noise::{NoiseFn, OpenSimplex, Seedable};
 use coord::prelude::*;
 
 use {Volume, Voxel, Cell};
@@ -16,9 +15,9 @@ impl Model {
 
         let mut voxels = Vec::new();
 
-        for i in 0..size.x {
-            for j in 0..size.y {
-                for k in 0..size.z {
+        for _i in 0..size.x {
+            for _j in 0..size.y {
+                for _k in 0..size.z {
                     voxels.push(Cell::new(0));
                 }
             }

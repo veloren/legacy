@@ -1,6 +1,3 @@
-// Library
-use coord::prelude::*;
-
 // Project
 use common::Uid;
 
@@ -25,9 +22,7 @@ impl Player {
         &self.alias
     }
 
-    pub fn get_uid(&self) -> Uid { self.uid }
-
-    pub fn get_session_id(&self) -> u32 { self.session_id }
-
-    pub fn get_entity_uid(&self) -> Option<Uid> { self.entity_uid }
+    #[allow(dead_code)] pub fn get_uid(&self) -> Uid { self.uid }
+    #[allow(dead_code)] pub fn get_session_id(&self) -> u32 { self.session_id }
+    #[allow(dead_code)] pub fn get_entity_uid(&self) -> Option<Uid> { self.entity_uid }
 }

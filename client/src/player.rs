@@ -1,4 +1,3 @@
-use coord::prelude::*;
 use common::Uid;
 
 pub struct Player {

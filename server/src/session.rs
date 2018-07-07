@@ -1,21 +1,18 @@
 // Standard
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex, MutexGuard};
-use std::cell::{RefCell, Cell};
-use std::thread;
+use std::sync::{Arc};
+use std::cell::{Cell};
 use std::thread::JoinHandle;
-use std::time;
 
 // Library
 use bifrost::Relay;
 
 // Project
-use common::net::{Connection, ServerMessage, ClientMessage, Message, UdpMgr};
+use common::net::{Connection, ServerMessage, ClientMessage, UdpMgr};
 use common::Uid;
 
 // Local
 use network::event::{PacketReceived, KickSession};
-use player::Player;
 use server_context::ServerContext;
 
 #[derive(Copy, Clone, PartialEq)]
@@ -74,12 +71,11 @@ impl Session {
         Connection::stop(&self.conn);
     }
 
-    pub fn get_id(&self) -> u32 { self.id }
-
-    pub fn set_player_id(&mut self, player_id: Option<Uid>) { self.player_id = player_id }
-    pub fn get_player_id(&self) -> Option<Uid> { self.player_id }
-
-    pub fn has_player(&self) -> bool { self.player_id.is_some() }
-
     pub fn should_kick(&self) -> bool { self.state.get() == SessionState::ShouldKick }
+
+    #[allow(dead_code)] pub fn get_id(&self) -> u32 { self.id }
+
+    #[allow(dead_code)] pub fn set_player_id(&mut self, player_id: Option<Uid>) { self.player_id = player_id }
+    #[allow(dead_code)] pub fn get_player_id(&self) -> Option<Uid> { self.player_id }
+    #[allow(dead_code)] pub fn has_player(&self) -> bool { self.player_id.is_some() }
 }

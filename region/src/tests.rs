@@ -1,16 +1,8 @@
-// Standard
-use std::io::ErrorKind::UnexpectedEof;
-use std::net::{TcpStream, TcpListener, Shutdown::Both};
-use std::thread;
-use std::sync::{Mutex};
-use std::time::Duration;
-
 //Library
 use coord::prelude::*;
 use rand::prelude::*;
 
 // Parent
-use super::{Volume, Voxel, Model};
 use super::collision::{resolve_collision, Collidable, Cuboid, CollisionResolution};
 
 fn newmodel(middle: Vec3<f64>, size: Vec3<f64>) -> Collidable {
@@ -150,7 +142,7 @@ fn random_colide_resolution() {
     let mut positive_resolved = 0;
 
     for _i in 0..1000 {
-        let mut m1 = newmodel(random_vec(10.0)-random_vec(10.0), random_vec(6.0) + vec3!(1.0, 1.0, 1.0));
+        let m1 = newmodel(random_vec(10.0)-random_vec(10.0), random_vec(6.0) + vec3!(1.0, 1.0, 1.0));
         let mut m2 = newmodel(random_vec(10.0)-random_vec(10.0), random_vec(6.0) + vec3!(1.0, 1.0, 1.0));
         let res = resolve_collision(&m1, &m2);
         match res {

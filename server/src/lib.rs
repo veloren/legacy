@@ -12,8 +12,6 @@ extern crate common;
 extern crate world;
 extern crate region;
 
-extern crate byteorder;
-
 pub mod server;
 mod server_context;
 mod init;

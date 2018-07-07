@@ -116,9 +116,6 @@ impl<'a, RM: Message + 'static> Connection<RM> {
         }));
     }
 
-    pub fn callbackobj(&self) -> MutexGuard<Option<Arc<Callback<RM> + Send + Sync>>> {
-        self.callbackobj.lock().unwrap()
-    }
 
     pub fn start<'b>(manager: &'b Arc<Connection<RM>>) {
         let m = manager.clone();
@@ -326,12 +323,5 @@ impl<'a, RM: Message + 'static> Connection<RM> {
         }
     }
 
-/*
-    pub fn recv<P: Packet>(&self) -> Result<P, Error> {
-        let mut stream = self.stream_in.lock().unwrap();
-        let packet_size = stream.read_u32::<LittleEndian>()? as usize;
-        let mut buff = vec![0; packet_size];
-        stream.read_exact(&mut buff)?;
-        Ok(P::from(&buff)?)
-    }*/
+    #[allow(dead_code)] pub fn callbackobj(&self) -> MutexGuard<Option<Arc<Callback<RM> + Send + Sync>>> { self.callbackobj.lock().unwrap() }
 }

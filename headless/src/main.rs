@@ -9,11 +9,10 @@ extern crate pretty_env_logger;
 
 use std::io;
 use std::sync::mpsc;
-use std::net::SocketAddr;
 
 use syrup::Window;
 
-use client::{Client, ClientMode, Chunk, FnPayloadFunc};
+use client::{Client, ClientMode, Chunk};
 
 struct Payloads {}
 impl client::Payloads for Payloads {
@@ -26,18 +25,6 @@ fn gen_payload(_: &Chunk) -> <Payloads as client::Payloads>::Chunk {
 
 fn main() {
     info!("Starting headless client...");
-
-    let ip = std::net::IpAddr::V4(std::net::Ipv4Addr::new(0,0,0,0));
-    let mut port = String::new();
-    println!("Local port [autodetect-59001]:");
-    io::stdin().read_line(&mut port).unwrap();
-    let mut port = port.trim();
-    if port.len() == 0 {
-        port = "59001";
-    }
-    let port = u16::from_str_radix(&port.trim(), 10).unwrap();
-
-    info!("Binding local port to {}:{}...", ip.to_string(), port);
 
     let mut remote_addr = String::new();
     println!("Remote server address [127.0.0.1:59003]:");

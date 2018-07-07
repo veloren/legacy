@@ -86,7 +86,6 @@ impl Game {
         let window_dims = window.get_size();
 
         let mut ui = Ui::new(&mut window.renderer_mut(), window_dims);
-        ui.add_version_number();
 
         Game {
             data: Mutex::new(Data {
@@ -186,6 +185,9 @@ impl Game {
                 Event::CursorPosition { x, y} => {
                     self.ui.lock().unwrap().ui_event_mouse_pos(x, y);
                 },
+                Event::Character { ch } => {
+                    self.ui.lock().unwrap().ui_event_character(ch);
+                }
                 Event::Raw { event } => {
 //                    println!("{:?}", event);
                 },

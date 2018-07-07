@@ -49,7 +49,5 @@ impl Clock {
         };
     }
 
-    pub fn last_tps(&self) -> f64 {
-        self.last_tps
-    }
+    #[allow(dead_code)] pub fn last_tps(&self) -> &f64 { &self.last_tps }
 }

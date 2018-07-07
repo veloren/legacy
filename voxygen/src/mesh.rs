@@ -171,13 +171,10 @@ impl Mesh {
         mesh
     }
 
-    pub fn vert_count(&self) -> u32 {
-        self.verts.len() as u32
-    }
 
-    pub fn vertices<'a>(&'a self) -> &'a Vec<Vertex> {
-        &self.verts
-    }
+    #[allow(dead_code)] pub fn vert_count(&self) -> u32 { self.verts.len() as u32 }
+
+    #[allow(dead_code)] pub fn vertices(& self) -> & Vec<Vertex> { &self.verts }
 
     pub fn add(&mut self, verts: &[Vertex]) {
         self.verts.extend_from_slice(verts);

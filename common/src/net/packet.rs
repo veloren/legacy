@@ -136,7 +136,5 @@ impl IncommingPacket {
         }
     }
 
-    pub fn data(&self) -> &Vec<u8> {
-        return &self.data.bytes;
-    }
+    #[allow(dead_code)] pub fn data(&self) -> &Vec<u8> { &self.data.bytes }
 }

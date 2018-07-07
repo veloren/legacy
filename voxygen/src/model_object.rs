@@ -61,10 +61,6 @@ impl ModelObject {
         }
     }
 
-    pub fn constants<'a>(&'a self) -> &'a ConstantBuffer {
-        &self.constants
-    }
-
     pub fn get_pipeline_data(&self, renderer: &mut Renderer) -> PipelineData {
         PipelineData {
             vbuf: self.vbuf.clone(),
@@ -83,4 +79,6 @@ impl ModelObject {
             buffer: IndexBuffer::Auto,
         }
     }
+
+    #[allow(dead_code)] pub fn constants(&self) -> &ConstantBuffer { &self.constants }
 }

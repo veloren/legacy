@@ -48,10 +48,10 @@ impl Cuboid {
         self.middle + self.radius
     }
 
-    pub fn middle(&self) -> &Vec3<f64> { &self.middle }
-    pub fn middle_mut(&mut self) -> &mut Vec3<f64> { &mut self.middle }
-    pub fn radius(&self) -> &Vec3<f64> { &self.radius }
-    pub fn radius_mut(&mut self) -> &mut Vec3<f64> { &mut self.radius }
+    #[allow(dead_code)] pub fn middle(&self) -> &Vec3<f64> { &self.middle }
+    #[allow(dead_code)] pub fn middle_mut(&mut self) -> &mut Vec3<f64> { &mut self.middle }
+    #[allow(dead_code)] pub fn radius(&self) -> &Vec3<f64> { &self.radius }
+    #[allow(dead_code)] pub fn radius_mut(&mut self) -> &mut Vec3<f64> { &mut self.radius }
 }
 
 fn cuboid_cuboid_col(a: &Cuboid, b: &Cuboid) -> Option<CollisionResolution> {
@@ -108,7 +108,7 @@ fn cuboid_cuboid_col(a: &Cuboid, b: &Cuboid) -> Option<CollisionResolution> {
 
               //println!("point {}, correction {}, signed_diff_to_border {}, relevant_a_radius {}", point, correction, signed_diff_to_border, signed_relevant_b_radius);
 
-              if (correction == vec3!(0.0, 0.0, 0.0)) {
+              if correction == Vec3::new(0.0, 0.0, 0.0) {
                   assert!( !(ua.x > lb.x && la.x < ub.x &&
                              ua.y > lb.y && la.y < ub.y &&
                              ua.z > lb.z && la.z < ub.z));

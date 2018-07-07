@@ -38,27 +38,6 @@ impl Renderer {
         }
     }
 
-    pub fn encoder_mut<'a>(&'a mut self) -> &'a mut Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer> {
-        &mut self.encoder
-    }
-
-    pub fn factory_mut<'a>(&'a mut self) -> &'a mut gfx_device_gl::Factory {
-        &mut self.factory
-    }
-
-    pub fn color_view<'a>(&'a self) -> &'a ColorView {
-        &self.color_view
-    }
-
-    pub fn depth_view<'a>(&'a self) -> &'a DepthView {
-        &self.depth_view
-    }
-
-    pub fn set_views<'a>(&'a mut self, cv: ColorView, dv: DepthView) {
-        self.color_view = cv;
-        self.depth_view = dv;
-    }
-
     pub fn begin_frame(&mut self) {
         self.encoder.clear(&self.color_view, [0.3, 0.3, 0.6, 1.0]);
         self.encoder.clear_depth(&self.depth_view, 1.0);
@@ -76,5 +55,15 @@ impl Renderer {
     pub fn end_frame(&mut self) {
         self.encoder.flush(&mut self.device);
         self.device.cleanup();
+    }
+
+    #[allow(dead_code)] pub fn encoder_mut(&mut self) -> &mut Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer> { &mut self.encoder }
+    #[allow(dead_code)] pub fn factory_mut(&mut self) -> &mut gfx_device_gl::Factory { &mut self.factory }
+    #[allow(dead_code)] pub fn color_view(&self) -> &ColorView { &self.color_view }
+    #[allow(dead_code)] pub fn depth_view(&self) -> &DepthView { &self.depth_view }
+
+    #[allow(dead_code)] pub fn set_views(&mut self, cv: ColorView, dv: DepthView) {
+        self.color_view = cv;
+        self.depth_view = dv;
     }
 }

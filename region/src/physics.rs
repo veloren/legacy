@@ -1,9 +1,6 @@
 // Standard
-use std::thread;
-use std::time;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Barrier};
+use std::sync::{RwLock};
 use std::collections::HashMap;
-use std::net::{ToSocketAddrs};
 
 // Library
 use coord::prelude::*;
@@ -77,11 +74,10 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         }
         */
 
-
         while chunk_mgr.get_voxel_at(vec3!(
-            (entity.pos().x as i64),
-            (entity.pos().y as i64),
-            (entity.pos().z as i64)
+            entity.pos().x as i64,
+            entity.pos().y as i64,
+            entity.pos().z as i64
         )).is_solid() {
             entity.vel_mut().z = 0.0;
             entity.pos_mut().z += 0.0025;

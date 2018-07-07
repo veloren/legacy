@@ -30,7 +30,7 @@ impl Clock {
         // sleep is only necessary if we are fast enough
         //println!("delta {:?} tick_time {:?}", delta, tick_time);
         if delta.0 < tick_time {
-            let sleep_time = tick_time - delta.0;
+            let _sleep_time = tick_time - delta.0;
             //thread::sleep(sleep_time);
         } else {
             warn!("clock is running behind");

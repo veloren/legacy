@@ -1,6 +1,4 @@
-use std::cmp;
 use coord::prelude::*;
-use {Volume, Voxel, Cell};
 
 #[derive(PartialEq, Debug)]
 pub struct Cuboid {
@@ -40,11 +38,11 @@ impl Cuboid {
         }
     }
 
-    pub fn lower(&self) -> Vec3<f64> {
+    #[allow(dead_code)] pub fn lower(&self) -> Vec3<f64> {
         self.middle - self.radius
     }
 
-    pub fn upper(&self) -> Vec3<f64> {
+    #[allow(dead_code)] pub fn upper(&self) -> Vec3<f64> {
         self.middle + self.radius
     }
 

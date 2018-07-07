@@ -91,6 +91,8 @@ impl OutgoingPacket {
             return Ok(frame);
         }
     }
+
+    #[allow(dead_code)] pub fn prio(&self) -> &u8 { &self.prio }
 }
 
 impl IncommingPacket {

@@ -36,20 +36,48 @@ build-voxygen:
   script:
     - (cd voxygen && cargo build)
 
+build-voxygen-MR:
+  stage: build
+  script:
+    - (cd voxygen && cargo build)
+  only:
+    - trigger
+
 build-headless:
   stage: build
   script:
     - (cd headless && cargo build)
+
+build-headless-MR:
+  stage: build
+  script:
+    - (cd headless && cargo build)
+  only:
+    - trigger
 
 build-server-cli:
   stage: build
   script:
     - (cd server-cli && cargo build)
 
+build-server-cli-MR:
+  stage: build
+  script:
+    - (cd server-cli && cargo build)
+  only:
+    - trigger
+
 unittests:
   stage: test
   script:
     - cargo test
+
+unittests-MR:
+  stage: test
+  script:
+    - cargo test
+  only:
+    - trigger
 
 #benchmarktests:
 #  stage: test

@@ -47,7 +47,6 @@ build-voxygen-MR:
 build-headless:
   stage: build
   script:
-    - git pull "https://gitlab.com/${SOURCE_PROJECT}/game.git" "${SOURCE_BRANCH}"
     - (cd headless && cargo build)
 
 build-headless-MR:
@@ -66,6 +65,7 @@ build-server-cli:
 build-server-cli-MR:
   stage: build
   script:
+    - git pull "https://gitlab.com/${SOURCE_PROJECT}/game.git" "${SOURCE_BRANCH}"
     - (cd server-cli && cargo build)
   only:
     - trigger

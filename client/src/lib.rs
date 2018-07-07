@@ -274,12 +274,12 @@ impl<P: Payloads> Client<P> {
         //thread::sleep(time::Duration::from_millis(50)); // workaround for making sure that networking sends the Disconnect Msg
     }
 
-    pub fn send_chat_msg(&self, msg: String) -> Result<(), Error> {
-        Ok(self.conn.send(ClientMessage::ChatMsg { msg }))
+    pub fn send_chat_msg(&self, msg: String) {
+        self.conn.send(ClientMessage::ChatMsg { msg })
     }
 
-    pub fn send_cmd(&self, cmd: String) -> Result<(), Error> {
-        Ok(self.conn.send(ClientMessage::SendCmd { cmd }))
+    pub fn send_cmd(&self, cmd: String) {
+        self.conn.send(ClientMessage::SendCmd { cmd })
     }
 
     pub fn chunk_mgr<'a>(&'a self) -> &'a VolMgr<Chunk, P::Chunk> { &self.chunk_mgr }

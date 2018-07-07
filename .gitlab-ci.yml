@@ -140,7 +140,7 @@ nightly-windows-debug:
     - cp target/x86_64-pc-windows-gnu/debug/server-cli.exe nightly
     - cp target/x86_64-pc-windows-gnu/debug/voxygen.exe nightly
     - cp target/x86_64-pc-windows-gnu/debug/headless.exe nightly
-    - cp -r voxygen/vox nightly/vox
+    - cp -r voxygen/data nightly/data
     - rm -f nightly-windows-debug.zip
     - zip -r nightly-windows-debug.zip nightly
   artifacts:

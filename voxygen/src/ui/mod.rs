@@ -1,45 +1,33 @@
 extern crate conrod;
 extern crate glutin;
+extern crate fps_counter;
 
 mod convert_events;
+mod ui_components;
 
 use conrod::{
     Ui as conrod_ui,
     UiBuilder,
     image::Map,
-    color,
-    widget::{
-        self,
-        triangles::Triangle,
-    },
-    Widget,
-    render::Primitives,
-    Colorable,
-    Sizeable,
-    Positionable,
-    Borderable,
-    Scalar,
-    UiCell,
-    widget::Id as wid,
-    text::font::Id as fid,
+    widget,
     event::Input,
     backend::gfx::Renderer as ConrodRenderer,
-    input:: {
-        self,
-        Key,
-    }
+    UiCell,
 };
 
 use glutin:: {
     ElementState,
     MouseButton,
     KeyboardInput,
-    VirtualKeyCode,
 };
 
 use renderer::Renderer;
-
-use std::collections::HashMap;
+use client::Client;
+use game::Payloads;
+use self::ui_components::{
+    UiState,
+    MenuPage
+};
 
 pub use gfx_device_gl::Resources as ui_resources;
 pub use conrod::gfx_core::handle::ShaderResourceView;
@@ -51,6 +39,8 @@ pub struct Ui {
     conrod_renderer: ConrodRenderer<'static, ui_resources>,
     ui: conrod_ui,
     image_map: ImageMap,
+    fps: fps_counter::FPSCounter,
+    state: UiState,
 }
 
 impl Ui {
@@ -69,10 +59,13 @@ impl Ui {
             conrod_renderer,
             ui,
             image_map,
+            fps: fps_counter::FPSCounter::new(),
+            state: UiState::normal_game(),
         }
     }
 
-    pub fn render(&mut self, renderer: &mut Renderer, window_size: &[f64; 2]) {
+    pub fn render(&mut self, renderer: &mut Renderer, client: &Client<Payloads>, window_size: &[f64; 2]) {
+        ui_components::render(self);
         self.conrod_renderer.on_resize(renderer.color_view().clone());
         self.conrod_renderer.fill(&mut renderer.encoder_mut(), (window_size[0] as f32 , window_size[1] as f32), 1.0, self.ui.draw(), &self.image_map);
         self.conrod_renderer.draw(&mut renderer.factory_mut().clone(), &mut renderer.encoder_mut(), &self.image_map);
@@ -102,5 +95,21 @@ impl Ui {
 
     fn generate_widget_id(&mut self) -> widget::Id {
         self.ui.widget_id_generator().next()
+    }
+
+    pub fn get_ui_cell(&mut self) -> UiCell {
+        self.ui.set_widgets()
+    }
+
+    pub fn get_width(&self) -> f64 {
+        self.ui.win_w
+    }
+
+    pub fn get_height(&self) -> f64 {
+        self.ui.win_h
+    }
+
+    pub fn get_state(&self) -> UiState {
+        self.state
     }
 }

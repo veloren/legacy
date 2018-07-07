@@ -32,7 +32,7 @@ use keybinds::Keybinds;
 use key_state::KeyState;
 use vox::vox_to_model;
 
-struct Payloads {}
+pub struct Payloads {}
 impl client::Payloads for Payloads {
     type Chunk = (Mesh, Option<ModelObject>);
 }
@@ -290,7 +290,7 @@ impl Game {
         }
 
         // Draw ui
-        self.ui.lock().unwrap().render(&mut renderer, &self.window.get_size());
+        self.ui.lock().unwrap().render(&mut renderer, &self.client.clone(), &self.window.get_size());
 
         self.window.swap_buffers();
         renderer.end_frame();

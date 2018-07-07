@@ -62,7 +62,7 @@ impl Game {
     pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R) -> Game {
         let window = RenderWindow::new();
 
-        let vox = dot_vox::load("vox/3.vox").unwrap();
+        let vox = dot_vox::load("data/vox/3.vox").unwrap();
         let voxmodel = vox_to_model(vox);
 
         let player_mesh = Mesh::from_with_offset(&voxmodel, vec3!(-10.0, -4.0, 0.0));
@@ -72,7 +72,7 @@ impl Game {
             &player_mesh,
         );
 
-        let vox = dot_vox::load("vox/5.vox").unwrap();
+        let vox = dot_vox::load("data/vox/5.vox").unwrap();
         let voxmodel = vox_to_model(vox);
 
         let other_player_mesh = Mesh::from(&voxmodel);

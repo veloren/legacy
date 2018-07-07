@@ -69,7 +69,7 @@ impl Ui {
     }
 
     pub fn add_version_number(&mut self) {
-        let fid =self.ui.fonts.insert_from_file("assets/fonts/NotoSans-Regular.ttf").unwrap();
+        let fid =self.ui.fonts.insert_from_file("data/assets/fonts/NotoSans-Regular.ttf").unwrap();
         self.ui.theme.font_id = Some(fid);
         self.fid = Some(fid);
     }

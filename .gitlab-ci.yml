@@ -95,7 +95,7 @@ nightly-debug:
     - cp target/debug/server-cli nightly
     - cp target/debug/voxygen nightly
     - cp target/debug/headless nightly
-    - cp -r voxygen/vox nightly/vox
+    - cp -r voxygen/data nightly/data/
     - rm -f nightly-debug.tar.bz2
     - tar -cvjSf nightly-debug.tar.bz2 nightly
   when: always

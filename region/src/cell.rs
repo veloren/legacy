@@ -1,5 +1,3 @@
-use enum_map::EnumMap;
-
 use Voxel;
 
 #[derive(Copy, Clone)]

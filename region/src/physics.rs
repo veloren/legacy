@@ -9,7 +9,7 @@ use coord::prelude::*;
 use common::{Uid};
 
 // Local
-use super::{Entity, VolMgr, VolGen, VolState, Chunk, Voxel, Volume, collision::Collidable, collision::Cuboid};
+use super::{Entity, VolMgr, VolState, Chunk, Voxel};
 
 pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
             chunk_mgr: &VolMgr<Chunk, P>,

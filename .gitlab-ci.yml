@@ -75,6 +75,9 @@ nightly-debug:
     paths:
       - nightly-debug.tar.bz2
     expire_in: 1 week
+  only:
+    refs:
+      - master
 
 #nightly-release:
 #  stage: deploy
@@ -113,6 +116,9 @@ nightly-windows-debug:
     paths:
       - nightly-windows-debug.zip
     expire_in: 1 week
+  only:
+    refs:
+      - master
 
 coverage:
   stage: post-run

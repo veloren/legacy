@@ -28,14 +28,14 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         // Gravity
         match chunk_mgr.at(vec2!(chunk_x, chunk_y)) {
             Some(c) => match *c.read().unwrap() {
-                VolState::Exists(_, _) => entity.move_dir_mut().z -= 0.2,
+                VolState::Exists(_, _) => entity.vel_mut().z -= 0.2,
                 _ => {},
             }
             None => {},
         }
 
-        let move_dir = entity.move_dir();
-        *entity.pos_mut() += move_dir * dt;
+        let vel = *entity.vel() + *entity.ctrl_vel();
+        *entity.pos_mut() += vel * dt;
 
         /*
         let player_col = Collidable::Cuboid{cuboid: Cuboid::new(vec3!(
@@ -83,7 +83,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
             (entity.pos().y as i64),
             (entity.pos().z as i64)
         )).is_solid() {
-            entity.move_dir_mut().z = 0.0;
+            entity.vel_mut().z = 0.0;
             entity.pos_mut().z += 0.0025;
         }
 

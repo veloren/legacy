@@ -165,14 +165,14 @@ impl<P: Payloads> Client<P> {
                 // Apply gravity to the player
                 if let Some(c) = self.chunk_mgr().at(vec2!(player_chunk.x, player_chunk.y)) {
                     if let VolState::Exists(_, _) = *c.read().unwrap() {
-                        let below_feet = player_entity.pos() - vec3!(0.0, 0.0, -0.1);
+                        let below_feet = *player_entity.pos() - vec3!(0.0, 0.0, -0.1);
                             if player_entity
                                 .get_aabb()
                                 .shift_by(vec3!(0.0, 0.0, -0.1)) // Move it a little below the player to check whether we're on the ground
                                 .collides_with(self.chunk_mgr()) {
-                                player_entity.move_dir_mut().z = 0.0;
+                                player_entity.vel_mut().z = 0.0;
                             } else {
-                                player_entity.move_dir_mut().z -= 0.15;
+                                player_entity.vel_mut().z -= 0.15;
                             }
                     }
                 }
@@ -181,7 +181,7 @@ impl<P: Payloads> Client<P> {
 
         // Move all entities, avoiding collisions
         for (uid, entity) in self.entities_mut().iter_mut() {
-            let mut dpos = entity.move_dir() * dt;
+            let mut dpos = (*entity.vel() + *entity.ctrl_vel()) * dt;
 
             // Resolve collisions with the terrain
             let dpos = entity.get_aabb().resolve_with(self.chunk_mgr(), dpos);
@@ -193,9 +193,10 @@ impl<P: Payloads> Client<P> {
         if let Some(uid) = self.player().entity_uid {
             if let Some(player_entity) = self.entities().get(&uid) {
                 self.conn.send(ClientMessage::PlayerEntityUpdate {
-                    pos: player_entity.pos(),
-                    move_dir: player_entity.move_dir(),
-                    look_dir: player_entity.look_dir(),
+                    pos: *player_entity.pos(),
+                    vel: *player_entity.vel(),
+                    ctrl_vel: *player_entity.ctrl_vel(),
+                    look_dir: *player_entity.look_dir(),
                 });
             }
         }
@@ -207,7 +208,7 @@ impl<P: Payloads> Client<P> {
                 if version == get_version() {
                     if let Some(uid) = entity_uid {
                         if !self.entities().contains_key(&uid) {
-                            self.entities_mut().insert(uid, Entity::new(vec3!(0.0, 0.0, 0.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)));
+                            self.entities_mut().insert(uid, Entity::new(vec3!(0.0, 0.0, 0.0), vec3!(0.0, 0.0, 0.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)));
                         }
                     }
                     self.player_mut().entity_uid = entity_uid;
@@ -224,17 +225,18 @@ impl<P: Payloads> Client<P> {
             }
             ServerMessage::Shutdown => self.set_status(ClientStatus::Disconnected),
             ServerMessage::RecvChatMsg { alias, msg } => self.callbacks().call_recv_chat_msg(&alias, &msg),
-            ServerMessage::EntityUpdate { uid, pos, move_dir, look_dir } => {
-                info!("Entity Update: uid:{} at pos:{:#?}, move_dir:{:#?}, look_dir:{:#?}", uid, pos, move_dir, look_dir);
+            ServerMessage::EntityUpdate { uid, pos, vel, ctrl_vel, look_dir } => {
+                info!("Entity Update: uid:{} at pos:{:#?}, vel:{:#?}, ctrl_vel:{:#?} look_dir:{:#?}", uid, pos, vel, ctrl_vel, look_dir);
 
                 let mut entities = self.entities_mut();
                 match entities.get_mut(&uid) {
                     Some(e) => {
                         *e.pos_mut() = pos;
-                        *e.move_dir_mut() = move_dir;
+                        *e.vel_mut() = vel;
+                        *e.ctrl_vel_mut() = ctrl_vel;
                         *e.look_dir_mut() = look_dir;
                     }
-                    None => { entities.insert(uid, Entity::new(pos, move_dir, look_dir)); },
+                    None => { entities.insert(uid, Entity::new(pos, vel, ctrl_vel, look_dir)); },
                 }
             },
             ServerMessage::Ping => self.conn.send(ClientMessage::Ping),

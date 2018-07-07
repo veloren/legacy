@@ -43,7 +43,7 @@ impl Config {
 
     pub fn write_to(&self, config_path: &Path) {
         let mut file = File::create(config_path).unwrap();
-        file.write_all(&toml::to_string(&default_config()).unwrap().as_bytes());
+        file.write_all(&toml::to_string(&default_config()).unwrap().as_bytes()).unwrap();
     }
 }
 impl ConfigNetwork {

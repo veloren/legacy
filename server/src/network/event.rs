@@ -6,7 +6,7 @@ use std::net::TcpStream;
 use bifrost::{Relay, Event};
 
 // Project
-use common::net::{Error, Connection, ClientMessage, UdpMgr};
+use common::net::{ClientMessage, UdpMgr};
 
 // Local
 use session::Session;
@@ -21,7 +21,7 @@ pub struct NewSessionEvent {
 
 impl Event<ServerContext> for NewSessionEvent {
     fn process(self: Box<Self>, relay: &Relay<ServerContext>, ctx: &mut ServerContext) {
-        let mut session = box Session::new(self.session_id, self.stream.try_clone().unwrap(), self.udpmgr, relay);
+        let session = box Session::new(self.session_id, self.stream.try_clone().unwrap(), self.udpmgr, relay);
         ctx.add_session(session);
         info!("New session ! id: {}", self.session_id);
     }
@@ -42,7 +42,7 @@ pub struct KickSession {
     pub session_id: u32,
 }
 impl Event<ServerContext> for KickSession {
-    fn process(self: Box<Self>, relay: &Relay<ServerContext>, ctx: &mut ServerContext) {
+    fn process(self: Box<Self>, _relay: &Relay<ServerContext>, ctx: &mut ServerContext) {
         ctx.kick_session(self.session_id);
     }
 }

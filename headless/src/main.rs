@@ -53,6 +53,8 @@ fn main() {
         Err(e) => panic!("An error occured when attempting to initiate the client: {:?}", e),
     };
 
+    client.start();
+
     let (tx, rx) = mpsc::channel();
     client.callbacks().set_recv_chat_msg(move |alias, msg| {
         tx.send(format!("{}: {}", alias, msg)).unwrap();

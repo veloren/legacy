@@ -30,7 +30,7 @@ use std::net::{ToSocketAddrs};
 use coord::prelude::*;
 
 // Project
-use region::{Entity, VolMgr, VolGen, VolState};
+use region::{Entity, VolMgr, VolGen, VolState, physics};
 use common::{get_version, Uid};
 use common::net;
 use common::net::{Connection, ServerMessage, ClientMessage, Callback, UdpMgr};
@@ -154,39 +154,7 @@ impl<P: Payloads> Client<P> {
     }
 
     fn tick(&self, dt: f32) {
-        if let Some(uid) = self.player().entity_uid {
-            if let Some(player_entity) = self.entities_mut().get_mut(&uid) {
-                let player_chunk = player_entity
-                    .pos()
-                    .map(|e| e as i64)
-                    .div_euc(vec3!([CHUNK_SIZE; 3]));
-
-                // Apply gravity to the player
-                if let Some(c) = self.chunk_mgr().at(vec2!(player_chunk.x, player_chunk.y)) {
-                    if let VolState::Exists(_, _) = *c.read().unwrap() {
-                        let _below_feet = *player_entity.pos() - vec3!(0.0, 0.0, -0.1);
-                        if player_entity
-                            .get_aabb()
-                            .shift_by(vec3!(0.0, 0.0, -0.1)) // Move it a little below the player to check whether we're on the ground
-                            .collides_with(self.chunk_mgr()) {
-                            player_entity.vel_mut().z = 0.0;
-                        } else {
-                            player_entity.vel_mut().z -= 0.15;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Move all entities, avoiding collisions
-        for (_uid, entity) in self.entities_mut().iter_mut() {
-            let dpos = (*entity.vel() + *entity.ctrl_vel()) * dt;
-
-            // Resolve collisions with the terrain
-            let dpos = entity.get_aabb().resolve_with(self.chunk_mgr(), dpos);
-
-            *entity.pos_mut() += dpos;
-        }
+        physics::tick(&self.entities, &self.chunk_mgr, CHUNK_SIZE, dt);
 
         // Update the server with information about the player
         if let Some(uid) = self.player().entity_uid {

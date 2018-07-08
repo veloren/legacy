@@ -17,22 +17,39 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
             dt: f32) {
     let mut entities = entities.write().unwrap();
     for (.., entity) in entities.iter_mut() {
-        let (chunk_x, chunk_y) = (
-            (entity.pos().x as i64).div_euc(chunk_size),
-            (entity.pos().y as i64).div_euc(chunk_size)
-        );
+        let chunk = entity
+            .pos()
+            .map(|e| e as i64)
+            .div_euc(vec3!([chunk_size; 3]));
 
         // Gravity
-        match chunk_mgr.at(vec2!(chunk_x, chunk_y)) {
-            Some(c) => match *c.read().unwrap() {
-                VolState::Exists(_, _) => entity.vel_mut().z -= 0.2,
-                _ => {},
+        if let Some(c) = chunk_mgr.at(vec2!(chunk.x, chunk.y)) {
+            if let VolState::Exists(_, _) = *c.read().unwrap() {
+                let _below_feet = *entity.pos() - vec3!(0.0, 0.0, -0.1);
+                if entity
+                    .get_aabb()
+                    .shift_by(vec3!(0.0, 0.0, -0.1)) // Move it a little below the player to check whether we're on the ground
+                    .collides_with(chunk_mgr) {
+                    entity.vel_mut().z = 0.0;
+                } else {
+                    entity.vel_mut().z -= 0.15;
+                }
             }
-            None => {},
         }
+        // Gravity
+        //entity.vel_mut().z -= 0.15;
 
+        let dpos = (*entity.vel() + *entity.ctrl_vel()) * dt;
+
+        // Resolve collisions with the terrain
+        let dpos = entity.get_aabb().resolve_with(chunk_mgr, dpos);
+
+        *entity.pos_mut() += dpos;
+
+        /*
         let vel = *entity.vel() + *entity.ctrl_vel();
         *entity.pos_mut() += vel * dt;
+        */
 
         /*
         let player_col = Collidable::Cuboid{cuboid: Cuboid::new(vec3!(
@@ -74,6 +91,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         }
         */
 
+        /*
         while chunk_mgr.get_voxel_at(vec3!(
             entity.pos().x as i64,
             entity.pos().y as i64,
@@ -81,7 +99,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         )).is_solid() {
             entity.vel_mut().z = 0.0;
             entity.pos_mut().z += 0.0025;
-        }
+        }*/
 
 
     }

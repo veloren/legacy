@@ -1,11 +1,10 @@
-use ui::Ui;
+use ui::UiInternal;
 
 use conrod::{
     widget,
     Widget,
     Positionable,
     Colorable,
-    Sizeable,
     color,
     Borderable,
 };
@@ -34,10 +33,9 @@ impl UiState {
 #[derive(Copy, Clone, Debug)]
 pub enum MenuPage {
     Main,
-    Settings
 }
 
-pub fn render(ui: &mut Ui) {
+pub fn render(ui: &mut UiInternal) {
     let master_id = ui.generate_widget_id();
     let left_col_id = ui.generate_widget_id();
     let mid_col_id = ui.generate_widget_id();
@@ -73,7 +71,8 @@ pub fn render(ui: &mut Ui) {
         (right_col_id,widget::Canvas::new().color(color::TRANSPARENT).length_weight(0.2).border(0.0).flow_down(&right_col)),
     ];
 
-    let master = widget::Canvas::new().
+
+    widget::Canvas::new().
         flow_right(&master_cols)
         .color(color::TRANSPARENT)
         .border(0.0)
@@ -91,7 +90,7 @@ pub fn render(ui: &mut Ui) {
     }
 
     if state.fps {
-        let mut w = widget::Text::new(&format!("Fps {}", fps))
+        widget::Text::new(&format!("Fps {}", fps))
             .color(color::DARK_CHARCOAL)
             .mid_right_with_margin_on(right_col_bot_fps, 10.0)
             .right_justify()

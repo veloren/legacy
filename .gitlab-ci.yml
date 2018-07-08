@@ -159,4 +159,4 @@ coverage:
       else
         RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin;
       fi
-    - (cd common && cargo tarpaulin)
+    - cargo tarpaulin --skip-clean --exclude headless

@@ -32,8 +32,14 @@ impl AABB {
     }
 
     pub fn collides_with<V: VolCollider>(&self, vol: &V) -> bool {
-        let size = self.size();
+        let size = self.size().map(|c| c.abs());
         let mut pos = vec3!(0.0, 0.0, 0.0);
+
+        let low_p = vec3!(
+            self.p0.x.min(self.p1.x),
+            self.p0.y.min(self.p1.y),
+            self.p0.z.min(self.p1.z)
+        );
 
         // This logic is horribly long, but works.
         // Yes, the repeated tests are there for a reason.
@@ -43,21 +49,21 @@ impl AABB {
             while pos.y < size.y {
                 pos.z = 0.0;
                 while pos.z < size.z {
-                    if vol.is_solid_at(self.p0 + pos) {
+                    if vol.is_solid_at(low_p + pos) {
                         return true;
                     }
-                    pos.z = (pos.z + 0.5).min(size.z);
-                    if vol.is_solid_at(self.p0 + pos) {
+                    pos.z = (pos.z + size.z.min(0.5)).min(size.z);
+                    if vol.is_solid_at(low_p + pos) {
                         return true;
                     }
                 }
-                pos.y = (pos.y + 0.5).min(size.y);
-                if vol.is_solid_at(self.p0 + pos) {
+                pos.y = (pos.y + size.y.min(0.5)).min(size.y);
+                if vol.is_solid_at(low_p + pos) {
                     return true;
                 }
             }
-            pos.x = (pos.x + 0.5).min(size.x);
-            if vol.is_solid_at(self.p0 + pos) {
+            pos.x = (pos.x + size.x.min(0.5)).min(size.x);
+            if vol.is_solid_at(low_p + pos) {
                 return true;
             }
         }

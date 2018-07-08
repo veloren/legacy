@@ -11,6 +11,7 @@ extern crate region;
 // Modules
 mod player;
 mod callbacks;
+mod error;
 
 // Reexport
 pub use common::net::ClientMode;
@@ -22,7 +23,7 @@ pub const CHUNK_SIZE: i64 = 32;
 // Standard
 use std::thread;
 use std::time;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Barrier};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Mutex};
 use std::collections::HashMap;
 use std::net::{ToSocketAddrs};
 
@@ -31,29 +32,17 @@ use coord::prelude::*;
 
 // Project
 use region::{Entity, VolMgr, VolGen, VolState};
-use common::{get_version, Uid};
-use common::net;
+use common::{get_version, Uid, Jobs, JobHandle};
 use common::net::{Connection, ServerMessage, ClientMessage, Callback, UdpMgr};
 
 // Local
 use player::Player;
 use callbacks::Callbacks;
+use error::Error;
 
 const VIEW_DISTANCE: i64 = 3;
 
-// Errors that may occur within this crate
-#[derive(Debug)]
-pub enum Error {
-    NetworkErr(net::Error),
-}
-
-impl From<net::Error> for Error {
-    fn from(e: net::Error) -> Error {
-        Error::NetworkErr(e)
-    }
-}
-
-#[derive(PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum ClientStatus {
     Connecting,
     Connected,
@@ -66,6 +55,9 @@ pub trait Payloads: 'static {
 }
 
 pub struct Client<P: Payloads> {
+    pub jobs: Jobs<Client<P>>,
+    run_job: Mutex<Option<JobHandle<()>>>,
+
     status: RwLock<ClientStatus>,
     conn: Arc<Connection<ServerMessage>>,
 
@@ -75,8 +67,6 @@ pub struct Client<P: Payloads> {
     chunk_mgr: VolMgr<Chunk, <P as Payloads>::Chunk>,
 
     callbacks: RwLock<Callbacks>,
-
-    finished: Barrier, // We use this to synchronize client shutdown
 }
 
 impl<P: Payloads> Callback<ServerMessage> for Client<P> {
@@ -90,12 +80,21 @@ fn gen_chunk(pos: Vec2<i64>) -> Chunk {
 }
 
 impl<P: Payloads> Client<P> {
-    pub fn new<U: ToSocketAddrs, GF: FnPayloadFunc<Chunk, P::Chunk, Output=P::Chunk>>(mode: ClientMode, alias: String, remote_addr: U, gen_payload: GF) -> Result<Arc<Client<P>>, Error> {
+    pub fn new<U: ToSocketAddrs, GF: FnPayloadFunc<Chunk, P::Chunk, Output=P::Chunk>>(
+        mode: ClientMode,
+        alias: String,
+        remote_addr: U,
+        gen_payload: GF
+    ) -> Result<Arc<Client<P>>, Error>
+    {
         let conn = Connection::new::<U>(&remote_addr, Box::new(|_m| {}), None, UdpMgr::new())?;
         conn.send(ClientMessage::Connect{ mode, alias: alias.clone(), version: get_version() });
         Connection::start(&conn);
 
         let client = Arc::new(Client {
+            jobs: Jobs::new(),
+            run_job: Mutex::new(None),
+
             status: RwLock::new(ClientStatus::Connecting),
             conn,
 
@@ -105,100 +104,18 @@ impl<P: Payloads> Client<P> {
             chunk_mgr: VolMgr::new(CHUNK_SIZE, VolGen::new(gen_chunk, gen_payload)),
 
             callbacks: RwLock::new(Callbacks::new()),
-
-            finished: Barrier::new(3),
         });
 
         *client.conn.callbackobj() = Some(client.clone());
 
-        Self::start(client.clone());
+        let client_ref = client.clone();
+        client.jobs.set_root(client_ref);
 
         Ok(client)
     }
 
     fn set_status(&self, status: ClientStatus) {
         *self.status.write().unwrap() = status;
-    }
-
-    fn manage_chunks(&self) {
-         // Generate terrain around the player
-        if let Some(uid) = self.player().entity_uid {
-            if let Some(player_entity) = self.entities_mut().get_mut(&uid) {
-                let player_chunk = player_entity
-                    .pos()
-                    .map(|e| e as i64)
-                    .div_euc(vec3!([CHUNK_SIZE; 3]));
-
-                for i in player_chunk.x - VIEW_DISTANCE .. player_chunk.x + VIEW_DISTANCE + 1 {
-                    for j in player_chunk.y - VIEW_DISTANCE .. player_chunk.y + VIEW_DISTANCE + 1 {
-                        if !self.chunk_mgr().contains(vec2!(i, j)) {
-                            self.chunk_mgr().gen(vec2!(i, j));
-                        }
-                    }
-                }
-
-                // Could be more efficient
-                // (maybe? careful: deadlocks)
-                let chunk_pos = self.chunk_mgr()
-                    .volumes()
-                    .keys()
-                    .map(|p| *p)
-                    .collect::<Vec<_>>();
-                for pos in chunk_pos {
-                    if (pos - vec2!(player_chunk.x, player_chunk.y)).snake_length() > VIEW_DISTANCE * 2 {
-                        self.chunk_mgr().remove(pos);
-                    }
-                }
-            }
-        }
-    }
-
-    fn tick(&self, dt: f32) {
-        if let Some(uid) = self.player().entity_uid {
-            if let Some(player_entity) = self.entities_mut().get_mut(&uid) {
-                let player_chunk = player_entity
-                    .pos()
-                    .map(|e| e as i64)
-                    .div_euc(vec3!([CHUNK_SIZE; 3]));
-
-                // Apply gravity to the player
-                if let Some(c) = self.chunk_mgr().at(vec2!(player_chunk.x, player_chunk.y)) {
-                    if let VolState::Exists(_, _) = *c.read().unwrap() {
-                        let _below_feet = *player_entity.pos() - vec3!(0.0, 0.0, -0.1);
-                        if player_entity
-                            .get_aabb()
-                            .shift_by(vec3!(0.0, 0.0, -0.1)) // Move it a little below the player to check whether we're on the ground
-                            .collides_with(self.chunk_mgr()) {
-                            player_entity.vel_mut().z = 0.0;
-                        } else {
-                            player_entity.vel_mut().z -= 0.15;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Move all entities, avoiding collisions
-        for (_uid, entity) in self.entities_mut().iter_mut() {
-            let dpos = (*entity.vel() + *entity.ctrl_vel()) * dt;
-
-            // Resolve collisions with the terrain
-            let dpos = entity.get_aabb().resolve_with(self.chunk_mgr(), dpos);
-
-            *entity.pos_mut() += dpos;
-        }
-
-        // Update the server with information about the player
-        if let Some(uid) = self.player().entity_uid {
-            if let Some(player_entity) = self.entities().get(&uid) {
-                self.conn.send(ClientMessage::PlayerEntityUpdate {
-                    pos: *player_entity.pos(),
-                    vel: *player_entity.vel(),
-                    ctrl_vel: *player_entity.ctrl_vel(),
-                    look_dir: *player_entity.look_dir(),
-                });
-            }
-        }
     }
 
     fn handle_packet(&self, packet: ServerMessage) {
@@ -225,8 +142,6 @@ impl<P: Payloads> Client<P> {
             ServerMessage::Shutdown => self.set_status(ClientStatus::Disconnected),
             ServerMessage::RecvChatMsg { alias, msg } => self.callbacks().call_recv_chat_msg(&alias, &msg),
             ServerMessage::EntityUpdate { uid, pos, vel, ctrl_vel, look_dir } => {
-                info!("Entity Update: uid:{} at pos:{:#?}, vel:{:#?}, ctrl_vel:{:#?} look_dir:{:#?}", uid, pos, vel, ctrl_vel, look_dir);
-
                 let mut entities = self.entities_mut();
                 match entities.get_mut(&uid) {
                     Some(e) => {
@@ -243,35 +158,119 @@ impl<P: Payloads> Client<P> {
         }
     }
 
-    fn start(client: Arc<Client<P>>) {
+    fn update_chunks(&self) {
+        if let Some(uid) = self.player().entity_uid {
+            if let Some(player_entity) = self.entities_mut().get_mut(&uid) {
+                let player_chunk = player_entity
+                    .pos()
+                    .map(|e| e as i64)
+                    .div_euc(vec3!([CHUNK_SIZE; 3]));
 
-        let client_ref = client.clone();
-        thread::spawn(move || {
-            while *client_ref.status() != ClientStatus::Disconnected {
-                client_ref.tick(0.2);
-                thread::sleep(time::Duration::from_millis(20));
-            }
-            // Notify anything else that we've finished ticking
-            client_ref.finished.wait();
-        });
+                // Generate chunks around the player
+                for i in player_chunk.x - VIEW_DISTANCE .. player_chunk.x + VIEW_DISTANCE + 1 {
+                    for j in player_chunk.y - VIEW_DISTANCE .. player_chunk.y + VIEW_DISTANCE + 1 {
+                        if !self.chunk_mgr().contains(vec2!(i, j)) {
+                            self.chunk_mgr().gen(vec2!(i, j));
+                        }
+                    }
+                }
 
-        thread::spawn(move || {
-            while *client.status() != ClientStatus::Disconnected {
-                client.manage_chunks();
-                thread::sleep(time::Duration::from_millis(100));
+                // Remove chunks that are too far from the player
+                // TODO: Could be more efficient (maybe? careful: deadlocks)
+                let chunk_pos = self.chunk_mgr()
+                    .volumes()
+                    .keys()
+                    .map(|p| *p)
+                    .collect::<Vec<_>>();
+                for pos in chunk_pos {
+                    // What?! Don't use snake_length
+                    if (pos - vec2!(player_chunk.x, player_chunk.y)).snake_length() > VIEW_DISTANCE * 2 {
+                        self.chunk_mgr().remove(pos);
+                    }
+                }
             }
-            // Notify anything else that we've finished ticking
-            client.finished.wait();
-        });
+        }
     }
 
-    // Public interface
+    fn update_physics(&self, dt: f32) {
+        // Apply gravity to the play if they are both within a loaded chunk and have ground beneath their feet
+        // TODO: We should be able to make this much smaller
+        if let Some(uid) = self.player().entity_uid {
+            if let Some(player_entity) = self.entities_mut().get_mut(&uid) {
+                let player_chunk = player_entity
+                    .pos()
+                    .map(|e| e as i64)
+                    .div_euc(vec3!([CHUNK_SIZE; 3]));
+
+                // Apply gravity to the player
+                if let Some(c) = self.chunk_mgr().at(vec2!(player_chunk.x, player_chunk.y)) {
+                    if let VolState::Exists(_, _) = *c.read().unwrap() {
+                        let _below_feet = *player_entity.pos() - vec3!(0.0, 0.0, -0.1);
+                        if player_entity // Get the player's...
+                            .get_aabb() // ...bounding box...
+                            .shift_by(vec3!(0.0, 0.0, -0.1)) // ...move it a little below the player...
+                            .collides_with(self.chunk_mgr()) { // ...and check whether it collides with the ground.
+                            player_entity.vel_mut().z = 0.0;
+                        } else {
+                            player_entity.vel_mut().z -= 0.15; // Apply gravity
+                        }
+                    }
+                } else {
+                    player_entity.vel_mut().z = 0.0;
+                }
+            }
+        }
+
+        // Move all entities, avoiding collisions
+        for (_uid, entity) in self.entities_mut().iter_mut() {
+            // First, calculate the change in position assuming no external influences
+            let dpos = (*entity.vel() + *entity.ctrl_vel()) * dt;
+
+            // Resolve collisions with the terrain, altering the change in position accordingly
+            let dpos = entity.get_aabb().resolve_with(self.chunk_mgr(), dpos);
+
+            // Change the entity's position
+            *entity.pos_mut() += dpos;
+        }
+    }
+
+    fn update_server(&self) {
+        // Update the server with information about the player
+        if let Some(uid) = self.player().entity_uid {
+            if let Some(player_entity) = self.entities().get(&uid) {
+                self.conn.send(ClientMessage::PlayerEntityUpdate {
+                    pos: *player_entity.pos(),
+                    vel: *player_entity.vel(),
+                    ctrl_vel: *player_entity.ctrl_vel(),
+                    look_dir: *player_entity.look_dir(),
+                });
+            }
+        }
+    }
+
+    fn tick(&self, dt: f32) -> bool {
+        self.update_chunks();
+        self.update_physics(dt);
+        self.update_server();
+
+        *self.status() != ClientStatus::Disconnected
+    }
+
+    pub fn start(&self) {
+        if self.run_job.lock().unwrap().is_none() {
+            *self.run_job.lock().unwrap() = Some(self.jobs.do_loop(|c| {
+                thread::sleep(time::Duration::from_millis(20));
+                c.tick(0.2)
+            }));
+        }
+    }
 
     pub fn shutdown(&self) {
         self.conn.send(ClientMessage::Disconnect);
         self.set_status(ClientStatus::Disconnected);
-        self.finished.wait();
-        //thread::sleep(time::Duration::from_millis(50)); // workaround for making sure that networking sends the Disconnect Msg
+        if let Some(jh) = self.run_job.lock().unwrap().take() {
+            jh.await();
+        }
     }
 
     pub fn send_chat_msg(&self, msg: String) {
@@ -293,4 +292,9 @@ impl<P: Payloads> Client<P> {
 
     pub fn entities<'a>(&'a self) -> RwLockReadGuard<'a, HashMap<Uid, Entity>> { self.entities.read().unwrap() }
     pub fn entities_mut<'a>(&'a self) -> RwLockWriteGuard<'a, HashMap<Uid, Entity>> { self.entities.write().unwrap() }
+
+    pub fn player_entity<'a>(&'a self) -> Option<&'a Entity> {
+        unimplemented!();
+        //self.player().entity_uid.and_then(|uid| self.entities().map(|e| e.get(&uid)))
+    }
 }

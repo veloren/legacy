@@ -9,9 +9,6 @@ use std::f32::consts::PI;
 use std::collections::HashMap;
 //use std::f32::{sin, cos};
 
-// Import contants
-use client::CHUNK_SIZE;
-
 // Library
 use nalgebra::{Vector2, Vector3, Translation3, Rotation3, convert, dot};
 use coord::prelude::*;
@@ -21,13 +18,14 @@ use dot_vox;
 // Project
 use client;
 use client::{Client, ClientMode};
+use client::CHUNK_SIZE;
+use region::{Chunk, VolState};
 
 // Local
 use camera::Camera;
 use window::{RenderWindow, Event};
 use model_object::{ModelObject, Constants};
 use mesh::{Mesh};
-use region::{Chunk, VolState};
 use keybinds::Keybinds;
 use key_state::KeyState;
 use vox::vox_to_model;
@@ -87,14 +85,18 @@ impl Game {
 
         let mut ui = Ui::new(&mut window.renderer_mut(), window_dims);
 
+        let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload)
+            .expect("Could not create new client");
+
+        client.start();
+
         Game {
             data: Mutex::new(Data {
                 player_model,
                 other_player_model,
             }),
             running: AtomicBool::new(true),
-            client: Client::new(mode, alias.to_string(), remote_addr, gen_payload)
-				.expect("Could not create new client"),
+            client,
             window,
             camera: Mutex::new(Camera::new()),
             key_state: Mutex::new(KeyState::new()),

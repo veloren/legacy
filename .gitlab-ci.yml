@@ -95,6 +95,7 @@ nightly-debug:
     - (cd headless && cargo build)
     - rm -r -f nightly
     - mkdir nightly
+    - mkdir nightly/data
     - cp target/debug/server-cli nightly
     - cp target/debug/voxygen nightly
     - cp target/debug/headless nightly

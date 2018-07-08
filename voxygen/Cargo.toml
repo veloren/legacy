@@ -22,3 +22,4 @@ conrod = { git = "https://github.com/veloren/conrod", features = ["gfx_rs"] }
 toml = "0.4.6"
 serde = "1.0"
 serde_derive = "1.0"
+fps_counter = "1.0.0"

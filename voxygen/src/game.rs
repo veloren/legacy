@@ -32,7 +32,7 @@ use keybinds::Keybinds;
 use key_state::KeyState;
 use vox::vox_to_model;
 
-struct Payloads {}
+pub struct Payloads {}
 impl client::Payloads for Payloads {
     type Chunk = (Mesh, Option<ModelObject>);
 }
@@ -44,7 +44,7 @@ pub struct Game {
     data: Mutex<Data>,
     camera: Mutex<Camera>,
     key_state: Mutex<KeyState>,
-    ui: Mutex<Ui>,
+    ui: Ui,
     keys: Keybinds,
 }
 
@@ -86,7 +86,6 @@ impl Game {
         let window_dims = window.get_size();
 
         let mut ui = Ui::new(&mut window.renderer_mut(), window_dims);
-        ui.add_version_number();
 
         Game {
             data: Mutex::new(Data {
@@ -99,7 +98,7 @@ impl Game {
             window,
             camera: Mutex::new(Camera::new()),
             key_state: Mutex::new(KeyState::new()),
-            ui: Mutex::new(ui),
+            ui,
             keys: Keybinds::new(),
         }
     }
@@ -172,11 +171,26 @@ impl Game {
                     // Mount inputs ---------------------------------------------------------------
                     // placeholder
                     // ----------------------------------------------------------------------------
+
+                    // UI Code
+                    self.ui.ui_event_keyboard_input(i);
                 },
                 Event::Resized { w, h } => {
                     self.camera.lock().unwrap().set_aspect_ratio(w as f32 / h as f32);
+                    self.ui.ui_event_window_resize(w, h);
                 },
-                //_ => {},
+                Event::MouseButton { state, button } => {
+                    self.ui.ui_event_mouse_button(state, button);
+                },
+                Event::CursorPosition { x, y} => {
+                    self.ui.ui_event_mouse_pos(x, y);
+                },
+                Event::Character { ch } => {
+                    self.ui.ui_event_character(ch);
+                }
+                Event::Raw { event } => {
+//                    println!("{:?}", event);
+                },
             }
         });
 
@@ -276,7 +290,7 @@ impl Game {
         }
 
         // Draw ui
-        self.ui.lock().unwrap().render(&mut renderer, &self.window.get_size());
+        self.ui.render(&mut renderer, &self.client.clone(), &self.window.get_size());
 
         self.window.swap_buffers();
         renderer.end_frame();

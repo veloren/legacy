@@ -46,7 +46,7 @@ pub struct Ui {
 impl Ui {
     pub fn new(renderer: &mut Renderer, size: [f64; 2]) -> Self {
         let mut ui = UiBuilder::new(size).build();
-        ui.theme.font_id = Some(ui.fonts.insert_from_file("assets/fonts/NotoSans-Regular.ttf").unwrap());
+        ui.theme.font_id = Some(ui.fonts.insert_from_file("data/assets/fonts/NotoSans-Regular.ttf").unwrap());
 
         let image_map = Map::new();
 

@@ -5,8 +5,8 @@ use {Volume, Voxel, Cell};
 pub struct Model {
     size: Vec3<i64>,
     offset: Vec3<i64>,
-    rotation: Vec3<f64>,
-    scale: Vec3<f64>,
+    rotation: Vec3<f32>,
+    scale: Vec3<f32>,
     voxels: Vec<Cell>,
 }
 
@@ -64,11 +64,11 @@ impl Volume for Model {
         self.offset
     }
 
-    fn rotation(&self) -> Vec3<f64> {
+    fn rotation(&self) -> Vec3<f32> {
         self.rotation
     }
 
-    fn scale(&self) -> Vec3<f64> {
+    fn scale(&self) -> Vec3<f32> {
         self.scale
     }
 
@@ -104,11 +104,11 @@ impl Volume for Model {
 
 
 impl Model {
-    pub fn set_rotation(&mut self, rotation: Vec3<f64>) {
+    pub fn set_rotation(&mut self, rotation: Vec3<f32>) {
         self.rotation = rotation;
     }
 
-    pub fn set_scale(&mut self, scale: Vec3<f64>) {
+    pub fn set_scale(&mut self, scale: Vec3<f32>) {
         self.scale = scale;
     }
 }

@@ -1,4 +1,5 @@
 // Local
+use collision::Collidable;
 use {Volume, Voxel};
 
 // Library
@@ -6,6 +7,8 @@ use coord::prelude::*;
 
 pub trait VolCollider {
     fn is_solid_at(&self, pos: Vec3<f32>) -> bool;
+    fn get_nearby(&self, pos: Vec3<f32>, radius: Vec3<f32>) -> Vec<Collidable>;
+    fn scale(&self) -> Vec3<f32>;
 }
 
 impl<V: Volume> VolCollider for V {
@@ -13,6 +16,32 @@ impl<V: Volume> VolCollider for V {
         self.at(pos.floor().map(|e| e as i64))
             .map(|v| v.is_solid())
             .unwrap_or(false)
+    }
+
+    fn get_nearby(&self, pos: Vec3<f32>, radius: Vec3<f32>) -> Vec<Collidable> {
+        let mut result = Vec::new();
+        let area = radius + self.scale();
+        let area = vec3!(area.x as i64, area.y as i64, area.z as i64) + vec3!(1,1,1);
+
+        let posi = vec3!(pos.x as i64, pos.y as i64, pos.z as i64);
+        let low = posi - area;
+        let high = posi + area + vec3!(1,1,1);
+
+        for x in low.z..high.z {
+            for y in low.x..high.x {
+                for z in low.y..high.y {
+                    if self.is_solid_at(vec3!(x as f32,y as f32,z as f32)) {
+                        let col = Collidable::new_cuboid(vec3!(x as f32 + 0.5, y as f32 + 0.5, z as f32 + 0.5), vec3!(0.5, 0.5, 0.5));
+                        result.push(col);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    fn scale(&self) -> Vec3<f32> {
+        self.scale()
     }
 }
 

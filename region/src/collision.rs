@@ -30,6 +30,12 @@ pub fn resolve_collision(a: &Collidable, b: &Collidable) -> Option<CollisionReso
     }
 }
 
+impl Collidable {
+    pub fn new_cuboid(middle: Vec3<f32>, radius: Vec3<f32>) -> Self {
+        Collidable::Cuboid{ cuboid: Cuboid::new(middle, radius) }
+    }
+}
+
 impl Cuboid {
     pub fn new(middle: Vec3<f32>, radius: Vec3<f32>) -> Self {
         Cuboid {
@@ -106,10 +112,7 @@ fn cuboid_cuboid_col(a: &Cuboid, b: &Cuboid) -> Option<CollisionResolution> {
 
               //println!("point {}, correction {}, signed_diff_to_border {}, relevant_a_radius {}", point, correction, signed_diff_to_border, signed_relevant_b_radius);
 
-              if correction == Vec3::new(0.0, 0.0, 0.0) {
-                  assert!( !(ua.x > lb.x && la.x < ub.x &&
-                             ua.y > lb.y && la.y < ub.y &&
-                             ua.z > lb.z && la.z < ub.z));
+              if correction.length() < 0.001 { // some aproximation here
                   return Some(CollisionResolution::Touch{
                       point,
                   });

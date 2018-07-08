@@ -50,9 +50,9 @@ pub trait Volume: Send + Sync {
     // offset of first Voxel in a hypothetical bigger Volume, e.g. offset = (50,0,0) means there is exactly space for another volume with offset (0,0,0) and size 50.
     fn offset(&self) -> Vec3<i64>;
     // rotation on the 3 axis in rad
-    fn rotation(&self) -> Vec3<f64>;
+    fn rotation(&self) -> Vec3<f32>;
     // scale is applied to size and offset
-    fn scale(&self) -> Vec3<f64>;
+    fn scale(&self) -> Vec3<f32>;
 
     fn set_size(&mut self, size: Vec3<i64>);
     fn set_offset(&mut self, offset: Vec3<i64>);

@@ -91,11 +91,11 @@ impl Volume for Chunk {
         self.offset
     }
 
-    fn rotation(&self) -> Vec3<f64> {
+    fn rotation(&self) -> Vec3<f32> {
         Vec3::new(0.0, 0.0, 0.0)
     }
 
-    fn scale(&self) -> Vec3<f64> {
+    fn scale(&self) -> Vec3<f32> {
         Vec3::new(1.0, 1.0, 1.0)
     }
 

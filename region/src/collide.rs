@@ -52,11 +52,20 @@ impl AABB {
                     if vol.is_solid_at(low_p + pos) {
                         return true;
                     }
-                    pos.z = (pos.z + size.z.min(0.2)).min(size.z);
+                    pos.z = (pos.z + size.z.min(0.5)).min(size.z);
+                    if vol.is_solid_at(low_p + pos) {
+                        return true;
+                    }
                 }
-                pos.y = (pos.y + size.y.min(0.2)).min(size.y);
+                pos.y = (pos.y + size.y.min(0.5)).min(size.y);
+                if vol.is_solid_at(low_p + pos) {
+                    return true;
+                }
             }
-            pos.x = (pos.x + size.x.min(0.2)).min(size.x);
+            pos.x = (pos.x + size.x.min(0.5)).min(size.x);
+            if vol.is_solid_at(low_p + pos) {
+                return true;
+            }
         }
         false
     }

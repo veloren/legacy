@@ -53,10 +53,17 @@ impl Entity {
         &mut self.look_dir
     }
 
-    pub fn get_aabb(&self) -> AABB {
+    pub fn get_lower_aabb(&self) -> AABB {
         AABB::new(
-            self.pos - vec3!(0.45, 0.45, 0.0),
-            self.pos + vec3!(0.45, 0.45, 1.8),
+            self.pos + vec3!(-0.45, -0.45, 0.0),
+            self.pos + vec3!( 0.45,  0.45, 1.5),
+        )
+    }
+
+    pub fn get_upper_aabb(&self) -> AABB {
+        AABB::new(
+            self.pos + vec3!(-0.45, -0.45, 1.5),
+            self.pos + vec3!( 0.45,  0.45, 1.8),
         )
     }
 }

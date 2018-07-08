@@ -70,7 +70,7 @@ impl AABB {
         false
     }
 
-    pub fn shift_by(&mut self, dpos: Vec3<f32>) -> AABB {
+    pub fn shift_by(&self, dpos: Vec3<f32>) -> AABB {
         AABB {
             p0: self.p0 + dpos,
             p1: self.p1 + dpos,
@@ -78,6 +78,10 @@ impl AABB {
     }
 
     pub fn resolve_with<V: VolCollider>(&self, vol: &V, dpos: Vec3<f32>) -> Vec3<f32> {
+        if !self.shift_by(dpos).collides_with(vol) {
+            return dpos;
+        }
+
         let units = [
             vec3!(0.0, 0.0, 1.0),
             vec3!(0.0, 1.0, 0.0),

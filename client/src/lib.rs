@@ -207,7 +207,7 @@ impl<P: Payloads> Client<P> {
                     if let VolState::Exists(_, _) = *c.read().unwrap() {
                         let _below_feet = *player_entity.pos() - vec3!(0.0, 0.0, -0.1);
                         if player_entity // Get the player's...
-                            .get_aabb() // ...bounding box...
+                            .get_lower_aabb() // ...bounding box...
                             .shift_by(vec3!(0.0, 0.0, -0.1)) // ...move it a little below the player...
                             .collides_with(self.chunk_mgr()) { // ...and check whether it collides with the ground.
                             player_entity.vel_mut().z = 0.0;
@@ -224,13 +224,18 @@ impl<P: Payloads> Client<P> {
         // Move all entities, avoiding collisions
         for (_uid, entity) in self.entities_mut().iter_mut() {
             // First, calculate the change in position assuming no external influences
-            let dpos = (*entity.vel() + *entity.ctrl_vel()) * dt;
+            let mut dpos = (*entity.vel() + *entity.ctrl_vel()) * dt;
 
             // Resolve collisions with the terrain, altering the change in position accordingly
-            let dpos = entity.get_aabb().resolve_with(self.chunk_mgr(), dpos);
+            dpos = entity.get_upper_aabb().resolve_with(self.chunk_mgr(), dpos);
 
             // Change the entity's position
             *entity.pos_mut() += dpos;
+
+            // Make the player hop up 1-block steps
+            if entity.get_lower_aabb().collides_with(self.chunk_mgr()) {
+                entity.pos_mut().z += 0.2;
+            }
         }
     }
 

@@ -23,10 +23,6 @@ For active development and creating issues, please look at our [GitLab Repositor
 
 See here for a list of Veloren's features and what we're working on right now.
 
-### [Releases](https://gitlab.com/veloren/game/tags)
-
-See here for a list of past releases.
-
 ### [Future Plans](https://gitlab.com/veloren/game/wikis/Roadmap-1.0.0)
 
 See here for information about Veloren's development roadmap.
@@ -35,33 +31,18 @@ See here for information about Veloren's development roadmap.
 
 See here for information on how you can get involved in shaping Veloren's future. You don't have to know how to program to contribute!
 
+## Compile it yourself
+
+[How to Compile Guide](https://gitlab.com/veloren/game/wikis/Developer's-Corner/Introduction)
+
+## Download it
+
+ - [Lastest Windows Nightly](https://gitlab.com/veloren/game/-/jobs/artifacts/master/download?job=nightly-windows-debug)
+ - [Lastest Linux Nightly](https://gitlab.com/veloren/game/-/jobs/artifacts/master/download?job=nightly-linux-debug)
+ - There is currently no MacOS Nightly
+
+[List of all releases](https://gitlab.com/veloren/game/tags)
+
 ## Credit
 
 Many thanks to everyone that has contributed to Veloren's development, provided ideas, crafted art, composed music, hunted bugs, created tools and supported the project.
-
-## Provide a gitlab destroy_upgraded_shared_port_when_sender_still_active
-If you have a spare computer or vhost you can help the veloren team by providing a gitlab runner to increase test speed for developers.
-Follow the following steps on your machine. Keep in mind that this basically allows remote execution of any code on your machine.
-1. Install gitlab runner on your host: https://docs.gitlab.com/runner/install/linux-repository.html
-2. Follow all steps for comiling the project like descriped above. make sure you can compile the code as gitlab-runner user
-3. install gcc crosscompiler for windows and zip
-```bash
-sudo apt-get install gcc-mingw-w64-x86-64 zip libssl-dev pkg-config cmake zlib1g-dev libncurses5-dev -y
-rustup target add x86_64-pc-windows-gnu
-```
-(https://stackoverflow.com/a/39184296/4311928)
-4. put in `~/.cargo/config` of gitlab-runner user:
-```bash
-[target.x86_64-pc-windows-gnu]
-linker = "x86_64-w64-mingw32-gcc"
-ar = "x86_64-w64-mingw32-gcc-ar"
-```
-5. get a Iphlpapi.dll from windows and put it here: `~/.multirust/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-pc-windows-gnu/lib`
-	make sure only the I is capital. if you have no windows to get this file, ask in the discord chat
-6. register your runner https://docs.gitlab.com/runner/register/
-	- https://gitlab.com
-	- take the token from: https://gitlab.com/veloren/game/settings/ci_cd
-	- description: veloren <your user name>
-	- tags: <none, just press enter>
-	- executor: shell
-7. check of your runner appears here: https://gitlab.com/veloren/game/settings/ci_cd

@@ -23,6 +23,9 @@ pub mod clock;
 pub mod names;
 //pub mod network;
 pub mod net;
+pub mod jobs;
+
+pub use jobs::{Jobs, JobHandle, JobMultiHandle};
 
 pub type Uid = u64;
 

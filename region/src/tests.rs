@@ -5,7 +5,7 @@ use rand::prelude::*;
 // Parent
 use super::collision::{resolve_collision, Collidable, Cuboid, CollisionResolution};
 
-fn newmodel(middle: Vec3<f64>, size: Vec3<f64>) -> Collidable {
+fn newmodel(middle: Vec3<f32>, size: Vec3<f32>) -> Collidable {
     let col = Collidable::Cuboid{ cuboid: Cuboid::new(middle, size) };
     return col;
 }
@@ -128,11 +128,11 @@ fn colide_complex() {
 }
 
 
-fn random_vec(scale: f64) -> Vec3<f64> {
+fn random_vec(scale: f32) -> Vec3<f32> {
     let mut rng = thread_rng();
-    let x = ((rng.gen::<f64>())*scale ) as i64 as f64;
-    let y = ((rng.gen::<f64>())*scale ) as i64 as f64;
-    let z = ((rng.gen::<f64>())*scale ) as i64 as f64;
+    let x = ((rng.gen::<f32>())*scale ) as i64 as f32;
+    let y = ((rng.gen::<f32>())*scale ) as i64 as f32;
+    let z = ((rng.gen::<f32>())*scale ) as i64 as f32;
     Vec3::new(x,y,z)
 }
 

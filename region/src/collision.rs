@@ -2,14 +2,14 @@ use coord::prelude::*;
 
 #[derive(PartialEq, Debug)]
 pub struct Cuboid {
-    middle: Vec3<f64>,
-    radius: Vec3<f64>,
+    middle: Vec3<f32>,
+    radius: Vec3<f32>,
 }
 
 #[derive(PartialEq, Debug)]
 pub enum CollisionResolution {
-    Touch { point: Vec3<f64> },
-    Overlap { point: Vec3<f64>, correction: Vec3<f64>}, //correction = movement of the second parameter to touch the first parameter
+    Touch { point: Vec3<f32> },
+    Overlap { point: Vec3<f32>, correction: Vec3<f32>}, //correction = movement of the second parameter to touch the first parameter
 }
 
 #[derive(PartialEq, Debug)]
@@ -31,25 +31,25 @@ pub fn resolve_collision(a: &Collidable, b: &Collidable) -> Option<CollisionReso
 }
 
 impl Cuboid {
-    pub fn new(middle: Vec3<f64>, radius: Vec3<f64>) -> Self {
+    pub fn new(middle: Vec3<f32>, radius: Vec3<f32>) -> Self {
         Cuboid {
             middle,
             radius,
         }
     }
 
-    #[allow(dead_code)] pub fn lower(&self) -> Vec3<f64> {
+    #[allow(dead_code)] pub fn lower(&self) -> Vec3<f32> {
         self.middle - self.radius
     }
 
-    #[allow(dead_code)] pub fn upper(&self) -> Vec3<f64> {
+    #[allow(dead_code)] pub fn upper(&self) -> Vec3<f32> {
         self.middle + self.radius
     }
 
-    #[allow(dead_code)] pub fn middle(&self) -> &Vec3<f64> { &self.middle }
-    #[allow(dead_code)] pub fn middle_mut(&mut self) -> &mut Vec3<f64> { &mut self.middle }
-    #[allow(dead_code)] pub fn radius(&self) -> &Vec3<f64> { &self.radius }
-    #[allow(dead_code)] pub fn radius_mut(&mut self) -> &mut Vec3<f64> { &mut self.radius }
+    #[allow(dead_code)] pub fn middle(&self) -> &Vec3<f32> { &self.middle }
+    #[allow(dead_code)] pub fn middle_mut(&mut self) -> &mut Vec3<f32> { &mut self.middle }
+    #[allow(dead_code)] pub fn radius(&self) -> &Vec3<f32> { &self.radius }
+    #[allow(dead_code)] pub fn radius_mut(&mut self) -> &mut Vec3<f32> { &mut self.radius }
 }
 
 fn cuboid_cuboid_col(a: &Cuboid, b: &Cuboid) -> Option<CollisionResolution> {

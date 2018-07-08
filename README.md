@@ -2,7 +2,6 @@
 	<img alt="Veloren" src="https://raw.github.com/veloren/game/master/misc/logo.png">
 </p>
 
-[![Build Status](https://travis-ci.org/veloren/game.svg?branch=master)](https://travis-ci.org/veloren/game)
 [![build status](https://gitlab.com/veloren/game/badges/master/build.svg)](https://gitlab.com/veloren/game/pipelines)
 [![coverage](https://gitlab.com/veloren/game/badges/master/coverage.svg)](https://gitlab.com/veloren/game)
 

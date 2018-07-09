@@ -18,6 +18,10 @@ pub enum Collidable {
     //add more here
 }
 
+pub trait Collider {
+    fn get_nearby(&self, pos: Vec3<f32>, radius: Vec3<f32>) -> Vec<Collidable>;
+}
+
 impl Collidable {
     // CollisionResolution is the minimal movement of b to avoid overlap, but allow touch with self
     pub fn resolve_col(&self, b: &Collidable) -> Option<CollisionResolution> {

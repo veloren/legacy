@@ -16,7 +16,6 @@ mod model;
 mod entity;
 mod vol_mgr;
 mod collision;
-mod collide;
 pub mod physics;
 #[cfg(test)]
 mod tests;

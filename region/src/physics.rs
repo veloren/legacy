@@ -7,11 +7,10 @@ use coord::prelude::*;
 
 // Project
 use common::{Uid};
-use collision::{Collidable, CollisionResolution};
-use collide::{Collider};
+use collision::{Collidable, CollisionResolution, Collider};
 
 // Local
-use super::{Entity, VolMgr, VolState, collide::VolCollider, Chunk, Voxel};
+use super::{Entity, VolMgr, VolState, Chunk};
 
 pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
             chunk_mgr: &VolMgr<Chunk, P>,
@@ -71,32 +70,32 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
             // collision with terrain
             //TODO: evaluate to add speed to get_nerby function and just call it once
             let totest = chunk_mgr.get_nearby(middle, radius);
+            println!("test agains: {:?}", totest.len());
 
             for col in totest {
                 //println!("col {:?}", col);
                 let res = col.resolve_col(&entity_col);
                 if let Some(res) = res {
-                    println!("col {:?}", col);
                     println!("res {:?}", res);
                     //apply correction
                     match res {
                         CollisionResolution::Touch{..} => {
-                            println!("touch to much");
+                            //println!("touch to much");
                         },
-                        CollisionResolution::Overlap{ point, correction} => {
+                        CollisionResolution::Overlap{ correction, .. } => {
                             match &mut entity_col {
                                 Collidable::Cuboid { ref mut cuboid } => {
                                     *cuboid.middle_mut() = *cuboid.middle() + correction;
                                     // instant stop if hit anything
                                     println!("correction {}", correction);
                                     println!("before vel {}", entity.vel());
-                                    if (correction.x != 0.0) {
+                                    if correction.x != 0.0 {
                                         entity.vel_mut().x = 0.0;
                                     }
-                                    if (correction.y != 0.0) {
+                                    if correction.y != 0.0 {
                                         entity.vel_mut().y = 0.0;
                                     }
-                                    if (correction.z != 0.0) {
+                                    if correction.z != 0.0 {
                                         entity.vel_mut().z = 0.0;
                                     }
                                     println!("after vel {}", entity.vel());
@@ -107,6 +106,9 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
                 }
             }
         }
+
+        //Friction
+        *entity.vel_mut() *= 0.9_f32.powf(dt);
 
         match &mut entity_col {
             Collidable::Cuboid { ref mut cuboid } => {

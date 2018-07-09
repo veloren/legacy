@@ -1,7 +1,6 @@
 // Local
 use {Volume, Voxel};
-use collide::{VolCollider, Collider};
-use collision::{Collidable, CollisionResolution};
+use collision::{Collidable, CollisionResolution, Collider};
 
 // Standard
 use std::sync::{Arc, RwLock, RwLockReadGuard, Mutex};
@@ -121,14 +120,11 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> Collider for VolMgr<V, P> {
         let scale = vec3!(1.0,1.0,1.0);
         let mut result = Vec::new();
         let area = radius + scale;
-        let area = vec3!(area.x as i64, area.y as i64, area.z as i64) + vec3!(1,1,1);
-        println!("area {}", area);
+        let area = area.map(|e| e as i64) + vec3!(1,1,1);
 
-        let posi = vec3!(pos.x as i64, pos.y as i64, pos.z as i64);
+        let posi = pos.map(|e| e as i64);
         let low = posi - area;
         let high = posi + area + vec3!(1,1,1);
-        println!("low {}", low);
-        println!("high {}", high);
 
         for z in low.z..high.z {
             for x in low.x..high.x {

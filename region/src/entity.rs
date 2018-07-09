@@ -1,6 +1,5 @@
 // Local
-use collide::AABB;
-use collision::{Collidable, Cuboid};
+use collision::Collidable;
 
 // Library
 use coord::prelude::*;
@@ -54,21 +53,8 @@ impl Entity {
         &mut self.look_dir
     }
 
-    pub fn get_lower_aabb(&self) -> AABB {
-        AABB::new(
-            self.pos + vec3!(-0.45, -0.45, 0.0),
-            self.pos + vec3!( 0.45,  0.45, 1.5),
-        )
-    }
-
-    pub fn get_upper_aabb(&self) -> AABB {
-        AABB::new(
-            self.pos + vec3!(-0.45, -0.45, 1.5),
-            self.pos + vec3!( 0.45,  0.45, 1.8),
-        )
-    }
-
     pub fn get_colideable(&self) -> Collidable {
-        Collidable::Cuboid{ cuboid: Cuboid::new(self.pos, vec3!(0.45, 0.45, 0.9))}
+        //TODO: adjust to size
+        Collidable::new_cuboid(self.pos, vec3!(0.45, 0.45, 0.9))
     }
 }

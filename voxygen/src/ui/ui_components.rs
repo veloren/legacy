@@ -116,6 +116,7 @@ pub fn render(ui: &mut Ui) {
         (bottom_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.04)),
     ];
 
+
     widget::Canvas::new().
         flow_down(&master_splits)
         .color(color::TRANSPARENT)
@@ -164,6 +165,7 @@ pub fn render(ui: &mut Ui) {
             .mid_right_with_margin_on(top_right_bot2_id, 5.0)
             .set(version_id, uicell);
     }
+    
     if state.show_chat {
         uicell.global_input_mut().current.widget_capturing_keyboard = Some(text_id);
 

@@ -261,3 +261,13 @@ coverage:
         RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin;
       fi
     - cargo tarpaulin --skip-clean --exclude headless
+
+clippy:
+  stage: post-run
+  script:
+    - if cargo install --list | grep -q "clippy"; then
+        echo "clippy already installed";
+      else
+        cargo install clippy;
+      fi
+    - cargo clippy

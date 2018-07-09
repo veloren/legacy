@@ -60,19 +60,19 @@ impl RenderWindow {
             match event {
                 glutin::Event::DeviceEvent { event, .. } => match event {
                     DeviceEvent::MouseMotion { delta: (dx, dy), .. } => {
-//                        if self.cursor_trapped.load(Ordering::Relaxed) {
-//                            if let Err(_) = gl_window.set_cursor_state(CursorState::Grab) {
-//                                warn!("Could not grap cursor");
-//                                self.cursor_trapped.store(false, Ordering::Relaxed)
-//                            }
-//                            gl_window.set_cursor(MouseCursor::NoneCursor);
-//                        } else {
-//                            if let Err(_) = gl_window.set_cursor_state(CursorState::Normal) {
-//                                warn!("Could not ungrap cursor");
-//                                self.cursor_trapped.store(true, Ordering::Relaxed)
-//                            }
-//                            gl_window.set_cursor(MouseCursor::Default);
-//                        }
+                        if self.cursor_trapped.load(Ordering::Relaxed) {
+                            if let Err(_) = gl_window.set_cursor_state(CursorState::Grab) {
+                                warn!("Could not grap cursor");
+                                self.cursor_trapped.store(false, Ordering::Relaxed)
+                            }
+                            gl_window.set_cursor(MouseCursor::NoneCursor);
+                        } else {
+                            if let Err(_) = gl_window.set_cursor_state(CursorState::Normal) {
+                                warn!("Could not ungrap cursor");
+                                self.cursor_trapped.store(true, Ordering::Relaxed)
+                            }
+                            gl_window.set_cursor(MouseCursor::Default);
+                        }
                         func(Event::CursorMoved { dx, dy });
                     }
                     _ => {},

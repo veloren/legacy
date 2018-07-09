@@ -146,8 +146,22 @@ impl Ui {
         self.state.clone()
     }
 
+    pub fn set_show_chat(&mut self, show: bool) {
+        self.state.show_chat = show;
+    }
+
+    pub fn get_show_chat(&self) -> bool {
+        self.state.show_chat.clone()
+    }
+
     pub fn get_event_tx(&self) -> Sender<UiInternalEvent> {
         self.event_tx.clone()
+    }
+
+    pub fn widget_events<T>(&self, id: widget::Id, fnc: T) where T: Fn(conrod::event::Widget){
+        for widget_event in self.ui.widget_input(id).events() {
+            fnc(widget_event);
+        }
     }
 
     fn update_internal_event(&mut self, client: &Client<Payloads>) {
@@ -158,14 +172,16 @@ impl Ui {
                 },
                 UiInternalEvent::NewChatMessage(alias, msg) => {
                     if self.state.chat_lines.len() >= MAX_CHAT_LINES {
-                        self.state.chat_lines.pop_front();
+                        self.state.chat_lines.pop_back();
                     }
 
-                    self.state.chat_lines.push_back((alias, msg));
+                    self.state.chat_lines.push_front((alias, msg));
                 },
                 UiInternalEvent::SendChat => {
-                    client.send_chat_msg(self.state.chat_message.clone());
-                    self.state.chat_message.clear();
+                    if self.state.chat_message.len() != 0 {
+                        client.send_chat_msg(self.state.chat_message.clone());
+                        self.state.chat_message.clear();
+                    }
                 },
             }
         }

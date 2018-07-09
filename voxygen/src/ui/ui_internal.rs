@@ -62,7 +62,7 @@ impl UiInternal {
     }
 
     pub fn render(&mut self, renderer: &mut Renderer, client: &Client<Payloads>, window_size: &[f64; 2]) {
-        ui_components::render(self);
+        //ui_components::render(self);
         self.conrod_renderer.on_resize(renderer.color_view().clone());
         self.conrod_renderer.fill(&mut renderer.encoder_mut(), (window_size[0] as f32 , window_size[1] as f32), 1.0, self.ui.draw(), &self.image_map);
         self.conrod_renderer.draw(&mut renderer.factory_mut().clone(), &mut renderer.encoder_mut(), &self.image_map);

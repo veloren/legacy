@@ -52,9 +52,4 @@ impl Entity {
     pub fn look_dir_mut(&mut self) -> &mut Vec2f {
         &mut self.look_dir
     }
-
-    pub fn get_colideable(&self) -> Collidable {
-        //TODO: adjust to size
-        Collidable::new_cuboid(self.pos, vec3!(0.45, 0.45, 0.9))
-    }
 }

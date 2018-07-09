@@ -52,6 +52,9 @@ impl Collidable {
 
     // Collidable musst fully fit into a Sphere with the middle col_center and the radius col_aprox_rad
     // implement it fast!
+
+    //actually is no radius, its x,y,z components of a Vector
+    //TODO: need performant refactor, or * SQRT(3)
     pub fn col_aprox_rad(&self) -> Vec3<f32> {
         match self {
             Collidable::Cuboid { cuboid: a } => a.radius,

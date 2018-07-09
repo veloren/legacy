@@ -34,8 +34,41 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         let middle = *entity.pos() + vec3!(0.5, 0.5, 0.9);
         let radius = vec3!(0.45, 0.45, 0.9);
 
+        let mut entity_col = Collidable::new_cuboid(middle, radius);
+
+        // auto jump
+        let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() + vec3!(0.0, 0.0, 0.5), radius);
+        let auto_jump = chunk_mgr.get_nearby(auto_jump_col.col_center(), vec3!(0.0, 0.0, 0.0));
+        let mut would_collide = false;
+        for col in auto_jump {
+            let res = col.resolve_col(&auto_jump_col);
+            //if let Some(CollisionResolution::Overlap{..}) = res {
+            if let Some(res) = res {
+                would_collide = true;
+                break;
+            }
+        }
+        println!("would1: {}", would_collide);
+        if would_collide {
+            let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() + vec3!(0.0, 0.0, 1.3), radius);
+            let auto_jump = chunk_mgr.get_nearby(auto_jump_col.col_center(), vec3!(0.0, 0.0, 0.0));
+            let mut would_collide_afterjump = false;
+            for col in auto_jump {
+                let res = col.resolve_col(&auto_jump_col);
+                if let Some(res) = res {
+                    would_collide_afterjump = true;
+                    break;
+                }
+            }
+            println!("would2: {}", would_collide_afterjump);
+            if !would_collide_afterjump {
+                entity.vel_mut().z += 0.6;
+            }
+        }
+
         let speed = (*entity.vel() + *entity.ctrl_vel()) * dt;
         println!("speed: {}", speed);
+
         let half_chunk_scale = vec3!(0.45, 0.45, 0.45); // to forbid glitching when really fast
 
         let mut speed_step_cnt = 1.0;
@@ -55,12 +88,9 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         let speed_step_cnt = speed_step_cnt as i64;
         println!("speed_step_cnt: {} step: {}", speed_step_cnt, step);
 
-        let mut entity_col = Collidable::new_cuboid(middle, radius);
-
         //apply movement in steps to detect glitching due to fast speed
         for _ in 0..speed_step_cnt {
             // work on new coordinates
-            let middle = middle + step;
             match &mut entity_col {
                 Collidable::Cuboid { ref mut cuboid } => {
                     *cuboid.middle_mut() += step;
@@ -69,7 +99,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
 
             // collision with terrain
             //TODO: evaluate to add speed to get_nerby function and just call it once
-            let totest = chunk_mgr.get_nearby(middle, radius);
+            let totest = chunk_mgr.get_nearby(entity_col.col_center(), entity_col.col_aprox_rad());
             println!("test agains: {:?}", totest.len());
 
             for col in totest {
@@ -108,7 +138,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         }
 
         //Friction
-        *entity.vel_mut() *= 0.9_f32.powf(dt);
+        *entity.vel_mut() *= 0.95_f32.powf(dt);
 
         match &mut entity_col {
             Collidable::Cuboid { ref mut cuboid } => {

@@ -3,7 +3,7 @@ use coord::prelude::*;
 use rand::prelude::*;
 
 // Parent
-use super::collision::{resolve_collision, Collidable, Cuboid, CollisionResolution};
+use super::collision::{Collidable, Cuboid, CollisionResolution};
 
 fn newmodel(middle: Vec3<f32>, size: Vec3<f32>) -> Collidable {
     let col = Collidable::Cuboid{ cuboid: Cuboid::new(middle, size) };
@@ -15,7 +15,7 @@ fn colide_simple() {
     //collide
     let m1 = newmodel(vec3!(0.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
     let m2 = newmodel(vec3!(1.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Overlap{
         point: vec3!(1.5, 0.5, 0.5),
         correction: vec3!(1.0, 0.0, 0.0),
@@ -23,7 +23,7 @@ fn colide_simple() {
 
     let m1 = newmodel(vec3!(0.5, 1.0, 0.5), vec3!(1.0, 1.0, 1.0));
     let m2 = newmodel(vec3!(1.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Overlap{
         point: vec3!(1.5, 0.5, 0.5),
         correction: vec3!(1.0, 0.0, 0.0),
@@ -32,7 +32,7 @@ fn colide_simple() {
     // exactly on each other
     let m1 = newmodel(vec3!(0.5, 1.0, 0.5), vec3!(1.0, 1.0, 1.0));
     let m2 = newmodel(vec3!(0.5, 1.0, 0.5), vec3!(1.0, 1.0, 1.0));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Overlap{
         point: vec3!(1.5, 1.0, 0.5),
         correction: vec3!(2.0, 0.0, 0.0),
@@ -40,7 +40,7 @@ fn colide_simple() {
 
     let m1 = newmodel(vec3!(0.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
     let m2 = newmodel(vec3!(3.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
-    let res = resolve_collision(&m1, &m2);
+    let res = m1.resolve_col(&m2);
     assert!(res.is_none());
 }
 
@@ -49,7 +49,7 @@ fn touch_simple() {
     //touch
     let m1 = newmodel(vec3!(0.5, 0.5, 0.5), vec3!(0.5, 0.5, 0.5));
     let m2 = newmodel(vec3!(1.5, 0.5, 0.5), vec3!(0.5, 0.5, 0.5));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Touch{
         point: vec3!(1.0, 0.5, 0.5),
     });
@@ -60,7 +60,7 @@ fn colide_complex() {
     //collide
     let m1 = newmodel(vec3!(0.0, 0.0, 0.0), vec3!(1.0, 1.0, 1.0));
     let m2 = newmodel(vec3!(1.0, 0.5, 0.0), vec3!(1.0, 1.0, 1.0));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Overlap{
         point: vec3!(1.0, 0.5, 0.0),
         correction: vec3!(1.0, 0.0, 0.0),
@@ -68,7 +68,7 @@ fn colide_complex() {
 
     let m1 = newmodel(vec3!(0.0, 0.0, 0.0), vec3!(10.0, 10.0, 10.0));
     let m2 = newmodel(vec3!(1.0, 0.5, 0.0), vec3!(1.0, 1.0, 1.0));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Overlap{
         point: vec3!(10.0, 0.5, 0.0),
         correction: vec3!(10.0, 0.0, 0.0),
@@ -76,7 +76,7 @@ fn colide_complex() {
 
     let m1 = newmodel(vec3!(0.0, 0.0, 0.0), vec3!(10.0, 10.0, 10.0));
     let m2 = newmodel(vec3!(-1.0, 0.5, 0.0), vec3!(1.0, 1.0, 1.0));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Overlap{
         point: vec3!(-10.0, 0.5, 0.0),
         correction: vec3!(-10.0, 0.0, 0.0),
@@ -85,7 +85,7 @@ fn colide_complex() {
     //negative
     let m1 = newmodel(vec3!(0.0, 0.0, 0.0), vec3!(10.0, 10.0, 10.0));
     let m2 = newmodel(vec3!(-0.7, -2.0, 0.0), vec3!(1.0, 1.0, 1.0));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Overlap{
         point: vec3!(-0.7, -10.0, 0.0),
         correction: vec3!(0.0, -9.0, 0.0),
@@ -94,7 +94,7 @@ fn colide_complex() {
     //share a same wall but is inside so overlap
     let m1 = newmodel(vec3!(10.0, 10.0, 10.0), vec3!(10.0, 10.0, 10.0));
     let m2 = newmodel(vec3!(2.0, 6.0, 5.0), vec3!(2.0, 2.0, 2.0));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Overlap{
         point: vec3!(0.0, 6.0, 5.0),
         correction: vec3!(-4.0, 0.0, 0.0),
@@ -103,7 +103,7 @@ fn colide_complex() {
     // z lies on the surface
     let m1 = newmodel(vec3!(10.0, 10.0, 10.0), vec3!(10.0, 10.0, 10.0));
     let m2 = newmodel(vec3!(8.0, 6.0, 0.0), vec3!(2.0, 2.0, 2.0));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Overlap{
         point: vec3!(8.0, 6.0, 0.0),
         correction: vec3!(0.0, 0.0, -2.0),
@@ -112,7 +112,7 @@ fn colide_complex() {
     // same but other y
     let m1 = newmodel(vec3!(10.0, 10.0, 10.0), vec3!(10.0, 10.0, 10.0));
     let m2 = newmodel(vec3!(8.0, 7.0, 5.0), vec3!(2.0, 2.0, 2.0));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Overlap{
         point: vec3!(8.0, 7.0, 0.0),
         correction: vec3!(0.0, 0.0, -7.0),
@@ -121,7 +121,7 @@ fn colide_complex() {
     //outside
     let m1 = newmodel(vec3!(10.0, 10.0, 10.0), vec3!(10.0, 10.0, 10.0));
     let m2 = newmodel(vec3!(22.0, 10.0, 8.0), vec3!(2.0, 2.0, 2.0));
-    let res = resolve_collision(&m1, &m2).unwrap();
+    let res = m1.resolve_col(&m2).unwrap();
     assert_eq!(res, CollisionResolution::Touch{
         point: vec3!(20.0, 10.0, 8.0),
     });
@@ -144,7 +144,7 @@ fn random_colide_resolution() {
     for _i in 0..1000 {
         let m1 = newmodel(random_vec(10.0)-random_vec(10.0), random_vec(6.0) + vec3!(1.0, 1.0, 1.0));
         let mut m2 = newmodel(random_vec(10.0)-random_vec(10.0), random_vec(6.0) + vec3!(1.0, 1.0, 1.0));
-        let res = resolve_collision(&m1, &m2);
+        let res = m1.resolve_col(&m2);
         match res {
             None => (),
             Some(res) => {
@@ -163,7 +163,7 @@ fn random_colide_resolution() {
                         //println!("after {:?}", &m2);
                         //println!("ccc {:?}", &correction);
                         positive_resolved += 1;
-                        let res = resolve_collision(&m1, &m2).unwrap();
+                        let res = m1.resolve_col(&m2).unwrap();
                         assert_eq!(res, CollisionResolution::Touch{ point });
                     }
                 }

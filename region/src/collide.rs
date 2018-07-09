@@ -1,5 +1,5 @@
 // Local
-use collision::Collidable;
+use collision::{Collidable, CollisionResolution};
 use {Volume, Voxel};
 
 // Library
@@ -132,4 +132,8 @@ impl AABB {
 
         aabb.p0 - self.p0
     }
+}
+
+pub trait Collider {
+    fn get_nearby(&self, pos: Vec3<f32>, radius: Vec3<f32>) -> Vec<Collidable>;
 }

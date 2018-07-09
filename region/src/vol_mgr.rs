@@ -1,7 +1,7 @@
 // Local
 use {Volume, Voxel};
-use collide::VolCollider;
-use collision::Collidable;
+use collide::{VolCollider, Collider};
+use collision::{Collidable, CollisionResolution};
 
 // Standard
 use std::sync::{Arc, RwLock, RwLockReadGuard, Mutex};
@@ -116,14 +116,11 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> VolMgr<V, P> {
     }
 }
 
-impl<V: 'static + Volume, P: Send + Sync + 'static> VolCollider for VolMgr<V, P> {
-    fn is_solid_at(&self, pos: Vec3<f32>) -> bool {
-        self.get_voxel_at(pos.floor().map(|e| e as i64)).is_solid()
-    }
-
+impl<V: 'static + Volume, P: Send + Sync + 'static> Collider for VolMgr<V, P> {
     fn get_nearby(&self, pos: Vec3<f32>, radius: Vec3<f32>) -> Vec<Collidable> {
+        let scale = vec3!(1.0,1.0,1.0);
         let mut result = Vec::new();
-        let area = radius + self.scale();
+        let area = radius + scale;
         let area = vec3!(area.x as i64, area.y as i64, area.z as i64) + vec3!(1,1,1);
         println!("area {}", area);
 
@@ -136,7 +133,7 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> VolCollider for VolMgr<V, P>
         for z in low.z..high.z {
             for x in low.x..high.x {
                 for y in low.y..high.y {
-                    if self.is_solid_at(vec3!(x as f32,y as f32,z as f32)) {
+                    if self.get_voxel_at(vec3!(x,y,z).map(|e| e as i64)).is_solid() {
                         let col = Collidable::new_cuboid(vec3!(x as f32 + 0.5, y as f32 + 0.5, z as f32 + 0.5), vec3!(0.5, 0.5, 0.5));
                         result.push(col);
                     }
@@ -144,9 +141,5 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> VolCollider for VolMgr<V, P>
             }
         }
         return result;
-    }
-
-    fn scale(&self) -> Vec3<f32> {
-        vec3!{1.0, 1.0, 1.0}
     }
 }

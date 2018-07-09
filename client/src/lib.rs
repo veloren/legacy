@@ -195,6 +195,7 @@ impl<P: Payloads> Client<P> {
 
     fn update_physics(&self, dt: f32) {
         physics::tick(&self.entities, &self.chunk_mgr, CHUNK_SIZE, dt);
+        //ERROR CHECK WHATS NEW HERE:
         /*
         // Apply gravity to the play if they are both within a loaded chunk and have ground beneath their feet
         // TODO: We should be able to make this much smaller

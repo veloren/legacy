@@ -9,7 +9,7 @@ pub struct Cuboid {
 #[derive(PartialEq, Debug)]
 pub enum CollisionResolution {
     Touch { point: Vec3<f32> },
-    Overlap { point: Vec3<f32>, correction: Vec3<f32>}, //correction = movement of the second parameter to touch the first parameter
+    Overlap { point: Vec3<f32>, correction: Vec3<f32>},
 }
 
 #[derive(PartialEq, Debug)]
@@ -18,15 +18,40 @@ pub enum Collidable {
     //add more here
 }
 
-pub fn resolve_collision(a: &Collidable, b: &Collidable) -> Option<CollisionResolution> {
-    match a {
-        Collidable::Cuboid { cuboid: a } => {
-            match b {
-                Collidable::Cuboid { cuboid: b } => {
-                    cuboid_cuboid_col(a,b)
-                },
-            }
-        },
+impl Collidable {
+    // CollisionResolution is the minimal movement of b to avoid overlap, but allow touch with self
+    pub fn resolve_col(&self, b: &Collidable) -> Option<CollisionResolution> {
+        match self {
+            Collidable::Cuboid { cuboid: a } => {
+                match b {
+                    Collidable::Cuboid { cuboid: b } => {
+                        cuboid_cuboid_col(a,b)
+                    },
+                }
+            },
+        }
+    }
+
+    pub fn center_of_mass(&self) -> Vec3<f32> {
+        match self {
+            Collidable::Cuboid { cuboid: a } => a.middle,
+        }
+    }
+
+    // when using the collision center, the outer_aproximation_sphere can be minimal
+    // implement it fast!
+    pub fn col_center(&self) -> Vec3<f32> {
+        match self {
+            Collidable::Cuboid { cuboid: a } => a.middle,
+        }
+    }
+
+    // Collidable musst fully fit into a Sphere with the middle col_center and the radius col_aprox_rad
+    // implement it fast!
+    pub fn col_aprox_rad(&self) -> Vec3<f32> {
+        match self {
+            Collidable::Cuboid { cuboid: a } => a.radius,
+        }
     }
 }
 

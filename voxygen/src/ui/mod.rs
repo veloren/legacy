@@ -123,7 +123,6 @@ impl Ui {
         if self.ids.contains_key(&key) {
             self.ids[&key]
         } else {
-            println!("Generated new widget_id: {}", key);
             let id = self.generate_widget_id();
             self.ids.insert(key, id);
             id

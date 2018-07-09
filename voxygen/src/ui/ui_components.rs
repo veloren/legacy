@@ -54,6 +54,9 @@ pub fn render(ui: &mut Ui) {
     let top_left_id = ui.get_widget_id("top_left_id");
     let top_mid_id = ui.get_widget_id("top_mid_id");
     let top_right_id = ui.get_widget_id("top_right_id");
+    let top_right_top_id = ui.get_widget_id("top_right_top_id");
+    let top_right_bot1_id = ui.get_widget_id("top_right_bot1_id");
+    let top_right_bot2_id = ui.get_widget_id("top_right_bot2_id");
 
     let chat_lines = ui.get_widget_id("chat_lines");
     let chat_background = ui.get_widget_id("chat_background");
@@ -97,10 +100,15 @@ pub fn render(ui: &mut Ui) {
 
     let uicell = &mut ui.get_ui_cell();
 
+    let splits_right = [
+        (top_right_top_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.9)),
+        (top_right_bot1_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
+        (top_right_bot2_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
+    ];
     let top_splits = [
         (top_left_id,   widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0)),
         (top_mid_id,    widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0)),
-        (top_right_id,  widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0)),
+        (top_right_id,  widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0).flow_down(&splits_right)),
     ];
 
     let master_splits = [
@@ -139,6 +147,23 @@ pub fn render(ui: &mut Ui) {
         if let Some(s) = scrollbar { s.set(uicell) }
     }
 
+    if state.show_fps {
+        widget::Text::new(&format!("Fps: {}", fps))
+            .color(color::BLACK)
+            .font_size((height * 0.03) as u32)
+            .right_justify()
+            .mid_right_with_margin_on(top_right_bot1_id, 5.0)
+            .set(fps_id, uicell);
+    }
+
+    if state.show_fps {
+        widget::Text::new(&format!("Version {}", env!("CARGO_PKG_VERSION")))
+            .color(color::BLACK)
+            .font_size((height * 0.03) as u32)
+            .right_justify()
+            .mid_right_with_margin_on(top_right_bot2_id, 5.0)
+            .set(version_id, uicell);
+    }
     if state.show_chat {
         uicell.global_input_mut().current.widget_capturing_keyboard = Some(text_id);
 

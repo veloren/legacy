@@ -41,7 +41,7 @@ use player::Player;
 use callbacks::Callbacks;
 use error::Error;
 
-const VIEW_DISTANCE: i64 = 3;
+const VIEW_DISTANCE: i64 = 4;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum ClientStatus {

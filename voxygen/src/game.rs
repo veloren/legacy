@@ -130,6 +130,7 @@ impl Game {
                     // Helper variables to clean up code. Add any new input modes here.
                     let general = &self.keys.general;
                     let mount = &self.keys.mount;
+                    let show_chat = self.ui.borrow().get_show_chat();
 
                     // General inputs -------------------------------------------------------------
                     if keypress_eq(&general.pause, i.scancode) { // Default: Escape (free cursor)
@@ -138,37 +139,44 @@ impl Game {
                         if i.modifiers.ctrl {
                             self.running.store(false, Ordering::Relaxed);
                         }
-                    } else if keypress_eq(&general.forward, i.scancode) {
-                        self.key_state.lock().unwrap().up = match i.state { // Default: W (up)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
-                        }
-                    } else if keypress_eq(&general.left, i.scancode) {
-                        self.key_state.lock().unwrap().left = match i.state { // Default: A (left)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
-                        }
-                    } else if keypress_eq(&general.back, i.scancode) {
-                        self.key_state.lock().unwrap().down = match i.state { // Default: S (down)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
-                        }
-                    } else if keypress_eq(&general.right, i.scancode) {
-                        self.key_state.lock().unwrap().right = match i.state { // Default: D (right)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
-                        }
-                    } else if keypress_eq(&general.fly, i.scancode) {
-                        self.key_state.lock().unwrap().fly = match i.state { // Default: Space (fly)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
-                        }
-                    } else if keypress_eq(&general.fall, i.scancode) {
-                        self.key_state.lock().unwrap().fall = match i.state { // Default: Shift (fall)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
+                    } else if keypress_eq(&general.chat, i.scancode) && i.state == ElementState::Released {
+                        self.ui.borrow_mut().set_show_chat(!show_chat);
+                    }
+
+                    if !show_chat {
+                        if keypress_eq(&general.forward, i.scancode) {
+                            self.key_state.lock().unwrap().up = match i.state { // Default: W (up)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
+                        } else if keypress_eq(&general.left, i.scancode) {
+                            self.key_state.lock().unwrap().left = match i.state { // Default: A (left)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
+                        } else if keypress_eq(&general.back, i.scancode) {
+                            self.key_state.lock().unwrap().down = match i.state { // Default: S (down)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
+                        } else if keypress_eq(&general.right, i.scancode) {
+                            self.key_state.lock().unwrap().right = match i.state { // Default: D (right)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
+                        } else if keypress_eq(&general.fly, i.scancode) {
+                            self.key_state.lock().unwrap().fly = match i.state { // Default: Space (fly)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
+                        } else if keypress_eq(&general.fall, i.scancode) {
+                            self.key_state.lock().unwrap().fall = match i.state { // Default: Shift (fall)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
                         }
                     }
+
                     // ----------------------------------------------------------------------------
 
                     // Mount inputs ---------------------------------------------------------------

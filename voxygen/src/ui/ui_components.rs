@@ -161,20 +161,4 @@ pub fn render(ui: &mut Ui) {
                 event_tx.send(UiInternalEvent::UpdateChatText(edit)).unwrap();
             }
     }
-
-    if state.show_chat {
-        for event in widget::TextBox::new(&state.chat_message)
-            .color(color::DARK_CHARCOAL)
-            .w_of(master_id)
-            .h(50.0)
-            .bottom_left_of(master_id)
-            .left_justify()
-            .set(text_id, uicell) {
-
-            match event {
-                widget::text_box::Event::Enter => event_tx.send(UiInternalEvent::SendChat).unwrap(),
-                widget::text_box::Event::Update(string) => event_tx.send(UiInternalEvent::UpdateChatText(string)).unwrap(),
-            };
-        }
-    }
 }

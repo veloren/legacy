@@ -116,13 +116,13 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> VolMgr<V, P> {
 }
 
 impl<V: 'static + Volume, P: Send + Sync + 'static> Collider for VolMgr<V, P> {
-    fn get_nearby(&self, pos: Vec3<f32>, radius: Vec3<f32>) -> Vec<Collidable> {
+    fn get_nearby(&self, col: &Collidable) -> Vec<Collidable> {
         let scale = vec3!(1.0,1.0,1.0);
         let mut result = Vec::new();
-        let area = radius + scale;
-        let area = area.map(|e| e as i64) + vec3!(1,1,1);
+        let area = col.col_aprox_abc() + scale;
+        let area = area.map(|e| e.ceil() as i64);
 
-        let posi = pos.map(|e| e as i64);
+        let posi = col.col_center().map(|e| e as i64);
         let low = posi - area;
         let high = posi + area + vec3!(1,1,1);
 

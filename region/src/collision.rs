@@ -1,4 +1,5 @@
 use coord::prelude::*;
+use std::f32::consts::SQRT_2;
 
 #[derive(PartialEq, Debug)]
 pub struct Cuboid {
@@ -19,7 +20,7 @@ pub enum Collidable {
 }
 
 pub trait Collider {
-    fn get_nearby(&self, pos: Vec3<f32>, radius: Vec3<f32>) -> Vec<Collidable>;
+    fn get_nearby(&self, col: &Collidable) -> Vec<Collidable>;
 }
 
 const PLANCK_LENGTH : f32 = 0.000001; // smallest unit of meassurement in collision, no guarantees behind this point
@@ -52,12 +53,18 @@ impl Collidable {
         }
     }
 
-    // Collidable musst fully fit into a Sphere with the middle col_center and the radius col_aprox_rad
+    // returns the 3 radii of a spheroid where the object fits exactly in
     // implement it fast!
-
-    //actually is no radius, its x,y,z components of a Vector
-    //TODO: need performant refactor, or * SQRT(3)
+    //TODO: evaluate if this is a so fast method for checking somewhere actually
     pub fn col_aprox_rad(&self) -> Vec3<f32> {
+        match self {
+            Collidable::Cuboid { cuboid: a } => a.radius * SQRT_2, // SQRT(2) is correct for sphere, havent it checked for an spheroid tbh
+        }
+    }
+
+    // returns a cube where the object fits in exactly
+    // implement it fast!
+    pub fn col_aprox_abc(&self) -> Vec3<f32> {
         match self {
             Collidable::Cuboid { cuboid: a } => a.radius,
         }

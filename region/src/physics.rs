@@ -38,12 +38,12 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
 
         // auto jump
         let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() * 0.5 + vec3!(0.0, 0.0, 0.2), radius);
-        let auto_jump = chunk_mgr.get_nearby(auto_jump_col.col_center(), vec3!(0.0, 0.0, 0.0));
+        let auto_jump = chunk_mgr.get_nearby(&auto_jump_col);
         let mut would_collide = false;
         for col in auto_jump {
             let res = col.resolve_col(&auto_jump_col);
             //if let Some(CollisionResolution::Overlap{..}) = res {
-            if let Some(res) = res {
+            if let Some(..) = res {
                 would_collide = true;
                 break;
             }
@@ -51,18 +51,18 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         println!("would1: {}", would_collide);
         if would_collide {
             let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() * 0.5 + vec3!(0.0, 0.0, 1.2), radius);
-            let auto_jump = chunk_mgr.get_nearby(auto_jump_col.col_center(), vec3!(0.0, 0.0, 0.0));
+            let auto_jump = chunk_mgr.get_nearby(&auto_jump_col);
             let mut would_collide_afterjump = false;
             for col in auto_jump {
                 let res = col.resolve_col(&auto_jump_col);
-                if let Some(res) = res {
+                if let Some(..) = res {
                     would_collide_afterjump = true;
                     break;
                 }
             }
             println!("would2: {}", would_collide_afterjump);
             if !would_collide_afterjump {
-                entity.vel_mut().z += 0.5;
+                entity.vel_mut().z = 0.5;
             }
         }
 
@@ -99,7 +99,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
 
             // collision with terrain
             //TODO: evaluate to add speed to get_nerby function and just call it once
-            let totest = chunk_mgr.get_nearby(entity_col.col_center(), entity_col.col_aprox_rad());
+            let totest = chunk_mgr.get_nearby(&entity_col);
             println!("test agains: {:?}", totest.len());
 
             for col in totest {

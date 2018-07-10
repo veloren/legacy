@@ -20,6 +20,7 @@ impl Chunk {
         let noise5 = OpenSimplex::new().set_seed(1342);
         let noise6 = OpenSimplex::new().set_seed(1343);
         let noise7 = OpenSimplex::new().set_seed(0344);
+        let noise8 = OpenSimplex::new().set_seed(0345);
 
         let mut voxels = Vec::new();
 
@@ -27,24 +28,32 @@ impl Chunk {
             for j in 0..size.y {
                 for k in 0..size.z {
                     let (x, y, z) = (
-                        (i+offset.x) as f64 + noise2.get([(i+offset.x) as f64 * 0.02, (j+offset.y) as f64 * 0.02, (k+offset.z) as f64 * 0.05]) * 16.0,
-                        (j+offset.y) as f64 + noise3.get([(i+offset.x) as f64 * 0.02, (j+offset.y) as f64 * 0.02, (k+offset.z) as f64 * 0.05]) * 16.0,
-                        (k+offset.z) as f64 + noise4.get([(i+offset.x) as f64 * 0.02, (j+offset.y) as f64 * 0.02, (k+offset.z) as f64 * 0.05]) * 16.0,
+                        (i+offset.x) as f64 + noise2.get([(i+offset.x) as f64 * 0.01, (j+offset.y) as f64 * 0.01, (k+offset.z) as f64 * 0.01]) * 16.0,
+                        (j+offset.y) as f64 + noise3.get([(i+offset.x) as f64 * 0.01, (j+offset.y) as f64 * 0.01, (k+offset.z) as f64 * 0.01]) * 16.0,
+                        (k+offset.z) as f64 + noise4.get([(i+offset.x) as f64 * 0.01, (j+offset.y) as f64 * 0.01, (k+offset.z) as f64 * 0.01]) * 16.0,
                     );
                     let noise = noise0.get([x as f64 * 0.01, y as f64 * 0.01, z as f64 * 0.01])
                         + 0.15 * noise1.get([x as f64 * 0.07, y as f64 * 0.07, 0.0]);
-                    let height = (size.z as f64 * noise + 0.5 * size.z as f64) as i64;
+                    let mut height = (size.z as f64 * noise + 0.5 * size.z as f64) as i64;
 
                     let mountain_offs = (noise5.get([x as f64 * 0.05, y as f64 * 0.05]) * 32.0) as i64;
 
-                    let cave0 = noise6.get([x as f64 * 0.01, y as f64 * 0.01, z as f64 * 0.01]).powi(2);
-                    let cave1 = noise7.get([x as f64 * 0.01, y as f64 * 0.01, z as f64 * 0.01]).powi(2);
+                    let river = (noise8.get([x as f64 * 0.01, y as f64 * 0.01]) * 1.0 * (z - size.z as f64)).abs() as i64;
+                    if river < 2 {
+                        height -= 4;
+                    }
+
+                    let cave0 = noise6.get([x as f64 * 0.01, y as f64 * 0.01, z as f64 * 0.01]).abs();
+                    let cave1 = noise7.get([x as f64 * 0.01, y as f64 * 0.01, z as f64 * 0.01]).abs();
+                    let cave = cave0 + cave1;
 
                     voxels.push(Block::new(
                         if k == 0 {
                             BlockMaterial::Stone
                         } else if k <= height {
-                            if cave0 < 0.001 && cave1 < 0.001 {
+                            if river < 2 {
+                                BlockMaterial::Water
+                            } else if cave0 < 0.01 && cave1 < 0.01 {
                                 BlockMaterial::Air
                             } else if k < height - 4 {
                                 BlockMaterial::Stone

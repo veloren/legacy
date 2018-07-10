@@ -167,11 +167,11 @@ fn map_key(keycode: VirtualKeyCode) -> input::keyboard::Key {
         VirtualKeyCode::LShift => Key::LShift,
         VirtualKeyCode::LControl => Key::LCtrl,
         VirtualKeyCode::LAlt => Key::LAlt,
-        VirtualKeyCode::LMenu => Key::LGui,
+        // VirtualKeyCode::LMenu => Key::LGui,
         VirtualKeyCode::RShift => Key::RShift,
         VirtualKeyCode::RControl => Key::RCtrl,
         VirtualKeyCode::RAlt => Key::RAlt,
-        VirtualKeyCode::RMenu => Key::RGui,
+        // VirtualKeyCode::RMenu => Key::RGui,
         // Map to backslash?
         // K::GraveAccent => Key::Unknown,
         VirtualKeyCode::Home => Key::Home,

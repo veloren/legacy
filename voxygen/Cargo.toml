@@ -8,9 +8,9 @@ common = { path = "../common" }
 client = { path = "../client" }
 region = { path = "../region" }
 gfx = "0.17.1"
-gfx_window_glutin = "0.24.0"
+gfx_window_glutin = "0.25.0"
 gfx_device_gl = "0.15.0"
-glutin = "0.16.0"
+glutin = "0.17.0"
 enum-map = "0.2.31"
 nalgebra = "0.15.1"
 time = "0.1.40"

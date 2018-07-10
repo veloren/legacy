@@ -1,7 +1,20 @@
 use gfx_window_glutin;
 use glutin;
 
-use glutin::{Event as glutinEvent, EventsLoop, WindowBuilder, ContextBuilder, GlContext, GlRequest, GlWindow, DeviceEvent, WindowEvent, CursorState, MouseCursor};
+use glutin::{
+    Event as glutinEvent,
+    EventsLoop,
+    WindowBuilder,
+    ContextBuilder,
+    GlContext,
+    GlRequest,
+    GlWindow,
+    Window,
+    DeviceEvent,
+    WindowEvent,
+    MouseCursor,
+};
+use glutin::dpi::{LogicalSize, LogicalPosition};
 use glutin::Api::OpenGl;
 
 use renderer::{Renderer, ColorFormat, DepthFormat};
@@ -33,7 +46,7 @@ impl RenderWindow {
         let events_loop = Mutex::new(EventsLoop::new());
         let win_builder = WindowBuilder::new()
             .with_title("Veloren (Voxygen)")
-            .with_dimensions(800, 500)
+            .with_dimensions(LogicalSize::new(800.0, 500.0))
             .with_maximized(false);
 
         let ctx_builder = ContextBuilder::new()
@@ -61,24 +74,24 @@ impl RenderWindow {
                 glutin::Event::DeviceEvent { event, .. } => match event {
                     DeviceEvent::MouseMotion { delta: (dx, dy), .. } => {
                         if self.cursor_trapped.load(Ordering::Relaxed) {
-                            if let Err(_) = gl_window.set_cursor_state(CursorState::Grab) {
+                            if let Err(_) = gl_window.grab_cursor(true) {
                                 warn!("Could not grap cursor");
                                 self.cursor_trapped.store(false, Ordering::Relaxed)
                             }
-                            gl_window.set_cursor(MouseCursor::NoneCursor);
+                            gl_window.hide_cursor(true);
                         } else {
-                            if let Err(_) = gl_window.set_cursor_state(CursorState::Normal) {
+                            if let Err(_) = gl_window.grab_cursor(false) {
                                 warn!("Could not ungrap cursor");
                                 self.cursor_trapped.store(true, Ordering::Relaxed)
                             }
-                            gl_window.set_cursor(MouseCursor::Default);
+                            gl_window.hide_cursor(false);
                         }
                         func(Event::CursorMoved { dx, dy });
                     }
                     _ => {},
                 }
                 glutin::Event::WindowEvent { event, .. } => match event {
-                    WindowEvent::Resized { 0: w, 1: h } => {
+                    WindowEvent::Resized(LogicalSize { width: w, height: h }) => {
                         let mut color_view = self.renderer.read().unwrap().color_view().clone();
                         let mut depth_view = self.renderer.read().unwrap().depth_view().clone();
                         gfx_window_glutin::update_views(
@@ -88,8 +101,8 @@ impl RenderWindow {
                         );
                         self.renderer.write().unwrap().set_views(color_view, depth_view);
                         func(Event::Resized {
-                            w,
-                            h,
+                            w: w as u32,
+                            h: h as u32,
                         });
                     },
                     WindowEvent::MouseWheel { delta, modifiers, .. } => {
@@ -100,7 +113,7 @@ impl RenderWindow {
                                 dx = f64::from(x) * 8.0;
                                 dy = f64::from(y) * 8.0;
                             },
-                            glutin::MouseScrollDelta::PixelDelta(x,y) => {
+                            glutin::MouseScrollDelta::PixelDelta(LogicalPosition{ x, y }) => {
                                 dx = x.into();
                                 dy = y.into();
                             },
@@ -121,7 +134,7 @@ impl RenderWindow {
                     WindowEvent::MouseInput { state, button, .. } => {
                         if button == glutin::MouseButton::Left {
                             self.cursor_trapped.store(true, Ordering::Relaxed);
-                            let _ = gl_window.set_cursor_state(CursorState::Grab);
+                            let _ = gl_window.grab_cursor(true);
                         }
 
                         func(Event::MouseButton { state, button });
@@ -132,7 +145,7 @@ impl RenderWindow {
                             self.cursor_trapped.store(is_focused, Ordering::Relaxed);
                     },
                     WindowEvent::CursorMoved { position, .. } => {
-                        func(Event::CursorPosition {x: position.0, y: position.1 });
+                        func(Event::CursorPosition {x: position.x, y: position.y });
                     },
                     WindowEvent::ReceivedCharacter(ch) => {
                         func(Event::Character { ch });
@@ -153,7 +166,7 @@ impl RenderWindow {
     pub fn get_size(&self) -> [f64; 2] {
         let window = self.gl_window.lock().unwrap();
         match window.get_inner_size() {
-            Some((w, h)) => [w as f64, h as f64],
+            Some(LogicalSize{ width: w, height: h }) => [w as f64, h as f64],
             None => [0.0, 0.0]
         }
     }

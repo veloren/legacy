@@ -40,7 +40,7 @@ use player::Player;
 use callbacks::Callbacks;
 use error::Error;
 
-const VIEW_DISTANCE: i64 = 4;
+const VIEW_DISTANCE: i64 = 3;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum ClientStatus {
@@ -185,7 +185,7 @@ impl<P: Payloads> Client<P> {
                 for pos in chunk_pos {
                     // What?! Don't use snake_length
                     if (pos - vec2!(player_chunk.x, player_chunk.y)).snake_length() > VIEW_DISTANCE * 2 {
-                        self.chunk_mgr().remove(pos);
+                        self.jobs.do_once(move |c| c.chunk_mgr().remove(pos));
                     }
                 }
             }

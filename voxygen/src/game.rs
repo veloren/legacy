@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::f32::consts::PI;
 use std::collections::HashMap;
+use std::cell::RefCell;
 //use std::f32::{sin, cos};
 
 // Library
@@ -42,7 +43,7 @@ pub struct Game {
     data: Mutex<Data>,
     camera: Mutex<Camera>,
     key_state: Mutex<KeyState>,
-    ui: Ui,
+    ui: RefCell<Ui>,
     keys: Keybinds,
 }
 
@@ -80,13 +81,13 @@ impl Game {
             &other_player_mesh,
         );
 
+        let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload)
+            .expect("Could not create new client");
+
         // Contruct the UI
         let window_dims = window.get_size();
 
-        let mut ui = Ui::new(&mut window.renderer_mut(), window_dims);
-
-        let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload)
-            .expect("Could not create new client");
+        let mut ui = Ui::new(&mut window.renderer_mut(), window_dims, &client);
 
         client.start();
 
@@ -100,7 +101,7 @@ impl Game {
             window,
             camera: Mutex::new(Camera::new()),
             key_state: Mutex::new(KeyState::new()),
-            ui,
+            ui: RefCell::new(ui),
             keys: Keybinds::new(),
         }
     }
@@ -129,6 +130,7 @@ impl Game {
                     // Helper variables to clean up code. Add any new input modes here.
                     let general = &self.keys.general;
                     let mount = &self.keys.mount;
+                    let show_chat = self.ui.borrow().get_show_chat();
 
                     // General inputs -------------------------------------------------------------
                     if keypress_eq(&general.pause, i.scancode) { // Default: Escape (free cursor)
@@ -137,37 +139,44 @@ impl Game {
                         if i.modifiers.ctrl {
                             self.running.store(false, Ordering::Relaxed);
                         }
-                    } else if keypress_eq(&general.forward, i.scancode) {
-                        self.key_state.lock().unwrap().up = match i.state { // Default: W (up)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
-                        }
-                    } else if keypress_eq(&general.left, i.scancode) {
-                        self.key_state.lock().unwrap().left = match i.state { // Default: A (left)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
-                        }
-                    } else if keypress_eq(&general.back, i.scancode) {
-                        self.key_state.lock().unwrap().down = match i.state { // Default: S (down)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
-                        }
-                    } else if keypress_eq(&general.right, i.scancode) {
-                        self.key_state.lock().unwrap().right = match i.state { // Default: D (right)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
-                        }
-                    } else if keypress_eq(&general.fly, i.scancode) {
-                        self.key_state.lock().unwrap().fly = match i.state { // Default: Space (fly)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
-                        }
-                    } else if keypress_eq(&general.fall, i.scancode) {
-                        self.key_state.lock().unwrap().fall = match i.state { // Default: Shift (fall)
-                            ElementState::Pressed => true,
-                            ElementState::Released => false,
+                    } else if keypress_eq(&general.chat, i.scancode) && i.state == ElementState::Released {
+                        self.ui.borrow_mut().set_show_chat(!show_chat);
+                    }
+
+                    if !show_chat {
+                        if keypress_eq(&general.forward, i.scancode) {
+                            self.key_state.lock().unwrap().up = match i.state { // Default: W (up)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
+                        } else if keypress_eq(&general.left, i.scancode) {
+                            self.key_state.lock().unwrap().left = match i.state { // Default: A (left)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
+                        } else if keypress_eq(&general.back, i.scancode) {
+                            self.key_state.lock().unwrap().down = match i.state { // Default: S (down)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
+                        } else if keypress_eq(&general.right, i.scancode) {
+                            self.key_state.lock().unwrap().right = match i.state { // Default: D (right)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
+                        } else if keypress_eq(&general.fly, i.scancode) {
+                            self.key_state.lock().unwrap().fly = match i.state { // Default: Space (fly)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
+                        } else if keypress_eq(&general.fall, i.scancode) {
+                            self.key_state.lock().unwrap().fall = match i.state { // Default: Shift (fall)
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            }
                         }
                     }
+
                     // ----------------------------------------------------------------------------
 
                     // Mount inputs ---------------------------------------------------------------
@@ -175,20 +184,20 @@ impl Game {
                     // ----------------------------------------------------------------------------
 
                     // UI Code
-                    self.ui.ui_event_keyboard_input(i);
+                    self.ui.borrow_mut().ui_event_keyboard_input(i);
                 },
                 Event::Resized { w, h } => {
                     self.camera.lock().unwrap().set_aspect_ratio(w as f32 / h as f32);
-                    self.ui.ui_event_window_resize(w, h);
+                    self.ui.borrow_mut().ui_event_window_resize(w, h);
                 },
                 Event::MouseButton { state, button } => {
-                    self.ui.ui_event_mouse_button(state, button);
+                    self.ui.borrow_mut().ui_event_mouse_button(state, button);
                 },
                 Event::CursorPosition { x, y} => {
-                    self.ui.ui_event_mouse_pos(x, y);
+                    self.ui.borrow_mut().ui_event_mouse_pos(x, y);
                 },
                 Event::Character { ch } => {
-                    self.ui.ui_event_character(ch);
+                    self.ui.borrow_mut().ui_event_character(ch);
                 }
                 Event::Raw { event } => {
 //                    println!("{:?}", event);
@@ -292,7 +301,7 @@ impl Game {
         }
 
         // Draw ui
-        self.ui.render(&mut renderer, &self.client.clone(), &self.window.get_size());
+        self.ui.borrow_mut().render(&mut renderer, &self.client.clone(), &self.window.get_size());
 
         self.window.swap_buffers();
         renderer.end_frame();

@@ -22,6 +22,8 @@ pub trait Collider {
     fn get_nearby(&self, pos: Vec3<f32>, radius: Vec3<f32>) -> Vec<Collidable>;
 }
 
+const PLANCK_LENGTH : f32 = 0.000001; // smallest unit of meassurement in collision, no guarantees behind this point
+
 impl Collidable {
     // CollisionResolution is the minimal movement of b to avoid overlap, but allow touch with self
     pub fn resolve_col(&self, b: &Collidable) -> Option<CollisionResolution> {
@@ -104,47 +106,28 @@ fn cuboid_cuboid_col(a: &Cuboid, b: &Cuboid) -> Option<CollisionResolution> {
               let border_diff = *a.radius() - abs_moved;
               let signed_diff_to_border;
               let signed_relevant_b_radius;
-              // test which is nearest
-              if border_diff.x <= border_diff.y && border_diff.x <= border_diff.z {
-                  //x
-                  if b.middle().x < a.middle().x {
-                      signed_diff_to_border = vec3!(-border_diff.x, 0.0, 0.0);
-                      signed_relevant_b_radius = vec3!(-b.radius().x, 0.0, 0.0);
-                  } else {
-                      signed_diff_to_border = vec3!(border_diff.x, 0.0, 0.0);
-                      signed_relevant_b_radius = vec3!(b.radius().x, 0.0, 0.0);
-                  }
-              } else if border_diff.y <= border_diff.x && border_diff.y <= border_diff.z {
-                   //y
-                   if b.middle().y < a.middle().y {
-                       signed_diff_to_border = vec3!(0.0, -border_diff.y, 0.0);
-                       signed_relevant_b_radius = vec3!(0.0, -b.radius().y, 0.0);
-                   } else {
-                       signed_diff_to_border = vec3!(0.0, border_diff.y, 0.0);
-                       signed_relevant_b_radius = vec3!(0.0, b.radius().y, 0.0);
-                   }
-               } else {
-                   if !(border_diff.z <= border_diff.x && border_diff.z <= border_diff.y) {
-                        println!("border_diff: {}", border_diff);
-                        assert!(false);
-                   }
 
-                   //z
-                   if b.middle().z < a.middle().z {
-                       signed_diff_to_border = vec3!(0.0, 0.0, -border_diff.z);
-                       signed_relevant_b_radius = vec3!(0.0, 0.0, -b.radius().z);
-                   } else {
-                       signed_diff_to_border = vec3!(0.0, 0.0, border_diff.z);
-                       signed_relevant_b_radius = vec3!(0.0, 0.0, b.radius().z);
-                   }
-               }
+              // test which is nearest
+              let nearest_fak = if border_diff.x <= border_diff.y && border_diff.x <= border_diff.z {
+                  vec3!(if b.middle().x < a.middle().x {-1.0} else {1.0}, 0.0, 0.0)
+              } else if border_diff.y <= border_diff.x && border_diff.y <= border_diff.z {
+                  vec3!(0.0, if b.middle().y < a.middle().y {-1.0} else {1.0}, 0.0)
+              } else {
+                  if !(border_diff.z <= border_diff.x && border_diff.z <= border_diff.y) {
+                       println!("border_diff: {}", border_diff);
+                       assert!(false);
+                  }
+                  vec3!(0.0, 0.0, if b.middle().z < a.middle().z {-1.0} else {1.0})
+              };
+              signed_diff_to_border = border_diff * nearest_fak;
+              signed_relevant_b_radius = *b.radius() * nearest_fak;
 
               let point = *b.middle() + signed_diff_to_border;
               let correction = signed_diff_to_border + signed_relevant_b_radius;
 
               //println!("point {}, correction {}, signed_diff_to_border {}, relevant_a_radius {}", point, correction, signed_diff_to_border, signed_relevant_b_radius);
 
-              if correction.length() < 0.001 { // some aproximation here
+              if correction.length() < PLANCK_LENGTH {
                   return Some(CollisionResolution::Touch{
                       point,
                   });

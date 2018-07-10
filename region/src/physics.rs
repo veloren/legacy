@@ -31,13 +31,13 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
             }
         }
 
-        let middle = *entity.pos() + vec3!(0.5, 0.5, 0.9);
+        let middle = *entity.pos() + vec3!(0.0, 0.0, 0.9);
         let radius = vec3!(0.45, 0.45, 0.9);
 
         let mut entity_col = Collidable::new_cuboid(middle, radius);
 
         // auto jump
-        let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() + vec3!(0.0, 0.0, 0.5), radius);
+        let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() * 0.5 + vec3!(0.0, 0.0, 0.2), radius);
         let auto_jump = chunk_mgr.get_nearby(auto_jump_col.col_center(), vec3!(0.0, 0.0, 0.0));
         let mut would_collide = false;
         for col in auto_jump {
@@ -50,7 +50,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         }
         println!("would1: {}", would_collide);
         if would_collide {
-            let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() + vec3!(0.0, 0.0, 1.3), radius);
+            let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() * 0.5 + vec3!(0.0, 0.0, 1.2), radius);
             let auto_jump = chunk_mgr.get_nearby(auto_jump_col.col_center(), vec3!(0.0, 0.0, 0.0));
             let mut would_collide_afterjump = false;
             for col in auto_jump {
@@ -62,7 +62,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
             }
             println!("would2: {}", would_collide_afterjump);
             if !would_collide_afterjump {
-                entity.vel_mut().z += 0.6;
+                entity.vel_mut().z += 0.5;
             }
         }
 
@@ -116,25 +116,31 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
                             match &mut entity_col {
                                 Collidable::Cuboid { ref mut cuboid } => {
                                     *cuboid.middle_mut() = *cuboid.middle() + correction;
-                                    // instant stop if hit anything
-                                    println!("correction {}", correction);
-                                    println!("before vel {}", entity.vel());
-                                    if correction.x != 0.0 {
-                                        entity.vel_mut().x = 0.0;
-                                    }
-                                    if correction.y != 0.0 {
-                                        entity.vel_mut().y = 0.0;
-                                    }
-                                    if correction.z != 0.0 {
-                                        entity.vel_mut().z = 0.0;
-                                    }
-                                    println!("after vel {}", entity.vel());
                                 }
                             }
+                            // instant stop if hit anything
+                            println!("correction {}", correction);
+                            println!("before vel {}", entity.vel());
+                            if correction.x != 0.0 {
+                                entity.vel_mut().x = 0.0;
+                            }
+                            if correction.y != 0.0 {
+                                entity.vel_mut().y = 0.0;
+                            }
+                            if correction.z != 0.0 {
+                                entity.vel_mut().z = 0.0;
+                            }
+                            println!("after vel {}", entity.vel());
                         }
                     }
                 }
             }
+
+            //Collision with other enteties
+            //TODO: consider all movements equal: so if 2 people run in each other both can walk 1/2 the distance
+            //for (.., other_entity) in entities.iter_mut() {
+
+            //}
         }
 
         //Friction
@@ -142,7 +148,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
 
         match &mut entity_col {
             Collidable::Cuboid { ref mut cuboid } => {
-                *entity.pos_mut() = (*cuboid.middle() - vec3!(0.5, 0.5, 0.9));
+                *entity.pos_mut() = (*cuboid.middle() - vec3!(0.0, 0.0, 0.9));
             }
         }
 

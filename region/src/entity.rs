@@ -5,7 +5,7 @@ use collision::Collidable;
 use coord::prelude::*;
 
 pub struct Entity {
-    pos: Vec3f,
+    pos: Vec3f, //middle x,y of the figure, z pos is on the ground
     vel: Vec3f,
     ctrl_vel: Vec3f,
     look_dir: Vec2f,

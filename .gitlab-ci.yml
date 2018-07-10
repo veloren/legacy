@@ -265,7 +265,7 @@ coverage:
 clippy:
   stage: post-run
   script:
-    - if cargo install --list | grep -q "clippy"; then
+    - if cargo install --list | grep -i "clippy"; then
         echo "clippy already installed";
       else
         cargo install clippy;

@@ -270,4 +270,5 @@ clippy:
       else
         cargo install clippy;
       fi
-    - cargo clippy
+    - cargo clippy --all -- -D clippy
+  allow_failure: true

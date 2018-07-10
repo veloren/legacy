@@ -1,31 +1,43 @@
-use ui::UiInternal;
+use ui::{
+    Ui,
+    UiInternalEvent,
+};
+
+use std::collections::VecDeque;
+pub const MAX_CHAT_LINES: usize = 8;
 
 use conrod::{
+    self,
     widget,
     Widget,
     Positionable,
     Colorable,
     color,
     Borderable,
+    Sizeable,
 };
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct UiState {
-    pub fps: bool,
-    pub version: bool,
-    pub chat: bool,
-    pub menu: bool,
+    pub show_fps: bool,
+    pub show_version: bool,
+    pub show_chat: bool,
+    pub show_menu: bool,
     pub menupage: MenuPage,
+    pub chat_lines: VecDeque<(String, String)>,
+    pub chat_message: String,
 }
 
 impl UiState {
     pub fn normal_game() -> Self {
         Self {
-            fps: true,
-            version: true,
-            chat: false,
-            menu: false,
+            show_fps: true,
+            show_version: true,
+            show_chat: false,
+            show_menu: false,
             menupage: MenuPage::Main,
+            chat_lines: VecDeque::with_capacity(MAX_CHAT_LINES),
+            chat_message: String::new(),
         }
     }
 }
@@ -35,17 +47,25 @@ pub enum MenuPage {
     Main,
 }
 
-pub fn render(ui: &mut UiInternal) {
-    let master_id = ui.generate_widget_id();
-    let left_col_id = ui.generate_widget_id();
-    let mid_col_id = ui.generate_widget_id();
-    let right_col_id = ui.generate_widget_id();
-    let right_col_top = ui.generate_widget_id();
-    let right_col_bot = ui.generate_widget_id();
-    let right_col_bot_version = ui.generate_widget_id();
-    let right_col_bot_fps = ui.generate_widget_id();
-    let version_id = ui.generate_widget_id();
-    let fps_id = ui.generate_widget_id();
+pub fn render(ui: &mut Ui) {
+    let master_id = ui.get_widget_id("master_id");
+    let top_id = ui.get_widget_id("top_id");
+    let bottom_id = ui.get_widget_id("bottom_id");
+    let top_left_id = ui.get_widget_id("top_left_id");
+    let top_mid_id = ui.get_widget_id("top_mid_id");
+    let top_right_id = ui.get_widget_id("top_right_id");
+    let top_right_top_id = ui.get_widget_id("top_right_top_id");
+    let top_right_bot1_id = ui.get_widget_id("top_right_bot1_id");
+    let top_right_bot2_id = ui.get_widget_id("top_right_bot2_id");
+
+    let chat_lines = ui.get_widget_id("chat_lines");
+    let chat_background = ui.get_widget_id("chat_background");
+
+
+
+    let version_id = ui.get_widget_id("version_id");
+    let fps_id = ui.get_widget_id("fps_id");
+    let text_id = ui.get_widget_id("text_id");
 
     let width = ui.get_width();
     let height = ui.get_height();
@@ -53,49 +73,119 @@ pub fn render(ui: &mut UiInternal) {
     let state = ui.get_state();
     let fps = ui.fps.tick();
 
+    let event_tx = ui.get_event_tx();
+
+    let event_focus = conrod::event::Event::Ui(
+        conrod::event::Ui::WidgetCapturesInputSource(
+            text_id,
+            conrod::input::Source::Keyboard,
+        )
+    );
+
+    let tx = event_tx.clone();
+    ui.widget_events(text_id, |event| {
+        match event {
+            conrod::event::Widget::Press(press) => match press.button {
+                conrod::event::Button::Keyboard(key) => match key {
+                    conrod::input::Key::Return => {
+                        tx.send(UiInternalEvent::SendChat).unwrap();
+                    },
+                    _ => (),
+                },
+                _ => (),
+            },
+            _ => (),
+        }
+    });
+
     let uicell = &mut ui.get_ui_cell();
 
-    let right_col_layout = [
-        (right_col_bot_fps, widget::Canvas::new().color(color::TRANSPARENT).border(0.0)),
-        (right_col_bot_version, widget::Canvas::new().color(color::TRANSPARENT).border(0.0)),
+    let splits_right = [
+        (top_right_top_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.9)),
+        (top_right_bot1_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
+        (top_right_bot2_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
+    ];
+    let top_splits = [
+        (top_left_id,   widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0)),
+        (top_mid_id,    widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0)),
+        (top_right_id,  widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0).flow_down(&splits_right)),
     ];
 
-    let right_col = [
-        (right_col_top, widget::Canvas::new().color(color::TRANSPARENT).length_weight(0.9).border(0.0)),
-        (right_col_bot, widget::Canvas::new().color(color::TRANSPARENT).length_weight(0.1).border(0.0).flow_down(&right_col_layout)),
-    ];
-
-    let master_cols = [
-        (left_col_id, widget::Canvas::new().color(color::TRANSPARENT).length_weight(0.3).border(0.0)),
-        (mid_col_id, widget::Canvas::new().color(color::TRANSPARENT).length_weight(0.5).border(0.0)),
-        (right_col_id,widget::Canvas::new().color(color::TRANSPARENT).length_weight(0.2).border(0.0).flow_down(&right_col)),
+    let master_splits = [
+        (top_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.96).flow_right(&top_splits)),
+        (bottom_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.04)),
     ];
 
 
     widget::Canvas::new().
-        flow_right(&master_cols)
+        flow_down(&master_splits)
         .color(color::TRANSPARENT)
         .border(0.0)
+        .scroll_kids_horizontally()
         .set(master_id, uicell);
 
+    if state.chat_lines.len() != 0 {
+        let (mut items, scrollbar) = widget::List::flow_up(state.chat_lines.len())
+            .item_size(height * 0.03)
+            .scrollbar_on_top()
+            .bottom_left_with_margin_on(top_left_id, 5.0)
+            .wh_of(top_left_id)
+            .set(chat_lines, uicell);
 
-    if state.version {
-        widget::Text::new(&format!("Version {}", env!("CARGO_PKG_VERSION")))
-            .color(color::DARK_CHARCOAL)
-            .mid_right_with_margin_on(right_col_bot_version, 10.0)
-            .right_justify()
+        while let Some(item) = items.next(uicell) {
+            let i = item.i;
+            let (alias, msg) = &state.chat_lines[i];
+            let label = format!("{}: {}", alias, msg);
+
+            let text = widget::Text::new(&label)
+                .color(color::BLACK)
+                .font_size((height * 0.03) as u32)
+                .left_justify();
+
+            item.set(text, uicell);
+        }
+
+        if let Some(s) = scrollbar { s.set(uicell) }
+    }
+
+    if state.show_fps {
+        widget::Text::new(&format!("Fps: {}", fps))
+            .color(color::BLACK)
             .font_size((height * 0.03) as u32)
-            .line_spacing(10.0)
+            .right_justify()
+            .mid_right_with_margin_on(top_right_bot1_id, 5.0)
+            .set(fps_id, uicell);
+    }
+
+    if state.show_version {
+        widget::Text::new(&format!("Version {}", env!("CARGO_PKG_VERSION")))
+            .color(color::BLACK)
+            .font_size((height * 0.03) as u32)
+            .right_justify()
+            .mid_right_with_margin_on(top_right_bot2_id, 5.0)
             .set(version_id, uicell);
     }
 
-    if state.fps {
-        widget::Text::new(&format!("Fps {}", fps))
-            .color(color::DARK_CHARCOAL)
-            .mid_right_with_margin_on(right_col_bot_fps, 10.0)
-            .right_justify()
+    if state.show_chat {
+        uicell.global_input_mut().current.widget_capturing_keyboard = Some(text_id);
+
+        widget::Canvas::new()
+            .bottom_left_of(bottom_id)
+            .wh_of(bottom_id)
+            .color(color::CHARCOAL)
+            .set(chat_background, uicell);
+
+        for edit in widget::TextEdit::new(&state.chat_message)
+            .color(color::WHITE)
+            .wh_of(chat_background)
+            .bottom_left_with_margins_on(chat_background, 0.0, 5.0)
+            .left_justify()
+            .align_text_y_middle()
             .font_size((height * 0.03) as u32)
-            .line_spacing(10.0)
-            .set(fps_id, uicell);
+            .restrict_to_height(true)
+            .set(text_id, uicell)
+            {
+                event_tx.send(UiInternalEvent::UpdateChatText(edit)).unwrap();
+            }
     }
 }

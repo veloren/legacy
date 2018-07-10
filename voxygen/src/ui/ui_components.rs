@@ -165,7 +165,7 @@ pub fn render(ui: &mut Ui) {
             .mid_right_with_margin_on(top_right_bot2_id, 5.0)
             .set(version_id, uicell);
     }
-    
+
     if state.show_chat {
         uicell.global_input_mut().current.widget_capturing_keyboard = Some(text_id);
 

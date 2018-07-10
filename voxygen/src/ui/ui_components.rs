@@ -157,7 +157,7 @@ pub fn render(ui: &mut Ui) {
             .set(fps_id, uicell);
     }
 
-    if state.show_fps {
+    if state.show_version {
         widget::Text::new(&format!("Version {}", env!("CARGO_PKG_VERSION")))
             .color(color::BLACK)
             .font_size((height * 0.03) as u32)

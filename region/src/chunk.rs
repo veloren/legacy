@@ -57,8 +57,6 @@ impl Chunk {
                     let cave0 = 1.0 - cave_noise_0.get((pos / cave_scale).elements()).abs();
                     let cave1 = 1.0 - cave_noise_1.get((pos / cave_scale).elements()).abs();
 
-                    let color_var = (color_noise.get(pos.elements()) * 60.0) as u8;
-
                     voxels.push(Block::new(
                         if k == 0 {
                             BlockMaterial::Stone

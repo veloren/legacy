@@ -1,6 +1,6 @@
 // Local
 use {Volume, Voxel};
-use collision::{Collidable, CollisionResolution, Collider};
+use collision::{Collidable, Collider};
 
 // Standard
 use std::sync::{Arc, RwLock, RwLockReadGuard, Mutex};

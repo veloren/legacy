@@ -7,7 +7,7 @@ use coord::prelude::*;
 
 // Project
 use common::{Uid};
-use collision::{Collidable, CollisionResolution, Collider};
+use collision::{Collidable, Collider};
 
 // Local
 use super::{Entity, VolMgr, VolState, Chunk};
@@ -36,13 +36,12 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
 
         let mut entity_col = Collidable::new_cuboid(middle, radius);
 
-        // auto jump
-        let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() * 0.5 + vec3!(0.0, 0.0, 0.2), radius);
+        // block hopping
+        let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() * 0.4 + vec3!(0.0, 0.0, 0.1), radius);
         let auto_jump = chunk_mgr.get_nearby(&auto_jump_col);
         let mut would_collide = false;
         for col in auto_jump {
             let res = col.resolve_col(&auto_jump_col);
-            //if let Some(CollisionResolution::Overlap{..}) = res {
             if let Some(..) = res {
                 would_collide = true;
                 break;
@@ -50,7 +49,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         }
         println!("would1: {}", would_collide);
         if would_collide {
-            let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() * 0.5 + vec3!(0.0, 0.0, 1.2), radius);
+            let auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() * 0.4 + vec3!(0.0, 0.0, 1.1), radius);
             let auto_jump = chunk_mgr.get_nearby(&auto_jump_col);
             let mut would_collide_afterjump = false;
             for col in auto_jump {
@@ -62,38 +61,39 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
             }
             println!("would2: {}", would_collide_afterjump);
             if !would_collide_afterjump {
-                entity.vel_mut().z = 0.5;
+                entity.vel_mut().z = 0.55;
             }
         }
 
-        let speed = (*entity.vel() + *entity.ctrl_vel()) * dt;
-        println!("speed: {}", speed);
+        let velocity = (*entity.vel() + *entity.ctrl_vel()) * dt;
+        println!("velocity: {}", velocity);
 
         let half_chunk_scale = vec3!(0.45, 0.45, 0.45); // to forbid glitching when really fast
 
         let mut speed_step_cnt = 1.0;
-        if speed.x.abs() / half_chunk_scale.x > speed_step_cnt {
-            speed_step_cnt = speed.x.abs() / half_chunk_scale.x;
+        //TODO: refactor with new coord
+        if velocity.x.abs() / half_chunk_scale.x > speed_step_cnt {
+            speed_step_cnt = velocity.x.abs() / half_chunk_scale.x;
         }
-        if speed.y.abs() / half_chunk_scale.y > speed_step_cnt {
-            speed_step_cnt = speed.y.abs() / half_chunk_scale.y;
+        if velocity.y.abs() / half_chunk_scale.y > speed_step_cnt {
+            speed_step_cnt = velocity.y.abs() / half_chunk_scale.y;
         }
-        if speed.z.abs() / half_chunk_scale.z > speed_step_cnt {
-            speed_step_cnt = speed.z.abs() / half_chunk_scale.z;
+        if velocity.z.abs() / half_chunk_scale.z > speed_step_cnt {
+            speed_step_cnt = velocity.z.abs() / half_chunk_scale.z;
         }
 
         let speed_step_cnt = speed_step_cnt.ceil();
-        let step = speed / speed_step_cnt;
+        let vel_step = velocity / speed_step_cnt;
         // execute the movement in steps of 1/2 of chunk_scale to be sure not to mess up if moving fast
         let speed_step_cnt = speed_step_cnt as i64;
-        println!("speed_step_cnt: {} step: {}", speed_step_cnt, step);
+        println!("speed_step_cnt: {} step: {}", speed_step_cnt, vel_step);
 
         //apply movement in steps to detect glitching due to fast speed
         for _ in 0..speed_step_cnt {
             // work on new coordinates
             match &mut entity_col {
                 Collidable::Cuboid { ref mut cuboid } => {
-                    *cuboid.middle_mut() += step;
+                    *cuboid.middle_mut() += vel_step;
                 }
             }
 
@@ -108,31 +108,30 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
                 if let Some(res) = res {
                     println!("res {:?}", res);
                     //apply correction
-                    match res {
-                        CollisionResolution::Touch{..} => {
-                            //println!("touch to much");
-                        },
-                        CollisionResolution::Overlap{ correction, .. } => {
-                            match &mut entity_col {
-                                Collidable::Cuboid { ref mut cuboid } => {
-                                    *cuboid.middle_mut() = *cuboid.middle() + correction;
-                                }
-                            }
-                            // instant stop if hit anything
-                            println!("correction {}", correction);
-                            println!("before vel {}", entity.vel());
-                            if correction.x != 0.0 {
-                                entity.vel_mut().x = 0.0;
-                            }
-                            if correction.y != 0.0 {
-                                entity.vel_mut().y = 0.0;
-                            }
-                            if correction.z != 0.0 {
-                                entity.vel_mut().z = 0.0;
-                            }
-                            println!("after vel {}", entity.vel());
+                    if res.isTouch() {
+                        continue;
+                    }
+
+                    match &mut entity_col {
+                        Collidable::Cuboid { ref mut cuboid } => {
+                            *cuboid.middle_mut() = *cuboid.middle() + res.correction;
                         }
                     }
+                    // instant stop if hit anything
+                    println!("correction {}", res.correction);
+                    println!("before vel {}", entity.vel());
+
+                    //TODO: refactor with new coord
+                    if res.correction.x != 0.0 {
+                        entity.vel_mut().x = 0.0;
+                    }
+                    if res.correction.y != 0.0 {
+                        entity.vel_mut().y = 0.0;
+                    }
+                    if res.correction.z != 0.0 {
+                        entity.vel_mut().z = 0.0;
+                    }
+                    println!("after vel {}", entity.vel());
                 }
             }
 
@@ -148,7 +147,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
 
         match &mut entity_col {
             Collidable::Cuboid { ref mut cuboid } => {
-                *entity.pos_mut() = (*cuboid.middle() - vec3!(0.0, 0.0, 0.9));
+                *entity.pos_mut() = *cuboid.middle() - Vec3::new(0.0, 0.0, 0.9);
             }
         }
 

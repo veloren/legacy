@@ -22,15 +22,7 @@ impl Chunk {
         let cave_noise_0 = OpenSimplex::new().set_seed(6);
         let cave_noise_1 = OpenSimplex::new().set_seed(7);
 
-        let noise0 = OpenSimplex::new().set_seed(1337);
-        let noise1 = OpenSimplex::new().set_seed(1338);
-        let noise2 = OpenSimplex::new().set_seed(1339);
-        let noise3 = OpenSimplex::new().set_seed(1340);
-        let noise4 = OpenSimplex::new().set_seed(1341);
-        let noise5 = OpenSimplex::new().set_seed(1342);
-        let noise6 = OpenSimplex::new().set_seed(1343);
-        let noise7 = OpenSimplex::new().set_seed(0344);
-        let noise8 = OpenSimplex::new().set_seed(0345);
+        let mountain_noise = OpenSimplex::new().set_seed(8);
 
         let terrain_height = 64.0;
         let terrain_scale = 128.0;
@@ -58,7 +50,7 @@ impl Chunk {
                     let terrain = height_noise.get(((pos + offs) / terrain_scale).elements()) * (1.0 - ridge_factor) + ridge * ridge_factor;
                     let height = (terrain * mountain_height + terrain_height) as i64;
 
-                    let mountain_offs = (noise5.get([pos.x * 0.05, pos.y * 0.05]) * 32.0) as i64;
+                    let mountain_offs = (mountain_noise.get([pos.x * 0.05, pos.y * 0.05]) * 32.0) as i64;
 
                     let cave0 = 1.0 - cave_noise_0.get((pos / cave_scale).elements()).abs();
                     let cave1 = 1.0 - cave_noise_1.get((pos / cave_scale).elements()).abs();

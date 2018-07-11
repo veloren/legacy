@@ -87,7 +87,7 @@ unittests-MR:
 #  script:
 #    - cargo bench
 
-nightly-debug:
+nightly-linux-debug:
   stage: deploy
   script:
     - (cd voxygen && cargo build)
@@ -100,35 +100,40 @@ nightly-debug:
     - cp target/debug/voxygen nightly
     - cp target/debug/headless nightly
     - cp -r voxygen/data nightly/data/
-    - rm -f nightly-debug.tar.bz2
-    - tar -cvjSf nightly-debug.tar.bz2 nightly
+    - rm -f nightly-linux-debug.tar.bz2
+    - tar -cvjSf nightly-linux-debug.tar.bz2 nightly
   when: always
   artifacts:
     paths:
-      - nightly-debug.tar.bz2
+      - nightly-linux-debug.tar.bz2
     expire_in: 1 week
   only:
     refs:
       - master
 
-#nightly-release:
-#  stage: deploy
-#  script:
-#    - (cd voxygen && cargo build --release)
-#    - (cd server-cli && cargo build --release)
-#    - (cd headless && cargo build --release)
-#    - rm -r -f nightly
-#    - mkdir nightly
-#    - cp target/release/server-cli nightly
-#    - cp target/release/voxygen nightly
-#    - cp target/release/headless nightly
-#    - cp -r voxygen/vox nightly/vox
-#    - rm -f nightly-release.tar.gz
-#    - tar -zcvf nightly-release.tar.gz nightly
-#  artifacts:
-#    paths:
-#      - nightly-release.tar.gz
-#    expire_in: 1 week
+# nightly-linux-release:
+#   stage: deploy
+#   script:
+#     - (cd voxygen && cargo build --release)
+#     - (cd server-cli && cargo build --release)
+#     - (cd headless && cargo build --release)
+#     - rm -r -f nightly
+#     - mkdir nightly
+#     - mkdir nightly/data
+#     - cp target/debug/server-cli nightly
+#     - cp target/debug/voxygen nightly
+#     - cp target/debug/headless nightly
+#     - cp -r voxygen/data nightly/data/
+#     - rm -f nightly-linux-release.tar.bz2
+#     - tar -cvjSf nightly-linux-release.tar.bz2 nightly
+#   when: always
+#   artifacts:
+#     paths:
+#       - nightly-linux-release.tar.bz2
+#     expire_in: 1 week
+#   only:
+#     refs:
+#       - master
 
 nightly-windows-debug:
   stage: deploy
@@ -151,6 +156,28 @@ nightly-windows-debug:
   only:
     refs:
       - master
+
+# nightly-windows-release:
+#   stage: deploy
+#   script:
+#     - (cd voxygen && cargo build --release --target=x86_64-pc-windows-gnu)
+#     - (cd server-cli && cargo build --release --target=x86_64-pc-windows-gnu)
+#     - (cd headless && cargo build --release --target=x86_64-pc-windows-gnu)
+#     - rm -r -f nightly
+#     - mkdir nightly
+#     - cp target/x86_64-pc-windows-gnu/debug/server-cli.exe nightly
+#     - cp target/x86_64-pc-windows-gnu/debug/voxygen.exe nightly
+#     - cp target/x86_64-pc-windows-gnu/debug/headless.exe nightly
+#     - cp -r voxygen/data nightly/data
+#     - rm -f nightly-windows-release.zip
+#     - zip -r nightly-windows-release.zip nightly
+#   artifacts:
+#     paths:
+#       - nightly-windows-release.zip
+#     expire_in: 1 week
+#   only:
+#     refs:
+#       - master
 
 coverage:
   stage: post-run

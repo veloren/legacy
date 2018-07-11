@@ -1,7 +1,7 @@
 use noise::{NoiseFn, OpenSimplex, Seedable};
 use coord::prelude::*;
 
-use {Volume, Voxel, Block, BlockMaterial, BlockKind};
+use {Volume, Voxel, Block, BlockMaterial};
 
 pub struct Chunk {
     size: Vec3<i64>,
@@ -61,26 +61,26 @@ impl Chunk {
 
                     voxels.push(Block::new(
                         if k == 0 {
-                            BlockMaterial { kind: BlockKind::Stone, color: vec3!(145, 170, 160) + color_var }
+                            BlockMaterial::Stone
                         } else if k <= height {
                             if cave0 + cave1 > 1.94 {
-                                BlockMaterial { kind: BlockKind::Air, color: vec3!(0, 0, 0) + color_var }
+                                BlockMaterial::Air
                             } else if k < height - 4 {
-                                BlockMaterial { kind: BlockKind::Stone, color: vec3!(125, 150, 140) + color_var }
+                                BlockMaterial::Stone
                             } else if k < height {
-                                BlockMaterial { kind: BlockKind::Earth, color: vec3!(160, 120, 80) + color_var }
+                                BlockMaterial::Earth
                             } else if k <= size.z / 3 + 5 {
-                                BlockMaterial { kind: BlockKind::Sand, color: vec3!(225, 205, 100) + color_var }
+                                BlockMaterial::Sand
                             } else if k + mountain_offs > (size.z * 5) / 9 {
-                                BlockMaterial { kind: BlockKind::Stone, color: vec3!(145, 170, 160) + color_var }
+                                BlockMaterial::Stone
                             } else {
-                                BlockMaterial { kind: BlockKind::Grass, color: vec3!(75, 125, 40) + color_var }
+                                BlockMaterial::Grass
                             }
                         } else {
                             if k <= size.z / 3 {
-                                BlockMaterial { kind: BlockKind::Water, color: vec3!(65, 150, 180) + color_var }
+                                BlockMaterial::Water
                             } else {
-                                BlockMaterial { kind: BlockKind::Air, color: vec3!(0, 0, 0) + color_var }
+                                BlockMaterial::Air
                             }
                         }
                     ));

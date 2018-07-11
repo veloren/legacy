@@ -19,7 +19,7 @@ use glutin::Api::OpenGl;
 
 use renderer::{Renderer, ColorFormat, DepthFormat};
 
-use std::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub enum Event {
@@ -35,15 +35,15 @@ pub enum Event {
 }
 
 pub struct RenderWindow {
-    events_loop: Mutex<EventsLoop>,
-    gl_window: Mutex<GlWindow>,
+    events_loop: RwLock<EventsLoop>,
+    gl_window: RwLock<GlWindow>,
     renderer: RwLock<Renderer>,
     cursor_trapped: AtomicBool,
 }
 
 impl RenderWindow {
     pub fn new() -> RenderWindow {
-        let events_loop = Mutex::new(EventsLoop::new());
+        let events_loop = RwLock::new(EventsLoop::new());
         let win_builder = WindowBuilder::new()
             .with_title("Veloren (Voxygen)")
             .with_dimensions(LogicalSize::new(800.0, 500.0))
@@ -54,38 +54,27 @@ impl RenderWindow {
             .with_vsync(true);
 
         let (gl_window, device, factory, color_view, depth_view) =
-            gfx_window_glutin::init::<ColorFormat, DepthFormat>(win_builder, ctx_builder, &events_loop.lock().unwrap());
+            gfx_window_glutin::init::<ColorFormat, DepthFormat>(win_builder, ctx_builder, &events_loop.read().unwrap());
 
-        RenderWindow {
+        let rw = RenderWindow {
             events_loop,
-            gl_window: Mutex::new(gl_window),
+            gl_window: RwLock::new(gl_window),
             renderer: RwLock::new(Renderer::new(device, factory, color_view, depth_view)),
             cursor_trapped: AtomicBool::new(true),
-        }
+        };
+        rw.trap_cursor();
+        rw
     }
 
     pub fn handle_events<'a, F: FnMut(Event)>(&self, mut func: F) {
         // We need to mutate these inside the closure, so we take a mutable reference
-        let gl_window = &mut self.gl_window.lock().unwrap();
-        let events_loop = &mut self.events_loop.lock().unwrap();
+        let gl_window = &mut self.gl_window.read().unwrap();
+        let events_loop = &mut self.events_loop.write().unwrap();
 
         events_loop.poll_events(|event| {
             match event {
                 glutin::Event::DeviceEvent { event, .. } => match event {
                     DeviceEvent::MouseMotion { delta: (dx, dy), .. } => {
-                        if self.cursor_trapped.load(Ordering::Relaxed) {
-                            if let Err(_) = gl_window.grab_cursor(true) {
-                                warn!("Could not grap cursor");
-                                self.cursor_trapped.store(false, Ordering::Relaxed)
-                            }
-                            gl_window.hide_cursor(true);
-                        } else {
-                            if let Err(_) = gl_window.grab_cursor(false) {
-                                warn!("Could not ungrap cursor");
-                                self.cursor_trapped.store(true, Ordering::Relaxed)
-                            }
-                            gl_window.hide_cursor(false);
-                        }
                         func(Event::CursorMoved { dx, dy });
                     }
                     _ => {},
@@ -133,8 +122,7 @@ impl RenderWindow {
                     },
                     WindowEvent::MouseInput { state, button, .. } => {
                         if button == glutin::MouseButton::Left {
-                            self.cursor_trapped.store(true, Ordering::Relaxed);
-                            let _ = gl_window.grab_cursor(true);
+                            self.trap_cursor();
                         }
 
                         func(Event::MouseButton { state, button });
@@ -159,12 +147,24 @@ impl RenderWindow {
         });
     }
 
+    pub fn trap_cursor(&self) {
+        self.gl_window.read().unwrap().hide_cursor(true);
+        self.gl_window.read().unwrap().grab_cursor(true).expect("Could not grab cursor!");
+        self.cursor_trapped.store(true, Ordering::Relaxed);
+    }
+
+    pub fn untrap_cursor(&self) {
+        self.gl_window.read().unwrap().hide_cursor(false);
+        self.gl_window.read().unwrap().grab_cursor(false).expect("Could not ungrab cursor!");
+        self.cursor_trapped.store(false, Ordering::Relaxed);
+    }
+
     pub fn swap_buffers(&self) {
-        self.gl_window.lock().unwrap().swap_buffers().expect("Failed to swap window buffers");
+        self.gl_window.read().unwrap().swap_buffers().expect("Failed to swap window buffers");
     }
 
     pub fn get_size(&self) -> [f64; 2] {
-        let window = self.gl_window.lock().unwrap();
+        let window = self.gl_window.read().unwrap();
         match window.get_inner_size() {
             Some(LogicalSize{ width: w, height: h }) => [w as f64, h as f64],
             None => [0.0, 0.0]

@@ -134,7 +134,7 @@ impl Game {
 
                     // General inputs -------------------------------------------------------------
                     if keypress_eq(&general.pause, i.scancode) { // Default: Escape (free cursor)
-                        self.window.cursor_trapped().store(false, Ordering::Relaxed)
+                        self.window.untrap_cursor();
                     } else if keypress_eq(&general.use_item, i.scancode) { // Default: Ctrl+Q (quit) (temporary)
                         if i.modifiers.ctrl {
                             self.running.store(false, Ordering::Relaxed);

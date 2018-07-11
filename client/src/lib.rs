@@ -40,7 +40,7 @@ use player::Player;
 use callbacks::Callbacks;
 use error::Error;
 
-const VIEW_DISTANCE: i64 = 3;
+const VIEW_DISTANCE: i64 = 4;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum ClientStatus {
@@ -76,7 +76,7 @@ impl<P: Payloads> Callback<ServerMessage> for Client<P> {
 }
 
 fn gen_chunk(pos: Vec2<i64>) -> Chunk {
-    Chunk::test(vec3!(pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, 0), vec3!(CHUNK_SIZE, CHUNK_SIZE, 128))
+    Chunk::test(vec3!(pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, 0), vec3!(CHUNK_SIZE, CHUNK_SIZE, 256))
 }
 
 impl<P: Payloads> Client<P> {
@@ -233,7 +233,9 @@ impl<P: Payloads> Client<P> {
             *entity.pos_mut() += dpos;
 
             // Make the player hop up 1-block steps
-            if entity.get_lower_aabb().collides_with(self.chunk_mgr()) {
+            if entity.get_lower_aabb().collides_with(self.chunk_mgr()) &&
+                !entity.get_upper_aabb().collides_with(self.chunk_mgr())
+            {
                 entity.pos_mut().z += 0.2;
             }
         }

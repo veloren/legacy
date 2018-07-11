@@ -120,11 +120,15 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> Collider for VolMgr<V, P> {
         let scale = vec3!(1.0,1.0,1.0);
         let mut result = Vec::new();
         let area = col.col_aprox_abc() + scale;
-        let area = area.map(|e| e.ceil() as i64);
 
-        let posi = col.col_center().map(|e| e as i64);
-        let low = posi - area;
-        let high = posi + area + vec3!(1,1,1);
+        let pos = col.col_center();
+        let low = pos - area;
+        let high = pos + area;
+        // ceil the low and floor the high for dat performance improve
+        let low = low.map(|e| e.ceil() as i64);
+        let high = high.map(|e| (e.floor() as i64) + 1); // +1 is for the for loop
+
+        //debug!("abc {}, area {}, pos {}, low {}, high {}", col.col_aprox_abc(), area, pos, low, high);
 
         for z in low.z..high.z {
             for x in low.x..high.x {

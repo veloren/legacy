@@ -1,5 +1,7 @@
 #![feature(nll, euclidean_division)]
 
+#[macro_use]
+extern crate log;
 #[macro_use] extern crate enum_map;
 extern crate rand;
 extern crate noise;

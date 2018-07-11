@@ -26,7 +26,7 @@ pub trait Collider {
 const PLANCK_LENGTH : f32 = 0.000001; // smallest unit of meassurement in collision, no guarantees behind this point
 
 impl Resolution {
-    pub fn isTouch(&self) -> bool {self.point.length() < PLANCK_LENGTH}
+    pub fn is_touch(&self) -> bool {self.correction.length() < PLANCK_LENGTH}
 }
 
 impl Collidable {
@@ -40,6 +40,12 @@ impl Collidable {
                     },
                 }
             },
+        }
+    }
+
+    pub fn move_by(&mut self, delta: &Vec3<f32>) {
+        match self {
+            Collidable::Cuboid { cuboid: a } => a.middle += *delta,
         }
     }
 

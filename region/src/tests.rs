@@ -151,19 +151,15 @@ fn random_colide_resolution() {
             None => (),
             Some(res) => {
                 // now apply correction
-                if res.isTouch() {
+                if res.is_touch() {
                     continue;
                 }
-                match &mut m2 {
-                    Collidable::Cuboid { ref mut cuboid } => {
-                        *cuboid.middle_mut() = *cuboid.middle() + correction;
-                    }
-                }
+                m2.move_by(&res.correction);
                 //println!("after {:?}", &m2);
                 //println!("ccc {:?}", &correction);
                 positive_resolved += 1;
                 let res = m1.resolve_col(&m2).unwrap();
-                assert_eq!(res, Resolution{ point, .. });
+                assert!(res.is_touch());
             }
         }
     }

@@ -1,7 +1,7 @@
 use noise::{NoiseFn, OpenSimplex, Seedable};
 use coord::prelude::*;
 
-use {Volume, Voxel, Block, BlockMaterial};
+use {Volume, Voxel, Block, BlockMaterial, BlockKind};
 
 pub struct Chunk {
     size: Vec3<i64>,
@@ -23,6 +23,8 @@ impl Chunk {
         let cave_noise_1 = OpenSimplex::new().set_seed(7);
 
         let mountain_noise = OpenSimplex::new().set_seed(8);
+
+        let color_noise = OpenSimplex::new().set_seed(9);
 
         let terrain_height = 64.0;
         let terrain_scale = 128.0;
@@ -55,28 +57,30 @@ impl Chunk {
                     let cave0 = 1.0 - cave_noise_0.get((pos / cave_scale).elements()).abs();
                     let cave1 = 1.0 - cave_noise_1.get((pos / cave_scale).elements()).abs();
 
+                    let color_var = (color_noise.get(pos.elements()) * 60.0) as u8;
+
                     voxels.push(Block::new(
                         if k == 0 {
-                            BlockMaterial::Stone
+                            BlockMaterial { kind: BlockKind::Stone, color: vec3!(145, 170, 160) + color_var }
                         } else if k <= height {
                             if cave0 + cave1 > 1.94 {
-                                BlockMaterial::Air
+                                BlockMaterial { kind: BlockKind::Air, color: vec3!(0, 0, 0) + color_var }
                             } else if k < height - 4 {
-                                BlockMaterial::Stone
+                                BlockMaterial { kind: BlockKind::Stone, color: vec3!(125, 150, 140) + color_var }
                             } else if k < height {
-                                BlockMaterial::Earth
+                                BlockMaterial { kind: BlockKind::Earth, color: vec3!(160, 120, 80) + color_var }
                             } else if k <= size.z / 3 + 5 {
-                                BlockMaterial::Sand
+                                BlockMaterial { kind: BlockKind::Sand, color: vec3!(225, 205, 100) + color_var }
                             } else if k + mountain_offs > (size.z * 5) / 9 {
-                                BlockMaterial::Stone
+                                BlockMaterial { kind: BlockKind::Stone, color: vec3!(145, 170, 160) + color_var }
                             } else {
-                                BlockMaterial::Grass
+                                BlockMaterial { kind: BlockKind::Grass, color: vec3!(75, 125, 40) + color_var }
                             }
                         } else {
                             if k <= size.z / 3 {
-                                BlockMaterial::Water
+                                BlockMaterial { kind: BlockKind::Water, color: vec3!(65, 150, 180) + color_var }
                             } else {
-                                BlockMaterial::Air
+                                BlockMaterial { kind: BlockKind::Air, color: vec3!(0, 0, 0) + color_var }
                             }
                         }
                     ));
@@ -131,7 +135,7 @@ impl Volume for Chunk {
 
     fn set_size(&mut self, size: Vec3<i64>) {
         self.size = size;
-        self.voxels.resize((size.x * size.y * size.z) as usize, Block::new(BlockMaterial::Air));
+        self.voxels.resize((size.x * size.y * size.z) as usize, Block::empty());
     }
 
     fn set_offset(&mut self, offset: Vec3<i64>) {

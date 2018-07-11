@@ -182,26 +182,11 @@ impl Game {
                     // Mount inputs ---------------------------------------------------------------
                     // placeholder
                     // ----------------------------------------------------------------------------
-
-                    // UI Code
-                    self.ui.borrow_mut().ui_event_keyboard_input(i);
                 },
-                Event::Resized { w, h } => {
-                    self.camera.lock().unwrap().set_aspect_ratio(w as f32 / h as f32);
-                    self.ui.borrow_mut().ui_event_window_resize(w, h);
-                },
-                Event::MouseButton { state, button } => {
-                    self.ui.borrow_mut().ui_event_mouse_button(state, button);
-                },
-                Event::CursorPosition { x, y} => {
-                    self.ui.borrow_mut().ui_event_mouse_pos(x, y);
-                },
-                Event::Character { ch } => {
-                    self.ui.borrow_mut().ui_event_character(ch);
-                }
                 Event::Raw { event } => {
-//                    println!("{:?}", event);
+                    self.ui.borrow_mut().handle_event(event);
                 },
+                _ => { },
             }
         });
 

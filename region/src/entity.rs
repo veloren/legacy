@@ -1,5 +1,4 @@
 // Local
-use collision::Collidable;
 
 // Library
 use coord::prelude::*;

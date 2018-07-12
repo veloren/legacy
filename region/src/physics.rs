@@ -7,7 +7,7 @@ use coord::prelude::*;
 
 // Project
 use common::{Uid};
-use collision::{Collidable, Collider};
+use collision::{Primitive, Collider};
 
 // Local
 use super::{Entity, VolMgr, VolState, Chunk};
@@ -34,10 +34,10 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         let middle = *entity.pos() + vec3!(0.0, 0.0, 0.9);
         let radius = vec3!(0.45, 0.45, 0.9);
 
-        let mut entity_col = Collidable::new_cuboid(middle, radius);
+        let mut entity_col = Primitive::new_cuboid(middle, radius);
 
         // block hopping
-        let mut auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() * 0.4 + vec3!(0.0, 0.0, 0.1), radius);
+        let mut auto_jump_col = Primitive::new_cuboid(middle + *entity.ctrl_vel() * 0.4 + vec3!(0.0, 0.0, 0.1), radius);
         let auto_jump = chunk_mgr.get_nearby(&auto_jump_col);
         'outer: for col in auto_jump {
             let res = col.resolve_col(&auto_jump_col);
@@ -127,7 +127,7 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         *entity.vel_mut() *= 0.95_f32.powf(dt);
 
         match &mut entity_col {
-            Collidable::Cuboid { ref mut cuboid } => {
+            Primitive::Cuboid { ref mut cuboid } => {
                 *entity.pos_mut() = *cuboid.middle() - Vec3::new(0.0, 0.0, 0.9);
             }
         }

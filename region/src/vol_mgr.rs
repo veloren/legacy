@@ -1,6 +1,6 @@
 // Local
 use {Volume, Voxel};
-use collision::{Collidable, Collider};
+use collision::{Primitive, Collider};
 
 // Standard
 use std::sync::{Arc, RwLock, RwLockReadGuard, Mutex};
@@ -123,14 +123,14 @@ pub struct VolMgrIter<'a ,V: 'static + Volume, P: Send + Sync + 'static> {
 }
 
 impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Iterator for VolMgrIter<'a, V, P> {
-    type Item = Collidable;
+    type Item = Primitive;
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.cur.z < self.high.z {
             while self.cur.y < self.high.y {
                 while self.cur.x < self.high.x {
                     if self.mgr.get_voxel_at(self.cur).is_solid() {
-                        let col = Collidable::new_cuboid(vec3!(self.cur.x as f32 + 0.5, self.cur.y as f32 + 0.5, self.cur.z as f32 + 0.5), vec3!(0.5, 0.5, 0.5));
+                        let col = Primitive::new_cuboid(vec3!(self.cur.x as f32 + 0.5, self.cur.y as f32 + 0.5, self.cur.z as f32 + 0.5), vec3!(0.5, 0.5, 0.5));
                         self.cur.x += 1;
                         return Some(col);
                     }
@@ -149,7 +149,7 @@ impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Iterator for VolMgrIter<
 impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Collider<'a> for VolMgr<V, P> {
     type Iter = VolMgrIter<'a, V, P>;
 
-    fn get_nearby(&'a self, col: &Collidable) -> Self::Iter {
+    fn get_nearby(&'a self, col: &Primitive) -> Self::Iter {
         let scale = vec3!(1.0,1.0,1.0);
         let area = col.col_aprox_abc() + scale;
 

@@ -14,15 +14,15 @@ pub struct Resolution {
 }
 
 #[derive(PartialEq, Debug)]
-pub enum Collidable {
+pub enum Primitive {
     Cuboid { cuboid: Cuboid },
     //add more here
 }
 
 pub trait Collider<'a> {
-    type Iter: Iterator<Item = Collidable>;
+    type Iter: Iterator<Item = Primitive>;
 
-    fn get_nearby(&'a self, col: &Collidable) -> Self::Iter;
+    fn get_nearby(&'a self, col: &Primitive) -> Self::Iter;
 }
 
 const PLANCK_LENGTH : f32 = 0.000001; // smallest unit of meassurement in collision, no guarantees behind this point
@@ -31,13 +31,13 @@ impl Resolution {
     pub fn is_touch(&self) -> bool {self.correction.length() < PLANCK_LENGTH}
 }
 
-impl Collidable {
+impl Primitive {
     // CollisionResolution is the minimal movement of b to avoid overlap, but allow touch with self
-    pub fn resolve_col(&self, b: &Collidable) -> Option<Resolution> {
+    pub fn resolve_col(&self, b: &Primitive) -> Option<Resolution> {
         match self {
-            Collidable::Cuboid { cuboid: a } => {
+            Primitive::Cuboid { cuboid: a } => {
                 match b {
-                    Collidable::Cuboid { cuboid: b } => {
+                    Primitive::Cuboid { cuboid: b } => {
                         a.cuboid_col(b)
                     },
                 }
@@ -47,13 +47,13 @@ impl Collidable {
 
     pub fn move_by(&mut self, delta: &Vec3<f32>) {
         match self {
-            Collidable::Cuboid { cuboid: a } => a.middle += *delta,
+            Primitive::Cuboid { cuboid: a } => a.middle += *delta,
         }
     }
 
     pub fn center_of_mass(&self) -> Vec3<f32> {
         match self {
-            Collidable::Cuboid { cuboid: a } => a.middle,
+            Primitive::Cuboid { cuboid: a } => a.middle,
         }
     }
 
@@ -61,7 +61,7 @@ impl Collidable {
     // implement it fast!
     pub fn col_center(&self) -> Vec3<f32> {
         match self {
-            Collidable::Cuboid { cuboid: a } => a.middle,
+            Primitive::Cuboid { cuboid: a } => a.middle,
         }
     }
 
@@ -70,7 +70,7 @@ impl Collidable {
     //TODO: evaluate if this is a so fast method for checking somewhere actually
     pub fn col_aprox_rad(&self) -> Vec3<f32> {
         match self {
-            Collidable::Cuboid { cuboid: a } => a.radius * SQRT_2, // SQRT(2) is correct for sphere, havent it checked for an spheroid tbh
+            Primitive::Cuboid { cuboid: a } => a.radius * SQRT_2, // SQRT(2) is correct for sphere, havent it checked for an spheroid tbh
         }
     }
 
@@ -78,14 +78,14 @@ impl Collidable {
     // implement it fast!
     pub fn col_aprox_abc(&self) -> Vec3<f32> {
         match self {
-            Collidable::Cuboid { cuboid: a } => a.radius,
+            Primitive::Cuboid { cuboid: a } => a.radius,
         }
     }
 }
 
-impl Collidable {
+impl Primitive {
     pub fn new_cuboid(middle: Vec3<f32>, radius: Vec3<f32>) -> Self {
-        Collidable::Cuboid{ cuboid: Cuboid::new(middle, radius) }
+        Primitive::Cuboid{ cuboid: Cuboid::new(middle, radius) }
     }
 }
 

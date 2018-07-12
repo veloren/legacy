@@ -151,7 +151,7 @@ pub fn render(ui: &mut Ui) {
     if state.show_fps {
         widget::Text::new(&format!("Fps: {}", fps))
             .color(color::BLACK)
-            .font_size((height * 0.03) as u32)
+            .font_size(((0.01+height) * 0.03) as u32)
             .right_justify()
             .mid_right_with_margin_on(top_right_bot1_id, 5.0)
             .set(fps_id, uicell);

@@ -12,56 +12,64 @@ pub struct Chunk {
 impl Chunk {
     pub fn test(offset: Vec3<i64>, size: Vec3<i64>) -> Chunk {
 
-        let noise0 = OpenSimplex::new().set_seed(1337);
-        let noise1 = OpenSimplex::new().set_seed(1338);
-        let noise2 = OpenSimplex::new().set_seed(1339);
-        let noise3 = OpenSimplex::new().set_seed(1340);
-        let noise4 = OpenSimplex::new().set_seed(1341);
-        let noise5 = OpenSimplex::new().set_seed(1342);
-        let noise6 = OpenSimplex::new().set_seed(1343);
-        let noise7 = OpenSimplex::new().set_seed(0344);
-        let noise8 = OpenSimplex::new().set_seed(0345);
+        let offs_x_noise = OpenSimplex::new().set_seed(1);
+        let offs_y_noise = OpenSimplex::new().set_seed(2);
+        let offs_z_noise = OpenSimplex::new().set_seed(3);
+
+        let height_noise = OpenSimplex::new().set_seed(4);
+        let ridge_noise = OpenSimplex::new().set_seed(5);
+
+        let cave_noise_0 = OpenSimplex::new().set_seed(6);
+        let cave_noise_1 = OpenSimplex::new().set_seed(7);
+
+        let mountain_noise = OpenSimplex::new().set_seed(8);
+
+        let color_noise = OpenSimplex::new().set_seed(9);
+
+        let terrain_height = 64.0;
+        let terrain_scale = 128.0;
+        let terrain_turbulence = 24.0;
+        let ridge_factor = 0.5;
+        let turbulence_scatter = 0.07;
+        let mountain_height = 150.0;
+
+        let cave_scale = 64.0;
 
         let mut voxels = Vec::new();
 
         for i in 0..size.x {
             for j in 0..size.y {
                 for k in 0..size.z {
-                    let (x, y, z) = (
-                        (i+offset.x) as f64 + noise2.get([(i+offset.x) as f64 * 0.01, (j+offset.y) as f64 * 0.01, (k+offset.z) as f64 * 0.01]) * 16.0,
-                        (j+offset.y) as f64 + noise3.get([(i+offset.x) as f64 * 0.01, (j+offset.y) as f64 * 0.01, (k+offset.z) as f64 * 0.01]) * 16.0,
-                        (k+offset.z) as f64 + noise4.get([(i+offset.x) as f64 * 0.01, (j+offset.y) as f64 * 0.01, (k+offset.z) as f64 * 0.01]) * 16.0,
-                    );
-                    let noise = noise0.get([x as f64 * 0.01, y as f64 * 0.01, z as f64 * 0.01])
-                        + 0.15 * noise1.get([x as f64 * 0.07, y as f64 * 0.07, 0.0]);
-                    let mut height = (size.z as f64 * noise + 0.5 * size.z as f64) as i64;
+                    let pos = (vec3!(i, j, k) + offset).map(|e| e as f64);
 
-                    let mountain_offs = (noise5.get([x as f64 * 0.05, y as f64 * 0.05]) * 32.0) as i64;
+                    let offs = vec3!(
+                        offs_x_noise.get((pos * turbulence_scatter).elements()),
+                        offs_y_noise.get((pos * turbulence_scatter).elements()),
+                        offs_z_noise.get((pos * turbulence_scatter).elements())
+                    ) * terrain_turbulence;
 
-                    let river = (noise8.get([x as f64 * 0.01, y as f64 * 0.01]) * 1.0 * (z - size.z as f64)).abs() as i64;
-                    if river < 2 {
-                        height -= 4;
-                    }
+                    let ridge = 1.0 - 2.0 * ridge_noise.get((pos / terrain_scale).elements()).abs();
+                    let terrain = height_noise.get(((pos + offs) / terrain_scale).elements()) * (1.0 - ridge_factor) + ridge * ridge_factor;
+                    let height = (terrain * mountain_height + terrain_height) as i64;
 
-                    let cave0 = noise6.get([x as f64 * 0.01, y as f64 * 0.01, z as f64 * 0.01]).abs();
-                    let cave1 = noise7.get([x as f64 * 0.01, y as f64 * 0.01, z as f64 * 0.01]).abs();
-                    let cave = cave0 + cave1;
+                    let mountain_offs = (mountain_noise.get([pos.x * 0.05, pos.y * 0.05]) * 32.0) as i64;
+
+                    let cave0 = 1.0 - cave_noise_0.get((pos / cave_scale).elements()).abs();
+                    let cave1 = 1.0 - cave_noise_1.get((pos / cave_scale).elements()).abs();
 
                     voxels.push(Block::new(
                         if k == 0 {
                             BlockMaterial::Stone
                         } else if k <= height {
-                            if river < 2 {
-                                BlockMaterial::Water
-                            } else if cave0 < 0.01 && cave1 < 0.01 {
+                            if cave0 + cave1 > 1.94 {
                                 BlockMaterial::Air
                             } else if k < height - 4 {
                                 BlockMaterial::Stone
                             } else if k < height {
                                 BlockMaterial::Earth
-                            } else if k <= size.z / 3 + 3 {
+                            } else if k <= size.z / 3 + 5 {
                                 BlockMaterial::Sand
-                            } else if k + mountain_offs > (size.z * 2) / 3 {
+                            } else if k + mountain_offs > (size.z * 5) / 9 {
                                 BlockMaterial::Stone
                             } else {
                                 BlockMaterial::Grass
@@ -125,7 +133,7 @@ impl Volume for Chunk {
 
     fn set_size(&mut self, size: Vec3<i64>) {
         self.size = size;
-        self.voxels.resize((size.x * size.y * size.z) as usize, Block::new(BlockMaterial::Air));
+        self.voxels.resize((size.x * size.y * size.z) as usize, Block::empty());
     }
 
     fn set_offset(&mut self, offset: Vec3<i64>) {

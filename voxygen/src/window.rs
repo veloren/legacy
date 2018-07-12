@@ -72,6 +72,8 @@ impl RenderWindow {
         let events_loop = &mut self.events_loop.write().unwrap();
 
         events_loop.poll_events(|event| {
+            let raw_event = event.clone();
+
             match event {
                 glutin::Event::DeviceEvent { event, .. } => match event {
                     DeviceEvent::MouseMotion { delta: (dx, dy), .. } => {
@@ -140,10 +142,11 @@ impl RenderWindow {
                     },
                     _ => {},
                 },
-                _ => {
-                    func(Event::Raw {event});
-                },
+                _ => { },
             }
+
+            func(Event::Raw { event: raw_event });
+
         });
     }
 

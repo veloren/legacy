@@ -4,7 +4,7 @@ use ui::{
 };
 
 use std::collections::VecDeque;
-pub const MAX_CHAT_LINES: usize = 8;
+pub const MAX_CHAT_LINES: usize = 12;
 
 use conrod::{
     self,
@@ -128,8 +128,8 @@ pub fn render(ui: &mut Ui) {
         let (mut items, scrollbar) = widget::List::flow_up(state.chat_lines.len())
             .item_size(height * 0.03)
             .scrollbar_on_top()
-            .bottom_left_with_margin_on(top_left_id, 5.0)
-            .wh_of(top_left_id)
+            .bottom_left_of(master_id)
+            .wh_of(master_id)
             .set(chat_lines, uicell);
 
         while let Some(item) = items.next(uicell) {

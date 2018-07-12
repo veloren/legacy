@@ -1,4 +1,5 @@
 use std::process::Command;
+use std::env;
 
 fn main() {
     // @todo Error checking
@@ -11,6 +12,10 @@ fn main() {
     let output_time = Command::new("git").args(&["log", "-1", "--pretty=format:%ct"]).output().unwrap();
     let git_time = String::from_utf8(output_time.stdout).unwrap();
 
+    // Profile
+    let profile = env::var("PROFILE").unwrap();
+
     println!("cargo:rustc-env=GIT_HASH={}", git_hash); // Store as GIT_HASH env variable
     println!("cargo:rustc-env=GIT_TIME={}", git_time); // Store as GIT_TIME env variable
+    println!("cargo:rustc-env=PROFILE={}", profile); // Store as PROFILE env variable
 }

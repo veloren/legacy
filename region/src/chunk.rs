@@ -24,6 +24,8 @@ impl Chunk {
 
         let mountain_noise = OpenSimplex::new().set_seed(8);
 
+        let color_noise = OpenSimplex::new().set_seed(9);
+
         let terrain_height = 64.0;
         let terrain_scale = 128.0;
         let terrain_turbulence = 24.0;
@@ -131,7 +133,7 @@ impl Volume for Chunk {
 
     fn set_size(&mut self, size: Vec3<i64>) {
         self.size = size;
-        self.voxels.resize((size.x * size.y * size.z) as usize, Block::new(BlockMaterial::Air));
+        self.voxels.resize((size.x * size.y * size.z) as usize, Block::empty());
     }
 
     fn set_offset(&mut self, offset: Vec3<i64>) {

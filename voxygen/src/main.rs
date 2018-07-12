@@ -12,6 +12,7 @@ extern crate glutin;
 #[macro_use] extern crate enum_map;
 extern crate nalgebra;
 extern crate time;
+extern crate chrono;
 #[macro_use] extern crate coord;
 extern crate dot_vox;
 #[macro_use] extern crate toml;
@@ -39,9 +40,34 @@ mod ui;
 
 use std::io::{self, Write};
 
+use chrono::{Utc, TimeZone, DateTime};
+
 use client::ClientMode;
 use game::Game;
 use common::get_version;
+
+// START Environment variables
+const GIT_HASH: Option<&'static str> = option_env!("GIT_HASH");
+const GIT_TIME: Option<&'static str> = option_env!("GIT_TIME");
+const PROFILE: Option<&'static str> = option_env!("PROFILE");
+const BUILD_TIME: Option<&'static str> = option_env!("BUILD_TIME");
+
+pub fn get_git_hash() -> String {
+    GIT_HASH.unwrap_or("UNKNOWN GIT HASH").to_string()
+}
+
+pub fn get_git_time() -> DateTime<Utc> {
+    Utc.timestamp(GIT_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0)
+}
+
+pub fn get_profile() -> String {
+    PROFILE.unwrap_or("UNKNOWN PROFILE").to_string()
+}
+
+pub fn get_build_time() -> DateTime<Utc> {
+    Utc.timestamp(BUILD_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0)
+}
+// END Environment variables
 
 fn main() {
     pretty_env_logger::init();

@@ -2,6 +2,7 @@
 name = "voxygen"
 version = "0.1.0"
 authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
+build = "src/build.rs"
 
 [dependencies]
 common = { path = "../common" }

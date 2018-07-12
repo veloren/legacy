@@ -37,6 +37,7 @@ mod keybinds;
 mod key_state;
 mod vox;
 mod ui;
+mod tests;
 
 use std::io::{self, Write};
 

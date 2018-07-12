@@ -1,6 +1,13 @@
+use chrono::{Datelike, Utc};
+
+use get_git_hash;
+use get_git_time;
+use get_profile;
+use get_build_time;
+
 #[test]
 fn check_git_hash() {
-    assert_ne(get_git_hash(), "");
+    assert_ne!(get_git_hash(), "");
 }
 
 #[test]

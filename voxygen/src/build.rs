@@ -1,3 +1,4 @@
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::process::Command;
 use std::env;
 
@@ -15,7 +16,11 @@ fn main() {
     // Profile
     let profile = env::var("PROFILE").unwrap();
 
+    // Build time
+    let build_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("-1").as_secs();
+
     println!("cargo:rustc-env=GIT_HASH={}", git_hash); // Store as GIT_HASH env variable
     println!("cargo:rustc-env=GIT_TIME={}", git_time); // Store as GIT_TIME env variable
     println!("cargo:rustc-env=PROFILE={}", profile); // Store as PROFILE env variable
+    println!("cargo:rustc-env=BUILD_TIME={:?}", build_time); // Store as BUILD_TIME env variable
 }

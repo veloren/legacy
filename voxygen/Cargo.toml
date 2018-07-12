@@ -2,7 +2,7 @@
 name = "voxygen"
 version = "0.1.0"
 authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
-build = "src/build.rs"
+build = "build.rs"
 
 [dependencies]
 common = { path = "../common" }
@@ -25,3 +25,4 @@ toml = "0.4.6"
 serde = "1.0"
 serde_derive = "1.0"
 fps_counter = "1.0.0"
+chrono = "0.4"

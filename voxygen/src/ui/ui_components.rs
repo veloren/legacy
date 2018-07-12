@@ -125,10 +125,10 @@ pub fn render(ui: &mut Ui) {
         .set(master_id, uicell);
 
     if state.chat_lines.len() != 0 {
-        let (mut items, scrollbar) = widget::List::flow_up(state.chat_lines.len())
-            .item_size(height * 0.03)
+        let (mut items, scrollbar) = widget::List::flow_down(state.chat_lines.len())
+            .item_size(20.0)
             .scrollbar_on_top()
-            .bottom_left_of(master_id)
+            .top_left_of(master_id)
             .wh_of(master_id)
             .set(chat_lines, uicell);
 
@@ -139,7 +139,7 @@ pub fn render(ui: &mut Ui) {
 
             let text = widget::Text::new(&label)
                 .color(color::BLACK)
-                .font_size((height * 0.03) as u32)
+                .font_size(16)
                 .left_justify();
 
             item.set(text, uicell);

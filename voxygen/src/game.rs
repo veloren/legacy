@@ -200,16 +200,25 @@ impl Game {
         let mov_vec = unit_vecs.0 * dir_vec.x + unit_vecs.1 * dir_vec.y;
         let fly_vec = self.key_state.lock().unwrap().fly_vec();
 
-        //self.client.player_mut().dir_vec = vec3!(mov_vec.x, mov_vec.y, fly_vec);
-
         let mut entries = self.client.entities_mut();
         if let Some(eid) = self.client.player().entity_uid {
             if let Some(player_entry) = entries.get_mut(&eid) {
-                player_entry.ctrl_vel_mut().x = mov_vec.x;
-                player_entry.ctrl_vel_mut().y = mov_vec.y;
+                player_entry.ctrl_vel_mut().x += mov_vec.x * 0.2;
+                player_entry.ctrl_vel_mut().y += mov_vec.y * 0.2;
+
+                player_entry.ctrl_vel_mut().x *= 0.85;
+                player_entry.ctrl_vel_mut().y *= 0.85;
+
+                let vel = *player_entry.ctrl_vel_mut();
+
                 player_entry.ctrl_vel_mut().z = fly_vec * 5.0;
                 let ori = *self.camera.lock().unwrap().ori();
-                *player_entry.look_dir_mut() = vec2!(ori.x, ori.y);
+
+                if vel.length() > 0.5 {
+                    player_entry.look_dir_mut().x = vel.x.atan2(vel.y);
+                }
+
+                player_entry.look_dir_mut().y = vec2!(vel.x, vel.y).length() * 0.3;
             }
         }
 
@@ -266,8 +275,9 @@ impl Game {
 
         for (eid, entity) in self.client.entities().iter() {
             let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(entity.pos().x, entity.pos().y, entity.pos().z)).to_homogeneous();
-            let rot = Rotation3::<f32>::new(Vector3::<f32>::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous();
-            let model_mat = model_mat * rot;
+            let rot_y = Rotation3::<f32>::new(Vector3::<f32>::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
+            let rot_x = Rotation3::<f32>::new(Vector3::<f32>::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous();
+            let model_mat = model_mat * rot_x * rot_y;
             let mut data = self.data.lock().unwrap();
             let ref mut model;
             match self.client.player().entity_uid {

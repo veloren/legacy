@@ -115,10 +115,42 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> VolMgr<V, P> {
     }
 }
 
-impl<V: 'static + Volume, P: Send + Sync + 'static> Collider for VolMgr<V, P> {
-    fn get_nearby(&self, col: &Collidable) -> Vec<Collidable> {
+pub struct VolMgrIter<'a ,V: 'static + Volume, P: Send + Sync + 'static> {
+    cur: Vec3<i64>,
+    low: Vec3<i64>,
+    high: Vec3<i64>,
+    mgr: &'a VolMgr<V, P>,
+}
+
+impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Iterator for VolMgrIter<'a, V, P> {
+    type Item = Collidable;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.cur.z < self.high.z {
+            while self.cur.y < self.high.y {
+                while self.cur.x < self.high.x {
+                    if self.mgr.get_voxel_at(self.cur).is_solid() {
+                        let col = Collidable::new_cuboid(vec3!(self.cur.x as f32 + 0.5, self.cur.y as f32 + 0.5, self.cur.z as f32 + 0.5), vec3!(0.5, 0.5, 0.5));
+                        self.cur.x += 1;
+                        return Some(col);
+                    }
+                    self.cur.x += 1;
+                }
+                self.cur.x = self.low.x;
+                self.cur.y += 1;
+            }
+            self.cur.y = self.low.y;
+            self.cur.z += 1;
+        }
+        None
+    }
+}
+
+impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Collider<'a> for VolMgr<V, P> {
+    type Iter = VolMgrIter<'a, V, P>;
+
+    fn get_nearby(&'a self, col: &Collidable) -> Self::Iter {
         let scale = vec3!(1.0,1.0,1.0);
-        let mut result = Vec::new();
         let area = col.col_aprox_abc() + scale;
 
         let pos = col.col_center();
@@ -128,18 +160,6 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> Collider for VolMgr<V, P> {
         let low = low.map(|e| e.ceil() as i64);
         let high = high.map(|e| (e.floor() as i64) + 1); // +1 is for the for loop
 
-        //debug!("abc {}, area {}, pos {}, low {}, high {}", col.col_aprox_abc(), area, pos, low, high);
-
-        for z in low.z..high.z {
-            for x in low.x..high.x {
-                for y in low.y..high.y {
-                    if self.get_voxel_at(vec3!(x,y,z).map(|e| e as i64)).is_solid() {
-                        let col = Collidable::new_cuboid(vec3!(x as f32 + 0.5, y as f32 + 0.5, z as f32 + 0.5), vec3!(0.5, 0.5, 0.5));
-                        result.push(col);
-                    }
-                }
-            }
-        }
-        return result;
+        return VolMgrIter{cur: low, low, high, mgr: self};
     }
 }

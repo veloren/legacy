@@ -39,11 +39,11 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
         // block hopping
         let mut auto_jump_col = Collidable::new_cuboid(middle + *entity.ctrl_vel() * 0.4 + vec3!(0.0, 0.0, 0.1), radius);
         let auto_jump = chunk_mgr.get_nearby(&auto_jump_col);
-        'outer: for col in &auto_jump {
+        'outer: for col in auto_jump {
             let res = col.resolve_col(&auto_jump_col);
             if let Some(..) = res {
                 auto_jump_col.move_by(&vec3!(0.0, 0.0, 1.0));
-                // dont get new nearby, will be the same anyway
+                let auto_jump = chunk_mgr.get_nearby(&auto_jump_col);
                 for col in auto_jump {
                     let res = col.resolve_col(&auto_jump_col);
                     if let Some(..) = res {
@@ -86,7 +86,6 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
             // collision with terrain
             //TODO: evaluate to add speed to get_nerby function and just call it once
             let totest = chunk_mgr.get_nearby(&entity_col);
-            debug!("test agains: {:?}", totest.len());
 
             for col in totest {
                 //debug!("col {:?}", col);

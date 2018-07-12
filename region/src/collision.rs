@@ -19,8 +19,10 @@ pub enum Collidable {
     //add more here
 }
 
-pub trait Collider {
-    fn get_nearby(&self, col: &Collidable) -> Vec<Collidable>;
+pub trait Collider<'a> {
+    type Iter: Iterator<Item = Collidable>;
+
+    fn get_nearby(&'a self, col: &Collidable) -> Self::Iter;
 }
 
 const PLANCK_LENGTH : f32 = 0.000001; // smallest unit of meassurement in collision, no guarantees behind this point

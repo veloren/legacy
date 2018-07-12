@@ -172,6 +172,7 @@ nightly-windows-optimized:
     - cp -r voxygen/data nightly/data
     - rm -f nightly-windows-optimized.zip
     - zip -r nightly-windows-optimized.zip nightly
+  when: manual
   artifacts:
     paths:
       - nightly-windows-optimized.zip

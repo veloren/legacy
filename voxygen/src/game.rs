@@ -202,23 +202,29 @@ impl Game {
 
         let mut entries = self.client.entities_mut();
         if let Some(eid) = self.client.player().entity_uid {
-            if let Some(player_entry) = entries.get_mut(&eid) {
-                player_entry.ctrl_vel_mut().x += mov_vec.x * 0.2;
-                player_entry.ctrl_vel_mut().y += mov_vec.y * 0.2;
+            if let Some(player_entity) = entries.get_mut(&eid) {
 
-                player_entry.ctrl_vel_mut().x *= 0.85;
-                player_entry.ctrl_vel_mut().y *= 0.85;
+                // Apply acceleration
+                player_entity.ctrl_vel_mut().x += mov_vec.x * 0.2;
+                player_entity.ctrl_vel_mut().y += mov_vec.y * 0.2;
 
-                let vel = *player_entry.ctrl_vel_mut();
+                // Apply friction
+                player_entity.ctrl_vel_mut().x *= 0.85;
+                player_entity.ctrl_vel_mut().y *= 0.85;
 
-                player_entry.ctrl_vel_mut().z = fly_vec * 5.0;
+                // Apply jumping
+                *player_entity.jumping_mut() = self.key_state.lock().unwrap().jumping();
+
+                let vel = *player_entity.ctrl_vel_mut();
                 let ori = *self.camera.lock().unwrap().ori();
 
+                // Apply rotating
                 if vel.length() > 0.5 {
-                    player_entry.look_dir_mut().x = vel.x.atan2(vel.y);
+                    player_entity.look_dir_mut().x = vel.x.atan2(vel.y);
                 }
 
-                player_entry.look_dir_mut().y = vec2!(vel.x, vel.y).length() * 0.3;
+                // Apply leaning
+                player_entity.look_dir_mut().y = vec2!(vel.x, vel.y).length() * 0.3;
             }
         }
 

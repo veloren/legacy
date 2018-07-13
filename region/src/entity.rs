@@ -9,6 +9,7 @@ pub struct Entity {
     vel: Vec3f,
     ctrl_vel: Vec3f,
     look_dir: Vec2f,
+    jumping: bool,
 }
 
 impl Entity {
@@ -18,6 +19,7 @@ impl Entity {
             vel,
             ctrl_vel, //entity triest to move in this directory (maybe should be made a acceleration in future versions with correct netwon movement)
             look_dir,
+            jumping: false,
         }
     }
 
@@ -51,6 +53,14 @@ impl Entity {
 
     pub fn look_dir_mut(&mut self) -> &mut Vec2f {
         &mut self.look_dir
+    }
+
+    pub fn jumping_mut(&mut self) -> &mut bool {
+        &mut self.jumping
+    }
+
+    pub fn jumping(&self) -> bool {
+        self.jumping
     }
 
     pub fn get_lower_aabb(&self) -> AABB {

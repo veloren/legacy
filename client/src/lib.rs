@@ -210,9 +210,13 @@ impl<P: Payloads> Client<P> {
                             .get_lower_aabb() // ...bounding box...
                             .shift_by(vec3!(0.0, 0.0, -0.1)) // ...move it a little below the player...
                             .collides_with(self.chunk_mgr()) { // ...and check whether it collides with the ground.
-                            player_entity.vel_mut().z = 0.0;
+                            if player_entity.jumping() {
+                                player_entity.vel_mut().z = 3.0;
+                            } else {
+                                player_entity.vel_mut().z = 0.0;
+                            }
                         } else {
-                            player_entity.vel_mut().z -= 0.15; // Apply gravity
+                            player_entity.vel_mut().z -= 0.12; // Apply gravity
                         }
                     }
                 } else {

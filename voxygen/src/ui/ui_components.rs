@@ -17,6 +17,9 @@ use conrod::{
     Sizeable,
 };
 
+use get_git_hash;
+use get_build_time;
+
 #[derive(Clone, Debug)]
 pub struct UiState {
     pub show_fps: bool,
@@ -57,6 +60,8 @@ pub fn render(ui: &mut Ui) {
     let top_right_top_id = ui.get_widget_id("top_right_top_id");
     let top_right_bot1_id = ui.get_widget_id("top_right_bot1_id");
     let top_right_bot2_id = ui.get_widget_id("top_right_bot2_id");
+    let top_right_bot3_id = ui.get_widget_id("top_right_bot3_id");
+    let top_right_bot4_id = ui.get_widget_id("top_right_bot4_id");
 
     let chat_lines = ui.get_widget_id("chat_lines");
     let chat_background = ui.get_widget_id("chat_background");
@@ -66,6 +71,8 @@ pub fn render(ui: &mut Ui) {
     let version_id = ui.get_widget_id("version_id");
     let fps_id = ui.get_widget_id("fps_id");
     let text_id = ui.get_widget_id("text_id");
+    let build_hash_id = ui.get_widget_id("build_hash_id");
+    let build_time_id = ui.get_widget_id("build_time_id");
 
     let width = ui.get_width();
     let height = ui.get_height();
@@ -104,6 +111,8 @@ pub fn render(ui: &mut Ui) {
         (top_right_top_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.9)),
         (top_right_bot1_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
         (top_right_bot2_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
+        (top_right_bot3_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
+        (top_right_bot4_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
     ];
     let top_splits = [
         (top_left_id,   widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0)),
@@ -153,7 +162,7 @@ pub fn render(ui: &mut Ui) {
             .color(color::BLACK)
             .font_size(((0.01+height) * 0.03) as u32)
             .right_justify()
-            .mid_right_with_margin_on(top_right_bot1_id, 5.0)
+            .mid_right_with_margin_on(top_right_bot3_id, 5.0)
             .set(fps_id, uicell);
     }
 
@@ -162,7 +171,7 @@ pub fn render(ui: &mut Ui) {
             .color(color::BLACK)
             .font_size((height * 0.03) as u32)
             .right_justify()
-            .mid_right_with_margin_on(top_right_bot2_id, 5.0)
+            .mid_right_with_margin_on(top_right_bot4_id, 5.0)
             .set(version_id, uicell);
     }
 
@@ -188,4 +197,18 @@ pub fn render(ui: &mut Ui) {
                 event_tx.send(UiInternalEvent::UpdateChatText(edit)).unwrap();
             }
     }
+
+    widget::Text::new(&format!("Build {}", &get_git_hash()[..8]))
+        .color(color::BLACK)
+        .font_size((height * 0.03) as u32)
+        .right_justify()
+        .mid_right_with_margin_on(top_right_bot1_id, 5.0)
+        .set(build_hash_id, uicell);
+
+    widget::Text::new(&format!("Built at {}", get_build_time()))
+        .color(color::BLACK)
+        .font_size((height * 0.03) as u32)
+        .right_justify()
+        .mid_right_with_margin_on(top_right_bot2_id, 5.0)
+        .set(build_time_id, uicell);
 }

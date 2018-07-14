@@ -237,9 +237,7 @@ impl<P: Payloads> Client<P> {
             *entity.pos_mut() += dpos;
 
             // Make the player hop up 1-block steps
-            if entity.get_lower_aabb().collides_with(self.chunk_mgr()) &&
-                !entity.get_upper_aabb().collides_with(self.chunk_mgr())
-            {
+            if entity.get_lower_aabb().collides_with(self.chunk_mgr()) {
                 entity.pos_mut().z += 0.2;
             }
         }

@@ -35,7 +35,7 @@ impl Chunk {
         let terrain_turbulence = 24.0;
         let ridge_factor = 0.5;
         let turbulence_scatter = 0.07;
-        let mountain_height = 230.0;
+        let mountain_height = 220.0;
         let biome_scale = 1024.0;
         let forest_scale = 512.0;
 
@@ -117,7 +117,7 @@ impl Chunk {
 
                 let temp = temp_noise.get(((pos2d + offs2d) / biome_scale).elements());
 
-                let forest = forest_noise.get(((pos2d + offs2d) / forest_scale).elements()) * 0.2;
+                let forest = forest_noise.get(((pos2d + offs2d) / forest_scale).elements()) * 0.4;
 
                 for k in 0..size.z {
                     if chunk

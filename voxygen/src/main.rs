@@ -104,6 +104,8 @@ fn main() {
         } else {
             remote_addr = "91.67.21.222:38888".to_string();
         }
+
+        remote_addr = remote_addr.trim().to_string();
     }
 
     println!("What name do you want to use?");

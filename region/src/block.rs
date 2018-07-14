@@ -9,6 +9,10 @@ pub enum BlockMaterial {
     Earth,
     Stone,
     Water,
+    Snow,
+    Log,
+    Leaves,
+    Gold,
 }
 
 #[derive(Copy, Clone)]

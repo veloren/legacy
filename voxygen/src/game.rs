@@ -61,7 +61,8 @@ impl Game {
     pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R) -> Game {
         let window = RenderWindow::new();
 
-        let vox = dot_vox::load("data/vox/3.vox").unwrap();
+        info!("trying to load model files");
+        let vox = dot_vox::load("data/vox/3.vox").expect("cannot find model 3.vox. Make sure to start voxygen from it's folder");
         let voxmodel = vox_to_model(vox);
 
         let player_mesh = Mesh::from_with_offset(&voxmodel, vec3!(-10.0, -4.0, 0.0));
@@ -71,7 +72,7 @@ impl Game {
             &player_mesh,
         );
 
-        let vox = dot_vox::load("data/vox/5.vox").unwrap();
+        let vox = dot_vox::load("data/vox/5.vox").expect("cannot find model 5.vox. Make sure to start voxygen from it's folder");
         let voxmodel = vox_to_model(vox);
 
         let other_player_mesh = Mesh::from(&voxmodel);

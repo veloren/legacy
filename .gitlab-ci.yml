@@ -181,6 +181,51 @@ nightly-windows-optimized:
     refs:
       - master
 
+stable-linux-optimized:
+  stage: deploy
+  script:
+    - (cd voxygen && cargo build --release)
+    - (cd server-cli && cargo build --release)
+    - (cd headless && cargo build --release)
+    - rm -r -f stable
+    - mkdir stable
+    - mkdir stable/data
+    - cp target/release/server-cli stable
+    - cp target/release/voxygen stable
+    - cp target/release/headless stable
+    - cp -r voxygen/data stable/data/
+    - rm -f stable-linux-optimized.tar.bz2
+    - tar -cvjSf stable-linux-optimized.tar.bz2 stable
+  artifacts:
+    paths:
+      - stable-linux-optimized.tar.bz2
+    expire_in: 30d
+  only:
+    refs:
+      - /^v[0-9]+\.[0-9]+\.[0-9]+/
+
+stable-windows-optimized:
+  stage: deploy
+  script:
+    - (cd voxygen && cargo build --release --target=x86_64-pc-windows-gnu)
+    - (cd server-cli && cargo build --release --target=x86_64-pc-windows-gnu)
+    - (cd headless && cargo build --release --target=x86_64-pc-windows-gnu)
+    - rm -r -f stable
+    - mkdir stable
+    - cp target/x86_64-pc-windows-gnu/debug/server-cli.exe stable
+    - cp target/x86_64-pc-windows-gnu/debug/voxygen.exe stable
+    - cp target/x86_64-pc-windows-gnu/debug/headless.exe stable
+    - cp -r voxygen/data stable/data
+    - rm -f stable-windows-optimized.zip
+    - zip -r stable-windows-optimized.zip stable
+  artifacts:
+    paths:
+      - stable-windows-optimized.zip
+    expire_in: 30d
+  only:
+    refs:
+      - /^v[0-9]+\.[0-9]+\.[0-9]+/
+
 # nightly-windows-release:
 #   stage: deploy
 #   script:

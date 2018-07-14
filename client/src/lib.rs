@@ -40,8 +40,6 @@ use player::Player;
 use callbacks::Callbacks;
 use error::Error;
 
-const VIEW_DISTANCE: i64 = 4;
-
 #[derive(Copy, Clone, PartialEq)]
 pub enum ClientStatus {
     Connecting,
@@ -67,6 +65,8 @@ pub struct Client<P: Payloads> {
     chunk_mgr: VolMgr<Chunk, <P as Payloads>::Chunk>,
 
     callbacks: RwLock<Callbacks>,
+
+    view_distance: i64,
 }
 
 impl<P: Payloads> Callback<ServerMessage> for Client<P> {
@@ -84,7 +84,8 @@ impl<P: Payloads> Client<P> {
         mode: ClientMode,
         alias: String,
         remote_addr: U,
-        gen_payload: GF
+        gen_payload: GF,
+        view_distance: i64,
     ) -> Result<Arc<Client<P>>, Error>
     {
         let conn = Connection::new::<U>(&remote_addr, Box::new(|_m| {}), None, UdpMgr::new())?;
@@ -104,6 +105,8 @@ impl<P: Payloads> Client<P> {
             chunk_mgr: VolMgr::new(CHUNK_SIZE, VolGen::new(gen_chunk, gen_payload)),
 
             callbacks: RwLock::new(Callbacks::new()),
+
+            view_distance: view_distance.max(1).min(10),
         });
 
         *client.conn.callbackobj() = Some(client.clone());
@@ -167,8 +170,8 @@ impl<P: Payloads> Client<P> {
                     .div_euc(vec3!([CHUNK_SIZE; 3]));
 
                 // Generate chunks around the player
-                for i in player_chunk.x - VIEW_DISTANCE .. player_chunk.x + VIEW_DISTANCE + 1 {
-                    for j in player_chunk.y - VIEW_DISTANCE .. player_chunk.y + VIEW_DISTANCE + 1 {
+                for i in player_chunk.x - self.view_distance .. player_chunk.x + self.view_distance + 1 {
+                    for j in player_chunk.y - self.view_distance .. player_chunk.y + self.view_distance + 1 {
                         if !self.chunk_mgr().contains(vec2!(i, j)) {
                             self.chunk_mgr().gen(vec2!(i, j));
                         }
@@ -184,7 +187,7 @@ impl<P: Payloads> Client<P> {
                     .collect::<Vec<_>>();
                 for pos in chunk_pos {
                     // What?! Don't use snake_length
-                    if (pos - vec2!(player_chunk.x, player_chunk.y)).snake_length() > VIEW_DISTANCE * 2 {
+                    if (pos - vec2!(player_chunk.x, player_chunk.y)).snake_length() > self.view_distance * 2 {
                         self.jobs.do_once(move |c| c.chunk_mgr().remove(pos));
                     }
                 }

@@ -58,7 +58,7 @@ fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk {
 }
 
 impl Game {
-    pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R) -> Game {
+    pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
         let window = RenderWindow::new();
 
         info!("trying to load model files");
@@ -82,7 +82,7 @@ impl Game {
             &other_player_mesh,
         );
 
-        let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload)
+        let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, view_distance)
             .expect("Could not create new client");
 
         // Contruct the UI

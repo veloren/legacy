@@ -164,9 +164,9 @@ nightly-windows-optimized:
     - (cd headless && cargo build --release --target=x86_64-pc-windows-gnu)
     - rm -r -f nightly
     - mkdir nightly
-    - cp target/x86_64-pc-windows-gnu/debug/server-cli.exe nightly
-    - cp target/x86_64-pc-windows-gnu/debug/voxygen.exe nightly
-    - cp target/x86_64-pc-windows-gnu/debug/headless.exe nightly
+    - cp target/x86_64-pc-windows-gnu/release/server-cli.exe nightly
+    - cp target/x86_64-pc-windows-gnu/release/voxygen.exe nightly
+    - cp target/x86_64-pc-windows-gnu/release/headless.exe nightly
     - cp -r voxygen/data nightly/
     - rm -f nightly-windows-optimized.zip
     - zip -r nightly-windows-optimized.zip nightly
@@ -209,9 +209,9 @@ stable-windows-optimized:
     - (cd headless && cargo build --release --target=x86_64-pc-windows-gnu)
     - rm -r -f stable
     - mkdir stable
-    - cp target/x86_64-pc-windows-gnu/debug/server-cli.exe stable
-    - cp target/x86_64-pc-windows-gnu/debug/voxygen.exe stable
-    - cp target/x86_64-pc-windows-gnu/debug/headless.exe stable
+    - cp target/x86_64-pc-windows-gnu/release/server-cli.exe stable
+    - cp target/x86_64-pc-windows-gnu/release/voxygen.exe stable
+    - cp target/x86_64-pc-windows-gnu/release/headless.exe stable
     - cp -r voxygen/data stable/
     - rm -f stable-windows-optimized.zip
     - zip -r stable-windows-optimized.zip stable

@@ -75,20 +75,26 @@ fn main() {
 
     info!("Starting Voxygen... Version: {}", get_version());
 
-    let mut remote_addr = String::new();
-    println!("Remote server address [Default: 127.0.0.1:59003] (use m for testserver):");
 
     let mut args = std::env::args();
+    let mut remote_addr = String::new();
+    let mut remote_choice = String::new();
 
     // expects single command line argument that is the remote_addr
     if args.len() == 2 {
         remote_addr = args.nth(1).expect("No argument");
     }
     else {
-        // If args aren't correct then read from stdin
-        print!("Enter address (blank for default): ");
+        println!("Press (1) to connect to the default address [127.0.0.1:59003], press (2) to connect to another server:");
         io::stdout().flush().expect("Failed to flush");
-        io::stdin().read_line(&mut remote_addr).unwrap();
+        io::stdin().read_line(&mut remote_choice).unwrap();
+
+        if remote_choice.trim() == "2" {
+            // If args aren't correct then read from stdin
+            print!("Enter address (blank for default): ");
+            io::stdout().flush().expect("Failed to flush");
+            io::stdin().read_line(&mut remote_addr).unwrap();
+        }
     }
 
     let mut remote_addr = remote_addr.trim();

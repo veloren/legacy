@@ -37,8 +37,8 @@ See here for information on how you can get involved in shaping Veloren's future
 ## Download it
 
 ### Stable
- - [Lastest Windows Stable](https://gitlab.com/veloren/game/-/jobs/81773505/artifacts/raw/stable-windows-optimized.zip)
- - [Lastest Linux Stable](https://gitlab.com/veloren/game/-/jobs/81773504/artifacts/raw/stable-linux-optimized.tar.bz2)
+ - [Lastest Windows Stable](https://gitlab.com/veloren/game/-/jobs/artifacts/v0.1.0/download?job=stable-windows-optimized)
+ - [Lastest Linux Stable](https://gitlab.com/veloren/game/-/jobs/artifacts/v0.1.0/download?job=stable-linux-optimized)
  - There is currently no MacOS Stable
 
 ### Nightly

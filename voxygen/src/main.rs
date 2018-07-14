@@ -85,23 +85,30 @@ fn main() {
         remote_addr = args.nth(1).expect("No argument");
     }
     else {
-        println!("Press (1) to connect to the default address [127.0.0.1:59003], press (2) to connect to another server:");
+        println!("");
+        println!("Which server you want to connect to?");
+        println!("    Press (1) to connect to the public veloren server");
+        println!("    Press (2) to connect to localhost");
+        println!("    Press (3) to connect to another internet server");
+        println!("");
         io::stdout().flush().expect("Failed to flush");
         io::stdin().read_line(&mut remote_choice).unwrap();
-
-        if remote_choice.trim() == "2" {
+        let remote_choice = remote_choice.trim();
+        if remote_choice == "1" {
+            remote_addr = "91.67.21.222:38888".to_string();
+        } else if remote_choice == "2" {
+            remote_addr = "127.0.0.1:59003".to_string();
+        } else if remote_choice == "3" {
             // If args aren't correct then read from stdin
-            print!("Enter address (blank for default): ");
+            print!("Enter address (e.g. 127.0.0.1:59003):");
             io::stdout().flush().expect("Failed to flush");
             io::stdin().read_line(&mut remote_addr).unwrap();
         }
     }
 
-    let mut remote_addr = remote_addr.trim();
+    let remote_addr = remote_addr.trim();
     if remote_addr.len() == 0 {
-        remote_addr = "127.0.0.1:59003";
-    } else if remote_addr == "m" {
-        remote_addr = "91.67.21.222:38888";
+        panic!("No remote address provided! Aborting.");
     }
 
     println!("Connecting to {}", remote_addr);

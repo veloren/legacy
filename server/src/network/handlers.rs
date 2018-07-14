@@ -25,7 +25,7 @@ pub fn handle_packet(relay: &Relay<ServerContext>, ctx: &mut ServerContext, sess
                         ClientMode::Character => {
                             let uid = ctx.new_uid();
                             info!("Player '{}' connected in character mode. Assigned entity uid: {}", alias, uid);
-                            ctx.add_entity(uid, box Entity::new(vec3!(0.0, 0.0, 100.0), vec3!(0.0, 0.0, 0.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)));
+                            ctx.add_entity(uid, box Entity::new(vec3!(0.0, 0.0, 130.0), vec3!(0.0, 0.0, 0.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)));
                             Some(uid)
                         }
                     };

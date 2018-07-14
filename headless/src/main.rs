@@ -48,7 +48,7 @@ fn main() {
     let mut win = Window::initscr();
     win.writeln("Welcome to the Veloren headless client.");
 
-    let client = match Client::<Payloads>::new(ClientMode::Headless, alias,  &remote_addr.trim(), gen_payload) {
+    let client = match Client::<Payloads>::new(ClientMode::Headless, alias,  &remote_addr.trim(), gen_payload, 0) {
         Ok(c) => c,
         Err(e) => panic!("An error occured when attempting to initiate the client: {:?}", e),
     };

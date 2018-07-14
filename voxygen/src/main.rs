@@ -106,16 +106,25 @@ fn main() {
         }
     }
 
-    let remote_addr = remote_addr.trim();
-    if remote_addr.len() == 0 {
-        panic!("No remote address provided! Aborting.");
+    println!("What name do you want to use?");
+    let mut name_choice = String::new();
+    io::stdout().flush().expect("Failed to flush");
+    io::stdin().read_line(&mut name_choice).unwrap();
+    let mut name_choice = name_choice.trim();
+    if name_choice.len() == 0 {
+        println!("No name chosen, generating random one...");
+        name_choice = common::names::generate();
     }
+
+    io::stdout().flush().expect("Failed to flush");
+        io::stdin().read_line(&mut remote_choice).unwrap();
+        let remote_choice = remote_choice.trim();
 
     println!("Connecting to {}", remote_addr);
 
     Game::new(
         ClientMode::Character,
-        common::names::generate(),
+        name_choice,
         remote_addr
     ).run();
 }

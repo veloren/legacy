@@ -7,7 +7,7 @@ use coord::prelude::*;
 
 // Project
 use common::{Uid};
-use collision::{Primitive, Collider};
+use collision::{Primitive, Collider, PLANCK_LENGTH, ResolutionTti};
 
 // Local
 use super::{Entity, VolMgr, VolState, Chunk};
@@ -50,87 +50,102 @@ pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
                         break 'outer;
                     }
                 }
-                entity.vel_mut().z = 0.55;
+                //TODO: Disabled for testing
+                //entity.vel_mut().z = 0.55;
                 break 'outer;
             }
         }
 
-        let velocity = (*entity.vel() + *entity.ctrl_vel()) * dt;
+        let mut velocity = (*entity.vel() + *entity.ctrl_vel()) * dt;
         debug!("velocity: {}", velocity);
+        // movement can be executed in 3 steps because we are using TTI
 
-        let half_chunk_scale = vec3!(0.45, 0.45, 0.45); // to forbid glitching when really fast
-
-        let mut speed_step_cnt = 1.0;
-        //TODO: refactor with new coord
-        if velocity.x.abs() / half_chunk_scale.x > speed_step_cnt {
-            speed_step_cnt = velocity.x.abs() / half_chunk_scale.x;
-        }
-        if velocity.y.abs() / half_chunk_scale.y > speed_step_cnt {
-            speed_step_cnt = velocity.y.abs() / half_chunk_scale.y;
-        }
-        if velocity.z.abs() / half_chunk_scale.z > speed_step_cnt {
-            speed_step_cnt = velocity.z.abs() / half_chunk_scale.z;
-        }
-
-        let speed_step_cnt = speed_step_cnt.ceil();
-        let vel_step = velocity / speed_step_cnt;
-        // execute the movement in steps of 1/2 of chunk_scale to be sure not to mess up if moving fast
-        let speed_step_cnt = speed_step_cnt as i64;
-        debug!("speed_step_cnt: {} step: {}", speed_step_cnt, vel_step);
+        // store all corrections in a vector. store the highest absolute value in every direction.
+        // store how often a correction appears per absolute value
+        // after all calculation. start calculating the movement
+        // if corrections in all directions appear, we are stuck
+        // cancel out directions
+        // then apply the higest correction for one of the directions (or all remaining)
 
         //apply movement in steps to detect glitching due to fast speed
-        for _ in 0..speed_step_cnt {
-            // work on new coordinates
-            entity_col.move_by(&vel_step);
+        for i in 0..3 {
+            //TODO: undo this hacky cheat
+            let fakk = vec3!(if i == 0 {1.0} else {0.0}, if i == 1 {1.0} else {0.0}, if i == 2 {1.0} else {0.0});
+            let localspeed = velocity * fakk;
+
+            println!("--- {}", localspeed);
+            let mut positive_correction_max = vec3!(0.0, 0.0, 0.0);
+            let mut negative_correction_max = vec3!(0.0, 0.0, 0.0);
+            let mut positive_correction_cnt = vec3!(0, 0, 0);
+            let mut negative_correction_cnt = vec3!(0, 0, 0);
+
+            //entity_col.move_by(&vel_step);
 
             // collision with terrain
             //TODO: evaluate to add speed to get_nerby function and just call it once
+
+            //TODO: add movement here
             let totest = chunk_mgr.get_nearby(&entity_col);
+            let mut tti = 1.0;
+            let mut normal = vec3!(0.0, 0.0, 0.0);
 
             for col in totest {
-                //debug!("col {:?}", col);
-                let res = col.resolve_col(&entity_col);
-                if let Some(res) = res {
-                    debug!("res {:?}", res);
-                    //apply correction
-                    if res.is_touch() {
-                        continue;
+                let r = col.time_to_impact(&entity_col, &localspeed);
+                if let Some(r) = r {
+                    info!("colliding in tti: {:?}", r);
+                    if let ResolutionTti::WillColide{tti: ltti, normal: lnormal} = r {
+                        if ltti < tti {
+                            warn!("colliding in tti: {}", ltti);
+                            tti = ltti;
+                            normal = lnormal;
+                        }
                     }
-                    entity_col.move_by(&res.correction);
-
-                    // instant stop if hit anything
-                    debug!("correction {}", res.correction);
-                    debug!("before vel {}", entity.vel());
-
-                    //TODO: refactor with new coord
-                    if res.correction.x != 0.0 {
-                        entity.vel_mut().x = 0.0;
-                    }
-                    if res.correction.y != 0.0 {
-                        entity.vel_mut().y = 0.0;
-                    }
-                    if res.correction.z != 0.0 {
-                        entity.vel_mut().z = 0.0;
-                    }
-                    debug!("after vel {}", entity.vel());
                 }
             }
 
-            //Collision with other enteties
-            //TODO: consider all movements equal: so if 2 people run in each other both can walk 1/2 the distance
-            //for (.., other_entity) in entities.iter_mut() {
-
-            //}
+            if tti != 1.0 {
+                error!("total valid tti: {}", tti);
+            } else {
+                info!("total valid tti: {}", tti);
+            }
+            if tti > 0.0 {
+                let movement = localspeed * tti;
+                println!("velocity: {}", localspeed);
+                println!("move by: {}", movement);
+                entity_col.move_by(&movement);
+                velocity -= movement;
+                println!("after move: {:?}", entity_col);
+            }
+            println!("normal: {:?}", normal);
+            if normal.length() > 1.0 {
+                if normal.z != 0.0 {
+                    println!("full stop z");
+                    velocity.z = 0.0;
+                    entity.vel_mut().z = 0.0;
+                }
+            } else {
+                if normal.x != 0.0 {
+                    println!("full stop x");
+                    velocity.x = 0.0;
+                    entity.vel_mut().x = 0.0;
+                }
+                if normal.y != 0.0 {
+                    println!("full stop y");
+                    velocity.y = 0.0;
+                    entity.vel_mut().y = 0.0;
+                }
+                if normal.z != 0.0 {
+                    println!("full stop z");
+                    velocity.z = 0.0;
+                    entity.vel_mut().z = 0.0;
+                }
+            }
         }
 
         //Friction
         *entity.vel_mut() *= 0.95_f32.powf(dt);
 
-        match &mut entity_col {
-            Primitive::Cuboid { ref mut cuboid } => {
-                *entity.pos_mut() = *cuboid.middle() - Vec3::new(0.0, 0.0, 0.9);
-            }
-        }
-
+        // apply
+        *entity.pos_mut() = entity_col.col_center() - Vec3::new(0.0, 0.0, 0.9);
     }
 }

@@ -217,7 +217,7 @@ impl<P: Payloads> Client<P> {
     pub fn start(&self) {
         if self.run_job.lock().unwrap().is_none() {
             *self.run_job.lock().unwrap() = Some(self.jobs.do_loop(|c| {
-                thread::sleep(time::Duration::from_millis(20));
+                thread::sleep(time::Duration::from_millis(40));
                 c.tick(0.2)
             }));
         }

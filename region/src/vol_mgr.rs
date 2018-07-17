@@ -157,8 +157,8 @@ impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Collider<'a> for VolMgr<
         let low = pos - area;
         let high = pos + area;
         // ceil the low and floor the high for dat performance improve
-        let low = low.map(|e| e.ceil() as i64);
-        let high = high.map(|e| (e.floor() as i64) + 1); // +1 is for the for loop
+        let low = low.map(|e| e.floor() as i64 - 1);
+        let high = high.map(|e| (e.ceil() as i64) + 2); // +1 is for the for loop
 
         return VolMgrIter{cur: low, low, high, mgr: self};
     }

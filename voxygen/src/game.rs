@@ -204,6 +204,7 @@ impl Game {
         let mut entries = self.client.entities_mut();
         if let Some(eid) = self.client.player().entity_uid {
             if let Some(player_entity) = entries.get_mut(&eid) {
+                let mut player_entity = player_entity.write().unwrap();
 
                 // Apply acceleration
                 player_entity.ctrl_vel_mut().x += mov_vec.x * 0.2;
@@ -249,10 +250,13 @@ impl Game {
         let mut renderer = self.window.renderer_mut();
         renderer.begin_frame();
 
-        if let Some(uid) = self.client.player().entity_uid {
-            if let Some(e) = self.client.entities().get(&uid) {
-                self.camera.lock().unwrap().set_focus(Vector3::<f32>::new(e.pos().x, e.pos().y, e.pos().z + 1.75)); // TODO: Improve this
-            }
+        if let Some(player_entity) = self.client.player_entity() {
+            let player_entity = player_entity.read().unwrap();
+            self.camera.lock().unwrap().set_focus(Vector3::<f32>::new(
+                player_entity.pos().x,
+                player_entity.pos().y,
+                player_entity.pos().z + 1.75
+            )); // TODO: Improve this
         }
 
         let camera_mats = self.camera.lock().unwrap().get_mats();
@@ -281,6 +285,8 @@ impl Game {
         }
 
         for (eid, entity) in self.client.entities().iter() {
+            let entity = entity.read().unwrap();
+
             let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(entity.pos().x, entity.pos().y, entity.pos().z)).to_homogeneous();
             let rot_y = Rotation3::<f32>::new(Vector3::<f32>::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
             let rot_x = Rotation3::<f32>::new(Vector3::<f32>::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous();

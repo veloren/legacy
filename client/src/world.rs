@@ -2,7 +2,7 @@
 use coord::prelude::*;
 
 // Project
-use region::{VolState, Chunk};
+use region::Chunk;
 
 // Local
 use {Client, Payloads, CHUNK_SIZE};
@@ -13,8 +13,15 @@ pub(crate) fn gen_chunk(pos: Vec2<i64>) -> Chunk {
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn update_chunks(&self) {
+        self.player().entity_uid.map(|uid| self.entities_mut().get_mut(&uid).map(|player_entity| {
+            // Nothing yet
+        }));
+
         if let Some(uid) = self.player().entity_uid {
             if let Some(player_entity) = self.entities_mut().get_mut(&uid) {
+                let player_entity = player_entity.write().unwrap();
+
+                // Find the chunk the player is in
                 let player_chunk = player_entity
                     .pos()
                     .map(|e| e as i64)

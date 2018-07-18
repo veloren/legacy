@@ -30,11 +30,8 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Mutex};
 use std::collections::HashMap;
 use std::net::{ToSocketAddrs};
 
-// Library
-use coord::prelude::*;
-
 // Project
-use region::{Entity, VolMgr, VolGen, VolState};
+use region::{Entity, VolMgr, VolGen};
 use common::{get_version, Uid, Jobs, JobHandle};
 use common::net::{Connection, ServerMessage, ClientMessage, Callback, UdpMgr};
 
@@ -63,7 +60,7 @@ pub struct Client<P: Payloads> {
     conn: Arc<Connection<ServerMessage>>,
 
     player: RwLock<Player>,
-    entities: RwLock<HashMap<Uid, Entity>>,
+    entities: RwLock<HashMap<Uid, Arc<RwLock<Entity>>>>,
 
     chunk_mgr: VolMgr<Chunk, <P as Payloads>::Chunk>,
 
@@ -154,10 +151,10 @@ impl<P: Payloads> Client<P> {
     pub fn player<'a>(&'a self) -> RwLockReadGuard<'a, Player> { self.player.read().unwrap() }
     pub fn player_mut<'a>(&'a self) -> RwLockWriteGuard<'a, Player> { self.player.write().unwrap() }
 
-    pub fn entities<'a>(&'a self) -> RwLockReadGuard<'a, HashMap<Uid, Entity>> { self.entities.read().unwrap() }
-    pub fn entities_mut<'a>(&'a self) -> RwLockWriteGuard<'a, HashMap<Uid, Entity>> { self.entities.write().unwrap() }
+    pub fn entities<'a>(&'a self) -> RwLockReadGuard<'a, HashMap<Uid, Arc<RwLock<Entity>>>> { self.entities.read().unwrap() }
+    pub fn entities_mut<'a>(&'a self) -> RwLockWriteGuard<'a, HashMap<Uid, Arc<RwLock<Entity>>>> { self.entities.write().unwrap() }
 
-    pub fn player_entity<'a>(&'a self) -> Option<&'a Entity> {
+    pub fn player_entity(&self) -> Option<Arc<RwLock<Entity>>> {
         unimplemented!();
         //self.player().entity_uid.and_then(|uid| self.entities().map(|e| e.get(&uid)))
     }

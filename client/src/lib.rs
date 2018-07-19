@@ -53,7 +53,7 @@ pub trait Payloads: 'static {
 }
 
 pub struct Client<P: Payloads> {
-    pub jobs: Jobs<Client<P>>,
+    pub(crate) jobs: Jobs<Client<P>>,
     run_job: Mutex<Option<JobHandle<()>>>,
 
     status: RwLock<ClientStatus>,
@@ -142,7 +142,7 @@ impl<P: Payloads> Client<P> {
         self.conn.send(ClientMessage::SendCmd { cmd })
     }
 
-    pub fn chunk_mgr<'a>(&'a self) -> &'a VolMgr<Chunk, P::Chunk> { &self.chunk_mgr }
+    pub fn chunk_mgr(&self) -> &VolMgr<Chunk, P::Chunk> { &self.chunk_mgr }
 
     pub fn status<'a>(&'a self) -> RwLockReadGuard<'a, ClientStatus> { self.status.read().unwrap() }
 
@@ -151,11 +151,22 @@ impl<P: Payloads> Client<P> {
     pub fn player<'a>(&'a self) -> RwLockReadGuard<'a, Player> { self.player.read().unwrap() }
     pub fn player_mut<'a>(&'a self) -> RwLockWriteGuard<'a, Player> { self.player.write().unwrap() }
 
-    pub fn entities<'a>(&'a self) -> RwLockReadGuard<'a, HashMap<Uid, Arc<RwLock<Entity>>>> { self.entities.read().unwrap() }
-    pub fn entities_mut<'a>(&'a self) -> RwLockWriteGuard<'a, HashMap<Uid, Arc<RwLock<Entity>>>> { self.entities.write().unwrap() }
+    pub fn entities<'a>(&'a self) -> RwLockReadGuard<'a, HashMap<Uid, Arc<RwLock<Entity>>>> {
+        self.entities.read().unwrap()
+    }
+    pub fn entities_mut<'a>(&'a self) -> RwLockWriteGuard<'a, HashMap<Uid, Arc<RwLock<Entity>>>> {
+        self.entities.write().unwrap()
+    }
+
+    pub fn entity<'a>(&'a self, uid: Uid) -> Option<Arc<RwLock<Entity>>> {
+        self.entities.read().unwrap().get(&uid).map(|e| e.clone())
+    }
+
+    pub fn add_entity(&self, uid: Uid, entity: Entity) -> bool {
+        !self.entities.write().unwrap().insert(uid, Arc::new(RwLock::new(entity))).is_some()
+    }
 
     pub fn player_entity(&self) -> Option<Arc<RwLock<Entity>>> {
-        unimplemented!();
-        //self.player().entity_uid.and_then(|uid| self.entities().map(|e| e.get(&uid)))
+        self.player().entity_uid.and_then(|uid| self.entity(uid))
     }
 }

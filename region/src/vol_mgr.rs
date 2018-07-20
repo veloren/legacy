@@ -66,6 +66,10 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> VolMgr<V, P> {
         self.vols.read().unwrap().contains_key(&pos)
     }
 
+    pub fn loaded(&self, pos: Vec2<i64>) -> bool {
+        self.at(pos).map(|v| if let VolState::Loading = *v.read().unwrap() { false } else { true }).unwrap_or(false)
+    }
+
     pub fn remove(&self, pos: Vec2<i64>) -> bool {
         self.vols.write().unwrap().remove(&pos).is_some()
     }

@@ -10,6 +10,28 @@ gfx_defines! {
     }
 }
 
+impl Vertex {
+    pub fn new(pos: [f32; 3], norm: [f32; 3], col: [f32; 4]) -> Vertex {
+        Vertex {
+            pos,
+            norm,
+            col,
+        }
+    }
+
+    pub fn scale(&self, scale: Vec3<f32>) -> Vertex {
+        Vertex {
+            pos: [
+                self.pos[0] * scale.x,
+                self.pos[1] * scale.y,
+                self.pos[2] * scale.z,
+            ],
+            norm: self.norm,
+            col: self.col,
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct Poly {
     verts: [Vertex; 3],
@@ -35,6 +57,17 @@ impl Quad {
         }
     }
 
+    pub fn scale(&self, scale: Vec3<f32>) -> Quad {
+        Quad {
+            verts: [
+                self.verts[0].scale(scale),
+                self.verts[1].scale(scale),
+                self.verts[2].scale(scale),
+                self.verts[3].scale(scale),
+            ]
+        }
+    }
+
     pub fn flat_with_color(p0: [f32; 3], p1: [f32; 3], p2: [f32; 3], p3: [f32; 3], norm: [f32; 3], col: [f32; 4]) -> Quad {
         Quad {
             verts: [
@@ -53,6 +86,48 @@ impl Quad {
         nquad.verts[2].pos = [nquad.verts[2].pos[0] + off[0], nquad.verts[2].pos[1] + off[1], nquad.verts[2].pos[2] + off[2]];
         nquad.verts[3].pos = [nquad.verts[3].pos[0] + off[0], nquad.verts[3].pos[1] + off[1], nquad.verts[3].pos[2] + off[2]];
         nquad
+    }
+}
+
+trait GetAO {
+    fn get_ao_at(&self, pos: Vec3<i64>, dir: Vec3<i64>) -> i64;
+    fn get_ao_quad(&self, pos: Vec3<i64>, x_unit: Vec3<i64>, y_unit: Vec3<i64>, z_unit: Vec3<i64>, col: Vec4<f32>) -> Quad;
+}
+impl<V: RenderVolume> GetAO for V where V::VoxelType : RenderVoxel {
+    fn get_ao_at(&self, pos: Vec3<i64>, dir: Vec3<i64>) -> i64 {
+        let vecs = if dir.x == 0 {
+            if dir.y == 0 {
+                [vec3!(0, 0, 0), vec3!(-1, 0, 0), vec3!(0, -1, 0), vec3!(-1, -1, 0)]
+            } else {
+                [vec3!(0, 0, 0), vec3!(-1, 0, 0), vec3!(0, 0, -1), vec3!(-1, 0, -1)]
+            }
+        } else {
+            [vec3!(0, 0, 0), vec3!(0, -1, 0), vec3!(0, 0, -1), vec3!(0, -1, -1)]
+        };
+        vecs.iter().fold(0, |acc, v| acc + if self.at(pos + *v).unwrap_or(V::VoxelType::empty()).is_opaque() {0} else {1}) - 1
+    }
+
+    fn get_ao_quad(&self, pos: Vec3<i64>, x_unit: Vec3<i64>, y_unit: Vec3<i64>, z_unit: Vec3<i64>, col: Vec4<f32>) -> Quad {
+        let units = [
+            vec3!(0, 0, 0),
+            x_unit,
+            x_unit + y_unit,
+            y_unit,
+        ];
+
+        let ao = [
+            self.get_ao_at(pos + units[0], z_unit) as f32 / 4.0,
+            self.get_ao_at(pos + units[1], z_unit) as f32 / 4.0,
+            self.get_ao_at(pos + units[2], z_unit) as f32 / 4.0,
+            self.get_ao_at(pos + units[3], z_unit) as f32 / 4.0,
+        ];
+
+        Quad::new(
+            Vertex::new(units[0].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[0]).elements()),
+            Vertex::new(units[1].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[1]).elements()),
+            Vertex::new(units[2].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[2]).elements()),
+            Vertex::new(units[3].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[3]).elements()),
+        )
     }
 }
 
@@ -94,74 +169,146 @@ impl Mesh {
                         // +x
                         if !vol.at(Vec3::from((x + 1, y, z))).unwrap_or(V::VoxelType::empty()).is_opaque() {
                             let col = vox.get_color();
-                            mesh.add_quads(&[Quad::flat_with_color(
-                                [scale.x, 0.0, 0.0],
-                                [scale.x, scale.y, 0.0],
-                                [scale.x, scale.y, scale.z],
-                                [scale.x, 0.0, scale.z],
-                                [1.0, 0.0, 0.0], // Normal
-                                [col.x, col.y, col.z, col.w], // Color
-                            ).with_offset([offset.x, offset.y, offset.z])]);
+                            // mesh.add_quads(&[Quad::flat_with_color(
+                            //     [scale.x, 0.0, 0.0],
+                            //     [scale.x, scale.y, 0.0],
+                            //     [scale.x, scale.y, scale.z],
+                            //     [scale.x, 0.0, scale.z],
+                            //     [1.0, 0.0, 0.0], // Normal
+                            //     [col.x, col.y, col.z, col.w], // Color
+                            // ).with_offset([offset.x, offset.y, offset.z])]);
+
+                            mesh.add_quads(&[
+                                vol.get_ao_quad(
+                                    vec3!(x + 1, y + 0, z + 0),
+                                    vec3!(0, 1, 0),
+                                    vec3!(0, 0, 1),
+                                    vec3!(1, 0, 0),
+                                    vec4!(col.x, col.y, col.z, col.w)
+                                )
+                                    .scale(vec3!(scale.x, scale.y, scale.z))
+                                    .with_offset([offset.x + scale.x, offset.y, offset.z])
+                            ]);
                         }
                         // -x
                         if !vol.at(Vec3::from((x - 1, y, z))).unwrap_or(V::VoxelType::empty()).is_opaque() {
                             let col = vox.get_color();
-                            mesh.add_quads(&[Quad::flat_with_color(
-                                [0.0, scale.y, 0.0],
-                                [0.0, 0.0, 0.0],
-                                [0.0, 0.0, scale.z],
-                                [0.0, scale.y, scale.z],
-                                [-1.0, 0.0, 0.0], // Normal
-                                [col.x, col.y, col.z, col.w], // Color
-                            ).with_offset([offset.x, offset.y, offset.z])]);
+                            // mesh.add_quads(&[Quad::flat_with_color(
+                            //     [0.0, scale.y, 0.0],
+                            //     [0.0, 0.0, 0.0],
+                            //     [0.0, 0.0, scale.z],
+                            //     [0.0, scale.y, scale.z],
+                            //     [-1.0, 0.0, 0.0], // Normal
+                            //     [col.x, col.y, col.z, col.w], // Color
+                            // ).with_offset([offset.x, offset.y, offset.z])]);
+
+                            mesh.add_quads(&[
+                                vol.get_ao_quad(
+                                    vec3!(x - 1, y + 0, z + 0),
+                                    vec3!(0, 0, 1),
+                                    vec3!(0, 1, 0),
+                                    vec3!(-1, 0, 0),
+                                    vec4!(col.x, col.y, col.z, col.w)
+                                )
+                                    .scale(vec3!(scale.x, scale.y, scale.z))
+                                    .with_offset([offset.x, offset.y, offset.z])
+                            ]);
                         }
                         // +y
                         if !vol.at(Vec3::from((x, y + 1, z))).unwrap_or(V::VoxelType::empty()).is_opaque() {
                             let col = vox.get_color();
-                            mesh.add_quads(&[Quad::flat_with_color(
-                                [scale.x, scale.y, 0.0],
-                                [0.0, scale.y, 0.0],
-                                [0.0, scale.y, scale.z],
-                                [scale.x, scale.y, scale.z],
-                                [0.0, 1.0, 0.0], // Normal
-                                [col.x, col.y, col.z, col.w], // Color
-                            ).with_offset([offset.x, offset.y, offset.z])]);
+                            // mesh.add_quads(&[Quad::flat_with_color(
+                            //     [scale.x, scale.y, 0.0],
+                            //     [0.0, scale.y, 0.0],
+                            //     [0.0, scale.y, scale.z],
+                            //     [scale.x, scale.y, scale.z],
+                            //     [0.0, 1.0, 0.0], // Normal
+                            //     [col.x, col.y, col.z, col.w], // Color
+                            // ).with_offset([offset.x, offset.y, offset.z])]);
+
+                            mesh.add_quads(&[
+                                vol.get_ao_quad(
+                                    vec3!(x + 0, y + 1, z + 0),
+                                    vec3!(0, 0, 1),
+                                    vec3!(1, 0, 0),
+                                    vec3!(0, 1, 0),
+                                    vec4!(col.x, col.y, col.z, col.w)
+                                )
+                                    .scale(vec3!(scale.x, scale.y, scale.z))
+                                    .with_offset([offset.x, offset.y + scale.y, offset.z])
+                            ]);
                         }
                         // -y
                         if !vol.at(Vec3::from((x, y - 1, z))).unwrap_or(V::VoxelType::empty()).is_opaque() {
                             let col = vox.get_color();
-                            mesh.add_quads(&[Quad::flat_with_color(
-                                [0.0, 0.0, 0.0],
-                                [scale.x, 0.0, 0.0],
-                                [scale.x, 0.0, scale.z],
-                                [0.0, 0.0, scale.z],
-                                [0.0, -1.0, 0.0], // Normal
-                                [col.x, col.y, col.z, col.w], // Color
-                            ).with_offset([offset.x, offset.y, offset.z])]);
+                            // mesh.add_quads(&[Quad::flat_with_color(
+                            //     [0.0, 0.0, 0.0],
+                            //     [scale.x, 0.0, 0.0],
+                            //     [scale.x, 0.0, scale.z],
+                            //     [0.0, 0.0, scale.z],
+                            //     [0.0, -1.0, 0.0], // Normal
+                            //     [col.x, col.y, col.z, col.w], // Color
+                            // ).with_offset([offset.x, offset.y, offset.z])]);
+
+                            mesh.add_quads(&[
+                                vol.get_ao_quad(
+                                    vec3!(x + 0, y - 1, z + 0),
+                                    vec3!(1, 0, 0),
+                                    vec3!(0, 0, 1),
+                                    vec3!(0, -1, 0),
+                                    vec4!(col.x, col.y, col.z, col.w)
+                                )
+                                    .scale(vec3!(scale.x, scale.y, scale.z))
+                                    .with_offset([offset.x, offset.y, offset.z])
+                            ]);
                         }
                         // +z
                         if !vol.at(Vec3::from((x, y, z + 1))).unwrap_or(V::VoxelType::empty()).is_opaque() {
                             let col = vox.get_color();
-                            mesh.add_quads(&[Quad::flat_with_color(
-                                [0.0, 0.0, scale.z],
-                                [scale.x, 0.0, scale.z],
-                                [scale.x, scale.y, scale.z],
-                                [0.0, scale.y, scale.z],
-                                [0.0, 0.0, 1.0], // Normal
-                                [col.x, col.y, col.z, col.w], // Color
-                            ).with_offset([offset.x, offset.y, offset.z])]);
+                            // mesh.add_quads(&[Quad::flat_with_color(
+                            //     [0.0, 0.0, scale.z],
+                            //     [scale.x, 0.0, scale.z],
+                            //     [scale.x, scale.y, scale.z],
+                            //     [0.0, scale.y, scale.z],
+                            //     [0.0, 0.0, 1.0], // Normal
+                            //     [col.x, col.y, col.z, col.w], // Color
+                            // ).with_offset([offset.x, offset.y, offset.z])]);
+
+                            mesh.add_quads(&[
+                                vol.get_ao_quad(
+                                    vec3!(x + 0, y + 0, z + 1),
+                                    vec3!(1, 0, 0),
+                                    vec3!(0, 1, 0),
+                                    vec3!(0, 0, 1),
+                                    vec4!(col.x, col.y, col.z, col.w)
+                                )
+                                    .scale(vec3!(scale.x, scale.y, scale.z))
+                                    .with_offset([offset.x, offset.y, offset.z + scale.z])
+                            ]);
                         }
                         // -z
                         if !vol.at(Vec3::from((x, y, z - 1))).unwrap_or(V::VoxelType::empty()).is_opaque() {
                             let col = vox.get_color();
-                            mesh.add_quads(&[Quad::flat_with_color(
-                                [scale.x, 0.0, 0.0],
-                                [0.0, 0.0, 0.0],
-                                [0.0, scale.y, 0.0],
-                                [scale.x, scale.y, 0.0],
-                                [0.0, 0.0, -1.0], // Normal
-                                [col.x, col.y, col.z, col.w], // Color
-                            ).with_offset([offset.x, offset.y, offset.z])]);
+                            // mesh.add_quads(&[Quad::flat_with_color(
+                            //     [scale.x, 0.0, 0.0],
+                            //     [0.0, 0.0, 0.0],
+                            //     [0.0, scale.y, 0.0],
+                            //     [scale.x, scale.y, 0.0],
+                            //     [0.0, 0.0, -1.0], // Normal
+                            //     [col.x, col.y, col.z, col.w], // Color
+                            // ).with_offset([offset.x, offset.y, offset.z])]);
+
+                            mesh.add_quads(&[
+                                vol.get_ao_quad(
+                                    vec3!(x + 0, y + 0, z - 1),
+                                    vec3!(0, 1, 0),
+                                    vec3!(1, 0, 0),
+                                    vec3!(0, 0, 1),
+                                    vec4!(col.x, col.y, col.z, col.w)
+                                )
+                                    .scale(vec3!(scale.x, scale.y, scale.z))
+                                    .with_offset([offset.x, offset.y, offset.z])
+                            ]);
                         }
                     }
                 }

@@ -104,7 +104,7 @@ impl<V: RenderVolume> GetAO for V where V::VoxelType : RenderVoxel {
         } else {
             [vec3!(0, 0, 0), vec3!(0, -1, 0), vec3!(0, 0, -1), vec3!(0, -1, -1)]
         };
-        vecs.iter().fold(0, |acc, v| acc + if self.at(pos + *v).unwrap_or(V::VoxelType::empty()).is_opaque() {0} else {1}) - 1
+        vecs.iter().fold(0, |acc, v| acc + if self.at(pos + *v).unwrap_or(V::VoxelType::empty()).is_opaque() {0} else {1})
     }
 
     fn get_ao_quad(&self, pos: Vec3<i64>, x_unit: Vec3<i64>, y_unit: Vec3<i64>, z_unit: Vec3<i64>, col: Vec4<f32>) -> Quad {
@@ -116,10 +116,10 @@ impl<V: RenderVolume> GetAO for V where V::VoxelType : RenderVoxel {
         ];
 
         let ao = [
-            self.get_ao_at(pos + units[0], z_unit) as f32 / 4.0,
-            self.get_ao_at(pos + units[1], z_unit) as f32 / 4.0,
-            self.get_ao_at(pos + units[2], z_unit) as f32 / 4.0,
-            self.get_ao_at(pos + units[3], z_unit) as f32 / 4.0,
+            self.get_ao_at(pos + units[0], z_unit) as f32 / 3.0,
+            self.get_ao_at(pos + units[1], z_unit) as f32 / 3.0,
+            self.get_ao_at(pos + units[2], z_unit) as f32 / 3.0,
+            self.get_ao_at(pos + units[3], z_unit) as f32 / 3.0,
         ];
 
         Quad::new(

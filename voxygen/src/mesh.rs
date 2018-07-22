@@ -122,12 +122,21 @@ impl<V: RenderVolume> GetAO for V where V::VoxelType : RenderVoxel {
             self.get_ao_at(pos + units[3], z_unit) as f32 / 3.0,
         ];
 
-        Quad::new(
-            Vertex::new(units[0].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[0]).elements()),
-            Vertex::new(units[1].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[1]).elements()),
-            Vertex::new(units[2].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[2]).elements()),
-            Vertex::new(units[3].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[3]).elements()),
-        )
+        if (ao[0] + ao[2] > ao[1] + ao[3]) {
+            Quad::new(
+                Vertex::new(units[0].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[0]).elements()),
+                Vertex::new(units[1].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[1]).elements()),
+                Vertex::new(units[2].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[2]).elements()),
+                Vertex::new(units[3].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[3]).elements()),
+            )
+        } else {
+            Quad::new(
+                Vertex::new(units[1].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[1]).elements()),
+                Vertex::new(units[2].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[2]).elements()),
+                Vertex::new(units[3].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[3]).elements()),
+                Vertex::new(units[0].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[0]).elements()),
+            )
+        }
     }
 }
 

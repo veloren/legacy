@@ -193,18 +193,6 @@ impl Game {
             }
         });
 
-        loop {
-            let mut inp = String::new();
-            if let Ok(_) = io::std().read_line(&mut inp) {
-                match inp {
-                    "PLAY" => println!("You typed play!"),
-                    "OPTIONS" => println!("You typed options!"),
-                    "PLAY" => { println!("You typed exit!"); break; },
-                    _ => println!("Unrecognised input!"),
-                }
-            }
-        }
-
         // Calculate movement player movement vector
         let ori = *self.camera.lock().unwrap().ori();
         let unit_vecs = (

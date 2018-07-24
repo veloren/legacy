@@ -190,7 +190,7 @@ impl Game {
                     self.ui.borrow_mut().handle_event(event);
                 },
                 Event::Resized { w, h } => {
-                    self.camera.lock().unwrap().set_aspect_ratio((w as f32)/(h as f32));
+                    self.camera.lock().unwrap().set_aspect_ratio((w.max(1) as f32)/(h.max(1) as f32));
                 },
                 _ => { },
             }

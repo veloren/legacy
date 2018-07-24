@@ -189,6 +189,9 @@ impl Game {
                 Event::Raw { event } => {
                     self.ui.borrow_mut().handle_event(event);
                 },
+                Event::Resized { w, h } => {
+                    self.camera.lock().unwrap().set_aspect_ratio((w as f32)/(h as f32));
+                },
                 _ => { },
             }
         });

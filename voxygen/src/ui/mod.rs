@@ -125,13 +125,13 @@ impl Ui {
         self.ui.widget_id_generator().next()
     }
 
-    pub fn get_widget_id<T>(&mut self, widget_name: T) -> widget::Id where T: Into<String> {
-        let key = widget_name.into();
-        if self.ids.contains_key(&key) {
-            self.ids[&key]
+    pub fn get_widget_id(&mut self, widget_name: &str) -> widget::Id  {
+        let widget_name = widget_name.to_string();
+        if self.ids.contains_key(&widget_name) {
+            self.ids[&widget_name]
         } else {
             let id = self.generate_widget_id();
-            self.ids.insert(key, id);
+            self.ids.insert(widget_name, id);
             id
         }
     }

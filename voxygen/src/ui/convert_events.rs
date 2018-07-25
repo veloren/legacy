@@ -12,67 +12,107 @@ use glutin::{
     KeyboardInput,
     ElementState,
     MouseButton,
+    Event,
+    WindowEvent,
+    TouchPhase,
+    MouseScrollDelta,
+    Touch,
+    dpi::{
+        LogicalSize,
+        LogicalPosition,
+    },
 };
 
-pub fn convert_keycode(input: KeyboardInput) -> Option<Input>{
-    input.virtual_keycode.map(|key| {
-        match input.state {
-            ElementState::Pressed =>
-                Input::Press(input::Button::Keyboard(map_key(key))),
-            ElementState::Released =>
-                Input::Release(input::Button::Keyboard(map_key(key))),
-        }
-    })
-}
+pub fn convert(event: Event, win_w: f64, win_h: f64) -> Option<Input> {
+    let dpi_factor = 1.0;
 
-pub fn convert_mousebutton(state: ElementState, button: MouseButton) -> Input {
-    match state {
-        ElementState::Pressed => {
-            Input::Press(input::Button::Mouse(map_mouse(button))).into()
+    let tx = |x: Scalar| (x / dpi_factor) - win_w / 2.0;
+    let ty = |y: Scalar| -((y / dpi_factor) - win_h / 2.0);
+
+    let event = match event {
+        Event::WindowEvent { event, .. } => event,
+        _ => return None,
+    };
+
+    match event {
+        WindowEvent::Resized(LogicalSize { width, height }) => {
+                let w = (width as Scalar / dpi_factor) as u32;
+                let h = (height as Scalar / dpi_factor) as u32;
+                Some(Input::Resize(w, h).into())
         },
-        ElementState::Released => {
-            Input::Release(input::Button::Mouse(map_mouse(button))).into()
+        WindowEvent::ReceivedCharacter(ch) => {
+            let string = match ch {
+                // Ignore control characters and return ascii for Text event (like sdl2).
+                '\u{7f}' | // Delete
+                '\u{1b}' | // Escape
+                '\u{8}'  | // Backspace
+                '\r' | '\n' | '\t' => "".to_string(),
+                _ => ch.to_string()
+            };
+            Some(Input::Text(string).into())
+        },
+        WindowEvent::Focused(focused) =>
+            Some(Input::Focus(focused).into()),
+        WindowEvent::KeyboardInput { input, .. } => {
+            input.virtual_keycode.map(|key| {
+                match input.state {
+                    ElementState::Pressed =>
+                        Input::Press(input::Button::Keyboard(map_key(key))).into(),
+                    ElementState::Released =>
+                        Input::Release(input::Button::Keyboard(map_key(key))).into(),
+                }
+            })
+        },
+        WindowEvent::Touch(Touch { phase, location: LogicalPosition {x, y}, id, .. }) => {
+            let phase = match phase {
+                TouchPhase::Started => input::touch::Phase::Start,
+                TouchPhase::Moved => input::touch::Phase::Move,
+                TouchPhase::Cancelled => input::touch::Phase::Cancel,
+                TouchPhase::Ended => input::touch::Phase::End,
+            };
+            let xy = [tx(x), ty(y)];
+            let id = input::touch::Id::new(id);
+            let touch = input::Touch { phase: phase, id: id, xy: xy };
+            Some(Input::Touch(touch).into())
         }
+
+        WindowEvent::CursorMoved { position: LogicalPosition { x, y }, .. } => {
+            let x = tx(x as Scalar);
+            let y = ty(y as Scalar);
+            let motion = input::Motion::MouseCursor { x: x, y: y };
+            Some(Input::Motion(motion).into())
+        },
+        WindowEvent::MouseWheel { delta, .. } => match delta {
+            MouseScrollDelta::PixelDelta(LogicalPosition { x, y }) => {
+                let x = x as Scalar / dpi_factor;
+                let y = -y as Scalar / dpi_factor;
+                let motion = input::Motion::Scroll { x: x, y: y };
+                Some(Input::Motion(motion).into())
+            },
+
+            MouseScrollDelta::LineDelta(x, y) => {
+                // This should be configurable (we should provide a LineDelta event to allow for this).
+                const ARBITRARY_POINTS_PER_LINE_FACTOR: Scalar = 10.0;
+                let x = ARBITRARY_POINTS_PER_LINE_FACTOR * x as Scalar;
+                let y = ARBITRARY_POINTS_PER_LINE_FACTOR * -y as Scalar;
+                Some(Input::Motion(input::Motion::Scroll { x: x, y: y }).into())
+            },
+        },
+        WindowEvent::MouseInput { state, button, .. } => match state {
+            ElementState::Pressed =>
+                Some(Input::Press(input::Button::Mouse(map_mouse(button))).into()),
+            ElementState::Released =>
+                Some(Input::Release(input::Button::Mouse(map_mouse(button))).into()),
+        },
+        WindowEvent::Refresh => {
+            Some(Input::Redraw)
+        },
+        _ => None,
     }
 }
 
-pub fn convert_mouse_pos(x: f64, y: f64, win_w: f64, win_h: f64) -> Input {
-    let dpi = 1.0;
-    let tx = |x: Scalar| (x / dpi) - win_w / 2.0;
-    let ty = |y: Scalar| -((y / dpi) - win_h / 2.0);
-
-    let x = tx(x as Scalar);
-    let y = ty(y as Scalar);
-
-    Input::Motion(input::Motion::MouseCursor { x, y })
-}
-
-pub fn convert_character(ch: char) -> Input {
-    Input::Text( match ch {
-        // Ignore control characters and return ascii for Text event (like sdl2).
-        '\u{7f}' | // Delete
-        '\u{1b}' | // Escape
-        '\u{8}'  | // Backspace
-        '\r' | '\n' | '\t' => "".to_string(),
-        _ => ch.to_string()
-    })
-}
-
-fn map_mouse(mouse_button: MouseButton) -> input::MouseButton {
-    match mouse_button {
-        MouseButton::Left => input::MouseButton::Left,
-        MouseButton::Right => input::MouseButton::Right,
-        MouseButton::Middle => input::MouseButton::Middle,
-        MouseButton::Other(0) => input::MouseButton::X1,
-        MouseButton::Other(1) => input::MouseButton::X2,
-        MouseButton::Other(2) => input::MouseButton::Button6,
-        MouseButton::Other(3) => input::MouseButton::Button7,
-        MouseButton::Other(4) => input::MouseButton::Button8,
-        _ => input::MouseButton::Unknown,
-    }
-}
-
-fn map_key(keycode: VirtualKeyCode) -> input::keyboard::Key {
+/// Maps winit's key to a conrod `Key`.
+pub fn map_key(keycode: VirtualKeyCode) -> input::keyboard::Key {
     match keycode {
         VirtualKeyCode::Key0 => Key::D0,
         VirtualKeyCode::Key1 => Key::D1,
@@ -167,11 +207,11 @@ fn map_key(keycode: VirtualKeyCode) -> input::keyboard::Key {
         VirtualKeyCode::LShift => Key::LShift,
         VirtualKeyCode::LControl => Key::LCtrl,
         VirtualKeyCode::LAlt => Key::LAlt,
-        // VirtualKeyCode::LMenu => Key::LGui,
+//        VirtualKeyCode::LMenu => Key::LGui,
         VirtualKeyCode::RShift => Key::RShift,
         VirtualKeyCode::RControl => Key::RCtrl,
         VirtualKeyCode::RAlt => Key::RAlt,
-        // VirtualKeyCode::RMenu => Key::RGui,
+//        VirtualKeyCode::RMenu => Key::RGui,
         // Map to backslash?
         // K::GraveAccent => Key::Unknown,
         VirtualKeyCode::Home => Key::Home,
@@ -197,5 +237,20 @@ fn map_key(keycode: VirtualKeyCode) -> input::keyboard::Key {
         // K::World1 => Key::Unknown,
         // K::World2 => Key::Unknown,
         _ => Key::Unknown,
+    }
+}
+
+/// Maps winit's mouse button to conrod's mouse button.
+pub fn map_mouse(mouse_button: MouseButton) -> input::MouseButton {
+    match mouse_button {
+        MouseButton::Left => input::MouseButton::Left,
+        MouseButton::Right => input::MouseButton::Right,
+        MouseButton::Middle => input::MouseButton::Middle,
+        MouseButton::Other(0) => input::MouseButton::X1,
+        MouseButton::Other(1) => input::MouseButton::X2,
+        MouseButton::Other(2) => input::MouseButton::Button6,
+        MouseButton::Other(3) => input::MouseButton::Button7,
+        MouseButton::Other(4) => input::MouseButton::Button8,
+        _ => input::MouseButton::Unknown
     }
 }

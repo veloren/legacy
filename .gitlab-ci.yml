@@ -96,11 +96,10 @@ nightly-linux-debug:
     - (cd headless && cargo build)
     - rm -r -f nightly
     - mkdir nightly
-    - mkdir nightly/data
     - cp target/debug/server-cli nightly
     - cp target/debug/voxygen nightly
     - cp target/debug/headless nightly
-    - cp -r voxygen/data nightly/data/
+    - cp -r voxygen/data nightly/
     - rm -f nightly-linux-debug.tar.bz2
     - tar -cvjSf nightly-linux-debug.tar.bz2 nightly
   when: always
@@ -123,7 +122,7 @@ nightly-windows-debug:
     - cp target/x86_64-pc-windows-gnu/debug/server-cli.exe nightly
     - cp target/x86_64-pc-windows-gnu/debug/voxygen.exe nightly
     - cp target/x86_64-pc-windows-gnu/debug/headless.exe nightly
-    - cp -r voxygen/data nightly/data
+    - cp -r voxygen/data nightly/
     - rm -f nightly-windows-debug.zip
     - zip -r nightly-windows-debug.zip nightly
   artifacts:
@@ -142,11 +141,10 @@ nightly-linux-optimized:
     - (cd headless && cargo build --release)
     - rm -r -f nightly
     - mkdir nightly
-    - mkdir nightly/data
     - cp target/release/server-cli nightly
     - cp target/release/voxygen nightly
     - cp target/release/headless nightly
-    - cp -r voxygen/data nightly/data/
+    - cp -r voxygen/data nightly/
     - rm -f nightly-linux-optimized.tar.bz2
     - tar -cvjSf nightly-linux-optimized.tar.bz2 nightly
   when: manual
@@ -166,10 +164,10 @@ nightly-windows-optimized:
     - (cd headless && cargo build --release --target=x86_64-pc-windows-gnu)
     - rm -r -f nightly
     - mkdir nightly
-    - cp target/x86_64-pc-windows-gnu/debug/server-cli.exe nightly
-    - cp target/x86_64-pc-windows-gnu/debug/voxygen.exe nightly
-    - cp target/x86_64-pc-windows-gnu/debug/headless.exe nightly
-    - cp -r voxygen/data nightly/data
+    - cp target/x86_64-pc-windows-gnu/release/server-cli.exe nightly
+    - cp target/x86_64-pc-windows-gnu/release/voxygen.exe nightly
+    - cp target/x86_64-pc-windows-gnu/release/headless.exe nightly
+    - cp -r voxygen/data nightly/
     - rm -f nightly-windows-optimized.zip
     - zip -r nightly-windows-optimized.zip nightly
   when: manual
@@ -180,6 +178,50 @@ nightly-windows-optimized:
   only:
     refs:
       - master
+
+stable-linux-optimized:
+  stage: deploy
+  script:
+    - (cd voxygen && cargo build --release)
+    - (cd server-cli && cargo build --release)
+    - (cd headless && cargo build --release)
+    - rm -r -f stable
+    - mkdir stable
+    - cp target/release/server-cli stable
+    - cp target/release/voxygen stable
+    - cp target/release/headless stable
+    - cp -r voxygen/data stable/
+    - rm -f stable-linux-optimized.tar.bz2
+    - tar -cvjSf stable-linux-optimized.tar.bz2 stable
+  artifacts:
+    paths:
+      - stable-linux-optimized.tar.bz2
+    expire_in: 30d
+  only:
+    refs:
+      - /^v[0-9]+\.[0-9]+\.[0-9]+/
+
+stable-windows-optimized:
+  stage: deploy
+  script:
+    - (cd voxygen && cargo build --release --target=x86_64-pc-windows-gnu)
+    - (cd server-cli && cargo build --release --target=x86_64-pc-windows-gnu)
+    - (cd headless && cargo build --release --target=x86_64-pc-windows-gnu)
+    - rm -r -f stable
+    - mkdir stable
+    - cp target/x86_64-pc-windows-gnu/release/server-cli.exe stable
+    - cp target/x86_64-pc-windows-gnu/release/voxygen.exe stable
+    - cp target/x86_64-pc-windows-gnu/release/headless.exe stable
+    - cp -r voxygen/data stable/
+    - rm -f stable-windows-optimized.zip
+    - zip -r stable-windows-optimized.zip stable
+  artifacts:
+    paths:
+      - stable-windows-optimized.zip
+    expire_in: 30d
+  only:
+    refs:
+      - /^v[0-9]+\.[0-9]+\.[0-9]+/
 
 # nightly-windows-release:
 #   stage: deploy
@@ -192,7 +234,7 @@ nightly-windows-optimized:
 #     - cp target/x86_64-pc-windows-gnu/debug/server-cli.exe nightly
 #     - cp target/x86_64-pc-windows-gnu/debug/voxygen.exe nightly
 #     - cp target/x86_64-pc-windows-gnu/debug/headless.exe nightly
-#     - cp -r voxygen/data nightly/data
+#     - cp -r voxygen/data nightly/
 #     - rm -f nightly-windows-release.zip
 #     - zip -r nightly-windows-release.zip nightly
 #   artifacts:

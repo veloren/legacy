@@ -26,9 +26,9 @@ See here for a list of Veloren's features and what we're working on right now.
 
 See here for information about Veloren's development roadmap.
 
-### [How To Contribute](CONTRIBUTING.md)
+### How To Contribute - TODO
 
-See here for information on how you can get involved in shaping Veloren's future. You don't have to know how to program to contribute!
+~~See here for information on how you can get involved in shaping Veloren's future. You don't have to know how to program to contribute!~~
 
 ## Compile it yourself
 
@@ -36,6 +36,12 @@ See here for information on how you can get involved in shaping Veloren's future
 
 ## Download it
 
+### Stable
+ - [Lastest Windows Stable](https://gitlab.com/veloren/game/-/jobs/artifacts/v0.1.0/download?job=stable-windows-optimized)
+ - [Lastest Linux Stable](https://gitlab.com/veloren/game/-/jobs/artifacts/v0.1.0/download?job=stable-linux-optimized)
+ - There is currently no MacOS Stable
+
+### Nightly
  - [Lastest Windows Nightly](https://gitlab.com/veloren/game/-/jobs/artifacts/master/download?job=nightly-windows-debug)
  - [Lastest Linux Nightly](https://gitlab.com/veloren/game/-/jobs/artifacts/master/download?job=nightly-linux-debug)
  - There is currently no MacOS Nightly

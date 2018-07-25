@@ -16,11 +16,15 @@ impl RenderVoxel for Block {
     fn get_color(&self) -> Vec4<f32> {
         let color_map = enum_map! {
             BlockMaterial::Air => vec4!(0.0, 0.0, 0.0, 0.0) / 256.0f32,
-            BlockMaterial::Grass => vec4!(75.0, 125.0, 25.0, 256.0) / 256.0f32,
-            BlockMaterial::Sand  => vec4!(225.0, 205.0, 100.0, 256.0) / 256.0f32,
-            BlockMaterial::Earth => vec4!(160.0, 120.0, 80.0, 256.0) / 256.0f32,
-            BlockMaterial::Stone => vec4!(145.0, 170.0, 160.0, 256.0) / 256.0f32,
-            BlockMaterial::Water => vec4!(65.0, 150.0, 180.0, 256.0) / 256.0f32,
+            BlockMaterial::Grass => vec4!(100.0, 176.0, 18.0, 256.0) / 256.0f32,
+            BlockMaterial::Sand  => vec4!(229.0, 195.0, 94.0, 256.0) / 256.0f32,
+            BlockMaterial::Earth => vec4!(128.0, 88.0, 51.0, 256.0) / 256.0f32,
+            BlockMaterial::Stone => vec4!(91.0, 114.0, 104.0, 256.0) / 256.0f32,
+            BlockMaterial::Water => vec4!(113.0, 186.0, 188.0, 100.0) / 256.0f32,
+            BlockMaterial::Snow => vec4!(256.0, 256.0, 256.0, 256.0) / 256.0f32,
+            BlockMaterial::Log => vec4!(140.0, 100.0, 40.0, 256.0) / 256.0f32,
+            BlockMaterial::Leaves => vec4!(70.0, 126.0, 38.0, 256.0) / 256.0f32,
+            BlockMaterial::Gold => vec4!(256.0, 240.0, 50.0, 256.0) / 256.0f32,
         };
 
         color_map[self.material()]

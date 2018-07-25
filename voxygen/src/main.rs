@@ -75,34 +75,70 @@ fn main() {
 
     info!("Starting Voxygen... Version: {}", get_version());
 
-    let mut remote_addr = String::new();
-    println!("Remote server address [Default: 127.0.0.1:59003] (use m for testserver):");
 
     let mut args = std::env::args();
+    let mut remote_addr = String::new();
+    let mut remote_choice = String::new();
 
     // expects single command line argument that is the remote_addr
     if args.len() == 2 {
         remote_addr = args.nth(1).expect("No argument");
     }
     else {
-        // If args aren't correct then read from stdin
-        print!("Enter address (blank for default): ");
+        println!("");
+        println!("Which server you want to connect to?");
+        println!("    Press (1) to connect to the public veloren server (default)");
+        println!("    Press (2) to connect to localhost");
+        println!("    Press (3) to connect to another internet server");
+        println!("");
         io::stdout().flush().expect("Failed to flush");
-        io::stdin().read_line(&mut remote_addr).unwrap();
+        io::stdin().read_line(&mut remote_choice).unwrap();
+        let remote_choice = remote_choice.trim();
+        if remote_choice == "2" {
+            remote_addr = "127.0.0.1:59003".to_string();
+        } else if remote_choice == "3" {
+            // If args aren't correct then read from stdin
+            print!("Enter address (e.g. 127.0.0.1:59003):");
+            io::stdout().flush().expect("Failed to flush");
+            io::stdin().read_line(&mut remote_addr).unwrap();
+        } else {
+            remote_addr = "91.67.21.222:38888".to_string();
+        }
+
+        remote_addr = remote_addr.trim().to_string();
     }
 
-    let mut remote_addr = remote_addr.trim();
-    if remote_addr.len() == 0 {
-        remote_addr = "127.0.0.1:59003";
-    } else if remote_addr == "m" {
-        remote_addr = "91.67.21.222:38888";
+    println!("What name do you want to use?");
+    let mut name_choice = String::new();
+    io::stdout().flush().expect("Failed to flush");
+    io::stdin().read_line(&mut name_choice).unwrap();
+    let mut name_choice = name_choice.trim();
+    if name_choice.len() == 0 {
+        println!("No name chosen, generating random one...");
+        name_choice = common::names::generate();
     }
+
+    println!("");
+    println!("What view distance do you want to use?");
+    println!("For a smooth experience on slower hardware, we recommend 2.");
+    println!("For faster computers, 10 is advised.");
+    println!("If you experience lag, restart Veloren and change this setting again.");
+    println!("");
+    let mut view_distance_choice = String::new();
+    io::stdout().flush().expect("Failed to flush");
+    io::stdin().read_line(&mut view_distance_choice).unwrap();
+    let view_distance = view_distance_choice.trim().parse::<i64>().unwrap_or_else(|_| {
+        println!("Invalid input, defaulting to 4.");
+        4
+    });
+    println!("using a view distance of {}.", view_distance);
 
     println!("Connecting to {}", remote_addr);
 
     Game::new(
         ClientMode::Character,
-        common::names::generate(),
-        remote_addr
+        name_choice,
+        remote_addr,
+        view_distance
     ).run();
 }

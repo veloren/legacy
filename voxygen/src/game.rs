@@ -58,10 +58,12 @@ fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk {
 }
 
 impl Game {
-    pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R) -> Game {
+    pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
         let window = RenderWindow::new();
 
-        let vox = dot_vox::load("data/vox/3.vox").unwrap();
+        info!("trying to load model files");
+        let vox = dot_vox::load("data/vox/3.vox")
+            .expect("cannot find model 3.vox. Make sure to start voxygen from its folder");
         let voxmodel = vox_to_model(vox);
 
         let player_mesh = Mesh::from_with_offset(&voxmodel, vec3!(-10.0, -4.0, 0.0));
@@ -71,7 +73,8 @@ impl Game {
             &player_mesh,
         );
 
-        let vox = dot_vox::load("data/vox/5.vox").unwrap();
+        let vox = dot_vox::load("data/vox/5.vox")
+            .expect("cannot find model 5.vox. Make sure to start voxygen from its folder");
         let voxmodel = vox_to_model(vox);
 
         let other_player_mesh = Mesh::from(&voxmodel);
@@ -81,7 +84,7 @@ impl Game {
             &other_player_mesh,
         );
 
-        let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload)
+        let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, view_distance)
             .expect("Could not create new client");
 
         // Contruct the UI
@@ -115,7 +118,7 @@ impl Game {
 
                     if self.window.cursor_trapped().load(Ordering::Relaxed) {
                         //debug!("dx: {}, dy: {}", dx, dy);
-                        self.camera.lock().unwrap().rotate_by(Vector2::<f32>::new(dx as f32 * 0.002, dy as f32 * 0.002));
+                        self.camera.lock().unwrap().rotate_by(Vector2::new(dx as f32 * 0.002, dy as f32 * 0.002));
                     }
                 },
                 Event::MouseWheel { dy, .. } => {
@@ -182,50 +185,74 @@ impl Game {
                     // Mount inputs ---------------------------------------------------------------
                     // placeholder
                     // ----------------------------------------------------------------------------
-
-                    // UI Code
-                    self.ui.borrow_mut().ui_event_keyboard_input(i);
+                },
+                Event::Raw { event } => {
+                    self.ui.borrow_mut().handle_event(event);
                 },
                 Event::Resized { w, h } => {
-                    self.camera.lock().unwrap().set_aspect_ratio(w as f32 / h as f32);
-                    self.ui.borrow_mut().ui_event_window_resize(w, h);
+                    self.camera.lock().unwrap().set_aspect_ratio((w.max(1) as f32)/(h.max(1) as f32));
                 },
-                Event::MouseButton { state, button } => {
-                    self.ui.borrow_mut().ui_event_mouse_button(state, button);
-                },
-                Event::CursorPosition { x, y} => {
-                    self.ui.borrow_mut().ui_event_mouse_pos(x, y);
-                },
-                Event::Character { ch } => {
-                    self.ui.borrow_mut().ui_event_character(ch);
-                }
-                Event::Raw { event } => {
-//                    println!("{:?}", event);
-                },
+                _ => { },
             }
         });
 
         // Calculate movement player movement vector
         let ori = *self.camera.lock().unwrap().ori();
         let unit_vecs = (
-            Vector2::new(f32::cos(-ori.x), f32::sin(-ori.x)),
-            Vector2::new(f32::sin(ori.x), f32::cos(ori.x))
+            Vector2::new(ori.x.cos(), -ori.x.sin()),
+            Vector2::new(ori.x.sin(), ori.x.cos())
         );
         let dir_vec = self.key_state.lock().unwrap().dir_vec();
         let mov_vec = unit_vecs.0 * dir_vec.x + unit_vecs.1 * dir_vec.y;
         let fly_vec = self.key_state.lock().unwrap().fly_vec();
 
-        //self.client.player_mut().dir_vec = vec3!(mov_vec.x, mov_vec.y, fly_vec);
+        // Why do we do this in Voxygen?!
+        if let Some(player_entity) = self.client.player_entity() {
+            let mut player_entity = player_entity.write().unwrap();
 
-        let mut entries = self.client.entities_mut();
-        if let Some(eid) = self.client.player().entity_uid {
-            if let Some(player_entry) = entries.get_mut(&eid) {
-                player_entry.ctrl_vel_mut().x = mov_vec.x * 3.0;
-                player_entry.ctrl_vel_mut().y = mov_vec.y * 3.0;
-                player_entry.ctrl_vel_mut().z = fly_vec * 5.0;
-                let ori = *self.camera.lock().unwrap().ori();
-                *player_entry.look_dir_mut() = vec2!(ori.x, ori.y);
+            // Apply acceleration
+            player_entity.ctrl_vel_mut().x += mov_vec.x * 0.2;
+            player_entity.ctrl_vel_mut().y += mov_vec.y * 0.2;
+
+            // Apply friction
+            player_entity.ctrl_vel_mut().x *= 0.85;
+            player_entity.ctrl_vel_mut().y *= 0.85;
+
+            // Apply jumping
+            *player_entity.jumping_mut() = self.key_state.lock().unwrap().jumping();
+            player_entity.ctrl_vel_mut().z = fly_vec * 5.0;
+
+            let vel = *player_entity.ctrl_vel_mut();
+            let ori = *self.camera.lock().unwrap().ori();
+
+/* 
+            let mut entries = self.client.entities_mut();
+            if let Some(eid) = self.client.player().entity_uid {
+                if let Some(player_entry) = entries.get_mut(&eid) {
+                    player_entry.ctrl_vel_mut().x = mov_vec.x * 3.0;
+                    player_entry.ctrl_vel_mut().y = mov_vec.y * 3.0;
+                    player_entry.ctrl_vel_mut().z = fly_vec * 5.0;
+                    let ori = *self.camera.lock().unwrap().ori();
+                    *player_entry.look_dir_mut() = vec2!(ori.x, ori.y);
+*/
+
+            // Apply rotating
+            if vel.length() > 0.5 {
+                player_entity.look_dir_mut().x = vel.x.atan2(vel.y);
             }
+
+            // Apply leaning
+            player_entity.look_dir_mut().y = vec2!(vel.x, vel.y).length() * 0.3;
+        }
+
+        // Set camera focus to the player's head
+        if let Some(player_entity) = self.client.player_entity() {
+            let player_entity = player_entity.read().unwrap();
+            self.camera.lock().unwrap().set_focus(Vector3::<f32>::new(
+                player_entity.pos().x,
+                player_entity.pos().y,
+                player_entity.pos().z + 1.75
+            ));
         }
 
         self.running.load(Ordering::Relaxed)
@@ -247,12 +274,6 @@ impl Game {
     pub fn render_frame(&self) {
         let mut renderer = self.window.renderer_mut();
         renderer.begin_frame();
-
-        if let Some(uid) = self.client.player().entity_uid {
-            if let Some(e) = self.client.entities().get(&uid) {
-                self.camera.lock().unwrap().set_focus(Vector3::<f32>::new(e.pos().x, e.pos().y, e.pos().z + 1.75)); // TODO: Improve this
-            }
-        }
 
         let camera_mats = self.camera.lock().unwrap().get_mats();
         let camera_ori = self.camera.lock().unwrap().ori();
@@ -279,24 +300,38 @@ impl Game {
             }
         }
 
-        for (eid, entity) in self.client.entities().iter() {
-            let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(entity.pos().x, entity.pos().y, entity.pos().z)).to_homogeneous();
-            let rot = Rotation3::<f32>::new(Vector3::<f32>::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous();
-            let model_mat = model_mat * rot;
+        // Render each and every entity
+        for (uid, entity) in self.client.entities().iter() {
+            let entity = entity.read().unwrap();
+
+            // Calculate a transformation matrix for the entity's model
+            let model_mat = &Translation3::from_vector(Vector3::new(
+                    entity.pos().x,
+                    entity.pos().y,
+                    entity.pos().z
+                )).to_homogeneous()
+                * Rotation3::new(Vector3::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous()
+                * Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
+
+            // Choose the correct model for the entity
             let mut data = self.data.lock().unwrap();
-            let ref mut model;
-            match self.client.player().entity_uid {
-                Some(uid) if uid == *eid => model = &mut data.player_model,
-                _ => model = &mut data.other_player_model,
-            }
+            let model = match self.client.player().entity_uid {
+                Some(uid) if uid == uid => &data.player_model,
+                _ => &data.other_player_model,
+            };
+
+            // Update the model's constant buffer with the transformation details previously calculated
             renderer.update_model_object(
                 &model,
+                // TODO: Improve this
                 Constants::new(
-                    &model_mat, // TODO: Improve this
+                    &model_mat,
                     &camera_mats.0,
                     &camera_mats.1,
                 )
             );
+
+            // Actually render the model
             renderer.render_model_object(&model);
         }
 

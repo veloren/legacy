@@ -1,5 +1,5 @@
 // Standard
-use std::sync::{RwLock};
+use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
 
 // Library
@@ -12,12 +12,13 @@ use collision::{Primitive, Collider, PLANCK_LENGTH, ResolutionTti};
 // Local
 use super::{Entity, VolMgr, VolState, Chunk};
 
-pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
+pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Arc<RwLock<Entity>>>>,
             chunk_mgr: &VolMgr<Chunk, P>,
             chunk_size: i64,
             dt: f32) {
-    let mut entities = entities.write().unwrap();
-    for (.., entity) in entities.iter_mut() {
+    let mut entities = entities.read().unwrap();
+    for (.., entity) in entities.iter() {
+        let mut entity = entity.write().unwrap();
         let chunk = entity
             .pos()
             .map(|e| e as i64)

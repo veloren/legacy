@@ -4,7 +4,7 @@ use ui::{
 };
 
 use std::collections::VecDeque;
-pub const MAX_CHAT_LINES: usize = 8;
+pub const MAX_CHAT_LINES: usize = 12;
 
 use conrod::{
     self,
@@ -16,6 +16,9 @@ use conrod::{
     Borderable,
     Sizeable,
 };
+
+use get_git_hash;
+use get_build_time;
 
 #[derive(Clone, Debug)]
 pub struct UiState {
@@ -57,6 +60,8 @@ pub fn render(ui: &mut Ui) {
     let top_right_top_id = ui.get_widget_id("top_right_top_id");
     let top_right_bot1_id = ui.get_widget_id("top_right_bot1_id");
     let top_right_bot2_id = ui.get_widget_id("top_right_bot2_id");
+    let top_right_bot3_id = ui.get_widget_id("top_right_bot3_id");
+    let top_right_bot4_id = ui.get_widget_id("top_right_bot4_id");
 
     let chat_lines = ui.get_widget_id("chat_lines");
     let chat_background = ui.get_widget_id("chat_background");
@@ -66,6 +71,8 @@ pub fn render(ui: &mut Ui) {
     let version_id = ui.get_widget_id("version_id");
     let fps_id = ui.get_widget_id("fps_id");
     let text_id = ui.get_widget_id("text_id");
+    let build_hash_id = ui.get_widget_id("build_hash_id");
+    let build_time_id = ui.get_widget_id("build_time_id");
 
     let width = ui.get_width();
     let height = ui.get_height();
@@ -104,6 +111,8 @@ pub fn render(ui: &mut Ui) {
         (top_right_top_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.9)),
         (top_right_bot1_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
         (top_right_bot2_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
+        (top_right_bot3_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
+        (top_right_bot4_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
     ];
     let top_splits = [
         (top_left_id,   widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0)),
@@ -125,11 +134,11 @@ pub fn render(ui: &mut Ui) {
         .set(master_id, uicell);
 
     if state.chat_lines.len() != 0 {
-        let (mut items, scrollbar) = widget::List::flow_up(state.chat_lines.len())
-            .item_size(height * 0.03)
+        let (mut items, scrollbar) = widget::List::flow_down(state.chat_lines.len())
+            .item_size(20.0)
             .scrollbar_on_top()
-            .bottom_left_with_margin_on(top_left_id, 5.0)
-            .wh_of(top_left_id)
+            .top_left_of(master_id)
+            .wh_of(master_id)
             .set(chat_lines, uicell);
 
         while let Some(item) = items.next(uicell) {
@@ -139,7 +148,7 @@ pub fn render(ui: &mut Ui) {
 
             let text = widget::Text::new(&label)
                 .color(color::BLACK)
-                .font_size((height * 0.03) as u32)
+                .font_size(16)
                 .left_justify();
 
             item.set(text, uicell);
@@ -153,7 +162,7 @@ pub fn render(ui: &mut Ui) {
             .color(color::BLACK)
             .font_size(((0.01+height) * 0.03) as u32)
             .right_justify()
-            .mid_right_with_margin_on(top_right_bot1_id, 5.0)
+            .mid_right_with_margin_on(top_right_bot3_id, 5.0)
             .set(fps_id, uicell);
     }
 
@@ -162,7 +171,7 @@ pub fn render(ui: &mut Ui) {
             .color(color::BLACK)
             .font_size((height * 0.03) as u32)
             .right_justify()
-            .mid_right_with_margin_on(top_right_bot2_id, 5.0)
+            .mid_right_with_margin_on(top_right_bot4_id, 5.0)
             .set(version_id, uicell);
     }
 
@@ -188,4 +197,18 @@ pub fn render(ui: &mut Ui) {
                 event_tx.send(UiInternalEvent::UpdateChatText(edit)).unwrap();
             }
     }
+
+    widget::Text::new(&format!("Build {}", &get_git_hash()[..8]))
+        .color(color::BLACK)
+        .font_size((height * 0.03) as u32)
+        .right_justify()
+        .mid_right_with_margin_on(top_right_bot1_id, 5.0)
+        .set(build_hash_id, uicell);
+
+    widget::Text::new(&format!("Built at {}", get_build_time()))
+        .color(color::BLACK)
+        .font_size((height * 0.03) as u32)
+        .right_justify()
+        .mid_right_with_margin_on(top_right_bot2_id, 5.0)
+        .set(build_time_id, uicell);
 }

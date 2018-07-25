@@ -92,39 +92,46 @@ impl Ui {
         self.conrod_renderer.draw(&mut renderer.factory_mut().clone(), &mut renderer.encoder_mut(), &self.image_map);
     }
 
-    pub fn ui_event_keyboard_input(&mut self, input: KeyboardInput) {
-        if let Some(event) = convert_events::convert_keycode(input) {
+
+    pub fn handle_event(&mut self, event: glutin::Event) {
+        if let Some(event) = convert_events::convert(event, self.ui.win_w, self.ui.win_h) {
             self.ui.handle_event(event);
         }
     }
 
-    pub fn ui_event_window_resize(&mut self, w: u32, h: u32) {
-        self.ui.handle_event(Input::Resize(w, h));
-    }
-
-    pub fn ui_event_mouse_button(&mut self, state: ElementState, button: MouseButton) {
-        self.ui.handle_event(convert_events::convert_mousebutton(state, button));
-    }
-
-    pub fn ui_event_mouse_pos(&mut self, x: f64, y: f64) {
-        self.ui.handle_event(convert_events::convert_mouse_pos(x, y, self.ui.win_w, self.ui.win_h));
-    }
-
-    pub fn ui_event_character(&mut self, ch: char) {
-        self.ui.handle_event(convert_events::convert_character(ch));
-    }
+//    pub fn ui_event_keyboard_input(&mut self, input: KeyboardInput) {
+//        if let Some(event) = convert_events::convert_keycode(input) {
+//            self.ui.handle_event(event);
+//        }
+//    }
+//
+//    pub fn ui_event_window_resize(&mut self, w: u32, h: u32) {
+//        self.ui.handle_event(Input::Resize(w, h));
+//    }
+//
+//    pub fn ui_event_mouse_button(&mut self, state: ElementState, button: MouseButton) {
+//        self.ui.handle_event(convert_events::convert_mousebutton(state, button));
+//    }
+//
+//    pub fn ui_event_mouse_pos(&mut self, x: f64, y: f64) {
+//        self.ui.handle_event(convert_events::convert_mouse_pos(x, y, self.ui.win_w, self.ui.win_h));
+//    }
+//
+//    pub fn ui_event_character(&mut self, ch: char) {
+//        self.ui.handle_event(convert_events::convert_character(ch));
+//    }
 
     fn generate_widget_id(&mut self) -> widget::Id {
         self.ui.widget_id_generator().next()
     }
 
-    pub fn get_widget_id<T>(&mut self, widget_name: T) -> widget::Id where T: Into<String> {
-        let key = widget_name.into();
-        if self.ids.contains_key(&key) {
-            self.ids[&key]
+    pub fn get_widget_id(&mut self, widget_name: &str) -> widget::Id  {
+        let widget_name = widget_name.to_string();
+        if self.ids.contains_key(&widget_name) {
+            self.ids[&widget_name]
         } else {
             let id = self.generate_widget_id();
-            self.ids.insert(key, id);
+            self.ids.insert(widget_name, id);
             id
         }
     }

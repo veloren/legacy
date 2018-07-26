@@ -55,8 +55,14 @@ pub fn handle_packet(relay: &Relay<ServerContext>, ctx: &mut ServerContext, sess
         &ClientMessage::Ping => {
             ctx.send_message(
                 session_id,
-                ServerMessage::Ping
+                ServerMessage::Pong
             );
+        }
+        &ClientMessage::Pong => {
+            match ctx.get_session_mut(session_id) {
+                Some(session) => session.keep_alive(),
+                None => debug!("Cannot open session"),
+            }
         }
         ClientMessage::ChatMsg { msg } => {
             if let Some(ref mut player) = ctx.get_session(session_id)

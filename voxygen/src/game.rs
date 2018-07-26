@@ -63,7 +63,7 @@ impl Game {
 
         info!("trying to load model files");
         let vox = dot_vox::load("data/vox/3.vox")
-            .expect("cannot find model 3.vox. Make sure to start voxygen from it's folder");
+            .expect("cannot find model 3.vox. Make sure to start voxygen from its folder");
         let voxmodel = vox_to_model(vox);
 
         let player_mesh = Mesh::from_with_offset(&voxmodel, vec3!(-10.0, -4.0, 0.0));
@@ -74,7 +74,7 @@ impl Game {
         );
 
         let vox = dot_vox::load("data/vox/5.vox")
-            .expect("cannot find model 5.vox. Make sure to start voxygen from it's folder");
+            .expect("cannot find model 5.vox. Make sure to start voxygen from its folder");
         let voxmodel = vox_to_model(vox);
 
         let other_player_mesh = Mesh::from(&voxmodel);

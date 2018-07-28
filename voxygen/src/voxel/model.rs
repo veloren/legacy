@@ -1,12 +1,11 @@
+
 use gfx;
-use gfx::{traits::FactoryExt, Slice, IndexBuffer};
+use gfx::{traits::FactoryExt, Slice, IndexBuffer, Encoder};
 use gfx_device_gl;
 use nalgebra::Matrix4;
 
-use mesh::{Mesh, Vertex};
+use voxel::{Mesh, Vertex};
 use renderer::{Renderer, ColorFormat, DepthFormat};
-
-type PipelineData = pipe::Data<gfx_device_gl::Resources>;
 
 gfx_defines! {
     constant Constants {
@@ -15,13 +14,15 @@ gfx_defines! {
         perspective_mat: [[f32; 4]; 4] = "perspective_mat",
     }
 
-    pipeline pipe {
+    pipeline pipeline {
         vbuf: gfx::VertexBuffer<Vertex> = (),
         constants: gfx::ConstantBuffer<Constants> = "constants",
         out_color: gfx::RenderTarget<ColorFormat> = "target",
         out_depth: gfx::DepthTarget<DepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 }
+
+type PipelineData = pipeline::Data<gfx_device_gl::Resources>;
 
 fn mat4_to_array(mat: &Matrix4<f32>) -> [[f32; 4]; 4] {
     let s = mat.as_slice();
@@ -46,15 +47,15 @@ impl Constants {
 type VertexBuffer = gfx::handle::Buffer<gfx_device_gl::Resources, Vertex>;
 type ConstantBuffer = gfx::handle::Buffer<gfx_device_gl::Resources, Constants>;
 
-pub struct ModelObject {
+pub struct Model {
     vbuf: VertexBuffer,
     constants: ConstantBuffer,
     vert_count: u32,
 }
 
-impl ModelObject {
-    pub fn new(renderer: &mut Renderer, mesh: &Mesh) -> ModelObject {
-        ModelObject {
+impl Model {
+    pub fn new(renderer: &mut Renderer, mesh: &Mesh) -> Model {
+        Model {
             vbuf: renderer.factory_mut().create_vertex_buffer(&mesh.vertices()),
             constants: renderer.factory_mut().create_constant_buffer(1),
             vert_count: mesh.vert_count(),
@@ -70,6 +71,10 @@ impl ModelObject {
         }
     }
 
+    pub fn update(&self, renderer: &mut Renderer, constants: Constants) {
+        renderer.encoder_mut().update_buffer(&self.constants, &[constants], 0).unwrap();
+    }
+
     pub fn slice(&self) -> Slice<gfx_device_gl::Resources> {
         Slice::<gfx_device_gl::Resources> {
             start: 0,
@@ -79,6 +84,4 @@ impl ModelObject {
             buffer: IndexBuffer::Auto,
         }
     }
-
-    #[allow(dead_code)] pub fn constants(&self) -> &ConstantBuffer { &self.constants }
 }

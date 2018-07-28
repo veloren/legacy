@@ -82,7 +82,7 @@ impl RenderWindow {
                     _ => {},
                 }
                 glutin::Event::WindowEvent { event, .. } => match event {
-                    WindowEvent::Resized(LogicalSize { width: w, height: h }) => {
+                    WindowEvent::Resized(LogicalSize { width, height }) => {
                         let mut color_view = self.renderer.read().unwrap().color_view().clone();
                         let mut depth_view = self.renderer.read().unwrap().depth_view().clone();
                         gfx_window_glutin::update_views(
@@ -92,8 +92,8 @@ impl RenderWindow {
                         );
                         self.renderer.write().unwrap().set_views(color_view, depth_view);
                         func(Event::Resized {
-                            w: w as u32,
-                            h: h as u32,
+                            w: width as u32,
+                            h: height as u32,
                         });
                     },
                     WindowEvent::MouseWheel { delta, modifiers, .. } => {

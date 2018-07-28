@@ -6,12 +6,11 @@ use std::net::ToSocketAddrs;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::f32::consts::PI;
-use std::collections::HashMap;
 use std::cell::RefCell;
 //use std::f32::{sin, cos};
 
 // Library
-use nalgebra::{Vector2, Vector3, Translation3, Rotation3, convert, dot};
+use nalgebra::{Vector2, Vector3, Translation3, Rotation3};
 use coord::prelude::*;
 use glutin::{ElementState, VirtualKeyCode};
 use dot_vox;
@@ -25,15 +24,13 @@ use region::{Chunk, VolState};
 // Local
 use camera::Camera;
 use window::{RenderWindow, Event};
-use model_object::{ModelObject, Constants};
-use mesh::{Mesh};
+use voxel;
 use keybinds::Keybinds;
 use key_state::KeyState;
-use vox::vox_to_model;
 
 pub struct Payloads {}
 impl client::Payloads for Payloads {
-    type Chunk = (Mesh, Option<ModelObject>);
+    type Chunk = (voxel::Mesh, Option<voxel::Model>);
 }
 
 pub struct Game {
@@ -49,12 +46,12 @@ pub struct Game {
 
 // "Data" includes mutable state
 struct Data {
-    player_model: ModelObject,
-    other_player_model: ModelObject,
+    player_model: voxel::Model,
+    other_player_model: voxel::Model,
 }
 
 fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk {
-    (Mesh::from(chunk), None)
+    (voxel::Mesh::from(chunk), None)
 }
 
 impl Game {
@@ -64,22 +61,22 @@ impl Game {
         info!("trying to load model files");
         let vox = dot_vox::load("data/vox/3.vox")
             .expect("cannot find model 3.vox. Make sure to start voxygen from its folder");
-        let voxmodel = vox_to_model(vox);
+        let voxmodel = voxel::vox_to_model(vox);
 
-        let player_mesh = Mesh::from_with_offset(&voxmodel, vec3!(-10.0, -4.0, 0.0));
+        let player_mesh = voxel::Mesh::from_with_offset(&voxmodel, vec3!(-10.0, -4.0, 0.0));
 
-        let player_model = ModelObject::new(
+        let player_model = voxel::Model::new(
             &mut window.renderer_mut(),
             &player_mesh,
         );
 
         let vox = dot_vox::load("data/vox/5.vox")
             .expect("cannot find model 5.vox. Make sure to start voxygen from its folder");
-        let voxmodel = vox_to_model(vox);
+        let voxmodel = voxel::vox_to_model(vox);
 
-        let other_player_mesh = Mesh::from(&voxmodel);
+        let other_player_mesh = voxel::Mesh::from(&voxmodel);
 
-        let other_player_model = ModelObject::new(
+        let other_player_model = voxel::Model::new(
             &mut window.renderer_mut(),
             &other_player_mesh,
         );
@@ -250,7 +247,7 @@ impl Game {
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(ref chunk, ref mut payload) = *vol.write().unwrap() {
                 if let None = payload.1 {
-                    payload.1 = Some(ModelObject::new(
+                    payload.1 = Some(voxel::Model::new(
                         &mut self.window.renderer_mut(),
                         &payload.0,
                     ));
@@ -275,9 +272,9 @@ impl Game {
                         0.0
                     )).to_homogeneous();
 
-                    renderer.update_model_object(
-                        &model,
-                        Constants::new(
+                    model.update(
+                        &mut renderer,
+                        voxel::Constants::new(
                             &model_mat, // TODO: Improve this
                             &camera_mats.0,
                             &camera_mats.1,
@@ -309,10 +306,10 @@ impl Game {
             };
 
             // Update the model's constant buffer with the transformation details previously calculated
-            renderer.update_model_object(
-                &model,
+            model.update(
+                &mut renderer,
                 // TODO: Improve this
-                Constants::new(
+                voxel::Constants::new(
                     &model_mat,
                     &camera_mats.0,
                     &camera_mats.1,

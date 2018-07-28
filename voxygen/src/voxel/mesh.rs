@@ -1,6 +1,11 @@
-use region::Voxel;
-use render_volume::{RenderVoxel, RenderVolume};
+// Library
 use coord::prelude::*;
+
+// Project
+use region::Voxel;
+
+// Local
+use render_volume::{RenderVoxel, RenderVolume};
 
 gfx_defines! {
     vertex Vertex {

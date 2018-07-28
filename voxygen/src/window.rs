@@ -77,7 +77,9 @@ impl RenderWindow {
             match event {
                 glutin::Event::DeviceEvent { event, .. } => match event {
                     DeviceEvent::MouseMotion { delta: (dx, dy), .. } => {
-                        func(Event::CursorMoved { dx, dy });
+                        if self.cursor_trapped.load(Ordering::Relaxed) {
+                            func(Event::CursorMoved { dx, dy });
+                        }
                     }
                     _ => {},
                 }
@@ -132,7 +134,9 @@ impl RenderWindow {
                     WindowEvent::CloseRequested => func(Event::CloseRequest),
 
                     WindowEvent::Focused(is_focused) => {
-                            self.cursor_trapped.store(is_focused, Ordering::Relaxed);
+                        if !is_focused {
+                            self.untrap_cursor();
+                        }
                     },
                     WindowEvent::CursorMoved { position, .. } => {
                         func(Event::CursorPosition {x: position.x, y: position.y });

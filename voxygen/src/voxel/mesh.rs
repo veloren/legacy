@@ -5,7 +5,7 @@ use coord::prelude::*;
 use region::Voxel;
 
 // Local
-use render_volume::{RenderVoxel, RenderVolume};
+use voxel::{RenderVolume, RenderVoxel};
 
 gfx_defines! {
     vertex Vertex {

@@ -83,13 +83,11 @@ impl Game {
 
         let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, view_distance)
             .expect("Could not create new client");
+        client.start();
 
         // Contruct the UI
         let window_dims = window.get_size();
-
-        let mut ui = Ui::new(&mut window.renderer_mut(), window_dims, &client);
-
-        client.start();
+        let ui = Ui::new(&mut window.renderer_mut(), window_dims, &client);
 
         Game {
             data: Mutex::new(Data {
@@ -294,7 +292,7 @@ impl Game {
                 * Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
 
             // Choose the correct model for the entity
-            let mut data = self.data.lock().unwrap();
+            let data = self.data.lock().unwrap();
             let model = match self.client.player().entity_uid {
                 Some(uid) if uid == uid => &data.player_model,
                 _ => &data.other_player_model,

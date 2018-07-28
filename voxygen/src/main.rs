@@ -29,7 +29,6 @@ mod window;
 mod renderer;
 mod pipeline;
 mod camera;
-mod render_volume;
 mod keybinds;
 mod key_state;
 mod ui;

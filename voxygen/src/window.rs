@@ -9,10 +9,8 @@ use glutin::{
     GlContext,
     GlRequest,
     GlWindow,
-    Window,
     DeviceEvent,
     WindowEvent,
-    MouseCursor,
 };
 use glutin::dpi::{LogicalSize, LogicalPosition};
 use glutin::Api::OpenGl;

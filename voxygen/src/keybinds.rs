@@ -22,8 +22,8 @@ pub struct General {
     pub left: Option<u32>,
     pub right: Option<u32>,
     pub dodge: Option<u32>,
-    pub fall: Option<u32>,
-    pub fly: Option<u32>,
+    pub crouch: Option<u32>,
+    pub jump: Option<u32>,
 
     // Actions
     pub attack_1: Option<u32>,
@@ -83,8 +83,8 @@ impl Keybinds {
                     left: Some(general.left.unwrap_or(default_keys.general.left.unwrap())),
                     right: Some(general.right.unwrap_or(default_keys.general.right.unwrap())),
                     dodge: Some(general.dodge.unwrap_or(default_keys.general.dodge.unwrap())),
-                    fall: Some(general.fall.unwrap_or(default_keys.general.fall.unwrap())),
-                    fly: Some(general.fly.unwrap_or(default_keys.general.fly.unwrap())),
+                    crouch: Some(general.crouch.unwrap_or(default_keys.general.crouch.unwrap())),
+                    jump: Some(general.jump.unwrap_or(default_keys.general.jump.unwrap())),
                     attack_1: Some(general.attack_1.unwrap_or(default_keys.general.attack_1.unwrap())),
                     attack_2: Some(general.attack_2.unwrap_or(default_keys.general.attack_2.unwrap())),
                     interact: Some(general.interact.unwrap_or(default_keys.general.interact.unwrap())),
@@ -125,8 +125,8 @@ impl Keybinds {
                 left: Some(30),
                 right: Some(32),
                 dodge: Some(29),
-                fall: Some(42),
-                fly: Some(57),
+                crouch: Some(42),
+                jump: Some(57),
 
                 attack_1: Some(100),
                 attack_2: Some(100),

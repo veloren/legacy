@@ -1,6 +1,6 @@
 
 use gfx;
-use gfx::{traits::FactoryExt, Slice, IndexBuffer, Encoder};
+use gfx::{traits::FactoryExt, Slice, IndexBuffer};
 use gfx_device_gl;
 use nalgebra::Matrix4;
 

@@ -12,7 +12,7 @@ use std::cell::RefCell;
 // Library
 use nalgebra::{Vector2, Vector3, Translation3, Rotation3};
 use coord::prelude::*;
-use glutin::{ElementState, VirtualKeyCode};
+use glutin::ElementState;
 use dot_vox;
 
 // Project
@@ -61,7 +61,7 @@ impl Game {
         info!("trying to load model files");
         let vox = dot_vox::load("data/vox/3.vox")
             .expect("cannot find model 3.vox. Make sure to start voxygen from its folder");
-        let voxmodel = voxel::vox_to_model(vox);
+        let voxmodel = voxel::vox_to_figure(vox);
 
         let player_mesh = voxel::Mesh::from_with_offset(&voxmodel, vec3!(-10.0, -4.0, 0.0));
 
@@ -72,7 +72,7 @@ impl Game {
 
         let vox = dot_vox::load("data/vox/5.vox")
             .expect("cannot find model 5.vox. Make sure to start voxygen from its folder");
-        let voxmodel = voxel::vox_to_model(vox);
+        let voxmodel = voxel::vox_to_figure(vox);
 
         let other_player_mesh = voxel::Mesh::from(&voxmodel);
 
@@ -111,10 +111,7 @@ impl Game {
             match event {
                 Event::CloseRequest => self.running.store(false, Ordering::Relaxed),
                 Event::CursorMoved { dx, dy } => {
-                    let data = self.data.lock().unwrap();
-
                     if self.window.cursor_trapped().load(Ordering::Relaxed) {
-                        //debug!("dx: {}, dy: {}", dx, dy);
                         self.camera.lock().unwrap().rotate_by(Vector2::new(dx as f32 * 0.002, dy as f32 * 0.002));
                     }
                 },
@@ -129,7 +126,6 @@ impl Game {
 
                     // Helper variables to clean up code. Add any new input modes here.
                     let general = &self.keys.general;
-                    let mount = &self.keys.mount;
                     let show_chat = self.ui.borrow().get_show_chat();
 
                     // General inputs -------------------------------------------------------------
@@ -164,16 +160,16 @@ impl Game {
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
                             }
-                        } else if keypress_eq(&general.fly, i.scancode) {
-                            self.key_state.lock().unwrap().fly = match i.state { // Default: Space (fly)
+                        } else if keypress_eq(&general.jump, i.scancode) {
+                            self.key_state.lock().unwrap().jump = match i.state { // Default: Space (fly)
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
                             }
-                        } else if keypress_eq(&general.fall, i.scancode) {
-                            self.key_state.lock().unwrap().fall = match i.state { // Default: Shift (fall)
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            }
+                        } else if keypress_eq(&general.crouch, i.scancode) {
+                            // self.key_state.lock().unwrap().fall = match i.state { // Default: Shift (fall)
+                            //     ElementState::Pressed => true,
+                            //     ElementState::Released => false,
+                            // }
                         }
                     }
 
@@ -201,7 +197,6 @@ impl Game {
         );
         let dir_vec = self.key_state.lock().unwrap().dir_vec();
         let mov_vec = unit_vecs.0 * dir_vec.x + unit_vecs.1 * dir_vec.y;
-        let fly_vec = self.key_state.lock().unwrap().fly_vec();
 
         // Why do we do this in Voxygen?!
         if let Some(player_entity) = self.client.player_entity() {
@@ -216,7 +211,7 @@ impl Game {
             player_entity.ctrl_vel_mut().y *= 0.85;
 
             // Apply jumping
-            *player_entity.jumping_mut() = self.key_state.lock().unwrap().jumping();
+            *player_entity.jumping_mut() = self.key_state.lock().unwrap().jump();
 
             let vel = *player_entity.ctrl_vel_mut();
             let ori = *self.camera.lock().unwrap().ori();

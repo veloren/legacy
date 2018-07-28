@@ -5,8 +5,7 @@ pub struct KeyState {
     pub left: bool,
     pub up: bool,
     pub down: bool,
-    pub fly: bool,
-    pub fall: bool,
+    pub jump: bool,
 }
 
 impl KeyState {
@@ -16,8 +15,7 @@ impl KeyState {
             left: false,
             up: false,
             down: false,
-            fly: false,
-            fall: false,
+            jump: false,
         }
     }
 
@@ -28,11 +26,7 @@ impl KeyState {
         )
     }
 
-    pub fn fly_vec(&self) -> f32 {
-        (if self.fly { 1.0 } else { 0.0 }) + (if self.fall { -1.0 } else { 0.0 })
-    }
-
-    pub fn jumping(&self) -> bool {
-        self.fly
+    pub fn jump(&self) -> bool {
+        self.jump
     }
 }

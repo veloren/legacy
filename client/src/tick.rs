@@ -17,6 +17,8 @@ impl<P: Payloads> Client<P> {
         physics::tick(entities.iter(), &self.chunk_mgr, CHUNK_SIZE, dt);
         self.update_server();
 
+        *self.time.write().unwrap() += dt as f64;
+
         *self.status() != ClientStatus::Disconnected
     }
 }

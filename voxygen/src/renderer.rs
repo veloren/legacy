@@ -38,15 +38,15 @@ impl Renderer {
             voxel_pipeline: Pipeline::new(
                 &mut factory,
                 voxel::pipeline::new(),
-                include_bytes!("../assets/voxygen/shaders/vert.glsl"),
-                include_bytes!("../assets/voxygen/shaders/frag.glsl"),
+                include_bytes!("../shaders/vert.glsl"),
+                include_bytes!("../shaders/frag.glsl"),
             ),
             factory,
         }
     }
 
     pub fn begin_frame(&mut self) {
-        self.encoder.clear(&self.color_view, [0.3, 0.3, 0.6, 1.0]);
+        self.encoder.clear(&self.color_view, [0.5, 0.7, 1.0, 1.0]);
         self.encoder.clear_depth(&self.depth_view, 1.0);
     }
 

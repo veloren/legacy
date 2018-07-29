@@ -1,6 +1,7 @@
 use gfx::{self, traits::FactoryExt, IndexBuffer, Slice};
 use gfx_device_gl;
 use nalgebra::Matrix4;
+use coord::prelude::*;
 
 use renderer::{ColorFormat, DepthFormat, Renderer};
 use voxel::{Mesh, Vertex};
@@ -10,6 +11,9 @@ gfx_defines! {
         model_mat: [[f32; 4]; 4] = "model_mat",
         view_mat: [[f32; 4]; 4] = "view_mat",
         perspective_mat: [[f32; 4]; 4] = "perspective_mat",
+        play_origin: [f32; 3] = "play_origin",
+        time: f32 = "time",
+        sky_color: [f32; 3] = "sky_color",
     }
 
     pipeline pipeline {
@@ -33,11 +37,21 @@ fn mat4_to_array(mat: &Matrix4<f32>) -> [[f32; 4]; 4] {
 }
 
 impl Constants {
-    pub fn new(model_mat: &Matrix4<f32>, view_mat: &Matrix4<f32>, perspective_mat: &Matrix4<f32>) -> Constants {
+    pub fn new(
+        model_mat: &Matrix4<f32>,
+        view_mat: &Matrix4<f32>,
+        perspective_mat: &Matrix4<f32>,
+        play_origin: Vec3<f32>,
+        time: f32,
+        sky_color: Vec3<f32>,
+    ) -> Constants {
         Constants {
             model_mat: mat4_to_array(&model_mat),
             view_mat: mat4_to_array(&view_mat),
             perspective_mat: mat4_to_array(&perspective_mat),
+            play_origin: play_origin.elements(),
+            time,
+            sky_color: sky_color.elements(),
         }
     }
 }

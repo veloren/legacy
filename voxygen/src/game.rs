@@ -264,6 +264,12 @@ impl Game {
 
         let camera_mats = self.camera.lock().unwrap().get_mats();
         let camera_ori = self.camera.lock().unwrap().ori();
+        let play_origin = self.client
+            .player_entity()
+            .map(|p| *p.read().unwrap().pos())
+            .unwrap_or(vec3!(0.0, 0.0, 0.0));
+        let time = self.client.time() as f32;
+        let sky_color = vec3!(0.5, 0.7, 1.0);
 
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(ref chunk, ref payload) = *vol.read().unwrap() {
@@ -277,9 +283,12 @@ impl Game {
                     model.update(
                         &mut renderer,
                         voxel::Constants::new(
-                            &model_mat, // TODO: Improve this
+                            &model_mat,
                             &camera_mats.0,
                             &camera_mats.1,
+                            play_origin,
+                            time,
+                            sky_color,
                         ),
                     );
                     renderer.render_model_object(&model);
@@ -307,8 +316,14 @@ impl Game {
             // Update the model's constant buffer with the transformation details previously calculated
             model.update(
                 &mut renderer,
-                // TODO: Improve this
-                voxel::Constants::new(&model_mat, &camera_mats.0, &camera_mats.1),
+                voxel::Constants::new(
+                    &model_mat,
+                    &camera_mats.0,
+                    &camera_mats.1,
+                    play_origin,
+                    time,
+                    sky_color,
+                ),
             );
 
             // Actually render the model

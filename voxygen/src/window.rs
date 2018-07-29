@@ -58,9 +58,8 @@ impl RenderWindow {
             events_loop,
             gl_window: RwLock::new(gl_window),
             renderer: RwLock::new(Renderer::new(device, factory, color_view, depth_view)),
-            cursor_trapped: AtomicBool::new(true),
+            cursor_trapped: AtomicBool::new(false),
         };
-        rw.trap_cursor();
         rw
     }
 

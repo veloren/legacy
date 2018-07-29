@@ -12,7 +12,7 @@ extern crate common;
 mod block;
 mod chunk;
 mod cell;
-mod model;
+mod figure;
 mod entity;
 mod vol_mgr;
 mod collision;
@@ -24,8 +24,8 @@ mod tests;
 // Reexports
 pub use block::{Block, BlockMaterial};
 pub use chunk::Chunk;
-pub use cell::{Cell};
-pub use model::Model;
+pub use cell::Cell;
+pub use figure::Figure;
 pub use entity::Entity;
 pub use vol_mgr::{VolMgr, VolGen, VolState, FnGenFunc, FnPayloadFunc};
 

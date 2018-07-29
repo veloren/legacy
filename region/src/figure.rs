@@ -2,7 +2,7 @@ use coord::prelude::*;
 
 use {Volume, Voxel, Cell};
 
-pub struct Model {
+pub struct Figure {
     size: Vec3<i64>,
     offset: Vec3<i64>,
     rotation: Vec3<f64>,
@@ -10,9 +10,8 @@ pub struct Model {
     voxels: Vec<Cell>,
 }
 
-impl Model {
-    pub fn test(offset: Vec3<i64>, size: Vec3<i64>) -> Model {
-
+impl Figure {
+    pub fn test(offset: Vec3<i64>, size: Vec3<i64>) -> Figure {
         let mut voxels = Vec::new();
 
         for _i in 0..size.x {
@@ -23,7 +22,7 @@ impl Model {
             }
         }
 
-        Model {
+        Figure {
             size,
             offset,
             voxels,
@@ -35,13 +34,21 @@ impl Model {
     fn pos_to_index(&self, pos: Vec3<i64>) -> usize {
         (pos.x * self.size.y * self.size.z + pos.y * self.size.z + pos.z) as usize
     }
+
+    pub fn set_rotation(&mut self, rotation: Vec3<f64>) {
+        self.rotation = rotation;
+    }
+
+    pub fn set_scale(&mut self, scale: Vec3<f64>) {
+        self.scale = scale;
+    }
 }
 
-impl Volume for Model {
+impl Volume for Figure {
     type VoxelType = Cell;
 
     fn new() -> Self {
-        Model {
+        Figure {
             size: Vec3::from((0, 0, 0)),
             offset: Vec3::from((0, 0, 0)),
             voxels: Vec::new(),
@@ -99,16 +106,5 @@ impl Volume for Model {
             let i = self.pos_to_index(pos);
             self.voxels[i] = vt;
         }
-    }
-}
-
-
-impl Model {
-    pub fn set_rotation(&mut self, rotation: Vec3<f64>) {
-        self.rotation = rotation;
-    }
-
-    pub fn set_scale(&mut self, scale: Vec3<f64>) {
-        self.scale = scale;
     }
 }

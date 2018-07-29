@@ -21,12 +21,15 @@ pub enum SessionState {
     ShouldKick,
 }
 
+pub const SESSION_TIMEOUT_SEC: i64 = 10;
+
 pub struct Session {
     id: u32,
     listen_thread_handle: Option<JoinHandle<()>>,
     conn: Arc<Connection<ClientMessage>>,
     player_id: Option<Uid>,
     state: Cell<SessionState>,
+    expire_at: i64
 }
 
 impl Session {
@@ -53,6 +56,7 @@ impl Session {
             conn,
             player_id: None,
             state: Cell::new(SessionState::Connected),
+            expire_at: time::now().to_timespec().sec + SESSION_TIMEOUT_SEC
         };
 
         return session;
@@ -71,6 +75,7 @@ impl Session {
         Connection::stop(&self.conn);
     }
 
+    pub fn kick(&self) { self.state.set(SessionState::ShouldKick); }
     pub fn should_kick(&self) -> bool { self.state.get() == SessionState::ShouldKick }
 
     #[allow(dead_code)] pub fn get_id(&self) -> u32 { self.id }
@@ -78,4 +83,8 @@ impl Session {
     #[allow(dead_code)] pub fn set_player_id(&mut self, player_id: Option<Uid>) { self.player_id = player_id }
     #[allow(dead_code)] pub fn get_player_id(&self) -> Option<Uid> { self.player_id }
     #[allow(dead_code)] pub fn has_player(&self) -> bool { self.player_id.is_some() }
+
+    #[allow(dead_code)] pub fn is_alive(&self) -> bool { time::now().to_timespec().sec < self.expire_at }
+    #[allow(dead_code)] pub fn keep_alive(&mut self) { self.expire_at = time::now().to_timespec().sec + SESSION_TIMEOUT_SEC; }
+
 }

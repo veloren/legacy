@@ -1,6 +1,11 @@
-use region::Voxel;
-use render_volume::{RenderVoxel, RenderVolume};
+// Library
 use coord::prelude::*;
+
+// Project
+use region::Voxel;
+
+// Local
+use voxel::{RenderVolume, RenderVoxel};
 
 gfx_defines! {
     vertex Vertex {
@@ -122,7 +127,7 @@ impl<V: RenderVolume> GetAO for V where V::VoxelType : RenderVoxel {
             self.get_ao_at(pos + units[3], z_unit) as f32 / 3.0,
         ];
 
-        if (ao[0] + ao[2] > ao[1] + ao[3]) {
+        if ao[0] + ao[2] > ao[1] + ao[3] {
             Quad::new(
                 Vertex::new(units[0].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[0]).elements()),
                 Vertex::new(units[1].map(|e| e as f32).elements(), z_unit.map(|e| e as f32).elements(), (col * ao[1]).elements()),

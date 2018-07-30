@@ -1,6 +1,5 @@
 #![feature(nll)]
 
-
 #[macro_use]
 extern crate conrod;
 
@@ -28,16 +27,14 @@ extern crate pretty_env_logger;
 mod game;
 mod window;
 mod renderer;
-mod mesh;
-mod model_object;
 mod pipeline;
 mod camera;
-mod render_volume;
 mod keybinds;
 mod key_state;
-mod vox;
 mod ui;
 mod tests;
+
+mod voxel;
 
 use std::io::{self, Write};
 

@@ -9,10 +9,8 @@ use glutin::{
     GlContext,
     GlRequest,
     GlWindow,
-    Window,
     DeviceEvent,
     WindowEvent,
-    MouseCursor,
 };
 use glutin::dpi::{LogicalSize, LogicalPosition};
 use glutin::Api::OpenGl;
@@ -60,9 +58,8 @@ impl RenderWindow {
             events_loop,
             gl_window: RwLock::new(gl_window),
             renderer: RwLock::new(Renderer::new(device, factory, color_view, depth_view)),
-            cursor_trapped: AtomicBool::new(true),
+            cursor_trapped: AtomicBool::new(false),
         };
-        rw.trap_cursor();
         rw
     }
 
@@ -77,12 +74,14 @@ impl RenderWindow {
             match event {
                 glutin::Event::DeviceEvent { event, .. } => match event {
                     DeviceEvent::MouseMotion { delta: (dx, dy), .. } => {
-                        func(Event::CursorMoved { dx, dy });
+                        if self.cursor_trapped.load(Ordering::Relaxed) {
+                            func(Event::CursorMoved { dx, dy });
+                        }
                     }
                     _ => {},
                 }
                 glutin::Event::WindowEvent { event, .. } => match event {
-                    WindowEvent::Resized(LogicalSize { width: w, height: h }) => {
+                    WindowEvent::Resized(LogicalSize { width, height }) => {
                         let mut color_view = self.renderer.read().unwrap().color_view().clone();
                         let mut depth_view = self.renderer.read().unwrap().depth_view().clone();
                         gfx_window_glutin::update_views(
@@ -92,8 +91,8 @@ impl RenderWindow {
                         );
                         self.renderer.write().unwrap().set_views(color_view, depth_view);
                         func(Event::Resized {
-                            w: w as u32,
-                            h: h as u32,
+                            w: width as u32,
+                            h: height as u32,
                         });
                     },
                     WindowEvent::MouseWheel { delta, modifiers, .. } => {
@@ -132,7 +131,9 @@ impl RenderWindow {
                     WindowEvent::CloseRequested => func(Event::CloseRequest),
 
                     WindowEvent::Focused(is_focused) => {
-                            self.cursor_trapped.store(is_focused, Ordering::Relaxed);
+                        if !is_focused {
+                            self.untrap_cursor();
+                        }
                     },
                     WindowEvent::CursorMoved { position, .. } => {
                         func(Event::CursorPosition {x: position.x, y: position.y });

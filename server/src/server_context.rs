@@ -130,6 +130,7 @@ impl ServerContext {
 
 
 pub const WORLD_UPDATE_TICK: u64 = 50;
+pub const SESSION_UPDATE_TICK: u64 = 500;
 
 pub fn update_world(relay: &Relay<ServerContext>, ctx: &mut ServerContext) {
     //self.world.tick(dt); // TODO: Fix issue #11 and uncomment
@@ -141,8 +142,21 @@ pub fn update_world(relay: &Relay<ServerContext>, ctx: &mut ServerContext) {
     remove_disconected_players(relay, ctx);
     send_entities_update(relay, ctx);
 
-
     relay.schedule(event(update_world), Duration::from_millis(WORLD_UPDATE_TICK));
+}
+
+pub fn update_sessions_list(relay: &Relay<ServerContext>, ctx: &mut ServerContext) {
+    let sessions = ctx.get_sessions();
+
+    for (_, session) in sessions {
+        if session.is_alive() {
+            session.send_message(ServerMessage::Ping);
+        } else {
+            session.kick();
+        }
+    }
+
+    relay.schedule(event(update_sessions_list), Duration::from_millis(SESSION_UPDATE_TICK));
 }
 
 fn remove_disconected_players(_relay: &Relay<ServerContext>, ctx: &mut ServerContext) {

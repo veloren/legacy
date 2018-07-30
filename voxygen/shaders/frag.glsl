@@ -12,12 +12,12 @@ uniform constants {
 
 out vec4 target;
 
-float diffuse_factor = 0.5;
+float diffuse_factor = 0.8;
 float ambient_factor = 0.2;
 vec3  sun_direction  = normalize(vec3(1, -0.7, -1.4));
-vec3  sun_color      = vec3(1, 1, 1);
-float sun_specular   = 0.3;
-float sun_factor     = 10;
+vec3  sun_color      = vec3(1.0, 1.0, 1.0);
+float sun_specular   = 0.5;
+float sun_factor     = 5;
 float sun_shine      = 0;
 
 void main() {

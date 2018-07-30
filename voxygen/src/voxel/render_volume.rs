@@ -1,5 +1,5 @@
 use coord::prelude::*;
-use region::{Voxel, Volume, Block, BlockMaterial, Chunk, Cell, Model};
+use region::{Voxel, Volume, Block, BlockMaterial, Chunk, Cell, Figure};
 
 pub trait RenderVoxel: Voxel {
     fn get_color(&self) -> Vec4<f32>;
@@ -202,4 +202,4 @@ impl RenderVoxel for Cell {
     }
 }
 
-impl RenderVolume for Model {}
+impl RenderVolume for Figure {}

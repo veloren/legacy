@@ -2,8 +2,7 @@ use gfx;
 use gfx::{Device, Encoder, handle::RenderTargetView, handle::DepthStencilView};
 use gfx_device_gl;
 
-use model_object;
-use model_object::{ModelObject, Constants};
+use voxel;
 use pipeline::Pipeline;
 
 pub type ColorFormat = gfx::format::Srgba8;
@@ -18,7 +17,7 @@ pub struct Renderer {
     depth_view: DepthView,
     factory: gfx_device_gl::Factory,
     encoder: Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer>,
-    model_pipeline: Pipeline<model_object::pipe::Init<'static>>,
+    voxel_pipeline: Pipeline<voxel::pipeline::Init<'static>>,
 }
 
 impl Renderer {
@@ -28,9 +27,9 @@ impl Renderer {
             color_view,
             depth_view,
             encoder: factory.create_command_buffer().into(),
-            model_pipeline: Pipeline::new(
+            voxel_pipeline: Pipeline::new(
                 &mut factory,
-                model_object::pipe::new(),
+                voxel::pipeline::new(),
                 include_bytes!("../shaders/vert.glsl"),
                 include_bytes!("../shaders/frag.glsl"),
             ),
@@ -43,13 +42,9 @@ impl Renderer {
         self.encoder.clear_depth(&self.depth_view, 1.0);
     }
 
-    pub fn update_model_object(&mut self, mo: &ModelObject, constants: Constants) {
-        self.encoder.update_buffer(mo.constants(), &[constants], 0).unwrap();
-    }
-
-    pub fn render_model_object(&mut self, mo: &ModelObject) {
-        let pipeline_data = mo.get_pipeline_data(self);
-        self.encoder.draw(&mo.slice(), self.model_pipeline.pso(), &pipeline_data);
+    pub fn render_model_object(&mut self, vmodel: &voxel::Model) {
+        let pipeline_data = vmodel.get_pipeline_data(self);
+        self.encoder.draw(&vmodel.slice(), self.voxel_pipeline.pso(), &pipeline_data);
     }
 
     pub fn end_frame(&mut self) {
@@ -62,8 +57,8 @@ impl Renderer {
     #[allow(dead_code)] pub fn color_view(&self) -> &ColorView { &self.color_view }
     #[allow(dead_code)] pub fn depth_view(&self) -> &DepthView { &self.depth_view }
 
-    #[allow(dead_code)] pub fn set_views(&mut self, cv: ColorView, dv: DepthView) {
-        self.color_view = cv;
-        self.depth_view = dv;
+    #[allow(dead_code)] pub fn set_views(&mut self, color_view: ColorView, depth_view: DepthView) {
+        self.color_view = color_view;
+        self.depth_view = depth_view;
     }
 }

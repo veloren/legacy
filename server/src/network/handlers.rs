@@ -70,7 +70,7 @@ pub fn handle_packet(relay: &Relay<ServerContext>, ctx: &mut ServerContext, sess
             }
         }
         &ClientMessage::SendCmd { ref cmd } => handle_command(relay, ctx, session_id, cmd.to_string()),
-        &ClientMessage::PlayerEntityUpdate { pos, vel, ctrl_vel, look_dir } => {
+        &ClientMessage::PlayerEntityUpdate { pos, vel, ctrl_acc, look_dir } => {
             if let Some(ref player) = ctx.get_session(session_id)
                 .and_then(|it| it.get_player_id())
                 .and_then(|id| ctx.get_player(id)) {
@@ -82,15 +82,15 @@ pub fn handle_packet(relay: &Relay<ServerContext>, ctx: &mut ServerContext, sess
                         let dist = (*e.pos() - pos).length();
                         if dist > 80.0 { // 80 effectivly makes this never apear
                             info!("player: {} moved to fast, resetting him", player_name);
-                            let (pos, vel, ctrl_vel, look_dir) = (*e.pos(), *e.vel(), *e.ctrl_vel(), *e.look_dir());
+                            let (pos, vel, ctrl_vel, look_dir) = (*e.pos(), *e.vel(), *e.ctrl_acc(), *e.look_dir());
                             ctx.send_message(
                                 session_id,
-                                ServerMessage::EntityUpdate { uid: entity_uid, pos, vel, ctrl_vel, look_dir }
+                                ServerMessage::EntityUpdate { uid: entity_uid, pos, vel, ctrl_acc, look_dir }
                             );
                         } else {
                             *e.pos_mut() = pos;
                             *e.vel_mut() = vel;
-                            *e.ctrl_vel_mut() = ctrl_vel;
+                            *e.ctrl_acc_mut() = ctrl_acc;
                             *e.look_dir_mut() = look_dir;
                         }
                     }

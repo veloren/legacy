@@ -211,38 +211,21 @@ impl Game {
             let mut player_entity = player_entity.write().unwrap();
 
             // Apply acceleration
-            player_entity.ctrl_vel_mut().x += mov_vec.x * 0.2;
-            player_entity.ctrl_vel_mut().y += mov_vec.y * 0.2;
-
-            // Apply friction
-            player_entity.ctrl_vel_mut().x *= 0.85;
-            player_entity.ctrl_vel_mut().y *= 0.85;
+            player_entity.ctrl_acc_mut().x = mov_vec.x;
+            player_entity.ctrl_acc_mut().y = mov_vec.y;
 
             // Apply jumping
-            *player_entity.jumping_mut() = self.key_state.lock().unwrap().jumping();
-            player_entity.ctrl_vel_mut().z = fly_vec * 5.0;
+            player_entity.ctrl_acc_mut().z = if self.key_state.lock().unwrap().jumping() { fly_vec * 1.0 } else { 0.0 };
 
-            let vel = *player_entity.ctrl_vel_mut();
-            let ori = *self.camera.lock().unwrap().ori();
-
-/* 
-            let mut entries = self.client.entities_mut();
-            if let Some(eid) = self.client.player().entity_uid {
-                if let Some(player_entry) = entries.get_mut(&eid) {
-                    player_entry.ctrl_vel_mut().x = mov_vec.x * 3.0;
-                    player_entry.ctrl_vel_mut().y = mov_vec.y * 3.0;
-                    player_entry.ctrl_vel_mut().z = fly_vec * 5.0;
-                    let ori = *self.camera.lock().unwrap().ori();
-                    *player_entry.look_dir_mut() = vec2!(ori.x, ori.y);
-*/
+            let looking = (*player_entity.vel() * 0.7 + *player_entity.ctrl_acc_mut()) / 1.7;
 
             // Apply rotating
-            if vel.length() > 0.5 {
-                player_entity.look_dir_mut().x = vel.x.atan2(vel.y);
+            if looking.length() > 0.5 {
+                player_entity.look_dir_mut().x = looking.x.atan2(looking.y);
             }
 
             // Apply leaning
-            player_entity.look_dir_mut().y = vec2!(vel.x, vel.y).length() * 0.3;
+            player_entity.look_dir_mut().y = vec2!(looking.x, looking.y).length() * 0.05;
         }
 
         // Set camera focus to the player's head

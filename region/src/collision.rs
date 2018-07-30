@@ -4,7 +4,7 @@ use std::f32::INFINITY;
 use std::cmp::Ordering;
 use std::cmp::Ord;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Cuboid {
     middle: Vec3<f32>,
     radius: Vec3<f32>,
@@ -23,7 +23,7 @@ pub enum ResolutionTti {
     Overlapping{ since: f32 },
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Primitive {
     Cuboid { cuboid: Cuboid },
     //add more here
@@ -233,7 +233,7 @@ impl Cuboid {
             if dire[i] == 0.0 {
                 //area is not filled correctly in this case, we compare middle
                 let midr = (a_middle_elem[i] - b_middle_elem[i]).abs();
-                let perimeterr = (a_radius_elem[i] + b_radius_elem[i]);
+                let perimeterr = a_radius_elem[i] + b_radius_elem[i];
                 minimal_collision_tti[i] = -INFINITY;
                 //println!("midr {:?}; perimeterr {:?}", midr, perimeterr);
                 tti_raw[i] = if midr + PLANCK_LENGTH > perimeterr && midr - PLANCK_LENGTH < perimeterr {
@@ -294,7 +294,7 @@ impl Cuboid {
         // 3x = cuboid
 
         //println!("tti_raw {:?}", tti_raw);
-        println!("tti {:?}", tti);
+        //println!("tti {:?}", tti);
 
         // i will check all 3 areas, if after the applying of the movement, others axis will also collid
         // e.g tti (3,4,5) minimum_col (-3,-3,-3)
@@ -366,7 +366,7 @@ impl Cuboid {
         let mut potentialcollide_index : Option<usize> = None;
         let mut potentialcollide_normal : Option<Vec3<f32>> = None;
         to_test.sort();
-        println!("to_test: {:?}", to_test);
+        //println!("to_test: {:?}", to_test);
         for i in 0..3 {
             if to_test[i].value >= 0.0 && to_test[i].value.is_finite() {
                 //check if others collide after time
@@ -406,7 +406,7 @@ impl Cuboid {
         }
 
         if let Some(i) = potentialcollide_index {
-            println!("returning index: {}, val {}, nor{}", i,  to_test[i].value, potentialcollide_normal.unwrap());
+            //println!("returning index: {}, val {}, nor{}", i,  to_test[i].value, potentialcollide_normal.unwrap());
             return  Some(ResolutionTti::WillColide{ tti: to_test[i].value, normal: potentialcollide_normal.unwrap()});
         }
 

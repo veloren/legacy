@@ -64,7 +64,8 @@ impl<P: Payloads> Client<P> {
 
     pub(crate) fn tick(&self, dt: f32) -> bool {
         self.update_chunks();
-        physics::tick(&self.entities, &self.chunk_mgr, CHUNK_SIZE, dt);
+        let entities = self.entities.read().unwrap();
+        physics::tick(entities.iter(), &self.chunk_mgr, CHUNK_SIZE, dt);
         self.update_server();
 
         *self.status() != ClientStatus::Disconnected

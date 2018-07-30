@@ -62,9 +62,10 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
             wanted_ctrl_acc.z = 0.0;
         }
 
-        let wanted_ctrl_acc_length = wanted_ctrl_acc.length();
+        let wanted_ctrl_acc_length = vec3!(wanted_ctrl_acc.x, wanted_ctrl_acc.y, 0.0).length();
         if wanted_ctrl_acc_length > 1.0 {
-            wanted_ctrl_acc /= wanted_ctrl_acc_length;
+            wanted_ctrl_acc.x /= wanted_ctrl_acc_length;
+            wanted_ctrl_acc.y /= wanted_ctrl_acc_length;
         }
 
         // multiply by entity speed
@@ -161,7 +162,11 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
                         entity.vel_mut().y = 0.0;
                     }
                 } else {
-                    entity_col.move_by(&vec3!(0.0, 0.0, 1.01));
+                    let mut smoothmove = 10.0*dt;
+                    if smoothmove > 0.24 {
+                        smoothmove = 0.24;
+                    };
+                    entity_col.move_by(&vec3!(0.0, 0.0, smoothmove));
                 }
             }
             if normal.z != 0.0 {

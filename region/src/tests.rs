@@ -3,14 +3,14 @@ use coord::prelude::*;
 use rand::prelude::*;
 
 
-use std::sync::{RwLock};
+use std::sync::{RwLock, Arc};
 use std::collections::HashMap;
 use std::{thread, time};
 use std::f32::INFINITY;
 
 // Parent
 use common::{Uid};
-use super::collision::{Primitive, Cuboid, Resolution, ResolutionTti};
+use super::collision::{Primitive, Cuboid, ResolutionCol, ResolutionTti};
 use super::{Entity, VolMgr, VolState, Chunk, VolGen, Block, BlockMaterial, Voxel, Volume, physics};
 
 #[test]
@@ -676,14 +676,13 @@ fn physics_fall() {
     vol_mgr.gen(vec2!(0,0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
     //touch
-    let ent :  RwLock<HashMap<Uid, Entity>> = RwLock::new(HashMap::new());
-    ent.write().unwrap().insert(1, Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 10.0), vec3!(0.0, 0.0, 0.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)));
+    let mut ent : HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    ent.insert(1, Arc::new(RwLock::new(Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 10.0), vec3!(0.0, 0.0, 0.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)))));
     for _ in 0..40 {
-        physics::tick(&ent, &vol_mgr, CHUNK_SIZE, 0.1)
+        physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.1)
     }
-    let lock = ent.read().unwrap();
-    let p = lock.get(&1);
-    let d = *p.unwrap().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
+    let p = ent.get(&1);
+    let d = *p.unwrap().read().unwrap().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
     //println!("{}", d.length());
     assert!(d.length() < 0.01);
 }
@@ -695,14 +694,13 @@ fn physics_fallfast() {
     vol_mgr.gen(vec2!(0,0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
     //touch
-    let ent :  RwLock<HashMap<Uid, Entity>> = RwLock::new(HashMap::new());
-    ent.write().unwrap().insert(1, Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 10.0), vec3!(0.0, 0.0, -100.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)));
+    let mut ent : HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    ent.insert(1, Arc::new(RwLock::new(Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 10.0), vec3!(0.0, 0.0, -100.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)))));
     for _ in 0..100 {
-        physics::tick(&ent, &vol_mgr, CHUNK_SIZE, 0.1)
+        physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.1)
     }
-    let lock = ent.read().unwrap();
-    let p = lock.get(&1);
-    let d = *p.unwrap().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
+    let p = ent.get(&1);
+    let d = *p.unwrap().read().unwrap().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
     //println!("{}", d.length());
     assert!(d.length() < 0.01);
 }
@@ -713,23 +711,21 @@ fn physics_jump() {
     vol_mgr.gen(vec2!(0,0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
     //touch
-    let ent :  RwLock<HashMap<Uid, Entity>> = RwLock::new(HashMap::new());
-    ent.write().unwrap().insert(1, Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 10.0), vec3!(0.0, 0.0, 3.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)));
-    for _ in 0..10 {
-        physics::tick(&ent, &vol_mgr, CHUNK_SIZE, 0.1)
+    let mut ent : HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    ent.insert(1, Arc::new(RwLock::new(Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 10.0), vec3!(0.0, 0.0, 5.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)))));
+    for _ in 0..3 {
+        physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.04)
     }
     {
-        let lock = ent.read().unwrap();
-        let p = lock.get(&1);
-        assert!(p.unwrap().pos().z > 10.5);
+        let p = ent.get(&1);
+        assert!(p.unwrap().read().unwrap().pos().z > 10.2);
     }
-    for _ in 0..150 {
-        physics::tick(&ent, &vol_mgr, CHUNK_SIZE, 0.1)
+    for _ in 0..50 {
+        physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.1)
     }
     {
-        let lock = ent.read().unwrap();
-        let p = lock.get(&1);
-        let d = *p.unwrap().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
+        let p = ent.get(&1);
+        let d = *p.unwrap().read().unwrap().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
         //println!("{}", d.length());
         assert!(d.length() < 0.01);
     }
@@ -741,15 +737,14 @@ fn physics_walk() {
     vol_mgr.gen(vec2!(0,0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
     //touch
-    let ent :  RwLock<HashMap<Uid, Entity>> = RwLock::new(HashMap::new());
-    ent.write().unwrap().insert(1, Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 3.1), vec3!(3.0, 0.0, 0.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)));
+    let mut ent : HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    ent.insert(1, Arc::new(RwLock::new(Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 3.1), vec3!(3.0, 0.0, 0.0), vec3!(1.0, 0.0, 0.0), vec2!(0.0, 0.0)))));
     for _ in 0..80 {
-        physics::tick(&ent, &vol_mgr, CHUNK_SIZE, 0.5)
+        physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.5)
     }
     {
-        let lock = ent.read().unwrap();
-        let p = lock.get(&1);
-        let d = *p.unwrap().pos() - vec3!(CHUNK_MID*2.0-1.0 - /*player size*/0.45, CHUNK_MID, 3.0);
+        let p = ent.get(&1);
+        let d = *p.unwrap().read().unwrap().pos() - vec3!(CHUNK_MID*2.0-1.0 - /*player size*/0.45, CHUNK_MID, 3.0);
         println!("length {}", d.length());
         assert!(d.length() < 0.01);
     }

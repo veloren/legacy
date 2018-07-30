@@ -11,15 +11,15 @@ pub struct Cuboid {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct Resolution {
+pub struct ResolutionCol {
     pub center: Vec3<f32>,
     pub correction: Vec3<f32>,
 }
 
 #[derive(PartialEq, Debug)]
 pub enum ResolutionTti {
-    WillColide{ tti: f32, normal: Vec3<f32> }, // tti can be 0.0 when they will overlap in future
-    Touching{ normal: Vec3<f32> }, // happens if direction is inanother than Primitive
+    WillColide{ tti: f32, normal: Vec3<f32> }, // tti can be 0.0 when they will overlap in future, normal is facing away away from Primitive at position of impact
+    Touching{ normal: Vec3<f32> }, // happens if direction is inanother than Primitive, i will never collide but i am tucing
     Overlapping{ since: f32 },
 }
 
@@ -44,13 +44,13 @@ pub const PLANCK_LENGTH : f32 = 0.001; // smallest unit of meassurement in colli
   The directin of the fector should be directly towards the center of mass of the second Primitive.
 */
 
-impl Resolution {
-    pub fn is_touch(&self) -> bool {self.correction.length() < PLANCK_LENGTH}
+impl ResolutionCol {
+    pub fn is_touch(&self) -> bool {self.correction.x < PLANCK_LENGTH &&self.correction.y < PLANCK_LENGTH && self.correction.z < PLANCK_LENGTH}
 }
 
 impl Primitive {
     // CollisionResolution is the minimal movement of b to avoid overlap, but allow touch with self
-    pub fn resolve_col(&self, b: &Primitive) -> Option<Resolution> {
+    pub fn resolve_col(&self, b: &Primitive) -> Option<ResolutionCol> {
         match self {
             Primitive::Cuboid { cuboid: a } => {
                 match b {
@@ -63,12 +63,6 @@ impl Primitive {
     }
 
     // Time to impact of b with self when b travels in dir
-    // 1. paramter: Time, defined as multiples of dir which can be applied before touching
-    //    - positive i am on my way to a Collision
-    //    - 0: right now colliding
-    //    - negative: i am colliding and overlapping by this much
-    //    - Infinite: i will never collide
-    // 2. parameter: Normal facing away from Primitive at position of impact
     pub fn time_to_impact(&self, b: &Primitive, dir: &Vec3<f32>) -> Option<ResolutionTti> {
         match self {
             Primitive::Cuboid { cuboid: a } => {
@@ -146,7 +140,7 @@ impl Cuboid {
         return direction * min;
     }
 
-    fn cuboid_col(&self, b: &Cuboid) -> Option<Resolution> {
+    fn cuboid_col(&self, b: &Cuboid) -> Option<ResolutionCol> {
         let a = self;
         let la = a.lower();
         let ua = a.upper();
@@ -167,47 +161,10 @@ impl Cuboid {
                   }
                   let force = Cuboid::vector_touch_border(col_radius, direction);
                   let force = force.map(|e| if e.abs() < PLANCK_LENGTH {0.0} else {e}); // apply PLANCK_LENGTH to force
-                  return Some(Resolution{
+                  return Some(ResolutionCol{
                       center: col_middle,
                       correction: force,
                   });
-                  /*
-
-
-                  let moved = *b.middle() - *a.middle();
-                  let abs_moved = vec3!(moved.x.abs(), moved.y.abs(), moved.z.abs());
-                  let border_diff = *a.radius() - abs_moved;
-                  let border_diff_abs = abs_moved - *a.radius() - *b.radius();
-                  let border_diff_abs = vec3!(border_diff_abs.x.abs(), border_diff_abs.y.abs(), border_diff_abs.z.abs());
-                  //println!("");
-                  //println!("moved {}      abs {}       border_diff {}           border_diff_abs {}", moved, abs_moved, border_diff, border_diff_abs);
-                  let signed_diff_to_border;
-                  let signed_relevant_b_radius;
-
-                  // test which is nearest
-                  let nearest_fak = if border_diff_abs.x <= border_diff_abs.y && border_diff_abs.x <= border_diff_abs.z {
-                      vec3!(if b.middle().x < a.middle().x {-1.0} else {1.0}, 0.0, 0.0)
-                  } else if border_diff_abs.y <= border_diff_abs.x && border_diff_abs.y <= border_diff_abs.z {
-                      vec3!(0.0, if b.middle().y < a.middle().y {-1.0} else {1.0}, 0.0)
-                  } else {
-                      if !(border_diff_abs.z <= border_diff_abs.x && border_diff_abs.z <= border_diff_abs.y) {
-                           //println!("border_diff: {}", border_diff);
-                           assert!(false);
-                      }
-                      vec3!(0.0, 0.0, if b.middle().z < a.middle().z {-1.0} else {1.0})
-                  };
-                  signed_diff_to_border = border_diff * nearest_fak;
-                  signed_relevant_b_radius = *b.radius() * nearest_fak;
-
-                  let point = *b.middle() + signed_diff_to_border;
-                  let correction = signed_diff_to_border + signed_relevant_b_radius;
-
-                  //println!("point {}, correction {}, signed_diff_to_border {}, relevant_a_radius {}", point, correction, signed_diff_to_border, signed_relevant_b_radius);
-
-                  return Some(Resolution{
-                      point,
-                      correction,
-                  });*/
             };
         None
     }
@@ -410,76 +367,9 @@ impl Cuboid {
             return  Some(ResolutionTti::WillColide{ tti: to_test[i].value, normal: potentialcollide_normal.unwrap()});
         }
 
-        if let Some(i) = potentialtouch_index {
+        if let Some(_) = potentialtouch_index {
             return  Some(ResolutionTti::Touching{ normal: potentialtouch_normal.unwrap()});
         }
-
-
-        /*
-        let mut to_test_index = 0;
-        if tti[0] >= 0.0 && (tti[0] <= tti[1] || tti[1] < 0.0) &&  (tti[0] <= tti[2] || tti[2] < 0.0) {
-            to_test[to_test_index] = 0;
-            to_test_index += 1;
-        }
-        if tti[1] >= 0.0 && (tti[1] <= tti[0] || tti[0] < 0.0) &&  (tti[1] <= tti[2] || tti[2] < 0.0) {
-            to_test[to_test_index] = 1;
-            to_test_index += 1;
-        }
-        if tti[2] >= 0.0 && (tti[2] <= tti[0] || tti[0] < 0.0) &&  (tti[2] <= tti[1] || tti[1] < 0.0) {
-            to_test[to_test_index] = 2;
-            to_test_index += 1;
-        }*/
-
-
-
-        /*
-        for i in 0..3 {
-            let t = tti[i];
-            if t.is_sign_positive() {
-                if t.is_infinite() {
-
-                } else {
-                    let mut will_collide = true;
-                    let mut will_touch = true;
-                    for j in 0..3 {
-                        //apply movement to other
-                        if j != i && !(tti[j] - t).is_sign_negative() {
-                            will_collide = false;
-                        }
-                        if j != i && (tti[j] - t) != 0.0 {
-                            will_touch = false;
-                        }
-                    }
-                    if will_collide {
-                        println!("          TTI_RESULT: {:?}", (t, normals[i]));
-                        return  Some(ResolutionTti::WillColide{ tti: t, normal: normals[i]});
-                    }
-                    if will_touch && t == 0.0 && dire[i] != 0.0 {
-                        println!("          TTI_RESULT: {:?}", (t, normals[i]));
-                        return  Some(ResolutionTti::WillColide{ tti: t, normal: normals[i]});
-                    }
-                }
-            } else {
-                //sign_negative
-                if t.is_infinite() {
-
-                } else {
-                    let mut is_already_colliding = true;
-                    for j in 0..3 {
-                        //check if others also negative
-                        if j != i && tti[j].is_sign_positive() {
-                            is_already_colliding = false;
-                            break;
-                        }
-                    }
-                    if is_already_colliding {
-                        println!("          TTI_RESULT: {:?}", (t, normals[i]));
-                        return  Some(ResolutionTti::Overlapping{ since: -t });
-                    }
-                }
-            }
-        }*/
-
 
         return None;
     }

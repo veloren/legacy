@@ -102,7 +102,7 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
             }
 
             // collision with terrain
-            let totest = chunk_mgr.get_nearby(&entity_col);
+            let totest = chunk_mgr.get_nearby_dir(&entity_col, velocity);
             let mut tti = 1.0;
             let mut normal = vec3!(0.0, 0.0, 0.0);
 

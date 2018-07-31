@@ -33,6 +33,7 @@ pub trait Collider<'a> {
     type Iter: Iterator<Item = Primitive>;
 
     fn get_nearby(&'a self, col: &Primitive) -> Self::Iter;
+    fn get_nearby_dir(&'a self, col: &Primitive, dir: Vec3<f32>) -> Self::Iter;
 }
 
 pub const PLANCK_LENGTH : f32 = 0.001; // smallest unit of meassurement in collision, no guarantees behind this point

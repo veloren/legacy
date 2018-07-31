@@ -161,8 +161,24 @@ impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Collider<'a> for VolMgr<
         let low = pos - area;
         let high = pos + area;
         // ceil the low and floor the high for dat performance improve
-        let low = low.map(|e| e.floor() as i64 - 1);
-        let high = high.map(|e| (e.ceil() as i64) + 2); // +1 is for the for loop
+        let low = low.map(|e| e.ceil() as i64);
+        let high = high.map(|e| (e.floor() as i64) + 1); // +1 is for the for loop
+
+        return VolMgrIter{cur: low, low, high, mgr: self};
+    }
+
+    fn get_nearby_dir(&'a self, col: &Primitive, dir: Vec3<f32>) -> Self::Iter {
+        //one might optimze this later on
+        let scale = vec3!(1.0,1.0,1.0);
+        let dirabs = vec3!(dir.x.abs(), dir.y.abs(), dir.z.abs()) / 2.0;
+        let area = col.col_aprox_abc() + dirabs + scale;
+
+        let pos = col.col_center() + dir / 2.0;
+        let low = pos - area;
+        let high = pos + area;
+        // ceil the low and floor the high for dat performance improve
+        let low = low.map(|e| e.ceil() as i64);
+        let high = high.map(|e| (e.floor() as i64) + 1); // +1 is for the for loop
 
         return VolMgrIter{cur: low, low, high, mgr: self};
     }

@@ -687,8 +687,7 @@ fn physics_fall() {
     assert!(d.length() < 0.01);
 }
 
-//FAILS because i dont get all from VOL_MGR but just some
-//#[test]
+#[test]
 fn physics_fallfast() {
     let vol_mgr = VolMgr::new(CHUNK_SIZE, VolGen::new(gen_chunk_flat, gen_payload));
     vol_mgr.gen(vec2!(0,0));
@@ -701,7 +700,7 @@ fn physics_fallfast() {
     }
     let p = ent.get(&1);
     let d = *p.unwrap().read().unwrap().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
-    //println!("{}", d.length());
+    println!("{}", d.length());
     assert!(d.length() < 0.01);
 }
 

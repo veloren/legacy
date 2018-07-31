@@ -207,7 +207,7 @@ impl Game {
             // Apply jumping
             player_entity.ctrl_acc_mut().z = if self.key_state.lock().unwrap().jump() { 1.0 } else { 0.0 };
 
-            let looking = (*player_entity.vel() * 0.7 + *player_entity.ctrl_acc_mut()) / 1.7;
+            let looking = (*player_entity.vel() * 0.4 + *player_entity.ctrl_acc_mut()) / 1.4;
 
             // Apply rotating
             if looking.length() > 0.5 {

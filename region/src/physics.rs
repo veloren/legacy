@@ -21,20 +21,9 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
             dt: f32) {
     for (.., entity) in entities {
         let mut entity = entity.write().unwrap();
-        let chunk = entity
-            .pos()
-            .map(|e| e as i64)
-            .div_euc(vec3!([chunk_size; 3]));
 
         // Gravity
-        let mut gravity_acc = vec3!(0.0, 0.0, 0.0);
-        let chunkobj = chunk_mgr.at(vec2!(chunk.x, chunk.y));
-        if let Some(lock) = chunkobj {
-            if let VolState::Exists(_,_) = *lock.read().unwrap() {
-                gravity_acc.z = -9.81 / LENGTH_OF_BLOCK;
-            }
-        }
-
+        let gravity_acc = vec3!(0.0, 0.0, -9.81 / LENGTH_OF_BLOCK);
         let middle = *entity.pos() + vec3!(0.0, 0.0, 0.9);
         let radius = vec3!(0.45, 0.45, 0.9);
 
@@ -57,8 +46,8 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
         let mut wanted_ctrl_acc = *entity.ctrl_acc();
         // apply checking if player can conrol (touches ground) out this in client instead of physics
         if !on_ground {
-            wanted_ctrl_acc.x *= 0.2;
-            wanted_ctrl_acc.y *= 0.2;
+            wanted_ctrl_acc.x *= 0.17;
+            wanted_ctrl_acc.y *= 0.17;
             wanted_ctrl_acc.z = 0.0;
         }
 
@@ -69,27 +58,22 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
         }
 
         // multiply by entity speed
-        wanted_ctrl_acc *= vec3!(13.0 / LENGTH_OF_BLOCK, 13.0 / LENGTH_OF_BLOCK, 155.0 / LENGTH_OF_BLOCK);
+        wanted_ctrl_acc *= vec3!(32.0 / LENGTH_OF_BLOCK, 32.0 / LENGTH_OF_BLOCK, 200.0 / LENGTH_OF_BLOCK);
 
         // calc acc
-        let mut acc = wanted_ctrl_acc + gravity_acc;
+        let acc = wanted_ctrl_acc + gravity_acc;
         //println!("acc {}" , acc);
-
-        // apply friction to acc
-        if on_ground {
-            acc *= 0.6_f32.powf(dt);
-        } else {
-            acc *= 0.95_f32.powf(dt);
-        }
 
         // apply acc to vel
         *entity.vel_mut() += acc * dt;
 
         // apply friction to vel
         if on_ground {
-            *entity.vel_mut() *= 0.02_f32.powf(dt);
+            *entity.vel_mut() *= 0.0015_f32.powf(dt);
         } else {
-            *entity.vel_mut() *= 0.7_f32.powf(dt);
+            entity.vel_mut().x *= 0.20_f32.powf(dt);
+            entity.vel_mut().y *= 0.20_f32.powf(dt);
+            entity.vel_mut().z *= 0.78_f32.powf(dt);
         }
 
         let mut velocity = *entity.vel() * dt;
@@ -162,9 +146,9 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
                         entity.vel_mut().y = 0.0;
                     }
                 } else {
-                    let mut smoothmove = 10.0*dt;
-                    if smoothmove > 0.24 {
-                        smoothmove = 0.24;
+                    let mut smoothmove = 15.0*dt;
+                    if smoothmove > 0.34 {
+                        smoothmove = 0.34;
                     };
                     entity_col.move_by(&vec3!(0.0, 0.0, smoothmove));
                 }
@@ -187,6 +171,24 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
                 entity_col.move_by(&vec3!(0.0, 0.0, 1.1));
                 break;
             }
+        }
+
+        let chunk = entity_col
+            .col_center()
+            .map(|e| e as i64)
+            .div_euc(vec3!([chunk_size; 3]));
+        let chunkobj = chunk_mgr.at(vec2!(chunk.x, chunk.y));
+        let mut chunk_exists = false;
+        if let Some(lock) = chunkobj {
+            if let VolState::Exists(_, _) = *lock.read().unwrap() {
+                chunk_exists = true;
+            }
+        }
+        if !chunk_exists {
+            entity.vel_mut().x = 0.0;
+            entity.vel_mut().y = 0.0;
+            entity.vel_mut().z = 0.0;
+            continue; //skip applying
         }
 
         // apply

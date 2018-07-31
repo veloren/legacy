@@ -76,9 +76,17 @@ impl Primitive {
         }
     }
 
+    // move center of mass
     pub fn move_by(&mut self, delta: &Vec3<f32>) {
         match self {
             Primitive::Cuboid { cuboid: a } => a.middle += *delta,
+        }
+    }
+
+    // scale everything to or from center of mass
+    pub fn scale_by(&mut self, factor: f32) {
+        match self {
+            Primitive::Cuboid { cuboid: a } => a.radius *= factor,
         }
     }
 

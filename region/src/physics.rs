@@ -175,6 +175,20 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
                 entity.vel_mut().z = 0.0;
             }
         }
+
+        // am i stuck check
+        let mut entity_col_stuck = entity_col.clone();
+        entity_col_stuck.scale_by(0.9);
+        let stuck_check = chunk_mgr.get_nearby(&entity_col_stuck);
+        for col in stuck_check {
+            let res = col.resolve_col(&entity_col_stuck);
+            if let Some(..) = res {
+                println!("stuck!");
+                entity_col.move_by(&vec3!(0.0, 0.0, 1.1));
+                break;
+            }
+        }
+
         // apply
         *entity.pos_mut() = entity_col.col_center() - Vec3::new(0.0, 0.0, 0.9);
     }

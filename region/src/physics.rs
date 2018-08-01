@@ -19,23 +19,37 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
             chunk_mgr: &VolMgr<Chunk, P>,
             chunk_size: i64,
             dt: f32) {
+    //consts
+    const GROUND_GRAVITY: f32 = -9.81;
+    // TODO: coord const support
+    let ENTITY_MIDDLE_OFFSET: Vec3<f32> = Vec3::new(0.0, 0.0, 0.9);
+    let ENTITY_RADIUS: Vec3<f32> = Vec3::new(0.45, 0.45, 0.9);
+    let SMALLER_THAN_BLOCK_GOING_DOWN: Vec3<f32> = Vec3::new(0.0, 0.0, -0.1);
+    let CONTROL_IN_AIR: Vec3<f32> = Vec3::new(0.17, 0.17, 0.0);
+    let ENTITY_ACC: Vec3<f32> = Vec3::new(32.0 / LENGTH_OF_BLOCK, 32.0 / LENGTH_OF_BLOCK, 200.0 / LENGTH_OF_BLOCK);
+    let FRICTION_ON_GROUND: Vec3<f32> = Vec3::new(0.0015, 0.0015, 0.0015);
+    let FRICTION_IN_AIR: Vec3<f32> = Vec3::new(0.2, 0.2, 0.78);
+    const BLOCK_SIZE_PLUS_SMALL: f32 = 1.0 + PLANCK_LENGTH;
+    const BLOCK_HOP_SPEED: f32 = 15.0;
+    const BLOCK_HOP_MAX: f32 = 0.34;
+
     for (.., entity) in entities {
         let mut entity = entity.write().unwrap();
 
         // Gravity
-        let gravity_acc = vec3!(0.0, 0.0, -9.81 / LENGTH_OF_BLOCK);
-        let middle = *entity.pos() + vec3!(0.0, 0.0, 0.9);
-        let radius = vec3!(0.45, 0.45, 0.9);
+        let gravity_acc = vec3!(0.0, 0.0, GROUND_GRAVITY / LENGTH_OF_BLOCK);
+        let middle = *entity.pos() + ENTITY_MIDDLE_OFFSET;
+        let radius = ENTITY_RADIUS;
 
-        let mut entity_col = Primitive::new_cuboid(middle, radius);
+        let mut entity_prim = Primitive::new_cuboid(middle, radius);
 
         // is standing on ground to jump
         let mut on_ground = false;
-        let can_jump_col = Primitive::new_cuboid(middle, radius);
-        let auto_jump = chunk_mgr.get_nearby(&can_jump_col);
-        for col in auto_jump {
-            let res = col.time_to_impact(&can_jump_col, &vec3!(0.0, 0.0, -0.1));
-            if let Some(ResolutionTti::WillColide{tti, ..}) = res {
+        let can_jump_prim = Primitive::new_cuboid(middle, radius);
+        let ground_prims = chunk_mgr.get_nearby(&can_jump_prim);
+        for prim in ground_prims {
+            let res = prim.time_to_impact(&can_jump_prim, &SMALLER_THAN_BLOCK_GOING_DOWN);
+            if let Some(ResolutionTti::WillCollide{tti, ..}) = res {
                 if tti < PLANCK_LENGTH*2.0 { // something really small
                     on_ground = true;
                     break;
@@ -44,13 +58,13 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
         }
 
         let mut wanted_ctrl_acc = *entity.ctrl_acc();
+        // TODO: move to client
         // apply checking if player can conrol (touches ground) out this in client instead of physics
         if !on_ground {
-            wanted_ctrl_acc.x *= 0.17;
-            wanted_ctrl_acc.y *= 0.17;
-            wanted_ctrl_acc.z = 0.0;
+            wanted_ctrl_acc *= CONTROL_IN_AIR;
         }
 
+        // TODO: move to client
         let wanted_ctrl_acc_length = vec3!(wanted_ctrl_acc.x, wanted_ctrl_acc.y, 0.0).length();
         if wanted_ctrl_acc_length > 1.0 {
             wanted_ctrl_acc.x /= wanted_ctrl_acc_length;
@@ -58,23 +72,21 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
         }
 
         // multiply by entity speed
-        wanted_ctrl_acc *= vec3!(32.0 / LENGTH_OF_BLOCK, 32.0 / LENGTH_OF_BLOCK, 200.0 / LENGTH_OF_BLOCK);
+        wanted_ctrl_acc *= ENTITY_ACC;
 
         // calc acc
         let acc = wanted_ctrl_acc + gravity_acc;
-        //println!("acc {}" , acc);
 
         // apply acc to vel
         *entity.vel_mut() += acc * dt;
 
         // apply friction to vel
-        if on_ground {
-            *entity.vel_mut() *= 0.0015_f32.powf(dt);
+        let fric_fac = if on_ground {
+            FRICTION_ON_GROUND.map(|e| e.powf(dt))
         } else {
-            entity.vel_mut().x *= 0.20_f32.powf(dt);
-            entity.vel_mut().y *= 0.20_f32.powf(dt);
-            entity.vel_mut().z *= 0.78_f32.powf(dt);
-        }
+            FRICTION_IN_AIR.map(|e| e.powf(dt))
+        };
+        *entity.vel_mut() *= fric_fac;
 
         let mut velocity = *entity.vel() * dt;
         debug!("velocity: {}", velocity);
@@ -86,20 +98,20 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
             }
 
             // collision with terrain
-            let totest = chunk_mgr.get_nearby_dir(&entity_col, velocity);
-            let mut tti = 1.0;
+            let potential_collision_prims = chunk_mgr.get_nearby_dir(&entity_prim, velocity);
+            let mut tti = 1.0; // 1.0 = full tick
             let mut normal = vec3!(0.0, 0.0, 0.0);
 
-            for col in totest {
-                let r = col.time_to_impact(&entity_col, &velocity);
+            for prim in potential_collision_prims {
+                let r = prim.time_to_impact(&entity_prim, &velocity);
                 if let Some(r) = r {
                     //info!("colliding in tti: {:?}", r);
-                    if let ResolutionTti::WillColide{tti: ltti, normal: lnormal} = r {
+                    if let ResolutionTti::WillCollide{tti: ltti, normal: lnormal} = r {
                         if ltti <= tti {
-                            //warn!("colliding in tti: {}, normal {}", ltti, lnormal);
+                            //debug!("colliding in tti: {}, normal {}", ltti, lnormal);
                             if lnormal.length() < normal.length() || normal.length() < 0.1 || ltti < tti { // when tti is same but we have less normal we switch
-                                //warn!("set normal to: {}", lnormal);
-                                // if there is a collission with 2 and one with 1 block we first solfe the single one
+                                //info!("set normal to: {}", lnormal);
+                                // if there is a collission with 2 and one with 1 block we first solve the single one
                                 normal = lnormal;
                             }
                             tti = ltti;
@@ -112,29 +124,26 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
                 let movement = velocity * tti;
                 if tti < 1.0 {
                     info!("total valid tti: {}", tti);
-                    //println!("velocity: {}", velocity);
                     debug!("move by: {}", movement);
                 }
-                entity_col.move_by(&movement);
+                entity_prim.move_by(&movement);
                 velocity -= movement;
-                //println!("after move: {:?}", entity_col);
             }
-            //println!("normal: {:?}", normal);
 
             if normal.x != 0.0 || normal.y != 0.0 {
                 // block hopping
-                let mut auto_jump_col = entity_col.clone();
-                auto_jump_col.move_by(&vec3!(0.0, 0.0, 1.01));
-                let auto_jump = chunk_mgr.get_nearby(&auto_jump_col);
-                let mut collision_after_hopp = false;
-                for col in auto_jump {
-                    let res = col.resolve_col(&auto_jump_col);
+                let mut auto_jump_prim = entity_prim.clone();
+                auto_jump_prim.move_by(&vec3!(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
+                let potential_collision_prims = chunk_mgr.get_nearby(&auto_jump_prim);
+                let mut collision_after_hop = false;
+                for prim in potential_collision_prims {
+                    let res = prim.resolve_col(&auto_jump_prim);
                     if let Some(..) = res {
-                        collision_after_hopp = true;
+                        collision_after_hop = true;
                         break;
                     }
                 }
-                if collision_after_hopp {
+                if collision_after_hop {
                     if normal.x != 0.0 {
                         debug!("full stop x");
                         velocity.x = 0.0;
@@ -146,11 +155,11 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
                         entity.vel_mut().y = 0.0;
                     }
                 } else {
-                    let mut smoothmove = 15.0*dt;
-                    if smoothmove > 0.34 {
-                        smoothmove = 0.34;
+                    let mut smoothmove = BLOCK_HOP_SPEED*dt;
+                    if smoothmove > BLOCK_HOP_MAX {
+                        smoothmove = BLOCK_HOP_MAX;
                     };
-                    entity_col.move_by(&vec3!(0.0, 0.0, smoothmove));
+                    entity_prim.move_by(&vec3!(0.0, 0.0, smoothmove));
                 }
             }
             if normal.z != 0.0 {
@@ -161,19 +170,19 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
         }
 
         // am i stuck check
-        let mut entity_col_stuck = entity_col.clone();
-        entity_col_stuck.scale_by(0.9);
-        let stuck_check = chunk_mgr.get_nearby(&entity_col_stuck);
-        for col in stuck_check {
-            let res = col.resolve_col(&entity_col_stuck);
+        let mut entity_prim_stuck = entity_prim.clone();
+        entity_prim_stuck.scale_by(0.9);
+        let stuck_check = chunk_mgr.get_nearby(&entity_prim_stuck);
+        for prim in stuck_check {
+            let res = prim.resolve_col(&entity_prim_stuck);
             if let Some(..) = res {
-                println!("stuck!");
-                entity_col.move_by(&vec3!(0.0, 0.0, 1.1));
+                warn!("entity is stuck!");
+                entity_prim.move_by(&vec3!(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
                 break;
             }
         }
 
-        let chunk = entity_col
+        let chunk = entity_prim
             .col_center()
             .map(|e| e as i64)
             .div_euc(vec3!([chunk_size; 3]));
@@ -185,13 +194,11 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
             }
         }
         if !chunk_exists {
-            entity.vel_mut().x = 0.0;
-            entity.vel_mut().y = 0.0;
-            entity.vel_mut().z = 0.0;
+            *entity.vel_mut() = vec3![0.0; 3];
             continue; //skip applying
         }
 
         // apply
-        *entity.pos_mut() = entity_col.col_center() - Vec3::new(0.0, 0.0, 0.9);
+        *entity.pos_mut() = entity_prim.col_center() - ENTITY_MIDDLE_OFFSET;
     }
 }

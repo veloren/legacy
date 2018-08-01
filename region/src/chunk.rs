@@ -212,7 +212,7 @@ impl Volume for Chunk {
         self.offset
     }
 
-    fn rotation(&self) -> Vec3<f32> {
+    fn ori(&self) -> Vec3<f32> {
         Vec3::new(0.0, 0.0, 0.0)
     }
 

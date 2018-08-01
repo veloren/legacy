@@ -18,8 +18,8 @@ pub struct ResolutionCol {
 
 #[derive(PartialEq, Debug)]
 pub enum ResolutionTti {
-    WillColide{ tti: f32, normal: Vec3<f32> }, // tti can be 0.0 when they will overlap in future, normal is facing away away from Primitive at position of impact
-    Touching{ normal: Vec3<f32> }, // happens if direction is inanother than Primitive, i will never collide but i am tucing
+    WillCollide{ tti: f32, normal: Vec3<f32> }, // tti can be 0.0 when they will overlap in future, normal is facing away away from Primitive at position of impact
+    Touching{ normal: Vec3<f32> }, // happens if direction is another than Primitive, i will never collide but i am tucing
     Overlapping{ since: f32 },
 }
 
@@ -29,6 +29,7 @@ pub enum Primitive {
     //add more here
 }
 
+//when checking against something containing multiple Primitives, we need to implement a Collider that returns a Iterator to all Primitives to test, e.g. for the Chunks
 pub trait Collider<'a> {
     type Iter: Iterator<Item = Primitive>;
 
@@ -38,19 +39,18 @@ pub trait Collider<'a> {
 
 pub const PLANCK_LENGTH : f32 = 0.001; // smallest unit of meassurement in collision, no guarantees behind this point
 
-/*
-  Resolution is done the following way: we evaluate if to Primitives overlap.
-  When they everlap we calculate the center of mass inside the overlapping area (currently center of mass = center)
-  We then calcululate a vector beginning from the center of mass ob the overlapping area. to the border of the overlapping area.
-  The directin of the fector should be directly towards the center of mass of the second Primitive.
-*/
-
 impl ResolutionCol {
     pub fn is_touch(&self) -> bool {self.correction.x < PLANCK_LENGTH &&self.correction.y < PLANCK_LENGTH && self.correction.z < PLANCK_LENGTH}
 }
 
 impl Primitive {
     // CollisionResolution is the minimal movement of b to avoid overlap, but allow touch with self
+    /*
+      Collision Resolution is done the following way: we evaluate if to Primitives overlap.
+      When they everlap we calculate the center of mass inside the overlapping area (currently center of mass = center)
+      We then calcululate a vector beginning from the center of mass ob the overlapping area. to the border of the overlapping area.
+      The directin of the fector should be directly towards the center of mass of the second Primitive.
+    */
     pub fn resolve_col(&self, b: &Primitive) -> Option<ResolutionCol> {
         match self {
             Primitive::Cuboid { cuboid: a } => {
@@ -64,6 +64,15 @@ impl Primitive {
     }
 
     // Time to impact of b with self when b travels in dir
+    /*
+      Collision Resolution is done the following way: we evaluate the nearest sides between both Primitives.
+      When they collide we check that the other sides are also near each other.
+      If they are we know it will impact after this time.
+      We choose the smallest tti.
+      If it is not colliding it might happen, that it's touching and moving alogside the other Primitive
+      If the TTI is negative, they we are either behind the object, or are already coliding with it.
+      We need to differenciate those cases, if no collision will occur, it returns None.
+    */
     pub fn time_to_impact(&self, b: &Primitive, dir: &Vec3<f32>) -> Option<ResolutionTti> {
         match self {
             Primitive::Cuboid { cuboid: a } => {
@@ -96,7 +105,7 @@ impl Primitive {
         }
     }
 
-    // when using the collision center, the outer_aproximation_sphere can be minimal
+    // when using the collision center, the outer_approximation_sphere can be minimal
     // implement it fast!
     pub fn col_center(&self) -> Vec3<f32> {
         match self {
@@ -107,7 +116,7 @@ impl Primitive {
     // returns the 3 radii of a spheroid where the object fits exactly in
     // implement it fast!
     //TODO: evaluate if this is a so fast method for checking somewhere actually
-    pub fn col_aprox_rad(&self) -> Vec3<f32> {
+    pub fn col_approx_rad(&self) -> Vec3<f32> {
         match self {
             Primitive::Cuboid { cuboid: a } => a.radius * SQRT_2, // SQRT(2) is correct for sphere, havent it checked for an spheroid tbh
         }
@@ -115,7 +124,7 @@ impl Primitive {
 
     // returns a cube where the object fits in exactly
     // implement it fast!
-    pub fn col_aprox_abc(&self) -> Vec3<f32> {
+    pub fn col_approx_abc(&self) -> Vec3<f32> {
         match self {
             Primitive::Cuboid { cuboid: a } => a.radius,
         }
@@ -193,7 +202,7 @@ impl Cuboid {
         let mut tti: [f32; 3] = [0.0; 3];
         let mut minimal_collision_tti: [f32; 3] = [0.0; 3]; //minimal tti value which equals a collision is already happening
         let dire = dir.elements();
-        //println!("a_middle_elem {:?}; b_middle_elem {:?}", a_middle_elem, b_middle_elem);
+        //debug("a_middle_elem {:?}; b_middle_elem {:?}", a_middle_elem, b_middle_elem);
         //needs to be calculated for every area of the cuboid, happily it's not rotated, so its just the 3 axis
         for i in 0..3 {
             if dire[i] == 0.0 {
@@ -201,7 +210,7 @@ impl Cuboid {
                 let midr = (a_middle_elem[i] - b_middle_elem[i]).abs();
                 let perimeterr = a_radius_elem[i] + b_radius_elem[i];
                 minimal_collision_tti[i] = -INFINITY;
-                //println!("midr {:?}; perimeterr {:?}", midr, perimeterr);
+                //debug!("midr {:?}; perimeterr {:?}", midr, perimeterr);
                 tti_raw[i] = if midr + PLANCK_LENGTH > perimeterr && midr - PLANCK_LENGTH < perimeterr {
                     0.0
                 } else {
@@ -209,7 +218,7 @@ impl Cuboid {
                     if midr >= perimeterr {
                         INFINITY // no movement and no collsision
                     } else {
-                        -INFINITY // as value for there is a collision
+                        -INFINITY // there is a collision
                     }
                 };
                 if tti_raw[i].is_sign_negative() && // it detects collision, detects -INFINITY
@@ -238,7 +247,7 @@ impl Cuboid {
                 } else {
                     panic!("we checked above that dire[i] must not be 0.0");
                 }
-                //println!("a_area {:?}; b_area {:?}", a_area, b_area);
+                //debug!("a_area {:?}; b_area {:?}", a_area, b_area);
                 minimal_collision_tti[i] = - (a_radius_elem[i] + b_radius_elem[i]) * 2.0 / dire[i].abs();
                 tti_raw[i] = (a_area[i] - b_area[i]) / dire[i];
                 if tti_raw[i].is_sign_negative() && // it detects collision, detects -INFINITY
@@ -252,15 +261,10 @@ impl Cuboid {
                  }
             }
         }
-        // tti now contains a value per coordinate. pos=will colide in, 0=touches right now, negative=is colliding since, INF=will never collide
-        // check the number of collisions now. negative number is Collision
-        // 0x = corner
-        // 1x = edge
-        // 2x = area
-        // 3x = cuboid
+        // tti now contains a value per coordinate. pos=will collide in, 0=touches right now, negative=is colliding since, INF=will never collide
 
-        //println!("tti_raw {:?}", tti_raw);
-        //println!("tti {:?}", tti);
+        //info!("tti_raw {:?}", tti_raw);
+        //info!("tti {:?}", tti);
 
         // i will check all 3 areas, if after the applying of the movement, others axis will also collid
         // e.g tti (3,4,5) minimum_col (-3,-3,-3)
@@ -281,6 +285,7 @@ impl Cuboid {
             return  Some(ResolutionTti::Overlapping{ since: -tti[0] }); // UNREACHABLE, except for some infinity stuff
         }
 
+        //doing some sorting here
         #[derive(Debug)]
         struct TtiValueIndex {
             value: f32,
@@ -332,7 +337,7 @@ impl Cuboid {
         let mut potentialcollide_index : Option<usize> = None;
         let mut potentialcollide_normal : Option<Vec3<f32>> = None;
         to_test.sort();
-        //println!("to_test: {:?}", to_test);
+        //debug!("to_test: {:?}", to_test);
         for i in 0..3 {
             if to_test[i].value >= 0.0 && to_test[i].value.is_finite() {
                 //check if others collide after time
@@ -372,8 +377,8 @@ impl Cuboid {
         }
 
         if let Some(i) = potentialcollide_index {
-            //println!("returning index: {}, val {}, nor{}", i,  to_test[i].value, potentialcollide_normal.unwrap());
-            return  Some(ResolutionTti::WillColide{ tti: to_test[i].value, normal: potentialcollide_normal.unwrap()});
+            //info!("returning index: {}, val {}, nor{}", i,  to_test[i].value, potentialcollide_normal.unwrap());
+            return  Some(ResolutionTti::WillCollide{ tti: to_test[i].value, normal: potentialcollide_normal.unwrap()});
         }
 
         if let Some(_) = potentialtouch_index {

@@ -197,6 +197,10 @@ impl Game {
         let mov_vec = unit_vecs.0 * dir_vec.x + unit_vecs.1 * dir_vec.y;
 
         // Why do we do this in Voxygen?!
+        const LOOKING_VEL_FAC: f32 = 1.0;
+        const LOOKING_CTRL_ACC_FAC: f32 = 1.0;
+        const MIN_LOOKING: f32 = 0.5;
+        const LEANING_FAC: f32 = 0.05;
         if let Some(player_entity) = self.client.player_entity() {
             let mut player_entity = player_entity.write().unwrap();
 
@@ -207,15 +211,15 @@ impl Game {
             // Apply jumping
             player_entity.ctrl_acc_mut().z = if self.key_state.lock().unwrap().jump() { 1.0 } else { 0.0 };
 
-            let looking = (*player_entity.vel() * 0.4 + *player_entity.ctrl_acc_mut()) / 1.4;
+            let looking = (*player_entity.vel() * LOOKING_VEL_FAC + *player_entity.ctrl_acc_mut() * LOOKING_CTRL_ACC_FAC) / (LOOKING_VEL_FAC + LOOKING_CTRL_ACC_FAC);
 
             // Apply rotating
-            if looking.length() > 0.5 {
+            if looking.length() > MIN_LOOKING {
                 player_entity.look_dir_mut().x = looking.x.atan2(looking.y);
             }
 
             // Apply leaning
-            player_entity.look_dir_mut().y = vec2!(looking.x, looking.y).length() * 0.05;
+            player_entity.look_dir_mut().y = vec2!(looking.x, looking.y).length() * LEANING_FAC;
         }
 
         // Set camera focus to the player's head

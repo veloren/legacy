@@ -155,7 +155,7 @@ impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Collider<'a> for VolMgr<
 
     fn get_nearby(&'a self, col: &Primitive) -> Self::Iter {
         let scale = vec3!(1.0,1.0,1.0);
-        let area = col.col_aprox_abc() + scale;
+        let area = col.col_approx_abc() + scale;
 
         let pos = col.col_center();
         let low = pos - area;
@@ -171,7 +171,7 @@ impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Collider<'a> for VolMgr<
         //one might optimze this later on
         let scale = vec3!(1.0,1.0,1.0);
         let dirabs = vec3!(dir.x.abs(), dir.y.abs(), dir.z.abs()) / 2.0;
-        let area = col.col_aprox_abc() + dirabs + scale;
+        let area = col.col_approx_abc() + dirabs + scale;
 
         let pos = col.col_center() + dir / 2.0;
         let low = pos - area;

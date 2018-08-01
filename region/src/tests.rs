@@ -14,7 +14,7 @@ use super::collision::{Primitive, Cuboid, ResolutionCol, ResolutionTti};
 use super::{Entity, VolMgr, VolState, Chunk, VolGen, Block, BlockMaterial, Voxel, Volume, physics};
 
 #[test]
-fn colide_simple() {
+fn collide_simple() {
     //collide
     let m1 = Primitive::new_cuboid(vec3!(0.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
     let m2 = Primitive::new_cuboid(vec3!(1.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
@@ -60,7 +60,7 @@ fn touch_simple() {
 }
 
 #[test]
-fn colide_complex() {
+fn collide_complex() {
     //collide
     let m1 = Primitive::new_cuboid(vec3!(0.0, 0.0, 0.0), vec3!(1.0, 1.0, 1.0));
     let m2 = Primitive::new_cuboid(vec3!(1.0, 0.5, 0.0), vec3!(1.0, 1.0, 1.0));
@@ -174,7 +174,7 @@ fn random_vec(scale: f32) -> Vec3<f32> {
 }
 
 #[test]
-fn random_colide_resolution() {
+fn random_collide_resolution() {
     // choose 1000 random values, if they collide apply resolution, they should now touch
     let mut positive_resolved = 0;
 
@@ -236,7 +236,7 @@ fn tti_simple() {
     assert_eq!(res.0, 90.0);
 }*/
 
-macro_rules! checkWillColide {
+macro_rules! checkWillCollide {
     ($x:expr, $tti2:expr, $normal2:expr) => {
         let res = $x;
         println!("EXPT: {:?} {:?}", $tti2, $normal2);
@@ -244,7 +244,7 @@ macro_rules! checkWillColide {
 
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
-        if let ResolutionTti::WillColide{tti, normal} = res {
+        if let ResolutionTti::WillCollide{tti, normal} = res {
             let cmp = ((tti * 1000.0) as f32).round() / 1000.0;
             assert_eq!(cmp, $tti2);
             assert_eq!(normal, $normal2);
@@ -301,17 +301,17 @@ fn tti_horizontal_positions_const_vel() {
     let normal = vec3!(0.0, 0.0, 1.0);
     let m1 = Primitive::new_cuboid(vec3!(0.5, 0.5, 0.5), vec3!(0.5, 0.5, 0.5));
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, 1000.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 999.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 999.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, 3.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 2.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 2.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, 2.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 1.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 1.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, 2.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 0.5, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 0.5, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, 1.51), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 0.01, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 0.01, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, 1.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 0.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 0.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, 1.49), vec3!(0.5, 0.5, 0.5));
     checkOverlapping!(m1.time_to_impact(&m2, &vel), 0.01);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, 1.0), vec3!(0.5, 0.5, 0.5));
@@ -342,17 +342,17 @@ fn tti_horizontal_positions_const_vel_negative() {
     let normal = vec3!(0.0, 0.0, -1.0);
     let m1 = Primitive::new_cuboid(vec3!(0.5, 0.5, 0.5), vec3!(0.5, 0.5, 0.5));
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, -999.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 999.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 999.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, -2.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 2.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 2.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, -1.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 1.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 1.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, -1.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 0.5, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 0.5, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, -0.51), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 0.01, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 0.01, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, -0.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 0.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 0.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, -0.49), vec3!(0.5, 0.5, 0.5));
     checkOverlapping!(m1.time_to_impact(&m2, &vel), 0.01);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 0.5, 0.0), vec3!(0.5, 0.5, 0.5));
@@ -508,17 +508,17 @@ fn tti_horizontal_positions_const_vel2() {
     let normal = vec3!(0.0, 0.0, 1.0);
     let m1 = Primitive::new_cuboid(vec3!(0.5, 0.5, 0.5), vec3!(0.5, 0.5, 0.5));
     let m2 = Primitive::new_cuboid(vec3!(1.0, 0.5, 1000.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 999.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 999.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(1.0, 0.5, 3.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 2.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 2.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(1.0, 0.5, 2.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 1.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 1.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(1.0, 0.5, 2.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 0.5, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 0.5, normal);
     let m2 = Primitive::new_cuboid(vec3!(1.0, 0.5, 1.51), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 0.01, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 0.01, normal);
     let m2 = Primitive::new_cuboid(vec3!(1.0, 0.5, 1.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 0.0, normal);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 0.0, normal);
     let m2 = Primitive::new_cuboid(vec3!(1.0, 0.5, 1.49), vec3!(0.5, 0.5, 0.5));
     checkOverlapping!(m1.time_to_impact(&m2, &vel), 0.01);
     let m2 = Primitive::new_cuboid(vec3!(1.0, 0.5, 1.0), vec3!(0.5, 0.5, 0.5));
@@ -557,19 +557,19 @@ fn tti_diagonal_positions_const_vel() {
     let m2 = Primitive::new_cuboid(vec3!(0.5, 3.5, 3.5), vec3!(0.5, 0.5, 0.5));
     checkNone!(m1.time_to_impact(&m2, &vel)); //touch the edge
     let m2 = Primitive::new_cuboid(vec3!(0.5, 3.5, 4.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 4.0, side);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 4.0, side);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 3.5, 5.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 4.0, side);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 4.0, side);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 3.5, 5.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 4.0, side + top); // edge
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 4.0, side + top); // edge
     let m2 = Primitive::new_cuboid(vec3!(0.5, 3.5, 6.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 4.5, top);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 4.5, top);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 3.5, 7.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 5.5, top);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 5.5, top);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 3.5, 8.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 6.5, top);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 6.5, top);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 3.5, 9.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 7.5, top);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 7.5, top);
     let m2 = Primitive::new_cuboid(vec3!(0.5, 3.5, 9.5), vec3!(0.5, 0.5, 0.5));
     checkNone!(m1.time_to_impact(&m2, &vel)); //touch the edge
     let m2 = Primitive::new_cuboid(vec3!(0.5, 3.5, 10.0), vec3!(0.5, 0.5, 0.5));
@@ -589,19 +589,19 @@ fn tti_diagonal_positions_const_vel_negative() {
     let m2 = Primitive::new_cuboid(vec3!(0.5, -2.5, 3.5), vec3!(0.5, 0.5, 0.5));
     checkNone!(m1.time_to_impact(&m2, &vel)); //touch the edge
     let m2 = Primitive::new_cuboid(vec3!(0.5, -2.5, 4.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 4.0, side);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 4.0, side);
     let m2 = Primitive::new_cuboid(vec3!(0.5, -2.5, 5.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 4.0, side);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 4.0, side);
     let m2 = Primitive::new_cuboid(vec3!(0.5, -2.5, 5.5), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 4.0, side + top); // edge
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 4.0, side + top); // edge
     let m2 = Primitive::new_cuboid(vec3!(0.5, -2.5, 6.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 4.5, top);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 4.5, top);
     let m2 = Primitive::new_cuboid(vec3!(0.5, -2.5, 7.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 5.5, top);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 5.5, top);
     let m2 = Primitive::new_cuboid(vec3!(0.5, -2.5, 8.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 6.5, top);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 6.5, top);
     let m2 = Primitive::new_cuboid(vec3!(0.5, -2.5, 9.0), vec3!(0.5, 0.5, 0.5));
-    checkWillColide!(m1.time_to_impact(&m2, &vel), 7.5, top);
+    checkWillCollide!(m1.time_to_impact(&m2, &vel), 7.5, top);
     let m2 = Primitive::new_cuboid(vec3!(0.5, -2.5, 9.5), vec3!(0.5, 0.5, 0.5));
     checkNone!(m1.time_to_impact(&m2, &vel)); //touch the edge
     let m2 = Primitive::new_cuboid(vec3!(0.5, -2.5, 10.0), vec3!(0.5, 0.5, 0.5));

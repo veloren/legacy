@@ -197,30 +197,29 @@ impl Game {
         let mov_vec = unit_vecs.0 * dir_vec.x + unit_vecs.1 * dir_vec.y;
 
         // Why do we do this in Voxygen?!
+        const LOOKING_VEL_FAC: f32 = 1.0;
+        const LOOKING_CTRL_ACC_FAC: f32 = 1.0;
+        const MIN_LOOKING: f32 = 0.5;
+        const LEANING_FAC: f32 = 0.05;
         if let Some(player_entity) = self.client.player_entity() {
             let mut player_entity = player_entity.write().unwrap();
 
             // Apply acceleration
-            player_entity.ctrl_vel_mut().x += mov_vec.x * 0.2;
-            player_entity.ctrl_vel_mut().y += mov_vec.y * 0.2;
-
-            // Apply friction
-            player_entity.ctrl_vel_mut().x *= 0.85;
-            player_entity.ctrl_vel_mut().y *= 0.85;
+            player_entity.ctrl_acc_mut().x = mov_vec.x;
+            player_entity.ctrl_acc_mut().y = mov_vec.y;
 
             // Apply jumping
-            *player_entity.jumping_mut() = self.key_state.lock().unwrap().jump();
+            player_entity.ctrl_acc_mut().z = if self.key_state.lock().unwrap().jump() { 1.0 } else { 0.0 };
 
-            let vel = *player_entity.ctrl_vel_mut();
-            let ori = *self.camera.lock().unwrap().ori();
+            let looking = (*player_entity.vel() * LOOKING_VEL_FAC + *player_entity.ctrl_acc_mut() * LOOKING_CTRL_ACC_FAC) / (LOOKING_VEL_FAC + LOOKING_CTRL_ACC_FAC);
 
             // Apply rotating
-            if vel.length() > 0.5 {
-                player_entity.look_dir_mut().x = vel.x.atan2(vel.y);
+            if looking.length() > MIN_LOOKING {
+                player_entity.look_dir_mut().x = looking.x.atan2(looking.y);
             }
 
             // Apply leaning
-            player_entity.look_dir_mut().y = vec2!(vel.x, vel.y).length() * 0.3;
+            player_entity.look_dir_mut().y = vec2!(looking.x, looking.y).length() * LEANING_FAC;
         }
 
         // Set camera focus to the player's head

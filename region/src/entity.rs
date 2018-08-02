@@ -1,25 +1,22 @@
 // Local
-use collide::AABB;
 
 // Library
 use coord::prelude::*;
 
 pub struct Entity {
-    pos: Vec3f,
+    pos: Vec3f, //middle x,y of the figure, z pos is on the ground
     vel: Vec3f,
-    ctrl_vel: Vec3f,
+    ctrl_acc: Vec3f,
     look_dir: Vec2f,
-    jumping: bool,
 }
 
 impl Entity {
-    pub fn new(pos: Vec3f, vel: Vec3f, ctrl_vel: Vec3f, look_dir: Vec2f) -> Entity {
+    pub fn new(pos: Vec3f, vel: Vec3f, ctrl_acc: Vec3f, look_dir: Vec2f) -> Entity {
         Entity {
             pos,
             vel,
-            ctrl_vel, //entity triest to move in this directory (maybe should be made a acceleration in future versions with correct netwon movement)
+            ctrl_acc, //entity triest to move in this directory (maybe should be made a acceleration in future versions with correct netwon movement)
             look_dir,
-            jumping: false,
         }
     }
 
@@ -31,8 +28,8 @@ impl Entity {
         &self.vel
     }
 
-    pub fn ctrl_vel(&self) -> &Vec3f {
-        &self.ctrl_vel
+    pub fn ctrl_acc(&self) -> &Vec3f {
+        &self.ctrl_acc
     }
 
     pub fn look_dir(&self) -> &Vec2f {
@@ -47,33 +44,11 @@ impl Entity {
         &mut self.vel
     }
 
-    pub fn ctrl_vel_mut(&mut self) -> &mut Vec3f {
-        &mut self.ctrl_vel
+    pub fn ctrl_acc_mut(&mut self) -> &mut Vec3f {
+        &mut self.ctrl_acc
     }
 
     pub fn look_dir_mut(&mut self) -> &mut Vec2f {
         &mut self.look_dir
-    }
-
-    pub fn jumping_mut(&mut self) -> &mut bool {
-        &mut self.jumping
-    }
-
-    pub fn jumping(&self) -> bool {
-        self.jumping
-    }
-
-    pub fn get_lower_aabb(&self) -> AABB {
-        AABB::new(
-            self.pos + vec3!(-0.45, -0.45, 0.0),
-            self.pos + vec3!( 0.45,  0.45, 1.9),
-        )
-    }
-
-    pub fn get_upper_aabb(&self) -> AABB {
-        AABB::new(
-            self.pos + vec3!(-0.45, -0.45, 1.2),
-            self.pos + vec3!( 0.45,  0.45, 1.9),
-        )
     }
 }

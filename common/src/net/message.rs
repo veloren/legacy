@@ -37,7 +37,7 @@ pub enum ServerMessage {
     Ping,
     Pong,
     RecvChatMsg { alias: String, msg: String },
-    EntityUpdate { uid: Uid, pos: Vec3f, vel: Vec3f, ctrl_vel: Vec3f, look_dir: Vec2f },
+    EntityUpdate { uid: Uid, pos: Vec3f, vel: Vec3f, ctrl_acc: Vec3f, look_dir: Vec2f },
     ChunkData {},
 }
 
@@ -59,7 +59,7 @@ pub enum ClientMessage {
     Pong,
     ChatMsg { msg: String },
     SendCmd { cmd: String },
-    PlayerEntityUpdate { pos: Vec3f, vel: Vec3f, ctrl_vel: Vec3f, look_dir: Vec2f },
+    PlayerEntityUpdate { pos: Vec3f, vel: Vec3f, ctrl_acc: Vec3f, look_dir: Vec2f },
 }
 
 impl Message for ClientMessage {

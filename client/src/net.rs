@@ -20,7 +20,7 @@ impl<P: Payloads> Client<P> {
             self.conn.send(ClientMessage::PlayerEntityUpdate {
                 pos: *player_entity.pos(),
                 vel: *player_entity.vel(),
-                ctrl_vel: *player_entity.ctrl_vel(),
+                ctrl_acc: *player_entity.ctrl_acc(),
                 look_dir: *player_entity.look_dir(),
             });
         }
@@ -54,16 +54,16 @@ impl<P: Payloads> Client<P> {
             }
             ServerMessage::Shutdown => self.set_status(ClientStatus::Disconnected),
             ServerMessage::RecvChatMsg { alias, msg } => self.callbacks().call_recv_chat_msg(&alias, &msg),
-            ServerMessage::EntityUpdate { uid, pos, vel, ctrl_vel, look_dir } => {
+            ServerMessage::EntityUpdate { uid, pos, vel, ctrl_acc, look_dir } => {
                 match self.entity(uid) {
                     Some(entity) => {
                         let mut entity = entity.write().unwrap();
                         *entity.pos_mut() = pos;
                         *entity.vel_mut() = vel;
-                        *entity.ctrl_vel_mut() = ctrl_vel;
+                        *entity.ctrl_acc_mut() = ctrl_acc;
                         *entity.look_dir_mut() = look_dir;
                     },
-                    None => { self.add_entity(uid, Entity::new(pos, vel, ctrl_vel, look_dir)); },
+                    None => { self.add_entity(uid, Entity::new(pos, vel, ctrl_acc, look_dir)); },
                 }
             },
             ServerMessage::Ping => self.conn.send(ClientMessage::Pong),

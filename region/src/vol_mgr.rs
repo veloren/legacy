@@ -1,6 +1,6 @@
 // Local
 use {Volume, Voxel};
-use collide::VolCollider;
+use collision::{Primitive, Collider};
 
 // Standard
 use std::sync::{Arc, RwLock, RwLockReadGuard, Mutex};
@@ -119,8 +119,67 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> VolMgr<V, P> {
     }
 }
 
-impl<V: 'static + Volume, P: Send + Sync + 'static> VolCollider for VolMgr<V, P> {
-    fn is_solid_at(&self, pos: Vec3<f32>) -> bool {
-        self.get_voxel_at(pos.floor().map(|e| e as i64)).is_solid()
+pub struct VolMgrIter<'a ,V: 'static + Volume, P: Send + Sync + 'static> {
+    cur: Vec3<i64>,
+    low: Vec3<i64>,
+    high: Vec3<i64>,
+    mgr: &'a VolMgr<V, P>,
+}
+
+impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Iterator for VolMgrIter<'a, V, P> {
+    type Item = Primitive;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.cur.z < self.high.z {
+            while self.cur.y < self.high.y {
+                while self.cur.x < self.high.x {
+                    if self.mgr.get_voxel_at(self.cur).is_solid() {
+                        let col = Primitive::new_cuboid(vec3!(self.cur.x as f32 + 0.5, self.cur.y as f32 + 0.5, self.cur.z as f32 + 0.5), vec3!(0.5, 0.5, 0.5));
+                        self.cur.x += 1;
+                        return Some(col);
+                    }
+                    self.cur.x += 1;
+                }
+                self.cur.x = self.low.x;
+                self.cur.y += 1;
+            }
+            self.cur.y = self.low.y;
+            self.cur.z += 1;
+        }
+        None
+    }
+}
+
+impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Collider<'a> for VolMgr<V, P> {
+    type Iter = VolMgrIter<'a, V, P>;
+
+    fn get_nearby(&'a self, col: &Primitive) -> Self::Iter {
+        let scale = vec3!(1.0,1.0,1.0);
+        let area = col.col_approx_abc() + scale;
+
+        let pos = col.col_center();
+        let low = pos - area;
+        let high = pos + area;
+        // ceil the low and floor the high for dat performance improve
+        let low = low.map(|e| e.ceil() as i64);
+        let high = high.map(|e| (e.floor() as i64) + 1); // +1 is for the for loop
+
+        return VolMgrIter{cur: low, low, high, mgr: self};
+    }
+
+    fn get_nearby_dir(&'a self, col: &Primitive, dir: Vec3<f32>) -> Self::Iter {
+        //one might optimze this later on
+        let scale = vec3!(1.0,1.0,1.0);
+        let dirabs = vec3!(dir.x.abs(), dir.y.abs(), dir.z.abs()) / 2.0;
+        let area = col.col_approx_abc() + dirabs + scale;
+
+        let pos = col.col_center() + dir / 2.0;
+        let low = pos - area;
+        let high = pos + area;
+        // ceil the low and floor the high for dat performance improve
+        let low = low.map(|e| e.ceil() as i64);
+        let high = high.map(|e| (e.floor() as i64) + 1); // +1 is for the for loop
+
+        return VolMgrIter{cur: low, low, high, mgr: self};
     }
 }

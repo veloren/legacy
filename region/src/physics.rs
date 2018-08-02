@@ -1,88 +1,204 @@
 // Standard
-use std::sync::{RwLock};
+use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
+use std::clone::Clone;
 
 // Library
 use coord::prelude::*;
 
 // Project
 use common::{Uid};
+use collision::{Primitive, Collider, PLANCK_LENGTH, ResolutionTti};
 
 // Local
-use super::{Entity, VolMgr, VolState, Chunk, Voxel};
+use super::{Entity, VolMgr, VolState, Chunk};
 
-pub fn tick<P: Send + Sync + 'static>(entities: &RwLock<HashMap<Uid, Entity>>,
+pub const LENGTH_OF_BLOCK : f32 = 0.3;
+
+pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity>>)>>(entities: I,
             chunk_mgr: &VolMgr<Chunk, P>,
             chunk_size: i64,
             dt: f32) {
-    let mut entities = entities.write().unwrap();
-    for (.., entity) in entities.iter_mut() {
-        let (chunk_x, chunk_y) = (
-            (entity.pos().x as i64).div_euc(chunk_size),
-            (entity.pos().y as i64).div_euc(chunk_size)
-        );
+    //consts
+    const GROUND_GRAVITY: f32 = -9.81;
+    // TODO: coord const support
+    let ENTITY_MIDDLE_OFFSET: Vec3<f32> = Vec3::new(0.0, 0.0, 0.9);
+    let ENTITY_RADIUS: Vec3<f32> = Vec3::new(0.45, 0.45, 0.9);
+    let SMALLER_THAN_BLOCK_GOING_DOWN: Vec3<f32> = Vec3::new(0.0, 0.0, -0.1);
+    let CONTROL_IN_AIR: Vec3<f32> = Vec3::new(0.17, 0.17, 0.0);
+    let ENTITY_ACC: Vec3<f32> = Vec3::new(32.0 / LENGTH_OF_BLOCK, 32.0 / LENGTH_OF_BLOCK, 200.0 / LENGTH_OF_BLOCK);
+    let FRICTION_ON_GROUND: Vec3<f32> = Vec3::new(0.0015, 0.0015, 0.0015);
+    let FRICTION_IN_AIR: Vec3<f32> = Vec3::new(0.2, 0.2, 0.78);
+    const BLOCK_SIZE_PLUS_SMALL: f32 = 1.0 + PLANCK_LENGTH;
+    const BLOCK_HOP_SPEED: f32 = 15.0;
+    const BLOCK_HOP_MAX: f32 = 0.34;
+
+    for (.., entity) in entities {
+        let mut entity = entity.write().unwrap();
 
         // Gravity
-        match chunk_mgr.at(vec2!(chunk_x, chunk_y)) {
-            Some(c) => match *c.read().unwrap() {
-                VolState::Exists(_, _) => entity.vel_mut().z -= 0.2,
-                _ => {},
-            }
-            None => {},
-        }
+        let gravity_acc = vec3!(0.0, 0.0, GROUND_GRAVITY / LENGTH_OF_BLOCK);
+        let middle = *entity.pos() + ENTITY_MIDDLE_OFFSET;
+        let radius = ENTITY_RADIUS;
 
-        let vel = *entity.vel() + *entity.ctrl_vel();
-        *entity.pos_mut() += vel * dt;
+        let mut entity_prim = Primitive::new_cuboid(middle, radius);
 
-        /*
-        let player_col = Collidable::Cuboid{cuboid: Cuboid::new(vec3!(
-            (entity.pos().x as i64 + x),
-            (entity.pos().y as i64 + y),
-            (entity.pos().z as i64 + z)
-        ), vec3!(
-            0.5, 0.5, 0.5
-        ))};
-        */
-
-        /*
-        for x in -1..2 {
-            for y in -1..2 {
-                for z in -1..2 {
-                    let vox = chunk_mgr.get_voxel(vec3!(
-                        (entity.pos().x as i64 + x),
-                        (entity.pos().y as i64 + y),
-                        (entity.pos().z as i64 + z)
-                    ));
-                    if vox.is_solid() {
-                        let a = Collidable{}
-
-                        ERROROROROROOROR
-                        let player_col = Collidable::Cuboid{cuboid: Cuboid::new{vec3!(
-                            (entity.pos().x as i64 + x),
-                            (entity.pos().y as i64 + y),
-                            (entity.pos().z as i64 + z)
-                        ), vec3!(
-                            0.5, 0.5, 0.5,
-                        )}}}
-
-                        let col_res = resolve_collision()
-                        entity.move_dir_mut().z = 0.0;
-                        entity.pos_mut().z += 0.0025;
-                    };
+        // is standing on ground to jump
+        let mut on_ground = false;
+        let can_jump_prim = Primitive::new_cuboid(middle, radius);
+        let ground_prims = chunk_mgr.get_nearby(&can_jump_prim);
+        for prim in ground_prims {
+            let res = prim.time_to_impact(&can_jump_prim, &SMALLER_THAN_BLOCK_GOING_DOWN);
+            if let Some(ResolutionTti::WillCollide{tti, ..}) = res {
+                if tti < PLANCK_LENGTH*2.0 { // something really small
+                    on_ground = true;
+                    break;
                 }
             }
         }
-        */
 
-        while chunk_mgr.get_voxel_at(vec3!(
-            entity.pos().x as i64,
-            entity.pos().y as i64,
-            entity.pos().z as i64
-        )).is_solid() {
-            entity.vel_mut().z = 0.0;
-            entity.pos_mut().z += 0.0025;
+        let mut wanted_ctrl_acc = *entity.ctrl_acc();
+        // TODO: move to client
+        // apply checking if player can conrol (touches ground) out this in client instead of physics
+        if !on_ground {
+            wanted_ctrl_acc *= CONTROL_IN_AIR;
         }
 
+        // TODO: move to client
+        let wanted_ctrl_acc_length = vec3!(wanted_ctrl_acc.x, wanted_ctrl_acc.y, 0.0).length();
+        if wanted_ctrl_acc_length > 1.0 {
+            wanted_ctrl_acc.x /= wanted_ctrl_acc_length;
+            wanted_ctrl_acc.y /= wanted_ctrl_acc_length;
+        }
 
+        // multiply by entity speed
+        wanted_ctrl_acc *= ENTITY_ACC;
+
+        // calc acc
+        let acc = wanted_ctrl_acc + gravity_acc;
+
+        // apply acc to vel
+        *entity.vel_mut() += acc * dt;
+
+        // apply friction to vel
+        let fric_fac = if on_ground {
+            FRICTION_ON_GROUND.map(|e| e.powf(dt))
+        } else {
+            FRICTION_IN_AIR.map(|e| e.powf(dt))
+        };
+        *entity.vel_mut() *= fric_fac;
+
+        let mut velocity = *entity.vel() * dt;
+        debug!("velocity: {}", velocity);
+
+        // movement can be executed in max 3 steps because we are using TTI
+        for _ in 0..3 {
+            if velocity.length() < PLANCK_LENGTH {
+                break;
+            }
+
+            // collision with terrain
+            let potential_collision_prims = chunk_mgr.get_nearby_dir(&entity_prim, velocity);
+            let mut tti = 1.0; // 1.0 = full tick
+            let mut normal = vec3!(0.0, 0.0, 0.0);
+
+            for prim in potential_collision_prims {
+                let r = prim.time_to_impact(&entity_prim, &velocity);
+                if let Some(r) = r {
+                    //info!("colliding in tti: {:?}", r);
+                    if let ResolutionTti::WillCollide{tti: ltti, normal: lnormal} = r {
+                        if ltti <= tti {
+                            //debug!("colliding in tti: {}, normal {}", ltti, lnormal);
+                            if lnormal.length() < normal.length() || normal.length() < 0.1 || ltti < tti { // when tti is same but we have less normal we switch
+                                //info!("set normal to: {}", lnormal);
+                                // if there is a collission with 2 and one with 1 block we first solve the single one
+                                normal = lnormal;
+                            }
+                            tti = ltti;
+                        }
+                    }
+                }
+            }
+
+            if tti > 0.0 {
+                let movement = velocity * tti;
+                if tti < 1.0 {
+                    info!("total valid tti: {}", tti);
+                    debug!("move by: {}", movement);
+                }
+                entity_prim.move_by(&movement);
+                velocity -= movement;
+            }
+
+            if normal.x != 0.0 || normal.y != 0.0 {
+                // block hopping
+                let mut auto_jump_prim = entity_prim.clone();
+                auto_jump_prim.move_by(&vec3!(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
+                let potential_collision_prims = chunk_mgr.get_nearby(&auto_jump_prim);
+                let mut collision_after_hop = false;
+                for prim in potential_collision_prims {
+                    let res = prim.resolve_col(&auto_jump_prim);
+                    if let Some(..) = res {
+                        collision_after_hop = true;
+                        break;
+                    }
+                }
+                if collision_after_hop {
+                    if normal.x != 0.0 {
+                        debug!("full stop x");
+                        velocity.x = 0.0;
+                        entity.vel_mut().x = 0.0;
+                    }
+                    if normal.y != 0.0 {
+                        debug!("full stop y");
+                        velocity.y = 0.0;
+                        entity.vel_mut().y = 0.0;
+                    }
+                } else {
+                    let mut smoothmove = BLOCK_HOP_SPEED*dt;
+                    if smoothmove > BLOCK_HOP_MAX {
+                        smoothmove = BLOCK_HOP_MAX;
+                    };
+                    entity_prim.move_by(&vec3!(0.0, 0.0, smoothmove));
+                }
+            }
+            if normal.z != 0.0 {
+                debug!("full stop z");
+                velocity.z = 0.0;
+                entity.vel_mut().z = 0.0;
+            }
+        }
+
+        // am i stuck check
+        let mut entity_prim_stuck = entity_prim.clone();
+        entity_prim_stuck.scale_by(0.9);
+        let stuck_check = chunk_mgr.get_nearby(&entity_prim_stuck);
+        for prim in stuck_check {
+            let res = prim.resolve_col(&entity_prim_stuck);
+            if let Some(..) = res {
+                warn!("entity is stuck!");
+                entity_prim.move_by(&vec3!(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
+                break;
+            }
+        }
+
+        let chunk = entity_prim
+            .col_center()
+            .map(|e| e as i64)
+            .div_euc(vec3!([chunk_size; 3]));
+        let chunkobj = chunk_mgr.at(vec2!(chunk.x, chunk.y));
+        let mut chunk_exists = false;
+        if let Some(lock) = chunkobj {
+            if let VolState::Exists(_, _) = *lock.read().unwrap() {
+                chunk_exists = true;
+            }
+        }
+        if !chunk_exists {
+            *entity.vel_mut() = vec3![0.0; 3];
+            continue; //skip applying
+        }
+
+        // apply
+        *entity.pos_mut() = entity_prim.col_center() - ENTITY_MIDDLE_OFFSET;
     }
 }

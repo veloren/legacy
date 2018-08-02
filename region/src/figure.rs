@@ -5,8 +5,8 @@ use {Volume, Voxel, Cell};
 pub struct Figure {
     size: Vec3<i64>,
     offset: Vec3<i64>,
-    rotation: Vec3<f64>,
-    scale: Vec3<f64>,
+    ori: Vec3<f32>,
+    scale: Vec3<f32>,
     voxels: Vec<Cell>,
 }
 
@@ -26,7 +26,7 @@ impl Figure {
             size,
             offset,
             voxels,
-            rotation: Vec3::new(0.0, 0.0, 0.0),
+            ori: Vec3::new(0.0, 0.0, 0.0),
             scale: Vec3::new(1.0, 1.0, 1.0),
         }
     }
@@ -35,11 +35,11 @@ impl Figure {
         (pos.x * self.size.y * self.size.z + pos.y * self.size.z + pos.z) as usize
     }
 
-    pub fn set_rotation(&mut self, rotation: Vec3<f64>) {
-        self.rotation = rotation;
+    pub fn set_ori(&mut self, ori: Vec3<f32>) {
+        self.ori = ori;
     }
 
-    pub fn set_scale(&mut self, scale: Vec3<f64>) {
+    pub fn set_scale(&mut self, scale: Vec3<f32>) {
         self.scale = scale;
     }
 }
@@ -52,7 +52,7 @@ impl Volume for Figure {
             size: Vec3::from((0, 0, 0)),
             offset: Vec3::from((0, 0, 0)),
             voxels: Vec::new(),
-            rotation: Vec3::new(0.0, 0.0, 0.0),
+            ori: Vec3::new(0.0, 0.0, 0.0),
             scale: Vec3::new(1.0, 1.0, 1.0),
         }
     }
@@ -71,11 +71,11 @@ impl Volume for Figure {
         self.offset
     }
 
-    fn rotation(&self) -> Vec3<f64> {
-        self.rotation
+    fn ori(&self) -> Vec3<f32> {
+        self.ori
     }
 
-    fn scale(&self) -> Vec3<f64> {
+    fn scale(&self) -> Vec3<f32> {
         self.scale
     }
 

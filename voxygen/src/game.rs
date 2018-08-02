@@ -59,7 +59,7 @@ impl Game {
         let window = RenderWindow::new();
 
         info!("trying to load model files");
-        let vox = dot_vox::load("data/vox/3.vox")
+        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player3.vox")
             .expect("cannot find model 3.vox. Make sure to start voxygen from its folder");
         let voxmodel = voxel::vox_to_figure(vox);
 
@@ -67,7 +67,7 @@ impl Game {
 
         let player_model = voxel::Model::new(&mut window.renderer_mut(), &player_mesh);
 
-        let vox = dot_vox::load("data/vox/5.vox")
+        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player5.vox")
             .expect("cannot find model 5.vox. Make sure to start voxygen from its folder");
         let voxmodel = voxel::vox_to_figure(vox);
 

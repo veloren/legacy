@@ -75,8 +75,7 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> VolMgr<V, P> {
                 } else {
                     true
                 }
-            })
-            .unwrap_or(false)
+            }).unwrap_or(false)
     }
 
     pub fn remove(&self, pos: Vec2<i64>) -> bool { self.vols.write().unwrap().remove(&pos).is_some() }
@@ -116,8 +115,7 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> VolMgr<V, P> {
             .map(|v| match *v.read().unwrap() {
                 VolState::Loading => V::VoxelType::empty(),
                 VolState::Exists(ref v, _) => v.at(vox_pos).unwrap_or(V::VoxelType::empty()),
-            })
-            .unwrap_or(V::VoxelType::empty())
+            }).unwrap_or(V::VoxelType::empty())
     }
 }
 

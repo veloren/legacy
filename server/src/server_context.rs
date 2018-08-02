@@ -143,8 +143,7 @@ impl ServerContext {
                         look_dir: *entity.look_dir(),
                     },
                 )
-            })
-            .collect::<Vec<(Uid, ServerMessage)>>()
+            }).collect::<Vec<(Uid, ServerMessage)>>()
     }
 
     pub fn kick_session(&mut self, session_id: u32) {

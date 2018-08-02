@@ -1,4 +1,3 @@
-
 use euler::*;
 
 use gen::Generator;
@@ -26,9 +25,7 @@ impl Tract {
 
     pub fn wind(&self) -> Vec2 { self.wind }
 
-    pub fn calc_wind(&mut self, gen: Generator, coords: [u32; 3]) {
-        self.wind = gen.wind(coords);
-    }
+    pub fn calc_wind(&mut self, gen: Generator, coords: [u32; 3]) { self.wind = gen.wind(coords); }
 }
 
 pub struct Map {
@@ -84,13 +81,16 @@ impl Map {
         }
     }
 
-    #[allow(dead_code)] pub fn size(&self) -> u32 { self.size }
+    #[allow(dead_code)]
+    pub fn size(&self) -> u32 { self.size }
 
-    #[allow(dead_code)] pub fn get(&self, x: u32, y: u32) -> Option<&Tract> {
+    #[allow(dead_code)]
+    pub fn get(&self, x: u32, y: u32) -> Option<&Tract> {
         self.tracts.get(self.size as usize * x as usize + y as usize)
     }
 
-    #[allow(dead_code)] pub fn get_mut(&mut self, x: u32, y: u32) -> Option<&mut Tract> {
+    #[allow(dead_code)]
+    pub fn get_mut(&mut self, x: u32, y: u32) -> Option<&mut Tract> {
         self.tracts.get_mut(self.size as usize * x as usize + y as usize)
     }
 }

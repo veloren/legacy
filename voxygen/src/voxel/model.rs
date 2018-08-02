@@ -1,11 +1,9 @@
-
-use gfx;
-use gfx::{traits::FactoryExt, Slice, IndexBuffer};
+use gfx::{self, traits::FactoryExt, IndexBuffer, Slice};
 use gfx_device_gl;
 use nalgebra::Matrix4;
 
+use renderer::{ColorFormat, DepthFormat, Renderer};
 use voxel::{Mesh, Vertex};
-use renderer::{Renderer, ColorFormat, DepthFormat};
 
 gfx_defines! {
     constant Constants {
@@ -27,9 +25,9 @@ type PipelineData = pipeline::Data<gfx_device_gl::Resources>;
 fn mat4_to_array(mat: &Matrix4<f32>) -> [[f32; 4]; 4] {
     let s = mat.as_slice();
     [
-        [s[0],  s[1],  s[2],  s[3]],
-        [s[4],  s[5],  s[6],  s[7]],
-        [s[8],  s[9],  s[10], s[11]],
+        [s[0], s[1], s[2], s[3]],
+        [s[4], s[5], s[6], s[7]],
+        [s[8], s[9], s[10], s[11]],
         [s[12], s[13], s[14], s[15]],
     ]
 }
@@ -72,7 +70,10 @@ impl Model {
     }
 
     pub fn update(&self, renderer: &mut Renderer, constants: Constants) {
-        renderer.encoder_mut().update_buffer(&self.constants, &[constants], 0).unwrap();
+        renderer
+            .encoder_mut()
+            .update_buffer(&self.constants, &[constants], 0)
+            .unwrap();
     }
 
     pub fn slice(&self) -> Slice<gfx_device_gl::Resources> {

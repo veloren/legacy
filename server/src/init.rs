@@ -2,7 +2,7 @@
 use std::time::Duration;
 
 // Library
-use bifrost::{Relay, event};
+use bifrost::{event, Relay};
 use config::load_config;
 
 // Project
@@ -10,8 +10,7 @@ use config::load_config;
 
 // Local
 use network::init::init_network;
-use server_context::{update_world, update_sessions_list, ServerContext, WORLD_UPDATE_TICK, SESSION_UPDATE_TICK};
-
+use server_context::{update_sessions_list, update_world, ServerContext, SESSION_UPDATE_TICK, WORLD_UPDATE_TICK};
 
 pub fn init_server(relay: &Relay<ServerContext>, ctx: &mut ServerContext) {
     let config = load_config();

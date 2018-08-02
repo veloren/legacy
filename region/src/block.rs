@@ -23,11 +23,7 @@ pub struct Block {
 impl Voxel for Block {
     type Material = BlockMaterial;
 
-    fn new(mat: Self::Material) -> Self {
-        Block {
-            mat,
-        }
-    }
+    fn new(mat: Self::Material) -> Self { Block { mat } }
 
     fn empty() -> Self {
         Block {
@@ -35,11 +31,7 @@ impl Voxel for Block {
         }
     }
 
-    fn is_solid(&self) -> bool {
-        self.mat != BlockMaterial::Air
-    }
+    fn is_solid(&self) -> bool { self.mat != BlockMaterial::Air }
 
-    fn material(&self) -> Self::Material {
-        self.mat
-    }
+    fn material(&self) -> Self::Material { self.mat }
 }

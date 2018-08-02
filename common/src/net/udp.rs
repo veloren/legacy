@@ -1,19 +1,17 @@
 // Standard
-use std::thread::Thread;
-use std::thread;
-use std::net::SocketAddr;
-use std::sync::{RwLock, Mutex};
-use std::io::{Write, Read, Cursor};
-use std::net::{UdpSocket, ToSocketAddrs};
-use std::collections::vec_deque::VecDeque;
+use std::{
+    collections::vec_deque::VecDeque,
+    io::{Cursor, Read, Write},
+    net::{SocketAddr, ToSocketAddrs, UdpSocket},
+    sync::{Mutex, RwLock},
+    thread::{self, Thread},
+};
 
 // Library
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
 // Parent
-use super::Error;
-use super::packet::Frame;
-use super::protocol::Protocol;
+use super::{packet::Frame, protocol::Protocol, Error};
 
 pub struct Udp {
     socket: RwLock<UdpSocket>,
@@ -59,16 +57,16 @@ impl Protocol for Udp {
     fn send(&self, frame: Frame) -> Result<(), Error> {
         let socket = self.socket.read().unwrap();
         match frame {
-            Frame::Header{id, length} => {
+            Frame::Header { id, length } => {
                 let mut buff = Vec::with_capacity(17);
                 buff.write_u8(1)?; // 1 is const for Header
                 buff.write_u64::<LittleEndian>(id)?;
                 buff.write_u64::<LittleEndian>(length)?;
                 socket.send_to(&buff, &self.remote)?;
                 Ok(())
-            }
-            Frame::Data{id, frame_no, data} => {
-                let mut buff = Vec::with_capacity(25+data.len());
+            },
+            Frame::Data { id, frame_no, data } => {
+                let mut buff = Vec::with_capacity(25 + data.len());
                 buff.write_u8(2)?; // 2 is const for Data
                 buff.write_u64::<LittleEndian>(id)?;
                 buff.write_u64::<LittleEndian>(frame_no)?;
@@ -76,7 +74,7 @@ impl Protocol for Udp {
                 buff.write_all(&data)?;
                 socket.send_to(&buff, &self.remote)?;
                 Ok(())
-            }
+            },
         }
     }
 
@@ -91,7 +89,7 @@ impl Protocol for Udp {
                         Some(..) => panic!("Only one thread may wait for recv on udp"),
                         None => {
                             *lock = Some(thread::current());
-                        }
+                        },
                     }
                 }
                 while self.in_buffer.read().unwrap().is_empty() {
@@ -107,7 +105,6 @@ impl Protocol for Udp {
         {
             let mut lock = self.in_buffer.write().unwrap();
             data = lock.pop_front().unwrap();
-
         }
         let mut cur = Cursor::new(data);
         let frame = cur.read_u8()? as u8;
@@ -115,10 +112,7 @@ impl Protocol for Udp {
             1 => {
                 let id = cur.read_u64::<LittleEndian>()? as u64;
                 let length = cur.read_u64::<LittleEndian>()? as u64;
-                Ok(Frame::Header{
-                    id,
-                    length,
-                })
+                Ok(Frame::Header { id, length })
             },
             2 => {
                 let id = cur.read_u64::<LittleEndian>()? as u64;
@@ -126,16 +120,12 @@ impl Protocol for Udp {
                 let packet_size = cur.read_u64::<LittleEndian>()? as u64;
                 let mut data = vec![0; packet_size as usize];
                 cur.read_exact(&mut data)?;
-                Ok(Frame::Data{
-                    id,
-                    frame_no,
-                    data,
-                })
+                Ok(Frame::Data { id, frame_no, data })
             },
             x => {
                 error!("invalid frame recieved: {}", x);
                 Err(Error::CannotDeserialize)
-            }
+            },
         }
     }
 }

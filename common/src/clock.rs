@@ -25,13 +25,12 @@ impl Clock {
     }
 
     pub fn tick(&mut self, tick_time: Duration) {
-
         let delta = self.delta();
         // sleep is only necessary if we are fast enough
         //println!("delta {:?} tick_time {:?}", delta, tick_time);
         if delta.0 < tick_time {
             let _sleep_time = tick_time - delta.0;
-            //thread::sleep(sleep_time);
+        //thread::sleep(sleep_time);
         } else {
             warn!("clock is running behind");
         }
@@ -49,5 +48,6 @@ impl Clock {
         };
     }
 
-    #[allow(dead_code)] pub fn last_tps(&self) -> &f64 { &self.last_tps }
+    #[allow(dead_code)]
+    pub fn last_tps(&self) -> &f64 { &self.last_tps }
 }

@@ -2,13 +2,15 @@
 use coord::prelude::*;
 
 // Project
-use region::{VolState, physics};
+use region::{physics, VolState};
 
 // Local
-use {Client, Payloads, ClientStatus, CHUNK_SIZE};
+use Client;
+use ClientStatus;
+use Payloads;
+use CHUNK_SIZE;
 
 impl<P: Payloads> Client<P> {
-
     pub(crate) fn tick(&self, dt: f32) -> bool {
         self.update_chunks();
         let entities = self.entities.read().unwrap();

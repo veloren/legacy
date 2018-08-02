@@ -19,25 +19,39 @@ pub enum Error {
 }
 
 impl From<io::Error> for Error {
-    fn from(e: io::Error) -> Error {
-        Error::NetworkErr(e)
-    }
+    fn from(e: io::Error) -> Error { Error::NetworkErr(e) }
 }
 
 pub trait Message {
     fn to_bytes(&self) -> Result<Vec<u8>, Error>;
-    fn from_bytes(data: &[u8]) -> Result<Self, Error> where Self: Sized;
+    fn from_bytes(data: &[u8]) -> Result<Self, Error>
+    where
+        Self: Sized;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ServerMessage {
-    Connected { entity_uid: Option<Uid>, version: String },
-    Kicked { reason: String },
+    Connected {
+        entity_uid: Option<Uid>,
+        version: String,
+    },
+    Kicked {
+        reason: String,
+    },
     Shutdown,
     Ping,
     Pong,
-    RecvChatMsg { alias: String, msg: String },
-    EntityUpdate { uid: Uid, pos: Vec3f, vel: Vec3f, ctrl_acc: Vec3f, look_dir: Vec2f },
+    RecvChatMsg {
+        alias: String,
+        msg: String,
+    },
+    EntityUpdate {
+        uid: Uid,
+        pos: Vec3f,
+        vel: Vec3f,
+        ctrl_acc: Vec3f,
+        look_dir: Vec2f,
+    },
     ChunkData {},
 }
 
@@ -46,20 +60,31 @@ impl Message for ServerMessage {
         bincode::deserialize(data).map_err(|_e| Error::CannotDeserialize)
     }
 
-    fn to_bytes(&self) -> Result<Vec<u8>, Error> {
-        bincode::serialize(&self).map_err(|_e| Error::CannotSerialize)
-    }
+    fn to_bytes(&self) -> Result<Vec<u8>, Error> { bincode::serialize(&self).map_err(|_e| Error::CannotSerialize) }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ClientMessage {
-    Connect { mode: ClientMode, alias: String, version: String },
+    Connect {
+        mode: ClientMode,
+        alias: String,
+        version: String,
+    },
     Disconnect,
     Ping,
     Pong,
-    ChatMsg { msg: String },
-    SendCmd { cmd: String },
-    PlayerEntityUpdate { pos: Vec3f, vel: Vec3f, ctrl_acc: Vec3f, look_dir: Vec2f },
+    ChatMsg {
+        msg: String,
+    },
+    SendCmd {
+        cmd: String,
+    },
+    PlayerEntityUpdate {
+        pos: Vec3f,
+        vel: Vec3f,
+        ctrl_acc: Vec3f,
+        look_dir: Vec2f,
+    },
 }
 
 impl Message for ClientMessage {
@@ -67,7 +92,5 @@ impl Message for ClientMessage {
         bincode::deserialize(data).map_err(|_e| Error::CannotDeserialize)
     }
 
-    fn to_bytes(&self) -> Result<Vec<u8>, Error> {
-        bincode::serialize(&self).map_err(|_e| Error::CannotSerialize)
-    }
+    fn to_bytes(&self) -> Result<Vec<u8>, Error> { bincode::serialize(&self).map_err(|_e| Error::CannotSerialize) }
 }

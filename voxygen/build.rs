@@ -1,6 +1,8 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-use std::process::Command;
-use std::env;
+use std::{
+    env,
+    process::Command,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 fn main() {
     // @todo Error checking
@@ -10,7 +12,10 @@ fn main() {
     let git_hash = String::from_utf8(output_hash.stdout).unwrap();
 
     // Git time
-    let output_time = Command::new("git").args(&["log", "-1", "--pretty=format:%ct"]).output().unwrap();
+    let output_time = Command::new("git")
+        .args(&["log", "-1", "--pretty=format:%ct"])
+        .output()
+        .unwrap();
     let git_time = String::from_utf8(output_time.stdout).unwrap();
 
     // Profile

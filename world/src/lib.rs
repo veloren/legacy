@@ -11,8 +11,7 @@ mod map;
 use region::Chunk;
 
 // Reexports
-pub use map::Map as Map;
-pub use map::Biome as Biome;
+pub use map::{Biome, Map};
 
 pub struct World {
     map: Map,
@@ -25,9 +24,8 @@ impl World {
         }
     }
 
-    pub fn tick(&mut self, secs: f64) {
-        self.map.tick(secs);
-    }
+    pub fn tick(&mut self, secs: f64) { self.map.tick(secs); }
 
-    #[allow(dead_code)] pub fn map(&mut self) -> &mut Map { &mut self.map }
+    #[allow(dead_code)]
+    pub fn map(&mut self) -> &mut Map { &mut self.map }
 }

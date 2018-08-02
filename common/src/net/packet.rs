@@ -63,14 +63,14 @@ impl OutgoingPacket {
     pub fn generate_frame(&mut self, size: u64) -> Result<Frame, FrameError> {
         if !self.headersend {
             self.headersend = true;
-            Ok(Frame::Header{
+            Ok(Frame::Header {
                 id: self.data.id,
                 length: self.data.bytes.len() as u64,
             })
         } else {
             let remaining = self.data.bytes.len() as u64 - self.pos;
             if remaining == 0 {
-                return Err(FrameError::SendDone)
+                return Err(FrameError::SendDone);
             }
             let to_send;
             if size >= remaining {
@@ -81,7 +81,7 @@ impl OutgoingPacket {
             //debug!("to_send {}" , to_send);
             let end_pos = self.pos + to_send;
             //debug!("daaaaa {:?}", self.data.bytes[self.pos as usize..end_pos as usize].to_vec());
-            let frame = Frame::Data{
+            let frame = Frame::Data {
                 id: self.data.id,
                 frame_no: self.dataframesno,
                 data: self.data.bytes[self.pos as usize..end_pos as usize].to_vec(),
@@ -92,33 +92,31 @@ impl OutgoingPacket {
         }
     }
 
-    #[allow(dead_code)] pub fn prio(&self) -> &u8 { &self.prio }
+    #[allow(dead_code)]
+    pub fn prio(&self) -> &u8 { &self.prio }
 }
 
 impl IncommingPacket {
     pub fn new(header: Frame) -> IncommingPacket {
         match header {
-            Frame::Header{id, length} => {
-                IncommingPacket {
-                    data: PacketData::new_size(length, id),
-                    pos: 0,
-                    dataframesno: 0,
-                }
+            Frame::Header { id, length } => IncommingPacket {
+                data: PacketData::new_size(length, id),
+                pos: 0,
+                dataframesno: 0,
             },
-            Frame::Data{ .. } => {
+            Frame::Data { .. } => {
                 panic!("not implemented");
-            }
+            },
         }
-
     }
 
     // returns finished
     pub fn load_data_frame(&mut self, data: Frame) -> bool {
         match data {
-            Frame::Header{ .. } => {
+            Frame::Header { .. } => {
                 panic!("not implemented");
             },
-            Frame::Data{ id, frame_no, data } => {
+            Frame::Data { id, frame_no, data } => {
                 if id != self.data.id {
                     panic!("id missmatch {} <> {}", id, self.data.id);
                 }
@@ -134,9 +132,10 @@ impl IncommingPacket {
                 self.dataframesno += 1;
                 //println!("pospos {} {} {}", self.pos , data.len(), self.data.bytes.len() as u64);
                 return self.pos == self.data.bytes.len() as u64;
-            }
+            },
         }
     }
 
-    #[allow(dead_code)] pub fn data(&self) -> &Vec<u8> { &self.data.bytes }
+    #[allow(dead_code)]
+    pub fn data(&self) -> &Vec<u8> { &self.data.bytes }
 }

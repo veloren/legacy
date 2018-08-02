@@ -1,15 +1,15 @@
 // Standard
-use std::sync::Mutex;
-use std::io::{Write, Read};
-use std::net::{TcpStream, ToSocketAddrs};
+use std::{
+    io::{Read, Write},
+    net::{TcpStream, ToSocketAddrs},
+    sync::Mutex,
+};
 
 // Library
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
 // Parent
-use super::protocol::Protocol;
-use super::Error;
-use super::packet::Frame;
+use super::{packet::Frame, protocol::Protocol, Error};
 
 pub struct Tcp {
     stream_in: Mutex<TcpStream>,
@@ -35,20 +35,20 @@ impl Protocol for Tcp {
     fn send(&self, frame: Frame) -> Result<(), Error> {
         let mut stream = self.stream_out.lock().unwrap();
         match frame {
-            Frame::Header{id, length} => {
+            Frame::Header { id, length } => {
                 stream.write_u8(1)?; // 1 is const for Header
                 stream.write_u64::<LittleEndian>(id)?;
                 stream.write_u64::<LittleEndian>(length)?;
                 Ok(())
-            }
-            Frame::Data{id, frame_no, data} => {
+            },
+            Frame::Data { id, frame_no, data } => {
                 stream.write_u8(2)?; // 2 is const for Data
                 stream.write_u64::<LittleEndian>(id)?;
                 stream.write_u64::<LittleEndian>(frame_no)?;
                 stream.write_u64::<LittleEndian>(data.len() as u64)?;
                 stream.write_all(&data)?;
                 Ok(())
-            }
+            },
         }
     }
 
@@ -60,10 +60,7 @@ impl Protocol for Tcp {
             1 => {
                 let id = stream.read_u64::<LittleEndian>()? as u64;
                 let length = stream.read_u64::<LittleEndian>()? as u64;
-                Ok(Frame::Header{
-                    id,
-                    length,
-                })
+                Ok(Frame::Header { id, length })
             },
             2 => {
                 let id = stream.read_u64::<LittleEndian>()? as u64;
@@ -71,16 +68,12 @@ impl Protocol for Tcp {
                 let packet_size = stream.read_u64::<LittleEndian>()? as u64;
                 let mut data = vec![0; packet_size as usize];
                 stream.read_exact(&mut data)?;
-                Ok(Frame::Data{
-                    id,
-                    frame_no,
-                    data,
-                })
+                Ok(Frame::Data { id, frame_no, data })
             },
             x => {
                 error!("invalid frame recieved: {}", x);
                 Err(Error::CannotDeserialize)
-            }
+            },
         }
     }
 }

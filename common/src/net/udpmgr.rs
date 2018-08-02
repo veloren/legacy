@@ -1,9 +1,9 @@
 // Standard
-use std::net::UdpSocket;
-use std::thread::JoinHandle;
-use std::sync::{Arc, RwLock};
-use std::net::{ToSocketAddrs, SocketAddr};
-use std::thread;
+use std::{
+    net::{SocketAddr, ToSocketAddrs, UdpSocket},
+    sync::{Arc, RwLock},
+    thread::{self, JoinHandle},
+};
 
 // Parent
 use super::udp::Udp;
@@ -28,7 +28,7 @@ pub struct UdpMgr {
 // Receiving can only be done onces and must be routed to the correct recveiver
 impl UdpMgr {
     pub fn new() -> Arc<UdpMgr> {
-        Arc::new(UdpMgr{
+        Arc::new(UdpMgr {
             subscriber: RwLock::new(Vec::new()),
             sockets: RwLock::new(Vec::new()),
         })
@@ -69,7 +69,7 @@ impl UdpMgr {
 
         let udp = Arc::new(Udp::new_stream(socket_info.socket.try_clone().unwrap(), remote).unwrap());
         debug!("created udp listnen on {} for remote {}", listen, remote);
-        let ui = UdpInfo{
+        let ui = UdpInfo {
             socket_info,
             remote,
             udp: udp.clone(),
@@ -103,14 +103,17 @@ impl UdpMgr {
             // stop socket
             //actually i am to lazy to stop them now. sorry
         }
-        let index = subscriber.iter().position(|x| Arc::ptr_eq(&x.udp, &udp_info.udp)).unwrap();
+        let index = subscriber
+            .iter()
+            .position(|x| Arc::ptr_eq(&x.udp, &udp_info.udp))
+            .unwrap();
         subscriber.remove(index);
     }
 
     fn recv_worker_udp(&self, socket: UdpSocket) {
         loop {
-            const MAX_UDP_SIZE : usize = 65535; // might not work in IPv6 Jumbograms
-            //TODO: not read multiple frames and drop all but the first here
+            const MAX_UDP_SIZE: usize = 65535; // might not work in IPv6 Jumbograms
+                                               //TODO: not read multiple frames and drop all but the first here
             let mut buff = vec![0; MAX_UDP_SIZE];
             let (size, remote) = socket.recv_from(&mut buff).unwrap();
             buff.resize(size, 0);
@@ -118,7 +121,11 @@ impl UdpMgr {
             let subscriber = self.subscriber.read().unwrap();
             for c in subscriber.iter() {
                 if remote == c.remote && socket.local_addr().unwrap() == c.socket_info.socket.local_addr().unwrap() {
-                    println!("forwarded it {} - {}", c.remote, c.socket_info.socket.local_addr().unwrap());
+                    println!(
+                        "forwarded it {} - {}",
+                        c.remote,
+                        c.socket_info.socket.local_addr().unwrap()
+                    );
                     c.udp.received_raw_packet(&buff);
                 }
             }

@@ -2,31 +2,33 @@
 use ui::Ui;
 
 // Standard
-use std::net::ToSocketAddrs;
-use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::f32::consts::PI;
-use std::cell::RefCell;
+use std::{
+    cell::RefCell,
+    f32::consts::PI,
+    net::ToSocketAddrs,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
+};
 //use std::f32::{sin, cos};
 
 // Library
-use nalgebra::{Vector2, Vector3, Translation3, Rotation3};
 use coord::prelude::*;
-use glutin::ElementState;
 use dot_vox;
+use glutin::ElementState;
+use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
 
 // Project
-use client;
-use client::{Client, ClientMode};
-use client::CHUNK_SIZE;
+use client::{self, Client, ClientMode, CHUNK_SIZE};
 use region::{Chunk, VolState};
 
 // Local
 use camera::Camera;
-use window::{RenderWindow, Event};
-use voxel;
-use keybinds::Keybinds;
 use key_state::KeyState;
+use keybinds::Keybinds;
+use voxel;
+use window::{Event, RenderWindow};
 
 pub struct Payloads {}
 impl client::Payloads for Payloads {
@@ -50,9 +52,7 @@ struct Data {
     other_player_model: voxel::Model,
 }
 
-fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk {
-    (voxel::Mesh::from(chunk), None)
-}
+fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk { (voxel::Mesh::from(chunk), None) }
 
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
@@ -65,10 +65,7 @@ impl Game {
 
         let player_mesh = voxel::Mesh::from_with_offset(&voxmodel, vec3!(-10.0, -4.0, 0.0));
 
-        let player_model = voxel::Model::new(
-            &mut window.renderer_mut(),
-            &player_mesh,
-        );
+        let player_model = voxel::Model::new(&mut window.renderer_mut(), &player_mesh);
 
         let vox = dot_vox::load("data/vox/5.vox")
             .expect("cannot find model 5.vox. Make sure to start voxygen from its folder");
@@ -76,10 +73,7 @@ impl Game {
 
         let other_player_mesh = voxel::Mesh::from(&voxmodel);
 
-        let other_player_model = voxel::Model::new(
-            &mut window.renderer_mut(),
-            &other_player_mesh,
-        );
+        let other_player_model = voxel::Model::new(&mut window.renderer_mut(), &other_player_mesh);
 
         let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, view_distance)
             .expect("Could not create new client");
@@ -110,7 +104,10 @@ impl Game {
                 Event::CloseRequest => self.running.store(false, Ordering::Relaxed),
                 Event::CursorMoved { dx, dy } => {
                     if self.window.cursor_trapped().load(Ordering::Relaxed) {
-                        self.camera.lock().unwrap().rotate_by(Vector2::new(dx as f32 * 0.002, dy as f32 * 0.002));
+                        self.camera
+                            .lock()
+                            .unwrap()
+                            .rotate_by(Vector2::new(dx as f32 * 0.002, dy as f32 * 0.002));
                     }
                 },
                 Event::MouseWheel { dy, .. } => {
@@ -127,9 +124,11 @@ impl Game {
                     let show_chat = self.ui.borrow().get_show_chat();
 
                     // General inputs -------------------------------------------------------------
-                    if keypress_eq(&general.pause, i.scancode) { // Default: Escape (free cursor)
+                    if keypress_eq(&general.pause, i.scancode) {
+                        // Default: Escape (free cursor)
                         self.window.untrap_cursor();
-                    } else if keypress_eq(&general.use_item, i.scancode) { // Default: Ctrl+Q (quit) (temporary)
+                    } else if keypress_eq(&general.use_item, i.scancode) {
+                        // Default: Ctrl+Q (quit) (temporary)
                         if i.modifiers.ctrl {
                             self.running.store(false, Ordering::Relaxed);
                         }
@@ -139,27 +138,32 @@ impl Game {
 
                     if !show_chat {
                         if keypress_eq(&general.forward, i.scancode) {
-                            self.key_state.lock().unwrap().up = match i.state { // Default: W (up)
+                            self.key_state.lock().unwrap().up = match i.state {
+                                // Default: W (up)
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
                             }
                         } else if keypress_eq(&general.left, i.scancode) {
-                            self.key_state.lock().unwrap().left = match i.state { // Default: A (left)
+                            self.key_state.lock().unwrap().left = match i.state {
+                                // Default: A (left)
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
                             }
                         } else if keypress_eq(&general.back, i.scancode) {
-                            self.key_state.lock().unwrap().down = match i.state { // Default: S (down)
+                            self.key_state.lock().unwrap().down = match i.state {
+                                // Default: S (down)
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
                             }
                         } else if keypress_eq(&general.right, i.scancode) {
-                            self.key_state.lock().unwrap().right = match i.state { // Default: D (right)
+                            self.key_state.lock().unwrap().right = match i.state {
+                                // Default: D (right)
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
                             }
                         } else if keypress_eq(&general.jump, i.scancode) {
-                            self.key_state.lock().unwrap().jump = match i.state { // Default: Space (fly)
+                            self.key_state.lock().unwrap().jump = match i.state {
+                                // Default: Space (fly)
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
                             }
@@ -181,9 +185,12 @@ impl Game {
                     self.ui.borrow_mut().handle_event(event);
                 },
                 Event::Resized { w, h } => {
-                    self.camera.lock().unwrap().set_aspect_ratio((w.max(1) as f32)/(h.max(1) as f32));
+                    self.camera
+                        .lock()
+                        .unwrap()
+                        .set_aspect_ratio((w.max(1) as f32) / (h.max(1) as f32));
                 },
-                _ => { },
+                _ => {},
             }
         });
 
@@ -191,7 +198,7 @@ impl Game {
         let ori = *self.camera.lock().unwrap().ori();
         let unit_vecs = (
             Vector2::new(ori.x.cos(), -ori.x.sin()),
-            Vector2::new(ori.x.sin(), ori.x.cos())
+            Vector2::new(ori.x.sin(), ori.x.cos()),
         );
         let dir_vec = self.key_state.lock().unwrap().dir_vec();
         let mov_vec = unit_vecs.0 * dir_vec.x + unit_vecs.1 * dir_vec.y;
@@ -209,9 +216,15 @@ impl Game {
             player_entity.ctrl_acc_mut().y = mov_vec.y;
 
             // Apply jumping
-            player_entity.ctrl_acc_mut().z = if self.key_state.lock().unwrap().jump() { 1.0 } else { 0.0 };
+            player_entity.ctrl_acc_mut().z = if self.key_state.lock().unwrap().jump() {
+                1.0
+            } else {
+                0.0
+            };
 
-            let looking = (*player_entity.vel() * LOOKING_VEL_FAC + *player_entity.ctrl_acc_mut() * LOOKING_CTRL_ACC_FAC) / (LOOKING_VEL_FAC + LOOKING_CTRL_ACC_FAC);
+            let looking = (*player_entity.vel() * LOOKING_VEL_FAC
+                + *player_entity.ctrl_acc_mut() * LOOKING_CTRL_ACC_FAC)
+                / (LOOKING_VEL_FAC + LOOKING_CTRL_ACC_FAC);
 
             // Apply rotating
             if looking.length() > MIN_LOOKING {
@@ -228,7 +241,7 @@ impl Game {
             self.camera.lock().unwrap().set_focus(Vector3::<f32>::new(
                 player_entity.pos().x,
                 player_entity.pos().y,
-                player_entity.pos().z + 1.75
+                player_entity.pos().z + 1.75,
             ));
         }
 
@@ -239,10 +252,7 @@ impl Game {
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(ref chunk, ref mut payload) = *vol.write().unwrap() {
                 if let None = payload.1 {
-                    payload.1 = Some(voxel::Model::new(
-                        &mut self.window.renderer_mut(),
-                        &payload.0,
-                    ));
+                    payload.1 = Some(voxel::Model::new(&mut self.window.renderer_mut(), &payload.0));
                 }
             }
         }
@@ -261,7 +271,7 @@ impl Game {
                     let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
                         (pos.x * CHUNK_SIZE) as f32,
                         (pos.y * CHUNK_SIZE) as f32,
-                        0.0
+                        0.0,
                     )).to_homogeneous();
 
                     model.update(
@@ -270,7 +280,7 @@ impl Game {
                             &model_mat, // TODO: Improve this
                             &camera_mats.0,
                             &camera_mats.1,
-                        )
+                        ),
                     );
                     renderer.render_model_object(&model);
                 }
@@ -282,11 +292,8 @@ impl Game {
             let entity = entity.read().unwrap();
 
             // Calculate a transformation matrix for the entity's model
-            let model_mat = &Translation3::from_vector(Vector3::new(
-                    entity.pos().x,
-                    entity.pos().y,
-                    entity.pos().z
-                )).to_homogeneous()
+            let model_mat = &Translation3::from_vector(Vector3::new(entity.pos().x, entity.pos().y, entity.pos().z))
+                .to_homogeneous()
                 * Rotation3::new(Vector3::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous()
                 * Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
 
@@ -301,11 +308,7 @@ impl Game {
             model.update(
                 &mut renderer,
                 // TODO: Improve this
-                voxel::Constants::new(
-                    &model_mat,
-                    &camera_mats.0,
-                    &camera_mats.1,
-                )
+                voxel::Constants::new(&model_mat, &camera_mats.0, &camera_mats.1),
             );
 
             // Actually render the model
@@ -313,7 +316,9 @@ impl Game {
         }
 
         // Draw ui
-        self.ui.borrow_mut().render(&mut renderer, &self.client.clone(), &self.window.get_size());
+        self.ui
+            .borrow_mut()
+            .render(&mut renderer, &self.client.clone(), &self.window.get_size());
 
         self.window.swap_buffers();
         renderer.end_frame();
@@ -325,6 +330,6 @@ impl Game {
             self.render_frame();
         }
 
-		self.client.shutdown();
+        self.client.shutdown();
     }
 }

@@ -1,9 +1,8 @@
 // Standard
-use std::thread;
-use std::sync::mpsc;
+use std::{sync::mpsc, thread};
 
 // Library
-use bifrost::{Dispatcher, Relay, event};
+use bifrost::{event, Dispatcher, Relay};
 
 // Local
 use init::init_server;
@@ -33,11 +32,7 @@ impl Server {
         }
     }
 
-    pub fn start(&self) {
-        self.relay.send(
-            event(init_server)
-        );
-    }
+    pub fn start(&self) { self.relay.send(event(init_server)); }
 
     pub fn stop(&mut self) {
         self.relay.stop();
@@ -46,7 +41,5 @@ impl Server {
 }
 
 impl Drop for Server {
-    fn drop(&mut self) {
-        self.handle.take().map(|handle| handle.join());
-    }
+    fn drop(&mut self) { self.handle.take().map(|handle| handle.join()); }
 }

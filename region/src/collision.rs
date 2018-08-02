@@ -1,8 +1,8 @@
 use coord::prelude::*;
-use std::f32::consts::SQRT_2;
-use std::f32::INFINITY;
-use std::cmp::Ordering;
-use std::cmp::Ord;
+use std::{
+    cmp::{Ord, Ordering},
+    f32::{consts::SQRT_2, INFINITY},
+};
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Cuboid {
@@ -18,9 +18,9 @@ pub struct ResolutionCol {
 
 #[derive(PartialEq, Debug)]
 pub enum ResolutionTti {
-    WillCollide{ tti: f32, normal: Vec3<f32> }, // tti can be 0.0 when they will overlap in future, normal is facing away away from Primitive at position of impact
-    Touching{ normal: Vec3<f32> }, // happens if direction is another than Primitive, i will never collide but i am tucing
-    Overlapping{ since: f32 },
+    WillCollide { tti: f32, normal: Vec3<f32> }, // tti can be 0.0 when they will overlap in future, normal is facing away away from Primitive at position of impact
+    Touching { normal: Vec3<f32> }, // happens if direction is another than Primitive, i will never collide but i am tucing
+    Overlapping { since: f32 },
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -37,10 +37,12 @@ pub trait Collider<'a> {
     fn get_nearby_dir(&'a self, col: &Primitive, dir: Vec3<f32>) -> Self::Iter;
 }
 
-pub const PLANCK_LENGTH : f32 = 0.001; // smallest unit of meassurement in collision, no guarantees behind this point
+pub const PLANCK_LENGTH: f32 = 0.001; // smallest unit of meassurement in collision, no guarantees behind this point
 
 impl ResolutionCol {
-    pub fn is_touch(&self) -> bool {self.correction.x < PLANCK_LENGTH &&self.correction.y < PLANCK_LENGTH && self.correction.z < PLANCK_LENGTH}
+    pub fn is_touch(&self) -> bool {
+        self.correction.x < PLANCK_LENGTH && self.correction.y < PLANCK_LENGTH && self.correction.z < PLANCK_LENGTH
+    }
 }
 
 impl Primitive {
@@ -53,12 +55,8 @@ impl Primitive {
     */
     pub fn resolve_col(&self, b: &Primitive) -> Option<ResolutionCol> {
         match self {
-            Primitive::Cuboid { cuboid: a } => {
-                match b {
-                    Primitive::Cuboid { cuboid: b } => {
-                        a.cuboid_col(b)
-                    },
-                }
+            Primitive::Cuboid { cuboid: a } => match b {
+                Primitive::Cuboid { cuboid: b } => a.cuboid_col(b),
             },
         }
     }
@@ -75,12 +73,8 @@ impl Primitive {
     */
     pub fn time_to_impact(&self, b: &Primitive, dir: &Vec3<f32>) -> Option<ResolutionTti> {
         match self {
-            Primitive::Cuboid { cuboid: a } => {
-                match b {
-                    Primitive::Cuboid { cuboid: b } => {
-                        a.cuboid_tti(b, dir)
-                    },
-                }
+            Primitive::Cuboid { cuboid: a } => match b {
+                Primitive::Cuboid { cuboid: b } => a.cuboid_tti(b, dir),
             },
         }
     }
@@ -133,24 +127,21 @@ impl Primitive {
 
 impl Primitive {
     pub fn new_cuboid(middle: Vec3<f32>, radius: Vec3<f32>) -> Self {
-        Primitive::Cuboid{ cuboid: Cuboid::new(middle, radius) }
+        Primitive::Cuboid {
+            cuboid: Cuboid::new(middle, radius),
+        }
     }
 }
 
 impl Cuboid {
-    pub fn new(middle: Vec3<f32>, radius: Vec3<f32>) -> Self {
-        Cuboid {
-            middle,
-            radius,
-        }
-    }
+    pub fn new(middle: Vec3<f32>, radius: Vec3<f32>) -> Self { Cuboid { middle, radius } }
 
     fn vector_touch_border(radius: Vec3<f32>, direction: Vec3<f32>) -> Vec3<f32> {
         let first_hit = radius / direction;
         let first_hit = first_hit.map(|e| e.abs());
         let min = if first_hit.x <= first_hit.y && first_hit.x <= first_hit.z {
             first_hit.x
-        } else  if first_hit.y <= first_hit.x && first_hit.y <= first_hit.z {
+        } else if first_hit.y <= first_hit.x && first_hit.y <= first_hit.z {
             first_hit.y
         } else {
             first_hit.z
@@ -164,26 +155,24 @@ impl Cuboid {
         let ua = a.upper();
         let lb = b.lower();
         let ub = b.upper();
-        if ua.x >= lb.x && la.x <= ub.x &&
-           ua.y >= lb.y && la.y <= ub.y &&
-           ua.z >= lb.z && la.z <= ub.z {
-                  //collide or touch
-                  let col_middle = (*a.middle() + *b.middle()) / 2.0;
-                  let col_radius = *a.middle() - *b.middle();
-                  let col_radius = vec3!(col_radius.x.abs(), col_radius.y.abs(), col_radius.z.abs());
-                  let col_radius = col_radius - *a.radius() - *b.radius();
+        if ua.x >= lb.x && la.x <= ub.x && ua.y >= lb.y && la.y <= ub.y && ua.z >= lb.z && la.z <= ub.z {
+            //collide or touch
+            let col_middle = (*a.middle() + *b.middle()) / 2.0;
+            let col_radius = *a.middle() - *b.middle();
+            let col_radius = vec3!(col_radius.x.abs(), col_radius.y.abs(), col_radius.z.abs());
+            let col_radius = col_radius - *a.radius() - *b.radius();
 
-                  let mut direction = *b.middle() - col_middle;
-                  if direction == vec3!(0.0, 0.0, 0.0) {
-                      direction = vec3!(0.0, 0.0, 1.0);
-                  }
-                  let force = Cuboid::vector_touch_border(col_radius, direction);
-                  let force = force.map(|e| if e.abs() < PLANCK_LENGTH {0.0} else {e}); // apply PLANCK_LENGTH to force
-                  return Some(ResolutionCol{
-                      center: col_middle,
-                      correction: force,
-                  });
-            };
+            let mut direction = *b.middle() - col_middle;
+            if direction == vec3!(0.0, 0.0, 0.0) {
+                direction = vec3!(0.0, 0.0, 1.0);
+            }
+            let force = Cuboid::vector_touch_border(col_radius, direction);
+            let force = force.map(|e| if e.abs() < PLANCK_LENGTH { 0.0 } else { e }); // apply PLANCK_LENGTH to force
+            return Some(ResolutionCol {
+                center: col_middle,
+                correction: force,
+            });
+        };
         None
     }
 
@@ -214,7 +203,6 @@ impl Cuboid {
                 tti_raw[i] = if midr + PLANCK_LENGTH > perimeterr && midr - PLANCK_LENGTH < perimeterr {
                     0.0
                 } else {
-
                     if midr >= perimeterr {
                         INFINITY // no movement and no collsision
                     } else {
@@ -222,43 +210,65 @@ impl Cuboid {
                     }
                 };
                 if tti_raw[i].is_sign_negative() && // it detects collision, detects -INFINITY
-                   midr >= (a_radius_elem[i] + b_radius_elem[i]) {// but distance is higher than radius
-                       tti[i] = INFINITY; //no collision will ocur, like ever
-                   } else {
-                       tti[i] = tti_raw[i];
-                       if tti[i] > -PLANCK_LENGTH && tti[i] < PLANCK_LENGTH { // PLANCK LENGTH correction
-                           tti[i] = 0.0
-                       }
-                 }
-                 if a_middle_elem[i] < b_middle_elem[i] {
-                     normals[i] = vec3!(if i == 0 {1.0} else {0.0}, if i == 1 {1.0} else {0.0}, if i == 2 {1.0} else {0.0});
-                 } else if a_middle_elem[i] > b_middle_elem[i] {
-                     normals[i] = vec3!(if i == 0 {-1.0} else {0.0}, if i == 1 {-1.0} else {0.0}, if i == 2 {-1.0} else {0.0});
-                 }
+                   midr >= (a_radius_elem[i] + b_radius_elem[i])
+                {
+                    // but distance is higher than radius
+                    tti[i] = INFINITY; //no collision will ocur, like ever
+                } else {
+                    tti[i] = tti_raw[i];
+                    if tti[i] > -PLANCK_LENGTH && tti[i] < PLANCK_LENGTH {
+                        // PLANCK LENGTH correction
+                        tti[i] = 0.0
+                    }
+                }
+                if a_middle_elem[i] < b_middle_elem[i] {
+                    normals[i] = vec3!(
+                        if i == 0 { 1.0 } else { 0.0 },
+                        if i == 1 { 1.0 } else { 0.0 },
+                        if i == 2 { 1.0 } else { 0.0 }
+                    );
+                } else if a_middle_elem[i] > b_middle_elem[i] {
+                    normals[i] = vec3!(
+                        if i == 0 { -1.0 } else { 0.0 },
+                        if i == 1 { -1.0 } else { 0.0 },
+                        if i == 2 { -1.0 } else { 0.0 }
+                    );
+                }
             } else {
                 if dire[i] < 0.0 {
                     a_area[i] = a_middle_elem[i] + a_radius_elem[i];
                     b_area[i] = b_middle_elem[i] - b_radius_elem[i];
-                    normals[i] = vec3!(if i == 0 {1.0} else {0.0}, if i == 1 {1.0} else {0.0}, if i == 2 {1.0} else {0.0});
+                    normals[i] = vec3!(
+                        if i == 0 { 1.0 } else { 0.0 },
+                        if i == 1 { 1.0 } else { 0.0 },
+                        if i == 2 { 1.0 } else { 0.0 }
+                    );
                 } else if dire[i] > 0.0 {
                     a_area[i] = a_middle_elem[i] - a_radius_elem[i];
                     b_area[i] = b_middle_elem[i] + b_radius_elem[i];
-                    normals[i] = vec3!(if i == 0 {-1.0} else {0.0}, if i == 1 {-1.0} else {0.0}, if i == 2 {-1.0} else {0.0});
+                    normals[i] = vec3!(
+                        if i == 0 { -1.0 } else { 0.0 },
+                        if i == 1 { -1.0 } else { 0.0 },
+                        if i == 2 { -1.0 } else { 0.0 }
+                    );
                 } else {
                     panic!("we checked above that dire[i] must not be 0.0");
                 }
                 //debug!("a_area {:?}; b_area {:?}", a_area, b_area);
-                minimal_collision_tti[i] = - (a_radius_elem[i] + b_radius_elem[i]) * 2.0 / dire[i].abs();
+                minimal_collision_tti[i] = -(a_radius_elem[i] + b_radius_elem[i]) * 2.0 / dire[i].abs();
                 tti_raw[i] = (a_area[i] - b_area[i]) / dire[i];
                 if tti_raw[i].is_sign_negative() && // it detects collision, detects -INFINITY
-                   (a_area[i] - b_area[i]).abs() >= (a_radius_elem[i] + b_radius_elem[i]) * 2.0 {// but distance is higher than radius
-                       tti[i] = INFINITY; //no collision will ocur, like ever
-                   } else {
-                       tti[i] = tti_raw[i];
-                       if tti[i] > -PLANCK_LENGTH && tti[i] < PLANCK_LENGTH { // PLANCK LENGTH correction
-                           tti[i] = 0.0
-                       }
-                 }
+                   (a_area[i] - b_area[i]).abs() >= (a_radius_elem[i] + b_radius_elem[i]) * 2.0
+                {
+                    // but distance is higher than radius
+                    tti[i] = INFINITY; //no collision will ocur, like ever
+                } else {
+                    tti[i] = tti_raw[i];
+                    if tti[i] > -PLANCK_LENGTH && tti[i] < PLANCK_LENGTH {
+                        // PLANCK LENGTH correction
+                        tti[i] = 0.0
+                    }
+                }
             }
         }
         // tti now contains a value per coordinate. pos=will collide in, 0=touches right now, negative=is colliding since, INF=will never collide
@@ -274,15 +284,15 @@ impl Cuboid {
 
         if tti[0].is_sign_negative() && tti[1].is_sign_negative() && tti[2].is_sign_negative() {
             if tti[0] >= tti[1] && tti[0] >= tti[2] {
-                return  Some(ResolutionTti::Overlapping{ since: -tti[0] });
+                return Some(ResolutionTti::Overlapping { since: -tti[0] });
             }
             if tti[1] >= tti[2] && tti[1] >= tti[0] {
-                return  Some(ResolutionTti::Overlapping{ since: -tti[1] });
+                return Some(ResolutionTti::Overlapping { since: -tti[1] });
             }
             if tti[2] >= tti[0] && tti[2] >= tti[1] {
-                return  Some(ResolutionTti::Overlapping{ since: -tti[2] });
+                return Some(ResolutionTti::Overlapping { since: -tti[2] });
             }
-            return  Some(ResolutionTti::Overlapping{ since: -tti[0] }); // UNREACHABLE, except for some infinity stuff
+            return Some(ResolutionTti::Overlapping { since: -tti[0] }); // UNREACHABLE, except for some infinity stuff
         }
 
         //doing some sorting here
@@ -317,87 +327,117 @@ impl Cuboid {
         }
 
         impl PartialOrd for TtiValueIndex {
-            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-                Some(self.cmp(other))
-            }
+            fn partial_cmp(&self, other: &Self) -> Option<Ordering> { Some(self.cmp(other)) }
         }
 
         impl PartialEq for TtiValueIndex {
-            fn eq(&self, other: &Self) -> bool {
-                (self.value, &self.index) == (other.value, &other.index)
-            }
+            fn eq(&self, other: &Self) -> bool { (self.value, &self.index) == (other.value, &other.index) }
         }
 
-        impl Eq for TtiValueIndex { }
+        impl Eq for TtiValueIndex {}
 
         // e.g. (-INF, 4, 2), sort for tti  --> (2, 4)
-        let mut to_test = [TtiValueIndex{value: tti[0], index: 0}, TtiValueIndex{value: tti[1], index: 1}, TtiValueIndex{value: tti[2], index: 2} ];
-        let mut potentialtouch_index : Option<usize> = None;
-        let mut potentialtouch_normal : Option<Vec3<f32>> = None;
-        let mut potentialcollide_index : Option<usize> = None;
-        let mut potentialcollide_normal : Option<Vec3<f32>> = None;
+        let mut to_test = [
+            TtiValueIndex {
+                value: tti[0],
+                index: 0,
+            },
+            TtiValueIndex {
+                value: tti[1],
+                index: 1,
+            },
+            TtiValueIndex {
+                value: tti[2],
+                index: 2,
+            },
+        ];
+        let mut potentialtouch_index: Option<usize> = None;
+        let mut potentialtouch_normal: Option<Vec3<f32>> = None;
+        let mut potentialcollide_index: Option<usize> = None;
+        let mut potentialcollide_normal: Option<Vec3<f32>> = None;
         to_test.sort();
         //debug!("to_test: {:?}", to_test);
         for i in 0..3 {
             if to_test[i].value >= 0.0 && to_test[i].value.is_finite() {
                 //check if others collide after time
-                let o1 = (i+1) % 3;
-                let o2 = (i+2) % 3;
+                let o1 = (i + 1) % 3;
+                let o2 = (i + 2) % 3;
                 let o1_i = to_test[o1].index;
                 let o2_i = to_test[o2].index;
                 // we only shift the value when it actually moves, otherwise min_col is -INF
-                let o1_shifted_value = if dire[o1_i] != 0.0 {to_test[o1].value - to_test[i].value} else {to_test[o1].value};
-                let o2_shifted_value = if dire[o2_i] != 0.0 {to_test[o2].value - to_test[i].value} else {to_test[o2].value};
+                let o1_shifted_value = if dire[o1_i] != 0.0 {
+                    to_test[o1].value - to_test[i].value
+                } else {
+                    to_test[o1].value
+                };
+                let o2_shifted_value = if dire[o2_i] != 0.0 {
+                    to_test[o2].value - to_test[i].value
+                } else {
+                    to_test[o2].value
+                };
                 //println!("i {}", i);
                 //println!("yay: {}, o1 {}, o2 {}", to_test[i].value, o1_shifted_value, o2_shifted_value);
                 //println!("max: o1 {}, o2 {}", minimal_collision_tti[o1_i], minimal_collision_tti[o2_i]);
                 //println!("dire {:?}", dire);
                 //println!("shifted {} {}", o1_shifted_value, o2_shifted_value);
-                if (o1_shifted_value < 0.0 || o1_shifted_value == 0.0 && dire[o1_i] != 0.0) && (o1_shifted_value > minimal_collision_tti[o1_i] || (minimal_collision_tti[o1_i].is_infinite() /*&& tti[o1_i] != 0.0*/)) &&
-                   (o2_shifted_value < 0.0 || o2_shifted_value == 0.0 && dire[o2_i] != 0.0) && (o2_shifted_value > minimal_collision_tti[o2_i] || (minimal_collision_tti[o2_i].is_infinite() /*&& tti[o2_i] != 0.0*/)) {
-                       //yep it does, and it's the samllest because to_test was sorted. so output it
-                       if dire[to_test[i].index] == 0.0 {
-                           // should be return  Some(ResolutionTti::Touching{ normal: normals[to_test[i].index]});
-                           if potentialtouch_index.is_none() {
-                               potentialtouch_index = Some(i);
-                               potentialtouch_normal = Some(normals[to_test[i].index]);
-                           }
-                       } else {
-                           if potentialcollide_index.is_none() {
-                               potentialcollide_index = Some(i);
-                               potentialcollide_normal = Some(normals[to_test[i].index]);
-                           } else if to_test[i].value <= to_test[potentialcollide_index.unwrap()].value {//enge is when 2 or more collect at exact same time
-                               if let Some(ref mut nor) = potentialcollide_normal {
-                                   *nor += normals[to_test[i].index];
-                               }
-                           }
-                       }
-                   }
+                if (o1_shifted_value < 0.0 || o1_shifted_value == 0.0 && dire[o1_i] != 0.0)
+                    && (o1_shifted_value > minimal_collision_tti[o1_i]
+                        || (minimal_collision_tti[o1_i].is_infinite()/*&& tti[o1_i] != 0.0*/))
+                    && (o2_shifted_value < 0.0 || o2_shifted_value == 0.0 && dire[o2_i] != 0.0)
+                    && (o2_shifted_value > minimal_collision_tti[o2_i]
+                        || (minimal_collision_tti[o2_i].is_infinite()/*&& tti[o2_i] != 0.0*/))
+                {
+                    //yep it does, and it's the samllest because to_test was sorted. so output it
+                    if dire[to_test[i].index] == 0.0 {
+                        // should be return  Some(ResolutionTti::Touching{ normal: normals[to_test[i].index]});
+                        if potentialtouch_index.is_none() {
+                            potentialtouch_index = Some(i);
+                            potentialtouch_normal = Some(normals[to_test[i].index]);
+                        }
+                    } else {
+                        if potentialcollide_index.is_none() {
+                            potentialcollide_index = Some(i);
+                            potentialcollide_normal = Some(normals[to_test[i].index]);
+                        } else if to_test[i].value <= to_test[potentialcollide_index.unwrap()].value {
+                            //enge is when 2 or more collect at exact same time
+                            if let Some(ref mut nor) = potentialcollide_normal {
+                                *nor += normals[to_test[i].index];
+                            }
+                        }
+                    }
+                }
             }
         }
 
         if let Some(i) = potentialcollide_index {
             //info!("returning index: {}, val {}, nor{}", i,  to_test[i].value, potentialcollide_normal.unwrap());
-            return  Some(ResolutionTti::WillCollide{ tti: to_test[i].value, normal: potentialcollide_normal.unwrap()});
+            return Some(ResolutionTti::WillCollide {
+                tti: to_test[i].value,
+                normal: potentialcollide_normal.unwrap(),
+            });
         }
 
         if let Some(_) = potentialtouch_index {
-            return  Some(ResolutionTti::Touching{ normal: potentialtouch_normal.unwrap()});
+            return Some(ResolutionTti::Touching {
+                normal: potentialtouch_normal.unwrap(),
+            });
         }
 
         return None;
     }
 
-    #[allow(dead_code)] pub fn lower(&self) -> Vec3<f32> {
-        self.middle - self.radius
-    }
+    #[allow(dead_code)]
+    pub fn lower(&self) -> Vec3<f32> { self.middle - self.radius }
 
-    #[allow(dead_code)] pub fn upper(&self) -> Vec3<f32> {
-        self.middle + self.radius
-    }
+    #[allow(dead_code)]
+    pub fn upper(&self) -> Vec3<f32> { self.middle + self.radius }
 
-    #[allow(dead_code)] pub fn middle(&self) -> &Vec3<f32> { &self.middle }
-    #[allow(dead_code)] pub fn middle_mut(&mut self) -> &mut Vec3<f32> { &mut self.middle }
-    #[allow(dead_code)] pub fn radius(&self) -> &Vec3<f32> { &self.radius }
-    #[allow(dead_code)] pub fn radius_mut(&mut self) -> &mut Vec3<f32> { &mut self.radius }
+    #[allow(dead_code)]
+    pub fn middle(&self) -> &Vec3<f32> { &self.middle }
+    #[allow(dead_code)]
+    pub fn middle_mut(&mut self) -> &mut Vec3<f32> { &mut self.middle }
+    #[allow(dead_code)]
+    pub fn radius(&self) -> &Vec3<f32> { &self.radius }
+    #[allow(dead_code)]
+    pub fn radius_mut(&mut self) -> &mut Vec3<f32> { &mut self.radius }
 }

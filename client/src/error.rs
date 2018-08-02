@@ -6,7 +6,5 @@ pub enum Error {
 }
 
 impl From<net::Error> for Error {
-    fn from(e: net::Error) -> Error {
-        Error::NetworkErr(e)
-    }
+    fn from(e: net::Error) -> Error { Error::NetworkErr(e) }
 }

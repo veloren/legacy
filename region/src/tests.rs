@@ -2,16 +2,19 @@
 use coord::prelude::*;
 use rand::prelude::*;
 
-
-use std::sync::{RwLock, Arc};
-use std::collections::HashMap;
-use std::{thread, time};
-use std::f32::INFINITY;
+use std::{
+    collections::HashMap,
+    f32::INFINITY,
+    sync::{Arc, RwLock},
+    thread, time,
+};
 
 // Parent
-use common::{Uid};
-use super::collision::{Primitive, Cuboid, ResolutionCol, ResolutionTti};
-use super::{Entity, VolMgr, VolState, Chunk, VolGen, Block, BlockMaterial, Voxel, Volume, physics};
+use super::{
+    collision::{Cuboid, Primitive, ResolutionCol, ResolutionTti},
+    physics, Block, BlockMaterial, Chunk, Entity, VolGen, VolMgr, VolState, Volume, Voxel,
+};
+use common::Uid;
 
 #[test]
 fn collide_simple() {
@@ -91,7 +94,7 @@ fn collide_complex() {
     let m2 = Primitive::new_cuboid(vec3!(-0.7, -2.0, 0.0), vec3!(1.0, 1.0, 1.0));
     let res = m1.resolve_col(&m2).unwrap();
     //assert_eq!(res.center, vec3!(-0.35, -1.0, 0.0));
-    let rounded = res.correction.map(|e| (e*100.0).round()/100.0);
+    let rounded = res.correction.map(|e| (e * 100.0).round() / 100.0);
     //assert_eq!(rounded, vec3!(-3.15, -9.0, 0.0));
 
     //share a same wall but is inside so overlap
@@ -167,10 +170,10 @@ fn touch_wall() {
 
 fn random_vec(scale: f32) -> Vec3<f32> {
     let mut rng = thread_rng();
-    let x = ((rng.gen::<f32>())*scale ) as i64 as f32;
-    let y = ((rng.gen::<f32>())*scale ) as i64 as f32;
-    let z = ((rng.gen::<f32>())*scale ) as i64 as f32;
-    Vec3::new(x,y,z)
+    let x = ((rng.gen::<f32>()) * scale) as i64 as f32;
+    let y = ((rng.gen::<f32>()) * scale) as i64 as f32;
+    let z = ((rng.gen::<f32>()) * scale) as i64 as f32;
+    Vec3::new(x, y, z)
 }
 
 #[test]
@@ -179,8 +182,14 @@ fn random_collide_resolution() {
     let mut positive_resolved = 0;
 
     for _i in 0..1000 {
-        let m1 = Primitive::new_cuboid(random_vec(10.0)-random_vec(10.0), random_vec(6.0) + vec3!(1.0, 1.0, 1.0));
-        let mut m2 = Primitive::new_cuboid(random_vec(10.0)-random_vec(10.0), random_vec(6.0) + vec3!(1.0, 1.0, 1.0));
+        let m1 = Primitive::new_cuboid(
+            random_vec(10.0) - random_vec(10.0),
+            random_vec(6.0) + vec3!(1.0, 1.0, 1.0),
+        );
+        let mut m2 = Primitive::new_cuboid(
+            random_vec(10.0) - random_vec(10.0),
+            random_vec(6.0) + vec3!(1.0, 1.0, 1.0),
+        );
         let res = m1.resolve_col(&m2);
         match res {
             None => (),
@@ -195,7 +204,7 @@ fn random_collide_resolution() {
                 positive_resolved += 1;
                 let res = m1.resolve_col(&m2).unwrap();
                 assert!(res.is_touch());
-            }
+            },
         }
     }
     println!("{} collisions resolved", positive_resolved);
@@ -244,7 +253,7 @@ macro_rules! checkWillCollide {
 
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
-        if let ResolutionTti::WillCollide{tti, normal} = res {
+        if let ResolutionTti::WillCollide { tti, normal } = res {
             let cmp = ((tti * 1000.0) as f32).round() / 1000.0;
             assert_eq!(cmp, $tti2);
             assert_eq!(normal, $normal2);
@@ -262,7 +271,7 @@ macro_rules! checkTouching {
 
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
-        if let ResolutionTti::Touching{normal} = res {
+        if let ResolutionTti::Touching { normal } = res {
             assert_eq!(normal, $normal2);
         } else {
             panic!("wrong collision type: {:?}", res);
@@ -278,7 +287,7 @@ macro_rules! checkOverlapping {
 
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
-        if let ResolutionTti::Overlapping{since} = res {
+        if let ResolutionTti::Overlapping { since } = res {
             let cmp = ((since * 1000.0) as f32).round() / 1000.0;
             assert_eq!(cmp, $since2);
         } else {
@@ -460,7 +469,6 @@ fn tti_horizontal_positions_const_vel_beneath_touching() {
     checkNone!(m1.time_to_impact(&m2, &vel));
 }
 
-
 #[test]
 fn tti_horizontal_positions_const_vel_beneath_touching_negative() {
     let vel = vec3!(0.0, 0.0, -1.0);
@@ -632,17 +640,16 @@ fn tti_diagonal_in_to_dirs_negative() {
     checkTouching!(m1.time_to_impact(&m2, &vel), normal);
 }
 
-
-const CHUNK_SIZE : i64 = 64;
-const CHUNK_MID : f32 = CHUNK_SIZE as f32 / 2.0;
+const CHUNK_SIZE: i64 = 64;
+const CHUNK_MID: f32 = CHUNK_SIZE as f32 / 2.0;
 
 fn gen_chunk_flat(pos: Vec2<i64>) -> Chunk {
     let mut c = Chunk::new();
-    c.set_size(vec3!(CHUNK_SIZE,CHUNK_SIZE,CHUNK_SIZE));
+    c.set_size(vec3!(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE));
     c.set_offset(vec3!(pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, 0));
     for x in 0..CHUNK_SIZE {
         for y in 0..CHUNK_SIZE {
-            c.set(vec3!(x,y,2), Block::new(BlockMaterial::Stone) );
+            c.set(vec3!(x, y, 2), Block::new(BlockMaterial::Stone));
         }
     }
     return c;
@@ -650,34 +657,40 @@ fn gen_chunk_flat(pos: Vec2<i64>) -> Chunk {
 
 fn gen_chunk_flat_border(pos: Vec2<i64>) -> Chunk {
     let mut c = gen_chunk_flat(pos);
-    c.set_size(vec3!(CHUNK_SIZE,CHUNK_SIZE,CHUNK_SIZE));
+    c.set_size(vec3!(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE));
     c.set_offset(vec3!(pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, 0));
     for i in 0..CHUNK_SIZE {
-        c.set(vec3!(i,0,3), Block::new(BlockMaterial::Stone) );
-        c.set(vec3!(i,CHUNK_SIZE-1,3), Block::new(BlockMaterial::Stone) );
-        c.set(vec3!(0,i,3), Block::new(BlockMaterial::Stone) );
-        c.set(vec3!(CHUNK_SIZE-1,i,3), Block::new(BlockMaterial::Stone) );
+        c.set(vec3!(i, 0, 3), Block::new(BlockMaterial::Stone));
+        c.set(vec3!(i, CHUNK_SIZE - 1, 3), Block::new(BlockMaterial::Stone));
+        c.set(vec3!(0, i, 3), Block::new(BlockMaterial::Stone));
+        c.set(vec3!(CHUNK_SIZE - 1, i, 3), Block::new(BlockMaterial::Stone));
 
-        c.set(vec3!(i,0,4), Block::new(BlockMaterial::Stone) );
-        c.set(vec3!(i,CHUNK_SIZE-1,4), Block::new(BlockMaterial::Stone) );
-        c.set(vec3!(0,i,4), Block::new(BlockMaterial::Stone) );
-        c.set(vec3!(CHUNK_SIZE-1,i,4), Block::new(BlockMaterial::Stone) );
+        c.set(vec3!(i, 0, 4), Block::new(BlockMaterial::Stone));
+        c.set(vec3!(i, CHUNK_SIZE - 1, 4), Block::new(BlockMaterial::Stone));
+        c.set(vec3!(0, i, 4), Block::new(BlockMaterial::Stone));
+        c.set(vec3!(CHUNK_SIZE - 1, i, 4), Block::new(BlockMaterial::Stone));
     }
     return c;
 }
 
-fn gen_payload(chunk: &Chunk) -> i64 {
-    42
-}
+fn gen_payload(chunk: &Chunk) -> i64 { 42 }
 
 #[test]
 fn physics_fall() {
     let vol_mgr = VolMgr::new(CHUNK_SIZE, VolGen::new(gen_chunk_flat, gen_payload));
-    vol_mgr.gen(vec2!(0,0));
+    vol_mgr.gen(vec2!(0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
-    //touch
-    let mut ent : HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
-    ent.insert(1, Arc::new(RwLock::new(Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 10.0), vec3!(0.0, 0.0, 0.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)))));
+                                                     //touch
+    let mut ent: HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    ent.insert(
+        1,
+        Arc::new(RwLock::new(Entity::new(
+            vec3!(CHUNK_MID, CHUNK_MID, 10.0),
+            vec3!(0.0, 0.0, 0.0),
+            vec3!(0.0, 0.0, 0.0),
+            vec2!(0.0, 0.0),
+        ))),
+    );
     for _ in 0..40 {
         physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.1)
     }
@@ -690,11 +703,19 @@ fn physics_fall() {
 #[test]
 fn physics_fallfast() {
     let vol_mgr = VolMgr::new(CHUNK_SIZE, VolGen::new(gen_chunk_flat, gen_payload));
-    vol_mgr.gen(vec2!(0,0));
+    vol_mgr.gen(vec2!(0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
-    //touch
-    let mut ent : HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
-    ent.insert(1, Arc::new(RwLock::new(Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 10.0), vec3!(0.0, 0.0, -100.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)))));
+                                                     //touch
+    let mut ent: HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    ent.insert(
+        1,
+        Arc::new(RwLock::new(Entity::new(
+            vec3!(CHUNK_MID, CHUNK_MID, 10.0),
+            vec3!(0.0, 0.0, -100.0),
+            vec3!(0.0, 0.0, 0.0),
+            vec2!(0.0, 0.0),
+        ))),
+    );
     for _ in 0..100 {
         physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.1)
     }
@@ -707,11 +728,19 @@ fn physics_fallfast() {
 #[test]
 fn physics_jump() {
     let vol_mgr = VolMgr::new(CHUNK_SIZE, VolGen::new(gen_chunk_flat, gen_payload));
-    vol_mgr.gen(vec2!(0,0));
+    vol_mgr.gen(vec2!(0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
-    //touch
-    let mut ent : HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
-    ent.insert(1, Arc::new(RwLock::new(Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 10.0), vec3!(0.0, 0.0, 5.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)))));
+                                                     //touch
+    let mut ent: HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    ent.insert(
+        1,
+        Arc::new(RwLock::new(Entity::new(
+            vec3!(CHUNK_MID, CHUNK_MID, 10.0),
+            vec3!(0.0, 0.0, 5.0),
+            vec3!(0.0, 0.0, 0.0),
+            vec2!(0.0, 0.0),
+        ))),
+    );
     for _ in 0..3 {
         physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.04)
     }
@@ -733,11 +762,19 @@ fn physics_jump() {
 #[test]
 fn physics_walk() {
     let vol_mgr = VolMgr::new(CHUNK_SIZE, VolGen::new(gen_chunk_flat_border, gen_payload));
-    vol_mgr.gen(vec2!(0,0));
+    vol_mgr.gen(vec2!(0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
-    //touch
-    let mut ent : HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
-    ent.insert(1, Arc::new(RwLock::new(Entity::new(vec3!(CHUNK_MID, CHUNK_MID, 3.1), vec3!(3.0, 0.0, 0.0), vec3!(1.0, 0.0, 0.0), vec2!(0.0, 0.0)))));
+                                                     //touch
+    let mut ent: HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    ent.insert(
+        1,
+        Arc::new(RwLock::new(Entity::new(
+            vec3!(CHUNK_MID, CHUNK_MID, 3.1),
+            vec3!(3.0, 0.0, 0.0),
+            vec3!(1.0, 0.0, 0.0),
+            vec2!(0.0, 0.0),
+        ))),
+    );
     for _ in 0..80 {
         physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.5)
     }

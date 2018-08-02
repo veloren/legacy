@@ -3,9 +3,13 @@ use bifrost::Relay;
 use coord::prelude::*;
 
 // Project
-use common::get_version;
-use common::net::ClientMode;
-use common::net::message::{ClientMessage, ServerMessage};
+use common::{
+    get_version,
+    net::{
+        message::{ClientMessage, ServerMessage},
+        ClientMode,
+    },
+};
 use region::Entity;
 
 // Local
@@ -14,84 +18,117 @@ use server_context::ServerContext;
 
 pub fn handle_packet(relay: &Relay<ServerContext>, ctx: &mut ServerContext, session_id: u32, message: &ClientMessage) {
     match message {
-        &ClientMessage::Connect { mode, ref alias, ref version } => {
-            match *version == get_version() {
-                true => {
-                    let entity_uid = match mode {
-                        ClientMode::Headless => {
-                            info!("Player '{}' connected in headless mode.", alias);
-                            None
-                        },
-                        ClientMode::Character => {
-                            let uid = ctx.new_uid();
-                            info!("Player '{}' connected in character mode. Assigned entity uid: {}", alias, uid);
-                            ctx.add_entity(uid, box Entity::new(vec3!(0.0, 0.0, 130.0), vec3!(0.0, 0.0, 0.0), vec3!(0.0, 0.0, 0.0), vec2!(0.0, 0.0)));
-                            Some(uid)
-                        }
-                    };
+        &ClientMessage::Connect {
+            mode,
+            ref alias,
+            ref version,
+        } => match *version == get_version() {
+            true => {
+                let entity_uid = match mode {
+                    ClientMode::Headless => {
+                        info!("Player '{}' connected in headless mode.", alias);
+                        None
+                    },
+                    ClientMode::Character => {
+                        let uid = ctx.new_uid();
+                        info!(
+                            "Player '{}' connected in character mode. Assigned entity uid: {}",
+                            alias, uid
+                        );
+                        ctx.add_entity(
+                            uid,
+                            box Entity::new(
+                                vec3!(0.0, 0.0, 130.0),
+                                vec3!(0.0, 0.0, 0.0),
+                                vec3!(0.0, 0.0, 0.0),
+                                vec2!(0.0, 0.0),
+                            ),
+                        );
+                        Some(uid)
+                    },
+                };
 
-                    let player_uid = ctx.new_uid();
-                    debug!("Player got playid {}", player_uid);
-                    ctx.add_player(box Player::new(session_id, player_uid, entity_uid, &alias));
-                    ctx.get_session_mut(session_id).unwrap().set_player_id(Some(player_uid));
+                let player_uid = ctx.new_uid();
+                debug!("Player got playid {}", player_uid);
+                ctx.add_player(box Player::new(session_id, player_uid, entity_uid, &alias));
+                ctx.get_session_mut(session_id).unwrap().set_player_id(Some(player_uid));
 
-                    ctx.send_message(
-                        session_id,
-                        ServerMessage::Connected { entity_uid: entity_uid, version: get_version() }
-                    );
-                }
-                false => {
-                    info!("Player attempted to connect with {} but was rejected due to incompatible version ({})", alias, version);
-                    ctx.send_message(
-                        session_id,
-                        ServerMessage::Kicked { reason: format!("Incompatible version! Server is running version ({})", get_version()) }
-                    );
-                }
-            }
-        }
+                ctx.send_message(
+                    session_id,
+                    ServerMessage::Connected {
+                        entity_uid: entity_uid,
+                        version: get_version(),
+                    },
+                );
+            },
+            false => {
+                info!(
+                    "Player attempted to connect with {} but was rejected due to incompatible version ({})",
+                    alias, version
+                );
+                ctx.send_message(
+                    session_id,
+                    ServerMessage::Kicked {
+                        reason: format!("Incompatible version! Server is running version ({})", get_version()),
+                    },
+                );
+            },
+        },
         &ClientMessage::Disconnect => {
             ctx.kick_session(session_id);
-        }
+        },
         &ClientMessage::Ping => {
-            ctx.send_message(
-                session_id,
-                ServerMessage::Pong
-            );
-        }
-        &ClientMessage::Pong => {
-            match ctx.get_session_mut(session_id) {
-                Some(session) => session.keep_alive(),
-                None => debug!("Cannot open session"),
-            }
-        }
+            ctx.send_message(session_id, ServerMessage::Pong);
+        },
+        &ClientMessage::Pong => match ctx.get_session_mut(session_id) {
+            Some(session) => session.keep_alive(),
+            None => debug!("Cannot open session"),
+        },
         ClientMessage::ChatMsg { msg } => {
-            if let Some(ref mut player) = ctx.get_session(session_id)
+            if let Some(ref mut player) = ctx
+                .get_session(session_id)
                 .and_then(|it| it.get_player_id())
-                .and_then(|id| ctx.get_player(id)) {
-
+                .and_then(|id| ctx.get_player(id))
+            {
                 let alias = player.alias().to_string();
                 debug!("[MSG] {}: {}", alias, &msg);
-                let message = ServerMessage::RecvChatMsg { alias, msg: msg.to_string() };
+                let message = ServerMessage::RecvChatMsg {
+                    alias,
+                    msg: msg.to_string(),
+                };
                 ctx.broadcast_packet(message);
             }
-        }
+        },
         &ClientMessage::SendCmd { ref cmd } => handle_command(relay, ctx, session_id, cmd.to_string()),
-        &ClientMessage::PlayerEntityUpdate { pos, vel, ctrl_acc, look_dir } => {
-            if let Some(ref player) = ctx.get_session(session_id)
+        &ClientMessage::PlayerEntityUpdate {
+            pos,
+            vel,
+            ctrl_acc,
+            look_dir,
+        } => {
+            if let Some(ref player) = ctx
+                .get_session(session_id)
                 .and_then(|it| it.get_player_id())
-                .and_then(|id| ctx.get_player(id)) {
-
+                .and_then(|id| ctx.get_player(id))
+            {
                 let player_name = player.alias().to_string();
 
                 if let Some(entity_uid) = player.get_entity_uid() {
                     if let Some(e) = ctx.get_entity(entity_uid) {
                         let dist = (*e.pos() - pos).length();
-                        if dist > 80.0 { // 80 effectivly makes this never apear
+                        if dist > 80.0 {
+                            // 80 effectivly makes this never apear
                             info!("player: {} moved to fast, resetting him", player_name);
                             let (pos, vel, ctrl_vel, look_dir) = (*e.pos(), *e.vel(), *e.ctrl_acc(), *e.look_dir());
                             ctx.send_message(
                                 session_id,
-                                ServerMessage::EntityUpdate { uid: entity_uid, pos, vel, ctrl_acc, look_dir }
+                                ServerMessage::EntityUpdate {
+                                    uid: entity_uid,
+                                    pos,
+                                    vel,
+                                    ctrl_acc,
+                                    look_dir,
+                                },
                             );
                         } else {
                             *e.pos_mut() = pos;

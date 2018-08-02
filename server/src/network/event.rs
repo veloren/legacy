@@ -1,17 +1,16 @@
 // Standard
-use std::sync::Arc;
-use std::net::TcpStream;
+use std::{net::TcpStream, sync::Arc};
 
 // Library
-use bifrost::{Relay, Event};
+use bifrost::{Event, Relay};
 
 // Project
 use common::net::{ClientMessage, UdpMgr};
 
 // Local
-use session::Session;
-use server_context::ServerContext;
 use network::handlers::handle_packet;
+use server_context::ServerContext;
+use session::Session;
 
 pub struct NewSessionEvent {
     pub session_id: u32,
@@ -36,7 +35,6 @@ impl Event<ServerContext> for PacketReceived {
         handle_packet(relay, ctx, self.session_id, &self.data);
     }
 }
-
 
 pub struct KickSession {
     pub session_id: u32,

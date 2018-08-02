@@ -9,36 +9,40 @@ extern crate common;
 extern crate region;
 
 // Modules
-mod error;
-mod player;
 mod callbacks;
+mod error;
+mod net;
+mod player;
 mod tick;
 mod world;
-mod net;
 
 // Reexport
 pub use common::net::ClientMode;
-pub use region::{Volume, Voxel, Chunk, Block, FnPayloadFunc};
+pub use region::{Block, Chunk, FnPayloadFunc, Volume, Voxel};
 
 // Constants
 pub const CHUNK_SIZE: i64 = 32;
 
 // Standard
-use std::thread;
-use std::time;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Mutex};
-use std::collections::HashMap;
-use std::net::{ToSocketAddrs};
+use std::{
+    collections::HashMap,
+    net::ToSocketAddrs,
+    sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    thread, time,
+};
 
 // Project
-use region::{Entity, VolMgr, VolGen};
-use common::{get_version, Uid, Jobs, JobHandle};
-use common::net::{Connection, ServerMessage, ClientMessage, Callback, UdpMgr};
+use common::{
+    get_version,
+    net::{Callback, ClientMessage, Connection, ServerMessage, UdpMgr},
+    JobHandle, Jobs, Uid,
+};
+use region::{Entity, VolGen, VolMgr};
 
 // Local
-use player::Player;
 use callbacks::Callbacks;
 use error::Error;
+use player::Player;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum ClientStatus {
@@ -70,22 +74,23 @@ pub struct Client<P: Payloads> {
 }
 
 impl<P: Payloads> Callback<ServerMessage> for Client<P> {
-    fn recv(&self, msg: Result<ServerMessage, common::net::Error>) {
-        self.handle_packet(msg.unwrap());
-    }
+    fn recv(&self, msg: Result<ServerMessage, common::net::Error>) { self.handle_packet(msg.unwrap()); }
 }
 
 impl<P: Payloads> Client<P> {
-    pub fn new<U: ToSocketAddrs, GF: FnPayloadFunc<Chunk, P::Chunk, Output=P::Chunk>>(
+    pub fn new<U: ToSocketAddrs, GF: FnPayloadFunc<Chunk, P::Chunk, Output = P::Chunk>>(
         mode: ClientMode,
         alias: String,
         remote_addr: U,
         gen_payload: GF,
         view_distance: i64,
-    ) -> Result<Arc<Client<P>>, Error>
-    {
+    ) -> Result<Arc<Client<P>>, Error> {
         let conn = Connection::new::<U>(&remote_addr, Box::new(|_m| {}), None, UdpMgr::new())?;
-        conn.send(ClientMessage::Connect{ mode, alias: alias.clone(), version: get_version() });
+        conn.send(ClientMessage::Connect {
+            mode,
+            alias: alias.clone(),
+            version: get_version(),
+        });
         Connection::start(&conn);
 
         let client = Arc::new(Client {
@@ -113,9 +118,7 @@ impl<P: Payloads> Client<P> {
         Ok(client)
     }
 
-    fn set_status(&self, status: ClientStatus) {
-        *self.status.write().unwrap() = status;
-    }
+    fn set_status(&self, status: ClientStatus) { *self.status.write().unwrap() = status; }
 
     pub fn start(&self) {
         if self.run_job.lock().unwrap().is_none() {
@@ -134,13 +137,9 @@ impl<P: Payloads> Client<P> {
         }
     }
 
-    pub fn send_chat_msg(&self, msg: String) {
-        self.conn.send(ClientMessage::ChatMsg { msg })
-    }
+    pub fn send_chat_msg(&self, msg: String) { self.conn.send(ClientMessage::ChatMsg { msg }) }
 
-    pub fn send_cmd(&self, cmd: String) {
-        self.conn.send(ClientMessage::SendCmd { cmd })
-    }
+    pub fn send_cmd(&self, cmd: String) { self.conn.send(ClientMessage::SendCmd { cmd }) }
 
     pub fn chunk_mgr(&self) -> &VolMgr<Chunk, P::Chunk> { &self.chunk_mgr }
 
@@ -163,7 +162,12 @@ impl<P: Payloads> Client<P> {
     }
 
     pub fn add_entity(&self, uid: Uid, entity: Entity) -> bool {
-        !self.entities.write().unwrap().insert(uid, Arc::new(RwLock::new(entity))).is_some()
+        !self
+            .entities
+            .write()
+            .unwrap()
+            .insert(uid, Arc::new(RwLock::new(entity)))
+            .is_some()
     }
 
     pub fn player_entity(&self) -> Option<Arc<RwLock<Entity>>> {

@@ -8,7 +8,7 @@ fn validate_vox_files() {
 
     for path in paths {
         let path_string = path.unwrap().path().into_os_string().into_string().unwrap();
-        let vox = dot_vox::load(&path_string);        
+        let vox = dot_vox::load(&path_string);
         assert_eq!(true, vox.is_ok(), "Failed to validate file '{:?}'", path_string);
 
         files_checked += 1;

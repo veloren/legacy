@@ -5,44 +5,49 @@ extern crate conrod;
 
 #[macro_use]
 extern crate gfx;
-extern crate gfx_window_glutin;
 extern crate gfx_device_gl;
+extern crate gfx_window_glutin;
 extern crate glutin;
-#[macro_use] extern crate enum_map;
+#[macro_use]
+extern crate enum_map;
+extern crate chrono;
 extern crate nalgebra;
 extern crate time;
-extern crate chrono;
-#[macro_use] extern crate coord;
+#[macro_use]
+extern crate coord;
 extern crate dot_vox;
-#[macro_use] extern crate toml;
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate toml;
+#[macro_use]
+extern crate serde_derive;
 
 extern crate client;
 extern crate common;
 extern crate region;
 
 extern crate pretty_env_logger;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 
-mod game;
-mod window;
-mod renderer;
-mod pipeline;
 mod camera;
-mod keybinds;
+mod game;
 mod key_state;
-mod ui;
+mod keybinds;
+mod pipeline;
+mod renderer;
 mod tests;
+mod ui;
+mod window;
 
 mod voxel;
 
 use std::io::{self, Write};
 
-use chrono::{Utc, TimeZone, DateTime};
+use chrono::{DateTime, TimeZone, Utc};
 
 use client::ClientMode;
-use game::Game;
 use common::get_version;
+use game::Game;
 
 // START Environment variables
 const GIT_HASH: Option<&'static str> = option_env!("GIT_HASH");
@@ -50,28 +55,19 @@ const GIT_TIME: Option<&'static str> = option_env!("GIT_TIME");
 const PROFILE: Option<&'static str> = option_env!("PROFILE");
 const BUILD_TIME: Option<&'static str> = option_env!("BUILD_TIME");
 
-pub fn get_git_hash() -> String {
-    GIT_HASH.unwrap_or("UNKNOWN GIT HASH").to_string()
-}
+pub fn get_git_hash() -> String { GIT_HASH.unwrap_or("UNKNOWN GIT HASH").to_string() }
 
-pub fn get_git_time() -> DateTime<Utc> {
-    Utc.timestamp(GIT_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0)
-}
+pub fn get_git_time() -> DateTime<Utc> { Utc.timestamp(GIT_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0) }
 
-pub fn get_profile() -> String {
-    PROFILE.unwrap_or("UNKNOWN PROFILE").to_string()
-}
+pub fn get_profile() -> String { PROFILE.unwrap_or("UNKNOWN PROFILE").to_string() }
 
-pub fn get_build_time() -> DateTime<Utc> {
-    Utc.timestamp(BUILD_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0)
-}
+pub fn get_build_time() -> DateTime<Utc> { Utc.timestamp(BUILD_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0) }
 // END Environment variables
 
 fn main() {
     pretty_env_logger::init();
 
     info!("Starting Voxygen... Version: {}", get_version());
-
 
     let mut args = std::env::args();
     let mut remote_addr = String::new();
@@ -80,8 +76,7 @@ fn main() {
     // expects single command line argument that is the remote_addr
     if args.len() == 2 {
         remote_addr = args.nth(1).expect("No argument");
-    }
-    else {
+    } else {
         println!("");
         println!("Which server you want to connect to?");
         println!("    Press (1) to connect to the public veloren server (default)");
@@ -132,10 +127,5 @@ fn main() {
 
     println!("Connecting to {}", remote_addr);
 
-    Game::new(
-        ClientMode::Character,
-        name_choice,
-        remote_addr,
-        view_distance
-    ).run();
+    Game::new(ClientMode::Character, name_choice, remote_addr, view_distance).run();
 }

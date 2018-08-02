@@ -1,27 +1,25 @@
 #![feature(nll)]
 
 extern crate client;
-extern crate get_if_addrs;
-extern crate syrup;
 extern crate common;
+extern crate get_if_addrs;
 extern crate pretty_env_logger;
-#[macro_use] extern crate log;
+extern crate syrup;
+#[macro_use]
+extern crate log;
 
-use std::io;
-use std::sync::mpsc;
+use std::{io, sync::mpsc};
 
 use syrup::Window;
 
-use client::{Client, ClientMode, Chunk};
+use client::{Chunk, Client, ClientMode};
 
 struct Payloads {}
 impl client::Payloads for Payloads {
     type Chunk = ();
 }
 
-fn gen_payload(_: &Chunk) -> <Payloads as client::Payloads>::Chunk {
-    ()
-}
+fn gen_payload(_: &Chunk) -> <Payloads as client::Payloads>::Chunk { () }
 
 fn main() {
     info!("Starting headless client...");
@@ -48,7 +46,7 @@ fn main() {
     let mut win = Window::initscr();
     win.writeln("Welcome to the Veloren headless client.");
 
-    let client = match Client::<Payloads>::new(ClientMode::Headless, alias,  &remote_addr.trim(), gen_payload, 0) {
+    let client = match Client::<Payloads>::new(ClientMode::Headless, alias, &remote_addr.trim(), gen_payload, 0) {
         Ok(c) => c,
         Err(e) => panic!("An error occured when attempting to initiate the client: {:?}", e),
     };
@@ -68,8 +66,7 @@ fn main() {
         if let Some(msg) = win.get() {
             if msg.starts_with("!") {
                 client.send_cmd(msg[1..].to_string());
-            }
-            else {
+            } else {
                 client.send_chat_msg(msg.clone());
             }
         }

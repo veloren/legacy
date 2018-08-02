@@ -5,12 +5,16 @@ use std::sync::{Arc, RwLock};
 use coord::prelude::*;
 
 // Project
-use common::get_version;
-use common::net::{ServerMessage, ClientMessage};
-use region::{Entity};
+use common::{
+    get_version,
+    net::{ClientMessage, ServerMessage},
+};
+use region::Entity;
 
 // Local
-use {Client, Payloads, ClientStatus};
+use Client;
+use ClientStatus;
+use Payloads;
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn update_server(&self) {
@@ -32,12 +36,15 @@ impl<P: Payloads> Client<P> {
                 if version == get_version() {
                     if let Some(uid) = entity_uid {
                         if !self.entities().contains_key(&uid) {
-                            self.add_entity(uid, Entity::new(
-                                vec3!(0.0, 0.0, 0.0),
-                                vec3!(0.0, 0.0, 0.0),
-                                vec3!(0.0, 0.0, 0.0),
-                                vec2!(0.0, 0.0)
-                            ));
+                            self.add_entity(
+                                uid,
+                                Entity::new(
+                                    vec3!(0.0, 0.0, 0.0),
+                                    vec3!(0.0, 0.0, 0.0),
+                                    vec3!(0.0, 0.0, 0.0),
+                                    vec2!(0.0, 0.0),
+                                ),
+                            );
                             self.player_mut().control_entity(uid);
                         }
                     }
@@ -51,20 +58,26 @@ impl<P: Payloads> Client<P> {
             ServerMessage::Kicked { reason } => {
                 warn!("Server kicked client for {}", reason);
                 self.set_status(ClientStatus::Disconnected);
-            }
+            },
             ServerMessage::Shutdown => self.set_status(ClientStatus::Disconnected),
             ServerMessage::RecvChatMsg { alias, msg } => self.callbacks().call_recv_chat_msg(&alias, &msg),
-            ServerMessage::EntityUpdate { uid, pos, vel, ctrl_acc, look_dir } => {
-                match self.entity(uid) {
-                    Some(entity) => {
-                        let mut entity = entity.write().unwrap();
-                        *entity.pos_mut() = pos;
-                        *entity.vel_mut() = vel;
-                        *entity.ctrl_acc_mut() = ctrl_acc;
-                        *entity.look_dir_mut() = look_dir;
-                    },
-                    None => { self.add_entity(uid, Entity::new(pos, vel, ctrl_acc, look_dir)); },
-                }
+            ServerMessage::EntityUpdate {
+                uid,
+                pos,
+                vel,
+                ctrl_acc,
+                look_dir,
+            } => match self.entity(uid) {
+                Some(entity) => {
+                    let mut entity = entity.write().unwrap();
+                    *entity.pos_mut() = pos;
+                    *entity.vel_mut() = vel;
+                    *entity.ctrl_acc_mut() = ctrl_acc;
+                    *entity.look_dir_mut() = look_dir;
+                },
+                None => {
+                    self.add_entity(uid, Entity::new(pos, vel, ctrl_acc, look_dir));
+                },
             },
             ServerMessage::Ping => self.conn.send(ClientMessage::Pong),
             _ => {},

@@ -1,6 +1,5 @@
 // Parent
-use super::packet::{Frame};
-use super::Error;
+use super::{packet::Frame, Error};
 
 pub trait Protocol {
     fn send(&self, frame: Frame) -> Result<(), Error>;

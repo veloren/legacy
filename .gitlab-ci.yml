@@ -31,6 +31,13 @@ before_script:
     fi;
 #  - git submodule update --init --recursive
 
+clean-code:
+  stage: build
+  script:
+    - rustup component add rustfmt-preview
+    - cargo fmt --all -- --check
+  allow_failure: true
+
 build-voxygen:
   stage: build
   script:
@@ -254,3 +261,10 @@ coverage:
         RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin;
       fi
     - cargo tarpaulin --skip-clean --exclude headless
+
+clippy:
+  stage: post-run
+  script:
+    - rustup component add clippy-preview --toolchain=nightly
+    - cargo clippy --all -- -D clippy
+  allow_failure: true

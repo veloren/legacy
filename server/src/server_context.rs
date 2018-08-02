@@ -1,16 +1,19 @@
 // Standard
-use std::collections::hash_map::{Iter, IterMut};
-use std::collections::HashMap;
-use std::thread::JoinHandle;
-use std::time::Duration;
+use std::{
+    collections::{
+        hash_map::{Iter, IterMut},
+        HashMap,
+    },
+    thread::JoinHandle,
+    time::Duration,
+};
 
 // Library
-use bifrost::{Relay, event};
+use bifrost::{event, Relay};
 use config::PartialConfig;
 
 // Project
-use common::net::message::{ServerMessage};
-use common::Uid;
+use common::{net::message::ServerMessage, Uid};
 use region::Entity;
 
 // Local
@@ -57,37 +60,59 @@ impl ServerContext {
 
     // Sessions
 
-    #[allow(dead_code)] pub fn add_session(&mut self, session: Box<Session>) { self.sessions.insert(session.get_id(), session); }
-    #[allow(dead_code)] pub fn get_session(&self, id: u32) -> Option<&Session> { self.sessions.get(&id).map(|s| s.as_ref()) }
-    #[allow(dead_code)] pub fn get_session_mut(&mut self, id: u32) -> Option<&mut Session> { self.sessions.get_mut(&id).map(|s| s.as_mut()) }
-    #[allow(dead_code)] pub fn del_session(&mut self, id: u32) -> Option<Box<Session>> { self.sessions.remove(&id) }
-    #[allow(dead_code)] pub fn get_sessions(&self) -> Iter<u32, Box<Session>> { self.sessions.iter() }
-    #[allow(dead_code)] pub fn get_sessions_mut(&mut self) -> IterMut<u32, Box<Session>> { self.sessions.iter_mut() }
+    #[allow(dead_code)]
+    pub fn add_session(&mut self, session: Box<Session>) { self.sessions.insert(session.get_id(), session); }
+    #[allow(dead_code)]
+    pub fn get_session(&self, id: u32) -> Option<&Session> { self.sessions.get(&id).map(|s| s.as_ref()) }
+    #[allow(dead_code)]
+    pub fn get_session_mut(&mut self, id: u32) -> Option<&mut Session> {
+        self.sessions.get_mut(&id).map(|s| s.as_mut())
+    }
+    #[allow(dead_code)]
+    pub fn del_session(&mut self, id: u32) -> Option<Box<Session>> { self.sessions.remove(&id) }
+    #[allow(dead_code)]
+    pub fn get_sessions(&self) -> Iter<u32, Box<Session>> { self.sessions.iter() }
+    #[allow(dead_code)]
+    pub fn get_sessions_mut(&mut self) -> IterMut<u32, Box<Session>> { self.sessions.iter_mut() }
 
     // Entities
 
-    #[allow(dead_code)] pub fn add_entity(&mut self, id: Uid, entity: Box<Entity>) { self.entities.insert(id, entity); }
-    #[allow(dead_code)] pub fn get_entity(&mut self, id: Uid) -> Option<&mut Entity> { self.entities.get_mut(&id).map(|s| s.as_mut()) }
-    #[allow(dead_code)] pub fn del_entity(&mut self, id: Uid) -> Option<Box<Entity>> { self.entities.remove(&id) }
-    #[allow(dead_code)] pub fn get_entities(&self) -> Iter<Uid, Box<Entity>> { self.entities.iter() }
-    #[allow(dead_code)] pub fn get_entities_mut(&mut self) -> IterMut<Uid, Box<Entity>> { self.entities.iter_mut() }
+    #[allow(dead_code)]
+    pub fn add_entity(&mut self, id: Uid, entity: Box<Entity>) { self.entities.insert(id, entity); }
+    #[allow(dead_code)]
+    pub fn get_entity(&mut self, id: Uid) -> Option<&mut Entity> { self.entities.get_mut(&id).map(|s| s.as_mut()) }
+    #[allow(dead_code)]
+    pub fn del_entity(&mut self, id: Uid) -> Option<Box<Entity>> { self.entities.remove(&id) }
+    #[allow(dead_code)]
+    pub fn get_entities(&self) -> Iter<Uid, Box<Entity>> { self.entities.iter() }
+    #[allow(dead_code)]
+    pub fn get_entities_mut(&mut self) -> IterMut<Uid, Box<Entity>> { self.entities.iter_mut() }
 
     // Players
 
-    #[allow(dead_code)] pub fn add_player(&mut self, player: Box<Player>) { self.players.insert(player.get_uid(), player); }
-    #[allow(dead_code)] pub fn get_player(&self, id: Uid) -> Option<&Player> { self.players.get(&id).map(|s| s.as_ref()) }
-    #[allow(dead_code)] pub fn get_player_mut(&mut self, id: Uid) -> Option<&mut Player> { self.players.get_mut(&id).map(|s| s.as_mut()) }
-    #[allow(dead_code)] pub fn del_player(&mut self, id: Uid) -> Option<Box<Player>> { self.players.remove(&id) }
-    #[allow(dead_code)] pub fn get_players(&self) -> Iter<Uid, Box<Player>> { self.players.iter() }
-    #[allow(dead_code)] pub fn get_players_mut(&mut self) -> IterMut<Uid, Box<Player>> { self.players.iter_mut() }
+    #[allow(dead_code)]
+    pub fn add_player(&mut self, player: Box<Player>) { self.players.insert(player.get_uid(), player); }
+    #[allow(dead_code)]
+    pub fn get_player(&self, id: Uid) -> Option<&Player> { self.players.get(&id).map(|s| s.as_ref()) }
+    #[allow(dead_code)]
+    pub fn get_player_mut(&mut self, id: Uid) -> Option<&mut Player> { self.players.get_mut(&id).map(|s| s.as_mut()) }
+    #[allow(dead_code)]
+    pub fn del_player(&mut self, id: Uid) -> Option<Box<Player>> { self.players.remove(&id) }
+    #[allow(dead_code)]
+    pub fn get_players(&self) -> Iter<Uid, Box<Player>> { self.players.iter() }
+    #[allow(dead_code)]
+    pub fn get_players_mut(&mut self) -> IterMut<Uid, Box<Player>> { self.players.iter_mut() }
 
     // Network
 
-    pub fn send_message(&self, session_id: u32, message: ServerMessage) { self.get_session(session_id).map(|it| it.send_message(message)); }
-    pub fn broadcast_packet(&self, message: ServerMessage) {
-        self.sessions.iter().for_each(|(_, ref it)| it.send_message(message.clone()));
+    pub fn send_message(&self, session_id: u32, message: ServerMessage) {
+        self.get_session(session_id).map(|it| it.send_message(message));
     }
-
+    pub fn broadcast_packet(&self, message: ServerMessage) {
+        self.sessions
+            .iter()
+            .for_each(|(_, ref it)| it.send_message(message.clone()));
+    }
 
     // Utils
 
@@ -98,16 +123,27 @@ impl ServerContext {
         None
     }
 
-    #[allow(dead_code)] pub fn get_session_from_player(&mut self, player: &Player) -> Option<&mut Session> { self.get_session_mut(player.get_session_id()) }
+    #[allow(dead_code)]
+    pub fn get_session_from_player(&mut self, player: &Player) -> Option<&mut Session> {
+        self.get_session_mut(player.get_session_id())
+    }
 
     // Updates
 
     pub fn get_entity_updates(&self) -> Vec<(Uid, ServerMessage)> {
         self.get_entities()
             .map(|(entity_id, entity)| {
-                (*entity_id, ServerMessage::EntityUpdate { uid: *entity_id, pos: *entity.pos(), vel: *entity.vel(), ctrl_acc: *entity.ctrl_acc(), look_dir: *entity.look_dir() })
-            })
-            .collect::<Vec<(Uid, ServerMessage)>>()
+                (
+                    *entity_id,
+                    ServerMessage::EntityUpdate {
+                        uid: *entity_id,
+                        pos: *entity.pos(),
+                        vel: *entity.vel(),
+                        ctrl_acc: *entity.ctrl_acc(),
+                        look_dir: *entity.look_dir(),
+                    },
+                )
+            }).collect::<Vec<(Uid, ServerMessage)>>()
     }
 
     pub fn kick_session(&mut self, session_id: u32) {
@@ -128,7 +164,6 @@ impl ServerContext {
     }
 }
 
-
 pub const WORLD_UPDATE_TICK: u64 = 50;
 pub const SESSION_UPDATE_TICK: u64 = 500;
 
@@ -137,7 +172,12 @@ pub fn update_world(relay: &Relay<ServerContext>, ctx: &mut ServerContext) {
     //debug!("TICK!");
     // Send Entity Updates
 
-    debug!("Players Entities Sessions: {} {} {}", ctx.players.len(), ctx.entities.len(), ctx.sessions.len());
+    debug!(
+        "Players Entities Sessions: {} {} {}",
+        ctx.players.len(),
+        ctx.entities.len(),
+        ctx.sessions.len()
+    );
 
     remove_disconected_players(relay, ctx);
     send_entities_update(relay, ctx);
@@ -160,9 +200,9 @@ pub fn update_sessions_list(relay: &Relay<ServerContext>, ctx: &mut ServerContex
 }
 
 fn remove_disconected_players(_relay: &Relay<ServerContext>, ctx: &mut ServerContext) {
-
-    let sessions_id_to_kick = ctx.get_sessions()
-        .filter(|(_, session)| session.should_kick() )
+    let sessions_id_to_kick = ctx
+        .get_sessions()
+        .filter(|(_, session)| session.should_kick())
         .map(|(session_id, _)| *session_id)
         .collect::<Vec<u32>>();
 

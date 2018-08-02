@@ -1,41 +1,30 @@
 extern crate conrod;
-extern crate glutin;
 extern crate fps_counter;
+extern crate glutin;
 
 mod convert_events;
 mod ui_components;
 
-use renderer::Renderer;
 use client::Client;
 use game::Payloads;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::sync::mpsc::{self, Sender, Receiver};
-
-use self::ui_components::{
-    UiState,
-    MAX_CHAT_LINES,
+use renderer::Renderer;
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    sync::mpsc::{self, Receiver, Sender},
 };
+
+use self::ui_components::{UiState, MAX_CHAT_LINES};
 
 use conrod::{
-    UiBuilder,
-    Ui as conrod_ui,
-    backend::gfx::Renderer as ConrodRenderer,
-    image::Map,
-    event::Input,
-    widget,
-    UiCell
+    backend::gfx::Renderer as ConrodRenderer, event::Input, image::Map, widget, Ui as conrod_ui, UiBuilder, UiCell,
 };
 
-pub use gfx_device_gl::Resources as ui_resources;
 pub use conrod::gfx_core::handle::ShaderResourceView;
+pub use gfx_device_gl::Resources as ui_resources;
 pub type ImageMap = Map<(ShaderResourceView<ui_resources, [f32; 4]>, (u32, u32))>;
 
-use glutin:: {
-    ElementState,
-    MouseButton,
-    KeyboardInput,
-};
+use glutin::{ElementState, KeyboardInput, MouseButton};
 
 pub enum UiInternalEvent {
     UpdateChatText(String),
@@ -51,7 +40,7 @@ pub struct Ui {
     state: UiState,
     ids: HashMap<String, widget::Id>,
     event_tx: Sender<UiInternalEvent>,
-    event_rx: Receiver<UiInternalEvent>
+    event_rx: Receiver<UiInternalEvent>,
 }
 
 impl Ui {
@@ -65,12 +54,19 @@ impl Ui {
 
         let tx2 = tx.clone();
         client.callbacks().set_recv_chat_msg(move |alias, msg| {
-            if tx2.send(UiInternalEvent::NewChatMessage(alias.to_string(), msg.to_string())).is_err() {
+            if tx2
+                .send(UiInternalEvent::NewChatMessage(alias.to_string(), msg.to_string()))
+                .is_err()
+            {
                 panic!("Could not send event to ui");
             }
         });
 
-        ui.theme.font_id = Some(ui.fonts.insert_from_file("data/assets/fonts/NotoSans-Regular.ttf").unwrap());
+        ui.theme.font_id = Some(
+            ui.fonts
+                .insert_from_file("data/assets/fonts/NotoSans-Regular.ttf")
+                .unwrap(),
+        );
 
         Self {
             conrod_renderer,
@@ -88,10 +84,19 @@ impl Ui {
         self.update_internal_event(&client);
         ui_components::render(self);
         self.conrod_renderer.on_resize(renderer.color_view().clone());
-        self.conrod_renderer.fill(&mut renderer.encoder_mut(), (window_size[0] as f32, window_size[1] as f32), 1.0, self.ui.draw(), &self.image_map);
-        self.conrod_renderer.draw(&mut renderer.factory_mut().clone(), &mut renderer.encoder_mut(), &self.image_map);
+        self.conrod_renderer.fill(
+            &mut renderer.encoder_mut(),
+            (window_size[0] as f32, window_size[1] as f32),
+            1.0,
+            self.ui.draw(),
+            &self.image_map,
+        );
+        self.conrod_renderer.draw(
+            &mut renderer.factory_mut().clone(),
+            &mut renderer.encoder_mut(),
+            &self.image_map,
+        );
     }
-
 
     pub fn handle_event(&mut self, event: glutin::Event) {
         if let Some(event) = convert_events::convert(event, self.ui.win_w, self.ui.win_h) {
@@ -99,33 +104,31 @@ impl Ui {
         }
     }
 
-//    pub fn ui_event_keyboard_input(&mut self, input: KeyboardInput) {
-//        if let Some(event) = convert_events::convert_keycode(input) {
-//            self.ui.handle_event(event);
-//        }
-//    }
-//
-//    pub fn ui_event_window_resize(&mut self, w: u32, h: u32) {
-//        self.ui.handle_event(Input::Resize(w, h));
-//    }
-//
-//    pub fn ui_event_mouse_button(&mut self, state: ElementState, button: MouseButton) {
-//        self.ui.handle_event(convert_events::convert_mousebutton(state, button));
-//    }
-//
-//    pub fn ui_event_mouse_pos(&mut self, x: f64, y: f64) {
-//        self.ui.handle_event(convert_events::convert_mouse_pos(x, y, self.ui.win_w, self.ui.win_h));
-//    }
-//
-//    pub fn ui_event_character(&mut self, ch: char) {
-//        self.ui.handle_event(convert_events::convert_character(ch));
-//    }
+    //    pub fn ui_event_keyboard_input(&mut self, input: KeyboardInput) {
+    //        if let Some(event) = convert_events::convert_keycode(input) {
+    //            self.ui.handle_event(event);
+    //        }
+    //    }
+    //
+    //    pub fn ui_event_window_resize(&mut self, w: u32, h: u32) {
+    //        self.ui.handle_event(Input::Resize(w, h));
+    //    }
+    //
+    //    pub fn ui_event_mouse_button(&mut self, state: ElementState, button: MouseButton) {
+    //        self.ui.handle_event(convert_events::convert_mousebutton(state, button));
+    //    }
+    //
+    //    pub fn ui_event_mouse_pos(&mut self, x: f64, y: f64) {
+    //        self.ui.handle_event(convert_events::convert_mouse_pos(x, y, self.ui.win_w, self.ui.win_h));
+    //    }
+    //
+    //    pub fn ui_event_character(&mut self, ch: char) {
+    //        self.ui.handle_event(convert_events::convert_character(ch));
+    //    }
 
-    fn generate_widget_id(&mut self) -> widget::Id {
-        self.ui.widget_id_generator().next()
-    }
+    fn generate_widget_id(&mut self) -> widget::Id { self.ui.widget_id_generator().next() }
 
-    pub fn get_widget_id(&mut self, widget_name: &str) -> widget::Id  {
+    pub fn get_widget_id(&mut self, widget_name: &str) -> widget::Id {
         let widget_name = widget_name.to_string();
         if self.ids.contains_key(&widget_name) {
             self.ids[&widget_name]
@@ -136,35 +139,24 @@ impl Ui {
         }
     }
 
-    pub fn get_ui_cell(&mut self) -> UiCell {
-        self.ui.set_widgets()
-    }
+    pub fn get_ui_cell(&mut self) -> UiCell { self.ui.set_widgets() }
 
-    pub fn get_width(&self) -> f64 {
-        self.ui.win_w
-    }
+    pub fn get_width(&self) -> f64 { self.ui.win_w }
 
-    pub fn get_height(&self) -> f64 {
-        self.ui.win_h
-    }
+    pub fn get_height(&self) -> f64 { self.ui.win_h }
 
-    pub fn get_state(&self) -> UiState {
-        self.state.clone()
-    }
+    pub fn get_state(&self) -> UiState { self.state.clone() }
 
-    pub fn set_show_chat(&mut self, show: bool) {
-        self.state.show_chat = show;
-    }
+    pub fn set_show_chat(&mut self, show: bool) { self.state.show_chat = show; }
 
-    pub fn get_show_chat(&self) -> bool {
-        self.state.show_chat.clone()
-    }
+    pub fn get_show_chat(&self) -> bool { self.state.show_chat.clone() }
 
-    pub fn get_event_tx(&self) -> Sender<UiInternalEvent> {
-        self.event_tx.clone()
-    }
+    pub fn get_event_tx(&self) -> Sender<UiInternalEvent> { self.event_tx.clone() }
 
-    pub fn widget_events<T>(&self, id: widget::Id, fnc: T) where T: Fn(conrod::event::Widget){
+    pub fn widget_events<T>(&self, id: widget::Id, fnc: T)
+    where
+        T: Fn(conrod::event::Widget),
+    {
         for widget_event in self.ui.widget_input(id).events() {
             fnc(widget_event);
         }

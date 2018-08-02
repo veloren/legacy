@@ -1,24 +1,12 @@
-use ui::{
-    Ui,
-    UiInternalEvent,
-};
+use ui::{Ui, UiInternalEvent};
 
 use std::collections::VecDeque;
 pub const MAX_CHAT_LINES: usize = 12;
 
-use conrod::{
-    self,
-    widget,
-    Widget,
-    Positionable,
-    Colorable,
-    color,
-    Borderable,
-    Sizeable,
-};
+use conrod::{self, color, widget, Borderable, Colorable, Positionable, Sizeable, Widget};
 
-use get_git_hash;
 use get_build_time;
+use get_git_hash;
 
 #[derive(Clone, Debug)]
 pub struct UiState {
@@ -66,8 +54,6 @@ pub fn render(ui: &mut Ui) {
     let chat_lines = ui.get_widget_id("chat_lines");
     let chat_background = ui.get_widget_id("chat_background");
 
-
-
     let version_id = ui.get_widget_id("version_id");
     let fps_id = ui.get_widget_id("fps_id");
     let text_id = ui.get_widget_id("text_id");
@@ -82,52 +68,109 @@ pub fn render(ui: &mut Ui) {
 
     let event_tx = ui.get_event_tx();
 
-    let event_focus = conrod::event::Event::Ui(
-        conrod::event::Ui::WidgetCapturesInputSource(
-            text_id,
-            conrod::input::Source::Keyboard,
-        )
-    );
+    let event_focus = conrod::event::Event::Ui(conrod::event::Ui::WidgetCapturesInputSource(
+        text_id,
+        conrod::input::Source::Keyboard,
+    ));
 
     let tx = event_tx.clone();
-    ui.widget_events(text_id, |event| {
-        match event {
-            conrod::event::Widget::Press(press) => match press.button {
-                conrod::event::Button::Keyboard(key) => match key {
-                    conrod::input::Key::Return => {
-                        tx.send(UiInternalEvent::SendChat).unwrap();
-                    },
-                    _ => (),
+    ui.widget_events(text_id, |event| match event {
+        conrod::event::Widget::Press(press) => match press.button {
+            conrod::event::Button::Keyboard(key) => match key {
+                conrod::input::Key::Return => {
+                    tx.send(UiInternalEvent::SendChat).unwrap();
                 },
                 _ => (),
             },
             _ => (),
-        }
+        },
+        _ => (),
     });
 
     let uicell = &mut ui.get_ui_cell();
 
     let splits_right = [
-        (top_right_top_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.9)),
-        (top_right_bot1_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
-        (top_right_bot2_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
-        (top_right_bot3_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
-        (top_right_bot4_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.05)),
+        (
+            top_right_top_id,
+            widget::Canvas::new()
+                .color(color::TRANSPARENT)
+                .border(0.0)
+                .length_weight(0.9),
+        ),
+        (
+            top_right_bot1_id,
+            widget::Canvas::new()
+                .color(color::TRANSPARENT)
+                .border(0.0)
+                .length_weight(0.05),
+        ),
+        (
+            top_right_bot2_id,
+            widget::Canvas::new()
+                .color(color::TRANSPARENT)
+                .border(0.0)
+                .length_weight(0.05),
+        ),
+        (
+            top_right_bot3_id,
+            widget::Canvas::new()
+                .color(color::TRANSPARENT)
+                .border(0.0)
+                .length_weight(0.05),
+        ),
+        (
+            top_right_bot4_id,
+            widget::Canvas::new()
+                .color(color::TRANSPARENT)
+                .border(0.0)
+                .length_weight(0.05),
+        ),
     ];
     let top_splits = [
-        (top_left_id,   widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0)),
-        (top_mid_id,    widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0)),
-        (top_right_id,  widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(1.0 / 3.0).flow_down(&splits_right)),
+        (
+            top_left_id,
+            widget::Canvas::new()
+                .color(color::TRANSPARENT)
+                .border(0.0)
+                .length_weight(1.0 / 3.0),
+        ),
+        (
+            top_mid_id,
+            widget::Canvas::new()
+                .color(color::TRANSPARENT)
+                .border(0.0)
+                .length_weight(1.0 / 3.0),
+        ),
+        (
+            top_right_id,
+            widget::Canvas::new()
+                .color(color::TRANSPARENT)
+                .border(0.0)
+                .length_weight(1.0 / 3.0)
+                .flow_down(&splits_right),
+        ),
     ];
 
     let master_splits = [
-        (top_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.96).flow_right(&top_splits)),
-        (bottom_id, widget::Canvas::new().color(color::TRANSPARENT).border(0.0).length_weight(0.04)),
+        (
+            top_id,
+            widget::Canvas::new()
+                .color(color::TRANSPARENT)
+                .border(0.0)
+                .length_weight(0.96)
+                .flow_right(&top_splits),
+        ),
+        (
+            bottom_id,
+            widget::Canvas::new()
+                .color(color::TRANSPARENT)
+                .border(0.0)
+                .length_weight(0.04),
+        ),
     ];
 
-
-    widget::Canvas::new().
-        flow_down(&master_splits)
+    widget::Canvas::new()
+        .flow_down(&master_splits)
         .color(color::TRANSPARENT)
         .border(0.0)
         .scroll_kids_horizontally()
@@ -154,13 +197,15 @@ pub fn render(ui: &mut Ui) {
             item.set(text, uicell);
         }
 
-        if let Some(s) = scrollbar { s.set(uicell) }
+        if let Some(s) = scrollbar {
+            s.set(uicell)
+        }
     }
 
     if state.show_fps {
         widget::Text::new(&format!("Fps: {}", fps))
             .color(color::BLACK)
-            .font_size(((0.01+height) * 0.03) as u32)
+            .font_size(((0.01 + height) * 0.03) as u32)
             .right_justify()
             .mid_right_with_margin_on(top_right_bot3_id, 5.0)
             .set(fps_id, uicell);
@@ -193,9 +238,9 @@ pub fn render(ui: &mut Ui) {
             .font_size((height * 0.03) as u32)
             .restrict_to_height(true)
             .set(text_id, uicell)
-            {
-                event_tx.send(UiInternalEvent::UpdateChatText(edit)).unwrap();
-            }
+        {
+            event_tx.send(UiInternalEvent::UpdateChatText(edit)).unwrap();
+        }
     }
 
     widget::Text::new(&format!("Build {}", &get_git_hash()[..8]))

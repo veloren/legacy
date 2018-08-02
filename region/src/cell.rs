@@ -8,23 +8,11 @@ pub struct Cell {
 impl Voxel for Cell {
     type Material = u8;
 
-    fn new(color: Self::Material) -> Self {
-        Cell {
-            color,
-        }
-    }
+    fn new(color: Self::Material) -> Self { Cell { color } }
 
-    fn empty() -> Self {
-        Cell {
-            color: 255,
-        }
-    }
+    fn empty() -> Self { Cell { color: 255 } }
 
-    fn is_solid(&self) -> bool {
-        self.color != 255
-    }
+    fn is_solid(&self) -> bool { self.color != 255 }
 
-    fn material(&self) -> Self::Material {
-        self.color
-    }
+    fn material(&self) -> Self::Material { self.color }
 }

@@ -20,35 +20,19 @@ impl Entity {
         }
     }
 
-    pub fn pos(&self) -> &Vec3f {
-        &self.pos
-    }
+    pub fn pos(&self) -> &Vec3f { &self.pos }
 
-    pub fn vel(&self) -> &Vec3f {
-        &self.vel
-    }
+    pub fn vel(&self) -> &Vec3f { &self.vel }
 
-    pub fn ctrl_acc(&self) -> &Vec3f {
-        &self.ctrl_acc
-    }
+    pub fn ctrl_acc(&self) -> &Vec3f { &self.ctrl_acc }
 
-    pub fn look_dir(&self) -> &Vec2f {
-        &self.look_dir
-    }
+    pub fn look_dir(&self) -> &Vec2f { &self.look_dir }
 
-    pub fn pos_mut(&mut self) -> &mut Vec3f {
-        &mut self.pos
-    }
+    pub fn pos_mut(&mut self) -> &mut Vec3f { &mut self.pos }
 
-    pub fn vel_mut(&mut self) -> &mut Vec3f {
-        &mut self.vel
-    }
+    pub fn vel_mut(&mut self) -> &mut Vec3f { &mut self.vel }
 
-    pub fn ctrl_acc_mut(&mut self) -> &mut Vec3f {
-        &mut self.ctrl_acc
-    }
+    pub fn ctrl_acc_mut(&mut self) -> &mut Vec3f { &mut self.ctrl_acc }
 
-    pub fn look_dir_mut(&mut self) -> &mut Vec2f {
-        &mut self.look_dir
-    }
+    pub fn look_dir_mut(&mut self) -> &mut Vec2f { &mut self.look_dir }
 }

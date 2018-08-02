@@ -1,24 +1,28 @@
 // Standard
-use std::sync::{Arc, RwLock};
-use std::collections::HashMap;
-use std::clone::Clone;
+use std::{
+    clone::Clone,
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 // Library
 use coord::prelude::*;
 
 // Project
-use common::{Uid};
-use collision::{Primitive, Collider, PLANCK_LENGTH, ResolutionTti};
+use collision::{Collider, Primitive, ResolutionTti, PLANCK_LENGTH};
+use common::Uid;
 
 // Local
-use super::{Entity, VolMgr, VolState, Chunk};
+use super::{Chunk, Entity, VolMgr, VolState};
 
-pub const LENGTH_OF_BLOCK : f32 = 0.3;
+pub const LENGTH_OF_BLOCK: f32 = 0.3;
 
-pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity>>)>>(entities: I,
-            chunk_mgr: &VolMgr<Chunk, P>,
-            chunk_size: i64,
-            dt: f32) {
+pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity>>)>>(
+    entities: I,
+    chunk_mgr: &VolMgr<Chunk, P>,
+    chunk_size: i64,
+    dt: f32,
+) {
     //consts
     const GROUND_GRAVITY: f32 = -9.81;
     // TODO: coord const support
@@ -49,8 +53,9 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
         let ground_prims = chunk_mgr.get_nearby(&can_jump_prim);
         for prim in ground_prims {
             let res = prim.time_to_impact(&can_jump_prim, &SMALLER_THAN_BLOCK_GOING_DOWN);
-            if let Some(ResolutionTti::WillCollide{tti, ..}) = res {
-                if tti < PLANCK_LENGTH*2.0 { // something really small
+            if let Some(ResolutionTti::WillCollide { tti, .. }) = res {
+                if tti < PLANCK_LENGTH * 2.0 {
+                    // something really small
                     on_ground = true;
                     break;
                 }
@@ -106,10 +111,15 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
                 let r = prim.time_to_impact(&entity_prim, &velocity);
                 if let Some(r) = r {
                     //info!("colliding in tti: {:?}", r);
-                    if let ResolutionTti::WillCollide{tti: ltti, normal: lnormal} = r {
+                    if let ResolutionTti::WillCollide {
+                        tti: ltti,
+                        normal: lnormal,
+                    } = r
+                    {
                         if ltti <= tti {
                             //debug!("colliding in tti: {}, normal {}", ltti, lnormal);
-                            if lnormal.length() < normal.length() || normal.length() < 0.1 || ltti < tti { // when tti is same but we have less normal we switch
+                            if lnormal.length() < normal.length() || normal.length() < 0.1 || ltti < tti {
+                                // when tti is same but we have less normal we switch
                                 //info!("set normal to: {}", lnormal);
                                 // if there is a collission with 2 and one with 1 block we first solve the single one
                                 normal = lnormal;
@@ -155,7 +165,7 @@ pub fn tick<'a, P: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<R
                         entity.vel_mut().y = 0.0;
                     }
                 } else {
-                    let mut smoothmove = BLOCK_HOP_SPEED*dt;
+                    let mut smoothmove = BLOCK_HOP_SPEED * dt;
                     if smoothmove > BLOCK_HOP_MAX {
                         smoothmove = BLOCK_HOP_MAX;
                     };

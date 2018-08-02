@@ -26,7 +26,5 @@ impl KeyState {
         )
     }
 
-    pub fn jump(&self) -> bool {
-        self.jump
-    }
+    pub fn jump(&self) -> bool { self.jump }
 }

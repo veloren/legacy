@@ -1,5 +1,5 @@
 use coord::prelude::*;
-use region::{Voxel, Volume, Block, BlockMaterial, Chunk, Cell, Figure};
+use region::{Block, BlockMaterial, Cell, Chunk, Figure, Volume, Voxel};
 
 pub trait RenderVoxel: Voxel {
     fn get_color(&self) -> Vec4<f32>;
@@ -7,8 +7,10 @@ pub trait RenderVoxel: Voxel {
 }
 
 pub trait RenderVolume: Volume
-    where Self::VoxelType: RenderVoxel
-{}
+where
+    Self::VoxelType: RenderVoxel,
+{
+}
 
 // Implementations for common structures
 
@@ -30,9 +32,7 @@ impl RenderVoxel for Block {
         color_map[self.material()]
     }
 
-    fn is_opaque(&self) -> bool {
-        self.material() != BlockMaterial::Air
-    }
+    fn is_opaque(&self) -> bool { self.material() != BlockMaterial::Air }
 }
 
 impl RenderVolume for Chunk {}
@@ -197,9 +197,7 @@ impl RenderVoxel for Cell {
         color_map[self.material()]
     }
 
-    fn is_opaque(&self) -> bool {
-        self.material() != 255
-    }
+    fn is_opaque(&self) -> bool { self.material() != 255 }
 }
 
 impl RenderVolume for Figure {}

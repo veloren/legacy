@@ -1,26 +1,12 @@
 use conrod::{
     event::Input,
-    input::{
-        self,
-        Key,
-    },
+    input::{self, Key},
     Scalar,
 };
 
 use glutin::{
-    VirtualKeyCode,
-    KeyboardInput,
-    ElementState,
-    MouseButton,
-    Event,
-    WindowEvent,
-    TouchPhase,
-    MouseScrollDelta,
-    Touch,
-    dpi::{
-        LogicalSize,
-        LogicalPosition,
-    },
+    dpi::{LogicalPosition, LogicalSize},
+    ElementState, Event, KeyboardInput, MouseButton, MouseScrollDelta, Touch, TouchPhase, VirtualKeyCode, WindowEvent,
 };
 
 pub fn convert(event: Event, win_w: f64, win_h: f64) -> Option<Input> {
@@ -36,9 +22,9 @@ pub fn convert(event: Event, win_w: f64, win_h: f64) -> Option<Input> {
 
     match event {
         WindowEvent::Resized(LogicalSize { width, height }) => {
-                let w = (width as Scalar / dpi_factor) as u32;
-                let h = (height as Scalar / dpi_factor) as u32;
-                Some(Input::Resize(w, h).into())
+            let w = (width as Scalar / dpi_factor) as u32;
+            let h = (height as Scalar / dpi_factor) as u32;
+            Some(Input::Resize(w, h).into())
         },
         WindowEvent::ReceivedCharacter(ch) => {
             let string = match ch {
@@ -51,19 +37,17 @@ pub fn convert(event: Event, win_w: f64, win_h: f64) -> Option<Input> {
             };
             Some(Input::Text(string).into())
         },
-        WindowEvent::Focused(focused) =>
-            Some(Input::Focus(focused).into()),
-        WindowEvent::KeyboardInput { input, .. } => {
-            input.virtual_keycode.map(|key| {
-                match input.state {
-                    ElementState::Pressed =>
-                        Input::Press(input::Button::Keyboard(map_key(key))).into(),
-                    ElementState::Released =>
-                        Input::Release(input::Button::Keyboard(map_key(key))).into(),
-                }
-            })
-        },
-        WindowEvent::Touch(Touch { phase, location: LogicalPosition {x, y}, id, .. }) => {
+        WindowEvent::Focused(focused) => Some(Input::Focus(focused).into()),
+        WindowEvent::KeyboardInput { input, .. } => input.virtual_keycode.map(|key| match input.state {
+            ElementState::Pressed => Input::Press(input::Button::Keyboard(map_key(key))).into(),
+            ElementState::Released => Input::Release(input::Button::Keyboard(map_key(key))).into(),
+        }),
+        WindowEvent::Touch(Touch {
+            phase,
+            location: LogicalPosition { x, y },
+            id,
+            ..
+        }) => {
             let phase = match phase {
                 TouchPhase::Started => input::touch::Phase::Start,
                 TouchPhase::Moved => input::touch::Phase::Move,
@@ -72,11 +56,18 @@ pub fn convert(event: Event, win_w: f64, win_h: f64) -> Option<Input> {
             };
             let xy = [tx(x), ty(y)];
             let id = input::touch::Id::new(id);
-            let touch = input::Touch { phase: phase, id: id, xy: xy };
+            let touch = input::Touch {
+                phase: phase,
+                id: id,
+                xy: xy,
+            };
             Some(Input::Touch(touch).into())
-        }
+        },
 
-        WindowEvent::CursorMoved { position: LogicalPosition { x, y }, .. } => {
+        WindowEvent::CursorMoved {
+            position: LogicalPosition { x, y },
+            ..
+        } => {
             let x = tx(x as Scalar);
             let y = ty(y as Scalar);
             let motion = input::Motion::MouseCursor { x: x, y: y };
@@ -99,14 +90,10 @@ pub fn convert(event: Event, win_w: f64, win_h: f64) -> Option<Input> {
             },
         },
         WindowEvent::MouseInput { state, button, .. } => match state {
-            ElementState::Pressed =>
-                Some(Input::Press(input::Button::Mouse(map_mouse(button))).into()),
-            ElementState::Released =>
-                Some(Input::Release(input::Button::Mouse(map_mouse(button))).into()),
+            ElementState::Pressed => Some(Input::Press(input::Button::Mouse(map_mouse(button))).into()),
+            ElementState::Released => Some(Input::Release(input::Button::Mouse(map_mouse(button))).into()),
         },
-        WindowEvent::Refresh => {
-            Some(Input::Redraw)
-        },
+        WindowEvent::Refresh => Some(Input::Redraw),
         _ => None,
     }
 }
@@ -207,11 +194,11 @@ pub fn map_key(keycode: VirtualKeyCode) -> input::keyboard::Key {
         VirtualKeyCode::LShift => Key::LShift,
         VirtualKeyCode::LControl => Key::LCtrl,
         VirtualKeyCode::LAlt => Key::LAlt,
-//        VirtualKeyCode::LMenu => Key::LGui,
+        //        VirtualKeyCode::LMenu => Key::LGui,
         VirtualKeyCode::RShift => Key::RShift,
         VirtualKeyCode::RControl => Key::RCtrl,
         VirtualKeyCode::RAlt => Key::RAlt,
-//        VirtualKeyCode::RMenu => Key::RGui,
+        //        VirtualKeyCode::RMenu => Key::RGui,
         // Map to backslash?
         // K::GraveAccent => Key::Unknown,
         VirtualKeyCode::Home => Key::Home,
@@ -251,6 +238,6 @@ pub fn map_mouse(mouse_button: MouseButton) -> input::MouseButton {
         MouseButton::Other(2) => input::MouseButton::Button6,
         MouseButton::Other(3) => input::MouseButton::Button7,
         MouseButton::Other(4) => input::MouseButton::Button8,
-        _ => input::MouseButton::Unknown
+        _ => input::MouseButton::Unknown,
     }
 }

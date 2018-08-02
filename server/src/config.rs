@@ -1,7 +1,9 @@
 // Standard
-use std::fs::File;
-use std::io::{Read, Write};
-use std::path::Path;
+use std::{
+    fs::File,
+    io::{Read, Write},
+    path::Path,
+};
 
 // Library
 use toml;
@@ -12,22 +14,22 @@ const CONFIG_FILE: &str = "server_conf.toml";
 
 #[derive(Deserialize)]
 pub struct PartialConfig {
-    pub network: Option<PartialConfigNetwork>
+    pub network: Option<PartialConfigNetwork>,
 }
 #[derive(Deserialize)]
 pub struct PartialConfigNetwork {
-    pub port: Option<u16>
+    pub port: Option<u16>,
 }
 
 // Config
 
 #[derive(Serialize)]
 pub struct Config {
-    pub network: ConfigNetwork
+    pub network: ConfigNetwork,
 }
 #[derive(Serialize)]
 pub struct ConfigNetwork {
-    pub port: u16
+    pub port: u16,
 }
 
 impl Config {
@@ -36,14 +38,15 @@ impl Config {
         Config {
             network: match &partial.network {
                 Some(partial_network) => ConfigNetwork::from_partial(partial_network),
-                None => default.network
-            }
+                None => default.network,
+            },
         }
     }
 
     pub fn write_to(&self, config_path: &Path) {
         let mut file = File::create(config_path).unwrap();
-        file.write_all(&toml::to_string(&default_config()).unwrap().as_bytes()).unwrap();
+        file.write_all(&toml::to_string(&default_config()).unwrap().as_bytes())
+            .unwrap();
     }
 }
 impl ConfigNetwork {
@@ -57,14 +60,11 @@ impl ConfigNetwork {
 
 fn default_config() -> Config {
     Config {
-        network: ConfigNetwork {
-            port: 59003
-        }
+        network: ConfigNetwork { port: 59003 },
     }
 }
 
 pub fn load_config() -> Config {
-
     let config_path = Path::new(CONFIG_FILE);
 
     let config = match File::open(config_path) {
@@ -74,7 +74,7 @@ pub fn load_config() -> Config {
                 Ok(_) => Config::from_partial(&toml::from_str::<PartialConfig>(&contents).unwrap()),
                 Err(_) => default_config(),
             }
-        }
+        },
         Err(_) => default_config(),
     };
 

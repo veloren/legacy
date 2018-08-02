@@ -2,9 +2,11 @@ use toml::{self, Value};
 #[macro_use]
 use serde_derive;
 
-use std::fs::{self, File};
-use std::io::{self, Read, Write, Seek, SeekFrom};
-use std::path::Path;
+use std::{
+    fs::{self, File},
+    io::{self, Read, Seek, SeekFrom, Write},
+    path::Path,
+};
 
 const KEYS_PATH: &str = "keybinds.toml";
 
@@ -49,8 +51,7 @@ pub struct Mount {
 impl Keybinds {
     pub fn new() -> Keybinds {
         let path = Path::new(KEYS_PATH);
-        let keys = Keybinds::load_from(path)
-            .unwrap_or_else(|_| Keybinds::default());
+        let keys = Keybinds::load_from(path).unwrap_or_else(|_| Keybinds::default());
         Keybinds::write_to(&keys);
         keys
     }
@@ -142,9 +143,7 @@ impl Keybinds {
                 pause: Some(1),
             },
 
-            mount: Mount {
-                dismount: Some(20),
-            },
+            mount: Mount { dismount: Some(20) },
         }
     }
 }
@@ -157,19 +156,13 @@ enum Error {
 }
 
 impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Error {
-        Error::Io(err)
-    }
+    fn from(err: io::Error) -> Error { Error::Io(err) }
 }
 
 impl From<toml::de::Error> for Error {
-    fn from(err: toml::de::Error) -> Error {
-        Error::TomlDe(err)
-    }
+    fn from(err: toml::de::Error) -> Error { Error::TomlDe(err) }
 }
 
 impl From<toml::ser::Error> for Error {
-    fn from(err: toml::ser::Error) -> Error {
-        Error::TomlSer(err)
-    }
+    fn from(err: toml::ser::Error) -> Error { Error::TomlSer(err) }
 }

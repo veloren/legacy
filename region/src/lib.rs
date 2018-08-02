@@ -2,33 +2,36 @@
 
 #[macro_use]
 extern crate log;
-#[macro_use] extern crate enum_map;
-extern crate rand;
-extern crate noise;
+#[macro_use]
+extern crate enum_map;
 extern crate nalgebra;
-#[macro_use] extern crate coord;
+extern crate noise;
+extern crate rand;
+#[macro_use]
+extern crate coord;
 extern crate threadpool;
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 extern crate common;
 
 mod block;
-mod chunk;
 mod cell;
-mod figure;
-mod entity;
-mod vol_mgr;
+mod chunk;
 mod collision;
+mod entity;
+mod figure;
 pub mod physics;
 #[cfg(test)]
 mod tests;
+mod vol_mgr;
 
 // Reexports
 pub use block::{Block, BlockMaterial};
-pub use chunk::Chunk;
 pub use cell::Cell;
-pub use figure::Figure;
+pub use chunk::Chunk;
 pub use entity::Entity;
-pub use vol_mgr::{VolMgr, VolGen, VolState, FnGenFunc, FnPayloadFunc};
+pub use figure::Figure;
+pub use vol_mgr::{FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolState};
 
 use coord::prelude::*;
 

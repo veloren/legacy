@@ -38,8 +38,8 @@ impl Renderer {
             voxel_pipeline: Pipeline::new(
                 &mut factory,
                 voxel::pipeline::new(),
-                include_bytes!("../shaders/vert.glsl"),
-                include_bytes!("../shaders/frag.glsl"),
+                include_bytes!("../assets/voxygen/shaders/vert.glsl"),
+                include_bytes!("../assets/voxygen/shaders/frag.glsl"),
             ),
             factory,
         }

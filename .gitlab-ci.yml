@@ -265,10 +265,6 @@ coverage:
 clippy:
   stage: post-run
   script:
-    - if cargo install --list | grep -i "clippy"; then
-        echo "clippy already installed";
-      else
-        cargo install clippy;
-      fi
+    - rustup component add clippy-preview --toolchain=nightly
     - cargo clippy --all -- -D clippy
   allow_failure: true

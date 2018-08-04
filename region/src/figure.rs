@@ -45,16 +45,6 @@ impl Figure {
 impl Volume for Figure {
     type VoxelType = Cell;
 
-    fn new() -> Self {
-        Figure {
-            size: Vec3::from((0, 0, 0)),
-            offset: Vec3::from((0, 0, 0)),
-            voxels: Vec::new(),
-            ori: Vec3::new(0.0, 0.0, 0.0),
-            scale: Vec3::new(1.0, 1.0, 1.0),
-        }
-    }
-
     fn fill(&mut self, cell: Cell) {
         for v in self.voxels.iter_mut() {
             *v = cell;
@@ -89,6 +79,18 @@ impl Volume for Figure {
         } else {
             let i = self.pos_to_index(pos);
             self.voxels[i] = vt;
+        }
+    }
+}
+
+impl Figure {
+    pub fn new() -> Self {
+        Figure {
+            size: Vec3::from((0, 0, 0)),
+            offset: Vec3::from((0, 0, 0)),
+            voxels: Vec::new(),
+            ori: Vec3::new(0.0, 0.0, 0.0),
+            scale: Vec3::new(1.0, 1.0, 1.0),
         }
     }
 }

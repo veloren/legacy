@@ -1,7 +1,10 @@
 // Local
+use chunk_conv::ChunkConverter;
+use vol_per::{VolPers};
 use collision::{Collider, Primitive};
 use Volume;
 use Voxel;
+use Block;
 
 // Standard
 use std::{
@@ -45,6 +48,7 @@ impl<V: Volume, P: Send + Sync + 'static> VolGen<V, P> {
 pub struct VolMgr<V: 'static + Volume, P: Send + Sync + 'static> {
     vol_size: i64,
     vols: RwLock<HashMap<Vec2<i64>, Arc<RwLock<VolState<V, P>>>>>,
+    pers: VolPers<Vec2<i64>, Block, ChunkConverter<Block> ,P>,
     gen: VolGen<V, P>,
 }
 
@@ -53,6 +57,7 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> VolMgr<V, P> {
         VolMgr {
             vol_size,
             vols: RwLock::new(HashMap::new()),
+            pers: VolPers::new(),
             gen,
         }
     }

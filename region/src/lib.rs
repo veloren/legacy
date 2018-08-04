@@ -17,6 +17,9 @@ extern crate common;
 mod block;
 mod cell;
 mod chunk;
+mod chunk_rle;
+mod chunk_file;
+mod chunk_conv;
 mod collision;
 mod entity;
 mod figure;
@@ -24,6 +27,7 @@ pub mod physics;
 #[cfg(test)]
 mod tests;
 mod vol_mgr;
+mod vol_per;
 
 // Reexports
 pub use block::{Block, BlockMaterial};
@@ -46,7 +50,6 @@ pub trait Voxel: Copy + Clone {
 pub trait Volume: Send + Sync {
     type VoxelType: Voxel + Copy + Clone;
 
-    fn new() -> Self;
     fn fill(&mut self, block: Self::VoxelType);
 
     // number of Voxel in x, and z direction
@@ -57,6 +60,12 @@ pub trait Volume: Send + Sync {
     fn ori(&self) -> Vec3<f32>;
     // scale is applied to size and offset
     fn scale(&self) -> Vec3<f32>;
+
+    // returns the size of the contained data
+    //fn byte_size(&self) -> u64;
+    // returns the size of the contained data hold in memory
+    //TODO: sizeof?
+    //fn memory_size(&self) -> u64;
 
     fn set_size(&mut self, size: Vec3<i64>);
     fn set_offset(&mut self, offset: Vec3<i64>);

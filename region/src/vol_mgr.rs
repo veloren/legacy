@@ -1,14 +1,12 @@
 // Local
-use chunk_conv::ChunkConverter;
-use vol_per::{VolPers};
 use collision::{Collider, Primitive};
+use vol_per::{Container, PersState, VolPers, VolumeConverter};
 use Volume;
 use Voxel;
-use Block;
 
 // Standard
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     sync::{Arc, Mutex, RwLock, RwLockReadGuard},
 };
 
@@ -16,9 +14,9 @@ use std::{
 use coord::prelude::*;
 use threadpool::ThreadPool;
 
-pub enum VolState<V: Volume, P> {
+pub enum VolState<V: Voxel, P: Send + Sync + 'static> {
     Loading,
-    Exists(V, P),
+    Exists(Arc<RwLock<Container<V, P>>>),
 }
 
 lazy_static! {
@@ -45,67 +43,88 @@ impl<V: Volume, P: Send + Sync + 'static> VolGen<V, P> {
     }
 }
 
-pub struct VolMgr<V: 'static + Volume, P: Send + Sync + 'static> {
+pub struct VolMgr<V: 'static + Volume, VC: VolumeConverter<V::VoxelType>, P: Send + Sync + 'static> {
     vol_size: i64,
-    vols: RwLock<HashMap<Vec2<i64>, Arc<RwLock<VolState<V, P>>>>>,
-    pers: VolPers<Vec2<i64>, Block, ChunkConverter<Block> ,P>,
+    pending: Arc<RwLock<HashSet<Vec2<i64>>>>,
+    pers: VolPers<Vec2<i64>, V::VoxelType, VC, P>,
     gen: VolGen<V, P>,
 }
 
-impl<V: 'static + Volume, P: Send + Sync + 'static> VolMgr<V, P> {
-    pub fn new(vol_size: i64, gen: VolGen<V, P>) -> VolMgr<V, P> {
+impl<V: 'static + Volume, VC: VolumeConverter<V::VoxelType>, P: Send + Sync + 'static> VolMgr<V, VC, P> {
+    pub fn new(vol_size: i64, gen: VolGen<V, P>) -> VolMgr<V, VC, P> {
         VolMgr {
             vol_size,
-            vols: RwLock::new(HashMap::new()),
+            pending: Arc::new(RwLock::new(HashSet::new())),
             pers: VolPers::new(),
             gen,
         }
     }
 
-    pub fn at(&self, pos: Vec2<i64>) -> Option<Arc<RwLock<VolState<V, P>>>> {
-        self.vols.read().unwrap().get(&pos).map(|v| v.clone())
+    pub fn at(&self, pos: Vec2<i64>) -> Option<VolState<V::VoxelType, P>> {
+        let p = self.pers.get(&pos);
+        if let Some(p) = p {
+            return Some(VolState::Exists(p));
+        } else {
+            if self.pending.read().unwrap().get(&pos).is_some() {
+                return Some(VolState::Loading);
+            }
+        }
+        return None;
     }
 
-    pub fn volumes<'a>(&'a self) -> RwLockReadGuard<'a, HashMap<Vec2<i64>, Arc<RwLock<VolState<V, P>>>>> {
-        self.vols.read().unwrap()
-    }
+    pub fn persistence<'a>(&'a self) -> &'a VolPers<Vec2<i64>, V::VoxelType, VC, P> { &self.pers }
 
-    pub fn contains(&self, pos: Vec2<i64>) -> bool { self.vols.read().unwrap().contains_key(&pos) }
+    pub fn contains(&self, pos: Vec2<i64>) -> bool {
+        let p = self.pers.get(&pos);
+        if let Some(p) = p {
+            return true;
+        } else {
+            if self.pending.read().unwrap().get(&pos).is_some() {
+                return true;
+            }
+        }
+        return false;
+    }
 
     pub fn loaded(&self, pos: Vec2<i64>) -> bool {
-        self.at(pos)
-            .map(|v| {
-                if let VolState::Loading = *v.read().unwrap() {
-                    false
-                } else {
-                    true
-                }
-            }).unwrap_or(false)
+        if self.pending.read().unwrap().get(&pos).is_some() {
+            return false;
+        } else {
+            let p = self.pers.get(&pos);
+            return p.is_some();
+        }
     }
 
-    pub fn remove(&self, pos: Vec2<i64>) -> bool { self.vols.write().unwrap().remove(&pos).is_some() }
+    pub fn remove(&self, pos: Vec2<i64>) -> bool {
+        //TODO: implement lol
+        false
+    }
 
     pub fn gen(&self, pos: Vec2<i64>) {
         if self.contains(pos) {
             return; // Don't try to generate the same chunk twice
         }
-
+        //TODO: this is not thread safe, calling it really fast might end up being 2 threads in this path!
         let gen_func = self.gen.gen_func.clone();
         let payload_func = self.gen.payload_func.clone();
-        let vol_state = Arc::new(RwLock::new(VolState::Loading));
-        self.vols.write().unwrap().insert(pos, vol_state.clone());
+        let pen = self.pending.clone();
+        pen.write().unwrap().insert(pos);
+        let con = Arc::new(RwLock::new(Container::new()));
+        self.pers.data_mut().insert(pos, con.clone());
         POOL.lock().unwrap().execute(move || {
             let vol = gen_func(pos);
             let payload = payload_func(&vol);
-            *vol_state.write().unwrap() = VolState::Exists(vol, payload);
+            *con.write().unwrap().payload_mut() = Some(payload);
+            *con.write().unwrap().get_mut(PersState::Raw) = Some(Box::new(vol));
+            pen.write().unwrap().remove(&pos);
         });
     }
 
     pub fn set(&self, pos: Vec2<i64>, vol: V, payload: P) {
-        self.vols
-            .write()
-            .unwrap()
-            .insert(pos, Arc::new(RwLock::new(VolState::Exists(vol, payload))));
+        let mut con = Container::new();
+        *con.payload_mut() = Some(payload);
+        *con.get_mut(PersState::Raw) = Some(Box::new(vol));
+        self.pers.data_mut().insert(pos, Arc::new(RwLock::new(con)));
     }
 
     pub fn get_voxel_at(&self, pos: Vec3<i64>) -> V::VoxelType {
@@ -113,25 +132,29 @@ impl<V: 'static + Volume, P: Send + Sync + 'static> VolMgr<V, P> {
 
         let vox_pos = vec3!(pos.x.mod_euc(self.vol_size), pos.y.mod_euc(self.vol_size), pos.z);
 
-        self.vols
-            .read()
-            .unwrap()
-            .get(&vol_pos)
-            .map(|v| match *v.read().unwrap() {
-                VolState::Loading => V::VoxelType::empty(),
-                VolState::Exists(ref v, _) => v.at(vox_pos).unwrap_or(V::VoxelType::empty()),
-            }).unwrap_or(V::VoxelType::empty())
+        let ref d = self.pers.data();
+        let ref v = d.get(&vol_pos);
+        if let Some(v) = v {
+            let con = v.read().unwrap();
+            let any_vol = con.get(PersState::Raw); //TODO: allow any vol here for performance which suppoerts at
+            if let Some(any_vol) = any_vol {
+                return any_vol.at(vox_pos).unwrap_or(V::VoxelType::empty());
+            };
+        };
+        return V::VoxelType::empty();
     }
 }
 
-pub struct VolMgrIter<'a, V: 'static + Volume, P: Send + Sync + 'static> {
+pub struct VolMgrIter<'a, V: 'static + Volume, VC: 'a + VolumeConverter<V::VoxelType>, P: Send + Sync + 'static> {
     cur: Vec3<i64>,
     low: Vec3<i64>,
     high: Vec3<i64>,
-    mgr: &'a VolMgr<V, P>,
+    mgr: &'a VolMgr<V, VC, P>,
 }
 
-impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Iterator for VolMgrIter<'a, V, P> {
+impl<'a, V: 'static + Volume, VC: VolumeConverter<V::VoxelType>, P: Send + Sync + 'static> Iterator
+    for VolMgrIter<'a, V, VC, P>
+{
     type Item = Primitive;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -162,8 +185,10 @@ impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Iterator for VolMgrIter<
     }
 }
 
-impl<'a, V: 'static + Volume, P: Send + Sync + 'static> Collider<'a> for VolMgr<V, P> {
-    type Iter = VolMgrIter<'a, V, P>;
+impl<'a, V: 'static + Volume, VC: 'a + VolumeConverter<V::VoxelType>, P: Send + Sync + 'static> Collider<'a>
+    for VolMgr<V, VC, P>
+{
+    type Iter = VolMgrIter<'a, V, VC, P>;
 
     fn get_nearby(&'a self, col: &Primitive) -> Self::Iter {
         let scale = vec3!(1.0, 1.0, 1.0);

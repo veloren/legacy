@@ -19,12 +19,7 @@ pub struct BlockRle {
 const MAX_CNT: u8 = u8::MAX;
 
 impl BlockRle {
-    fn new(block: Block, cnt:u8) -> Self {
-        BlockRle {
-            block,
-            cnt,
-        }
-    }
+    fn new(block: Block, cnt: u8) -> Self { BlockRle { block, cnt } }
 }
 
 pub struct ChunkRle {

@@ -36,7 +36,8 @@ impl<P: Payloads> Client<P> {
 
             // Remove chunks that are too far from the player
             // TODO: Could be more efficient (maybe? careful: deadlocks)
-            let chunk_pos = self.chunk_mgr().volumes().keys().map(|p| *p).collect::<Vec<_>>();
+            let pers = self.chunk_mgr().persistence();
+            let chunk_pos = pers.data().keys().map(|p| *p).collect::<Vec<_>>();
             for pos in chunk_pos {
                 // What?! Don't use snake_length
                 if (pos - vec2!(player_chunk.x, player_chunk.y)).snake_length() > self.view_distance * 2 {

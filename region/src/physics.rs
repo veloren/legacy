@@ -1,4 +1,6 @@
 // Standard
+use block::Block;
+use chunk_conv::ChunkConverter;
 use std::{
     clone::Clone,
     collections::HashMap,
@@ -24,7 +26,7 @@ pub fn tick<
     I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)>,
 >(
     entities: I,
-    chunk_mgr: &VolMgr<Chunk, CP>,
+    chunk_mgr: &VolMgr<Chunk, ChunkConverter<Block>, CP>,
     chunk_size: i64,
     dt: f32,
 ) {
@@ -201,13 +203,7 @@ pub fn tick<
             .col_center()
             .map(|e| e as i64)
             .div_euc(vec3!([chunk_size; 3]));
-        let chunkobj = chunk_mgr.at(vec2!(chunk.x, chunk.y));
-        let mut chunk_exists = false;
-        if let Some(lock) = chunkobj {
-            if let VolState::Exists(_, _) = *lock.read().unwrap() {
-                chunk_exists = true;
-            }
-        }
+        let chunk_exists = chunk_mgr.loaded(vec2!(chunk.x, chunk.y));
         if !chunk_exists {
             *entity.vel_mut() = vec3![0.0; 3];
             continue; //skip applying

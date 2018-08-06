@@ -298,10 +298,12 @@ impl Game {
     pub fn update_chunks(&self) {
         let mut renderer = self.window.renderer_mut();
 
-        for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
-            if let VolState::Exists(_, ref mut payload) = *vol.write().unwrap() {
-                // If we have a chunk mesh but it's not a model yet, convert it to a model
-                if let ChunkPayload::Mesh(ref mut mesh) = payload {
+        let pers = self.client.chunk_mgr().persistence();
+        for (pos, con) in pers.data().iter() {
+            let mut con = con.write().unwrap();
+            let p = con.payload_mut();
+            if let Some(pl) = p {
+                if let ChunkPayload::Mesh(ref mut mesh) = pl {
                     // Calculate chunk mode matrix
                     let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
                         (pos.x * CHUNK_SIZE) as f32,
@@ -321,7 +323,7 @@ impl Game {
                     );
 
                     // Update the chunk payload
-                    *payload = ChunkPayload::Model {
+                    *pl = ChunkPayload::Model {
                         model: voxel::Model::new(&mut renderer, mesh),
                         model_consts,
                     };
@@ -401,12 +403,15 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Render each chunk
-        for (_, vol) in self.client.chunk_mgr().volumes().iter() {
-            if let VolState::Exists(ref chunk, ref payload) = *vol.read().unwrap() {
+        let pers = self.client.chunk_mgr().persistence();
+        for (pos, con) in pers.data().iter() {
+            let con = con.write().unwrap();
+            let p = con.payload();
+            if let Some(pl) = p {
                 if let ChunkPayload::Model {
                     ref model,
                     ref model_consts,
-                } = payload
+                } = pl
                 {
                     model.render(&mut renderer, &self.voxel_pipeline, model_consts, &self.global_consts);
                 }

@@ -1,33 +1,35 @@
-use vol_per::{VolumeConverter, VolPers, Container, VolState};
 use coord::prelude::*;
+use vol_per::{Container, PersState, VolPers, VolumeConverter};
 
 use Block;
 use Volume;
 use Voxel;
 
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use std::marker::PhantomData;
-use std::u8;
-use std::cmp::Eq;
-use std::hash::Hash;
+use std::{
+    cmp::Eq,
+    collections::HashMap,
+    hash::Hash,
+    marker::PhantomData,
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    u8,
+};
 
 pub struct ChunkConverter<VT: Voxel> {
     dummy: VT,
 }
 
 impl VolumeConverter<Block> for ChunkConverter<Block> {
-    fn convert<P: Send + Sync + 'static>(container: &mut Container<Block, P>, state: VolState) {
+    fn convert<P: Send + Sync + 'static>(container: &mut Container<Block, P>, state: PersState) {
         match state {
-            VolState::Raw => {
+            PersState::Raw => {
                 // Rle -> Raw
                 // File -> Rle -> Raw
             },
-            VolState::Rle => {
+            PersState::Rle => {
                 // Raw -> Rle
                 // File -> Rle
             },
-            VolState::File => {
+            PersState::File => {
                 // Rle -> File
                 // Raw -> Rle -> File
             },

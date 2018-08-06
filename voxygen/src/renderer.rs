@@ -6,6 +6,7 @@ use gfx::{
 use gfx_device_gl;
 
 use pipeline::Pipeline;
+use shader::Shader;
 use voxel;
 
 pub type ColorFormat = gfx::format::Srgba8;
@@ -38,8 +39,8 @@ impl Renderer {
             voxel_pipeline: Pipeline::new(
                 &mut factory,
                 voxel::pipeline::new(),
-                include_bytes!("../shaders/vert.glsl"),
-                include_bytes!("../shaders/frag.glsl"),
+                &Shader::from_file("shaders/vert.glsl").expect("Could not load vertex shader"),
+                &Shader::from_file("shaders/frag.glsl").expect("Could not load fragment shader"),
             ),
             factory,
         }

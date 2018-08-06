@@ -1,33 +1,43 @@
 #![feature(nll)]
 
-#[macro_use]
-extern crate conrod;
-
+// Graphics
 #[macro_use]
 extern crate gfx;
 extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate glutin;
 #[macro_use]
-extern crate enum_map;
-extern crate chrono;
-extern crate nalgebra;
-extern crate time;
+extern crate conrod;
+
+// Mathematics
 #[macro_use]
 extern crate coord;
-extern crate dot_vox;
+extern crate nalgebra;
+
+// File loading
 #[macro_use]
 extern crate toml;
+extern crate dot_vox;
+extern crate glsl_include;
+
+// I/O
+#[macro_use]
+extern crate log;
+extern crate pretty_env_logger;
+
+// Utility
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate enum_map;
+
+// Time
+extern crate chrono;
+extern crate time;
 
 extern crate client;
 extern crate common;
 extern crate region;
-
-extern crate pretty_env_logger;
-#[macro_use]
-extern crate log;
 
 mod camera;
 mod game;
@@ -35,6 +45,7 @@ mod key_state;
 mod keybinds;
 mod pipeline;
 mod renderer;
+mod shader;
 mod tests;
 mod ui;
 mod window;
@@ -56,9 +67,7 @@ const PROFILE: Option<&'static str> = option_env!("PROFILE");
 const BUILD_TIME: Option<&'static str> = option_env!("BUILD_TIME");
 
 pub fn get_git_hash() -> String { GIT_HASH.unwrap_or("UNKNOWN GIT HASH").to_string() }
-
 pub fn get_git_time() -> DateTime<Utc> { Utc.timestamp(GIT_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0) }
-
 pub fn get_profile() -> String { PROFILE.unwrap_or("UNKNOWN PROFILE").to_string() }
 
 pub fn get_build_time() -> DateTime<Utc> { Utc.timestamp(BUILD_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0) }

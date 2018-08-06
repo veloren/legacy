@@ -264,7 +264,8 @@ impl Game {
 
         let camera_mats = self.camera.lock().unwrap().get_mats();
         let camera_ori = self.camera.lock().unwrap().ori();
-        let play_origin = self.client
+        let play_origin = self
+            .client
             .player_entity()
             .map(|p| *p.read().unwrap().pos())
             .unwrap_or(vec3!(0.0, 0.0, 0.0));

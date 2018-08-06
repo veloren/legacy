@@ -5,24 +5,39 @@ authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
 build = "build.rs"
 
 [dependencies]
+
+# Local
 common = { path = "../common" }
 client = { path = "../client" }
 region = { path = "../region" }
+
+# Graphics
 gfx = "0.17.1"
-gfx_window_glutin = "0.25.0"
 gfx_device_gl = "0.15.0"
+gfx_window_glutin = "0.25.0"
 glutin = "0.17.0"
-enum-map = "0.2.31"
-nalgebra = "0.15.1"
-time = "0.1.40"
-coord = "0.11.0"
-log = "0.4.1"
-pretty_env_logger = "0.2.3"
-dot_vox = "1.0.1"
 conrod = { git = "https://gitlab.com/veloren/conrod", branch = "master", version = "0.60.1", features = ["gfx_rs"]}
 #conrod = { path = "../../conrod", features = ["gfx_rs"] } // For local testing
+
+# Mathematics
+coord = "0.11.0"
+nalgebra = "0.15.1"
+
+# File loading
 toml = "0.4.6"
+dot_vox = "1.0.1"
+glsl-include = "0.2.3"
+
+# I/O
+log = "0.4.1"
+pretty_env_logger = "0.2.3"
+
+# Utility
 serde = "1.0"
 serde_derive = "1.0"
-fps_counter = "1.0.0"
+enum-map = "0.2.31"
+
+# Time
+time = "0.1.40"
 chrono = "0.4"
+fps_counter = "1.0.0"

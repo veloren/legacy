@@ -1,7 +1,7 @@
+use coord::prelude::*;
 use gfx::{self, traits::FactoryExt, IndexBuffer, Slice};
 use gfx_device_gl;
 use nalgebra::Matrix4;
-use coord::prelude::*;
 
 use renderer::{ColorFormat, DepthFormat, Renderer};
 use voxel::{Mesh, Vertex};

@@ -1,5 +1,7 @@
 #version 330 core
 
+#include <noise.glsl>
+
 in vec3 frag_pos;
 in vec3 frag_norm;
 in vec4 frag_col;
@@ -11,6 +13,7 @@ uniform constants {
 	vec3 play_origin;
 	float time;
 	vec3 sky_color;
+	float view_distance;
 };
 
 out vec4 target;
@@ -32,8 +35,8 @@ void main() {
 	vec3 cam_pos = (view_mat * vec4(world_pos, 1)).xyz;
 	float play_dist = length(play_origin - world_pos);
 
-	float mist_start = 100.0;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;
-	float mist_end = 120.0;// + snoise(vec4(world_pos, -time) * 0.02) * 50.0;
+	float mist_start = view_distance * 0.8;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;
+	float mist_end = view_distance;// + snoise(vec4(world_pos, -time) * 0.02) * 50.0;
 
 	// Ambiant light
 	vec3 ambient = frag_col.xyz * ambient_factor * sun_color;

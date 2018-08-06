@@ -12,7 +12,7 @@ impl Shader {
 
         let shader_code = fs::read_to_string(filename)?;
         let (expanded_code, _) = glsl_include::Context::new()
-            .include(&noise, "noise.glsl")
+            .include("noise.glsl", &noise)
             .expand_to_string(&shader_code).map_err(|e|
                 io::Error::new(io::ErrorKind::Other, e)
             )?;

@@ -143,6 +143,8 @@ impl<P: Payloads> Client<P> {
 
     pub fn send_cmd(&self, cmd: String) { self.conn.send(ClientMessage::SendCmd { cmd }) }
 
+    pub fn view_distance(&self) -> f32 { (self.view_distance * CHUNK_SIZE) as f32 }
+
     pub fn chunk_mgr(&self) -> &VolMgr<Chunk, P::Chunk> { &self.chunk_mgr }
 
     pub fn status<'a>(&'a self) -> RwLockReadGuard<'a, ClientStatus> { self.status.read().unwrap() }
@@ -150,6 +152,7 @@ impl<P: Payloads> Client<P> {
     pub fn callbacks<'a>(&'a self) -> RwLockReadGuard<'a, Callbacks> { self.callbacks.read().unwrap() }
 
     pub fn time(&self) -> f64 { *self.time.read().unwrap() }
+
     pub fn player<'a>(&'a self) -> RwLockReadGuard<'a, Player> { self.player.read().unwrap() }
     pub fn player_mut<'a>(&'a self) -> RwLockWriteGuard<'a, Player> { self.player.write().unwrap() }
 

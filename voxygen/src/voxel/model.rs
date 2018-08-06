@@ -14,6 +14,7 @@ gfx_defines! {
         play_origin: [f32; 3] = "play_origin",
         time: f32 = "time",
         sky_color: [f32; 3] = "sky_color",
+        view_distance: f32 = "view_distance",
     }
 
     pipeline pipeline {
@@ -44,6 +45,7 @@ impl Constants {
         play_origin: Vec3<f32>,
         time: f32,
         sky_color: Vec3<f32>,
+        view_distance: f32,
     ) -> Constants {
         Constants {
             model_mat: mat4_to_array(&model_mat),
@@ -52,6 +54,7 @@ impl Constants {
             play_origin: play_origin.elements(),
             time,
             sky_color: sky_color.elements(),
+            view_distance,
         }
     }
 }

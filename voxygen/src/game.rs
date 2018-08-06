@@ -271,6 +271,7 @@ impl Game {
             .unwrap_or(vec3!(0.0, 0.0, 0.0));
         let time = self.client.time() as f32;
         let sky_color = vec3!(0.5, 0.7, 1.0);
+        let view_distance = self.client.view_distance();
 
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(ref chunk, ref payload) = *vol.read().unwrap() {
@@ -290,6 +291,7 @@ impl Game {
                             play_origin,
                             time,
                             sky_color,
+                            view_distance,
                         ),
                     );
                     renderer.render_model_object(&model);
@@ -324,6 +326,7 @@ impl Game {
                     play_origin,
                     time,
                     sky_color,
+                    view_distance,
                 ),
             );
 

@@ -341,7 +341,7 @@ impl Mesh {
                                     vec3!(x + 0, y + 0, z - 1),
                                     vec3!(0, 1, 0),
                                     vec3!(1, 0, 0),
-                                    vec3!(0, 0, 1),
+                                    vec3!(0, 0, -1),
                                     vec4!(col.x, col.y, col.z, col.w),
                                 )
                                 .scale(vec3!(scale.x, scale.y, scale.z))

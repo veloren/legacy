@@ -4,6 +4,7 @@ use gfx::{
     Device, Encoder,
 };
 use gfx_device_gl;
+use coord::prelude::*;
 
 use pipeline::Pipeline;
 use shader::Shader;
@@ -46,8 +47,13 @@ impl Renderer {
         }
     }
 
-    pub fn begin_frame(&mut self) {
-        self.encoder.clear(&self.color_view, [0.5, 0.7, 1.0, 1.0]);
+    pub fn begin_frame(&mut self, clear_color: Vec3<f32>) {
+        self.encoder.clear(&self.color_view, [
+            clear_color.x,
+            clear_color.y,
+            clear_color.z,
+            1.0
+        ]);
         self.encoder.clear_depth(&self.depth_view, 1.0);
     }
 

@@ -23,16 +23,18 @@ uniform world_consts {
 
 out vec4 target;
 
-float diffuse_factor = 0.8;
-float ambient_factor = 0.2;
-vec3  sun_direction = normalize(vec3(1, -0.7, -1.4));
-vec3  sun_color = vec3(1.0, 1.0, 1.0);
-float sun_specular = 0.5;
-float sun_factor = 5;
-float sun_shine = 0;
-
 void main() {
 	target = frag_col;
+
+	// Sunlight
+	float light_level = clamp(cos(time.y / 600.0), 0.1, 1);
+	float diffuse_factor = 0.9;
+	float ambient_factor = 0.1;
+	vec3 sun_direction = normalize(vec3(-sin(time.x / 600), 0.0, -cos(time.y / 600)));
+	vec3 sun_color = vec3(1.0, 1.0, 1.0) * light_level;
+	float sun_specular = 0.5;
+	float sun_factor = 5;
+	float sun_shine = 0;
 
 	// Geometry
 	vec3 world_norm = normalize((model_mat * vec4(frag_norm, 0)).xyz);
@@ -54,6 +56,7 @@ void main() {
 	float specular_val = clamp(dot(-normalize(cam_pos), reflect_vec) + sun_shine, 0, 1);
 	vec3 specular = sun_color * pow(specular_val, sun_factor) * sun_specular;
 
+	// Mist
 	float mist_delta = 1 / (mist_end - mist_start);
 	float mist_value = clamp(play_dist * mist_delta - mist_delta * mist_start, 0.0, 1.0);
 

@@ -25,6 +25,10 @@ before_script:
   - git remote set-url origin $CI_REPOSITORY_URL
   - git fetch origin --prune +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
   - git checkout -f -q $CI_COMMIT_SHA
+  - if [ ! -z "${SOURCE_PROJECT}" -a "${SOURCE_PROJECT}" != " " ]; then
+        echo "THIS SEEMS TO BE A MERGE PIPELINE FROM ${SOURCE_PROJECT}/${SOURCE_BRANCH}";
+        git pull "https://gitlab.com/${SOURCE_PROJECT}/game.git" "${SOURCE_BRANCH}";
+    fi;
   - git submodule update --init --recursive
   - git status
   - if [ -d target ]; then
@@ -37,62 +41,26 @@ clean-code:
   script:
     - rustup component add rustfmt-preview
     - cargo fmt --all -- --check
-  allow_failure: true
 
 build-voxygen:
   stage: build
   script:
     - (cd voxygen && cargo build)
 
-build-voxygen-MR:
-  stage: build
-  script:
-    - git pull "https://gitlab.com/${SOURCE_PROJECT}/game.git" "${SOURCE_BRANCH}"
-    - git submodule update --init --recursive
-    - (cd voxygen && cargo build)
-  only:
-    - trigger
-
 build-headless:
   stage: build
   script:
     - (cd headless && cargo build)
-
-build-headless-MR:
-  stage: build
-  script:
-    - git pull "https://gitlab.com/${SOURCE_PROJECT}/game.git" "${SOURCE_BRANCH}"
-    - git submodule update --init --recursive
-    - (cd headless && cargo build)
-  only:
-    - trigger
 
 build-server-cli:
   stage: build
   script:
     - (cd server-cli && cargo build)
 
-build-server-cli-MR:
-  stage: build
-  script:
-    - git pull "https://gitlab.com/${SOURCE_PROJECT}/game.git" "${SOURCE_BRANCH}"
-    - git submodule update --init --recursive
-    - (cd server-cli && cargo build)
-  only:
-    - trigger
-
 unittests:
   stage: test
   script:
     - cargo test
-
-unittests-MR:
-  stage: test
-  script:
-    - git pull "https://gitlab.com/${SOURCE_PROJECT}/game.git" "${SOURCE_BRANCH}"
-    - cargo test
-  only:
-    - trigger
 
 #benchmarktests:
 #  stage: test

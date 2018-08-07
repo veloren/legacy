@@ -4,7 +4,7 @@ use Block;
 use Volume;
 use Voxel;
 
-use std::u8;
+use std::{any::Any, u8};
 
 //TODO: optimizations:
 // currently even empty blocks generate a BlockRle, one could say that if the 3rd vector is empty that all blocks are empty
@@ -68,9 +68,13 @@ impl Volume for ChunkRle {
     fn set(&mut self, pos: Vec3<i64>, vt: Block) {
         panic!("FEATURE NOT IMPLEMENTED YET: i dont feel like implement this now");
     }
+
+    fn as_any(&mut self) -> &mut Any { self }
 }
 
 impl ChunkRle {
+    pub fn voxels_mut(&mut self) -> &mut Vec<Vec<Vec<BlockRle>>> { &mut self.voxels }
+
     pub fn new() -> Self {
         ChunkRle {
             size: Vec3::from((0, 0, 0)),

@@ -7,6 +7,8 @@ use BlockMaterial;
 use Volume;
 use Voxel;
 
+use std::any::Any;
+
 pub struct Chunk {
     size: Vec3<i64>,
     offset: Vec3<i64>,
@@ -184,6 +186,8 @@ impl Chunk {
         (pos.x * self.size.y * self.size.z + pos.y * self.size.z + pos.z) as usize
     }
 
+    pub fn voxels_mut(&mut self) -> &mut Vec<Block> { &mut self.voxels }
+
     pub fn new() -> Self {
         Chunk {
             size: Vec3::from((0, 0, 0)),
@@ -232,4 +236,6 @@ impl Volume for Chunk {
             self.voxels[i] = vt;
         }
     }
+
+    fn as_any(&mut self) -> &mut Any { self }
 }

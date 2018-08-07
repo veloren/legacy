@@ -4,7 +4,7 @@ use Block;
 use Volume;
 use Voxel;
 
-use std::u8;
+use std::{any::Any, u8};
 
 pub struct ChunkFile {
     //per x and y coord store the z coord rle
@@ -43,6 +43,8 @@ impl Volume for ChunkFile {
     fn set(&mut self, pos: Vec3<i64>, vt: Block) {
         panic!("FEATURE NOT IMPLEMENTED YET: Cannot work on File Chunk");
     }
+
+    fn as_any(&mut self) -> &mut Any { self }
 }
 
 impl ChunkFile {

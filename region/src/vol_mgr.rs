@@ -96,8 +96,8 @@ impl<V: 'static + Volume, VC: VolumeConverter<V::VoxelType>, P: Send + Sync + 's
     }
 
     pub fn remove(&self, pos: Vec2<i64>) -> bool {
-        //TODO: implement lol
-        false
+        let o = self.pers.data_mut().remove(&pos);
+        return o.is_some();
     }
 
     pub fn gen(&self, pos: Vec2<i64>) {

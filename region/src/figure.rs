@@ -1,4 +1,5 @@
 use coord::prelude::*;
+use std::any::Any;
 
 use Cell;
 use Volume;
@@ -81,6 +82,8 @@ impl Volume for Figure {
             self.voxels[i] = vt;
         }
     }
+
+    fn as_any(&mut self) -> &mut Any { self }
 }
 
 impl Figure {

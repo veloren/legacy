@@ -39,6 +39,7 @@ pub struct Game {
     running: AtomicBool,
     client: Arc<Client<Payloads>>,
     window: RenderWindow,
+    world_consts: voxel::ConstHandle<voxel::WorldConsts>,
     data: Mutex<Data>,
     camera: Mutex<Camera>,
     key_state: Mutex<KeyState>,
@@ -57,6 +58,8 @@ fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk { (voxel:
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
         let window = RenderWindow::new();
+
+        let world_consts = voxel::ConstHandle::new(&mut window.renderer_mut());
 
         info!("trying to load model files");
         let vox = dot_vox::load("assets/cosmetic/creature/friendly/player3.vox")
@@ -91,6 +94,7 @@ impl Game {
             running: AtomicBool::new(true),
             client,
             window,
+            world_consts,
             camera: Mutex::new(Camera::new()),
             key_state: Mutex::new(KeyState::new()),
             ui: RefCell::new(ui),
@@ -249,8 +253,8 @@ impl Game {
     }
 
     pub fn model_chunks(&self) {
-        for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
-            if let VolState::Exists(ref chunk, ref mut payload) = *vol.write().unwrap() {
+        for (_, vol) in self.client.chunk_mgr().volumes().iter() {
+            if let VolState::Exists(_, ref mut payload) = *vol.write().unwrap() {
                 if let None = payload.1 {
                     payload.1 = Some(voxel::Model::new(&mut self.window.renderer_mut(), &payload.0));
                 }
@@ -259,11 +263,34 @@ impl Game {
     }
 
     pub fn render_frame(&self) {
-        let mut renderer = self.window.renderer_mut();
-        renderer.begin_frame();
-
+        // Calculate frame constants
         let camera_mats = self.camera.lock().unwrap().get_mats();
-        let camera_ori = self.camera.lock().unwrap().ori();
+        let play_origin = self
+            .client
+            .player_entity()
+            .map(|p| *p.read().unwrap().pos())
+            .unwrap_or(vec3!(0.0, 0.0, 0.0));
+        let play_origin = [play_origin.x, play_origin.y, play_origin.z, 0.0];
+        let time = self.client.time() as f32;
+
+        // Calculate ambient parameters according to the time of day
+        let sky_color = vec3!(0.5, 0.7, 1.0) * (time / 600.0).cos().max(0.1).min(1.0);
+
+        // Begin rendering
+        let mut renderer = self.window.renderer_mut();
+        renderer.begin_frame(sky_color);
+
+        self.world_consts.update(
+            &mut renderer,
+            voxel::WorldConsts {
+                view_mat: *camera_mats.0.as_ref(),
+                proj_mat: *camera_mats.1.as_ref(),
+                sky_color: [sky_color.x, sky_color.y, sky_color.z, 0.0],
+                play_origin,
+                view_distance: [self.client.view_distance(); 4],
+                time: [time; 4],
+            },
+        );
 
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(ref chunk, ref payload) = *vol.read().unwrap() {
@@ -274,15 +301,13 @@ impl Game {
                         0.0,
                     )).to_homogeneous();
 
-                    model.update(
+                    model.const_handle().update(
                         &mut renderer,
-                        voxel::Constants::new(
-                            &model_mat, // TODO: Improve this
-                            &camera_mats.0,
-                            &camera_mats.1,
-                        ),
+                        voxel::ModelConsts {
+                            model_mat: *model_mat.as_ref(),
+                        },
                     );
-                    renderer.render_model_object(&model);
+                    renderer.render_model_object(&model, &self.world_consts);
                 }
             }
         }
@@ -305,14 +330,15 @@ impl Game {
             };
 
             // Update the model's constant buffer with the transformation details previously calculated
-            model.update(
+            model.const_handle().update(
                 &mut renderer,
-                // TODO: Improve this
-                voxel::Constants::new(&model_mat, &camera_mats.0, &camera_mats.1),
+                voxel::ModelConsts {
+                    model_mat: *model_mat.as_ref(),
+                },
             );
 
             // Actually render the model
-            renderer.render_model_object(&model);
+            renderer.render_model_object(&model, &self.world_consts);
         }
 
         // Draw ui

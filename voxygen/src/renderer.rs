@@ -1,3 +1,4 @@
+use coord::prelude::*;
 use gfx::{
     self,
     handle::{DepthStencilView, RenderTargetView},
@@ -6,6 +7,7 @@ use gfx::{
 use gfx_device_gl;
 
 use pipeline::Pipeline;
+use shader::Shader;
 use voxel;
 
 pub type ColorFormat = gfx::format::Srgba8;
@@ -38,20 +40,25 @@ impl Renderer {
             voxel_pipeline: Pipeline::new(
                 &mut factory,
                 voxel::pipeline::new(),
-                include_bytes!("../assets/voxygen/shaders/vert.glsl"),
-                include_bytes!("../assets/voxygen/shaders/frag.glsl"),
+                &Shader::from_file("shaders/vert.glsl").expect("Could not load vertex shader"),
+                &Shader::from_file("shaders/frag.glsl").expect("Could not load fragment shader"),
             ),
             factory,
         }
     }
 
-    pub fn begin_frame(&mut self) {
-        self.encoder.clear(&self.color_view, [0.3, 0.3, 0.6, 1.0]);
+    pub fn begin_frame(&mut self, clear_color: Vec3<f32>) {
+        self.encoder
+            .clear(&self.color_view, [clear_color.x, clear_color.y, clear_color.z, 1.0]);
         self.encoder.clear_depth(&self.depth_view, 1.0);
     }
 
-    pub fn render_model_object(&mut self, vmodel: &voxel::Model) {
-        let pipeline_data = vmodel.get_pipeline_data(self);
+    pub fn render_model_object(
+        &mut self,
+        vmodel: &voxel::Model,
+        world_consts: &voxel::ConstHandle<voxel::WorldConsts>,
+    ) {
+        let pipeline_data = vmodel.get_pipeline_data(self, world_consts);
         self.encoder
             .draw(&vmodel.slice(), self.voxel_pipeline.pso(), &pipeline_data);
     }

@@ -7,15 +7,17 @@ use gfx::{
 };
 use gfx_device_gl;
 
+use shader::Shader;
+
 pub struct Pipeline<P: PipelineInit> {
     program: Program<gfx_device_gl::Resources>,
     pso: PipelineState<gfx_device_gl::Resources, P::Meta>,
 }
 
 impl<P: PipelineInit> Pipeline<P> {
-    pub fn new(factory: &mut gfx_device_gl::Factory, pipe: P, vs_code: &[u8], ps_code: &[u8]) -> Pipeline<P> {
+    pub fn new(factory: &mut gfx_device_gl::Factory, pipe: P, vs: &Shader, ps: &Shader) -> Pipeline<P> {
         let program = factory
-            .link_program(vs_code, ps_code)
+            .link_program(vs.bytes(), ps.bytes())
             .expect("Failed to compile shader program");
         Pipeline::<P> {
             pso: factory

@@ -1,4 +1,8 @@
-use gfx::{self, traits::{FactoryExt, Pod}, IndexBuffer, Slice};
+use gfx::{
+    self,
+    traits::{FactoryExt, Pod},
+    IndexBuffer, Slice,
+};
 use gfx_device_gl;
 
 use renderer::{ColorFormat, DepthFormat, Renderer};
@@ -38,7 +42,7 @@ pub struct ConstHandle<T: Copy + Pod> {
 impl<T: Copy + Pod> ConstHandle<T> {
     pub fn new(renderer: &mut Renderer) -> ConstHandle<T> {
         ConstHandle {
-            buffer: renderer.factory_mut().create_constant_buffer(1)
+            buffer: renderer.factory_mut().create_constant_buffer(1),
         }
     }
 
@@ -49,9 +53,7 @@ impl<T: Copy + Pod> ConstHandle<T> {
             .unwrap();
     }
 
-    fn buffer(&self) -> &ConstBuffer<T> {
-        &self.buffer
-    }
+    fn buffer(&self) -> &ConstBuffer<T> { &self.buffer }
 }
 
 pub struct Model {
@@ -69,15 +71,9 @@ impl Model {
         }
     }
 
-    pub fn const_handle(&self) -> &ConstHandle<ModelConsts> {
-        &self.const_handle
-    }
+    pub fn const_handle(&self) -> &ConstHandle<ModelConsts> { &self.const_handle }
 
-    pub fn get_pipeline_data(
-        &self,
-        renderer: &mut Renderer,
-        world_consts: &ConstHandle<WorldConsts>
-    ) -> PipelineData {
+    pub fn get_pipeline_data(&self, renderer: &mut Renderer, world_consts: &ConstHandle<WorldConsts>) -> PipelineData {
         PipelineData {
             vbuf: self.vbuf.clone(),
             model_consts: self.const_handle.buffer().clone(),

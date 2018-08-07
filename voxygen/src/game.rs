@@ -270,12 +270,7 @@ impl Game {
             .player_entity()
             .map(|p| *p.read().unwrap().pos())
             .unwrap_or(vec3!(0.0, 0.0, 0.0));
-        let play_origin = [
-            play_origin.x,
-            play_origin.y,
-            play_origin.z,
-            0.0,
-        ];
+        let play_origin = [play_origin.x, play_origin.y, play_origin.z, 0.0];
         let time = self.client.time() as f32;
 
         // Calculate ambient parameters according to the time of day
@@ -294,7 +289,7 @@ impl Game {
                 play_origin,
                 view_distance: [self.client.view_distance(); 4],
                 time: [time; 4],
-            }
+            },
         );
 
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {

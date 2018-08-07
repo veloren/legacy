@@ -1,70 +1,62 @@
-use coord::prelude::*;
-use gfx::{self, traits::FactoryExt, IndexBuffer, Slice};
+use gfx::{self, traits::{FactoryExt, Pod}, IndexBuffer, Slice};
 use gfx_device_gl;
-use nalgebra::Matrix4;
 
 use renderer::{ColorFormat, DepthFormat, Renderer};
 use voxel::{Mesh, Vertex};
 
+type PipelineData = pipeline::Data<gfx_device_gl::Resources>;
+type ConstBuffer<T> = gfx::handle::Buffer<gfx_device_gl::Resources, T>;
+type VertexBuffer = gfx::handle::Buffer<gfx_device_gl::Resources, Vertex>;
+
 gfx_defines! {
-    constant Constants {
+    constant ModelConsts {
         model_mat: [[f32; 4]; 4] = "model_mat",
+    }
+
+    constant WorldConsts {
         view_mat: [[f32; 4]; 4] = "view_mat",
-        perspective_mat: [[f32; 4]; 4] = "perspective_mat",
-        play_origin: [f32; 3] = "play_origin",
-        time: f32 = "time",
-        sky_color: [f32; 3] = "sky_color",
-        view_distance: f32 = "view_distance",
+        proj_mat: [[f32; 4]; 4] = "proj_mat",
+        sky_color: [f32; 4] = "sky_color",
+        play_origin: [f32; 4] = "play_origin",
+        view_distance: [f32; 4] = "view_distance",
+        time: [f32; 4] = "time",
     }
 
     pipeline pipeline {
         vbuf: gfx::VertexBuffer<Vertex> = (),
-        constants: gfx::ConstantBuffer<Constants> = "constants",
+        model_consts: gfx::ConstantBuffer<ModelConsts> = "model_consts",
+        world_consts: gfx::ConstantBuffer<WorldConsts> = "world_consts",
         out_color: gfx::RenderTarget<ColorFormat> = "target",
         out_depth: gfx::DepthTarget<DepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 }
 
-type PipelineData = pipeline::Data<gfx_device_gl::Resources>;
-
-fn mat4_to_array(mat: &Matrix4<f32>) -> [[f32; 4]; 4] {
-    let s = mat.as_slice();
-    [
-        [s[0], s[1], s[2], s[3]],
-        [s[4], s[5], s[6], s[7]],
-        [s[8], s[9], s[10], s[11]],
-        [s[12], s[13], s[14], s[15]],
-    ]
+pub struct ConstHandle<T: Copy + Pod> {
+    buffer: ConstBuffer<T>,
 }
 
-impl Constants {
-    pub fn new(
-        model_mat: &Matrix4<f32>,
-        view_mat: &Matrix4<f32>,
-        perspective_mat: &Matrix4<f32>,
-        play_origin: Vec3<f32>,
-        time: f32,
-        sky_color: Vec3<f32>,
-        view_distance: f32,
-    ) -> Constants {
-        Constants {
-            model_mat: mat4_to_array(&model_mat),
-            view_mat: mat4_to_array(&view_mat),
-            perspective_mat: mat4_to_array(&perspective_mat),
-            play_origin: play_origin.elements(),
-            time,
-            sky_color: sky_color.elements(),
-            view_distance,
+impl<T: Copy + Pod> ConstHandle<T> {
+    pub fn new(renderer: &mut Renderer) -> ConstHandle<T> {
+        ConstHandle {
+            buffer: renderer.factory_mut().create_constant_buffer(1)
         }
+    }
+
+    pub fn update(&self, renderer: &mut Renderer, consts: T) {
+        renderer
+            .encoder_mut()
+            .update_buffer(&self.buffer, &[consts], 0)
+            .unwrap();
+    }
+
+    fn buffer(&self) -> &ConstBuffer<T> {
+        &self.buffer
     }
 }
 
-type VertexBuffer = gfx::handle::Buffer<gfx_device_gl::Resources, Vertex>;
-type ConstantBuffer = gfx::handle::Buffer<gfx_device_gl::Resources, Constants>;
-
 pub struct Model {
     vbuf: VertexBuffer,
-    constants: ConstantBuffer,
+    const_handle: ConstHandle<ModelConsts>,
     vert_count: u32,
 }
 
@@ -72,25 +64,27 @@ impl Model {
     pub fn new(renderer: &mut Renderer, mesh: &Mesh) -> Model {
         Model {
             vbuf: renderer.factory_mut().create_vertex_buffer(&mesh.vertices()),
-            constants: renderer.factory_mut().create_constant_buffer(1),
+            const_handle: ConstHandle::new(renderer),
             vert_count: mesh.vert_count(),
         }
     }
 
-    pub fn get_pipeline_data(&self, renderer: &mut Renderer) -> PipelineData {
+    pub fn const_handle(&self) -> &ConstHandle<ModelConsts> {
+        &self.const_handle
+    }
+
+    pub fn get_pipeline_data(
+        &self,
+        renderer: &mut Renderer,
+        world_consts: &ConstHandle<WorldConsts>
+    ) -> PipelineData {
         PipelineData {
             vbuf: self.vbuf.clone(),
-            constants: self.constants.clone(),
+            model_consts: self.const_handle.buffer().clone(),
+            world_consts: world_consts.buffer().clone(),
             out_color: renderer.color_view().clone(),
             out_depth: renderer.depth_view().clone(),
         }
-    }
-
-    pub fn update(&self, renderer: &mut Renderer, constants: Constants) {
-        renderer
-            .encoder_mut()
-            .update_buffer(&self.constants, &[constants], 0)
-            .unwrap();
     }
 
     pub fn slice(&self) -> Slice<gfx_device_gl::Resources> {

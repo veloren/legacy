@@ -51,8 +51,12 @@ impl Renderer {
         self.encoder.clear_depth(&self.depth_view, 1.0);
     }
 
-    pub fn render_model_object(&mut self, vmodel: &voxel::Model) {
-        let pipeline_data = vmodel.get_pipeline_data(self);
+    pub fn render_model_object(
+        &mut self,
+        vmodel: &voxel::Model,
+        world_consts: &voxel::ConstHandle<voxel::WorldConsts>,
+    ) {
+        let pipeline_data = vmodel.get_pipeline_data(self, world_consts);
         self.encoder
             .draw(&vmodel.slice(), self.voxel_pipeline.pso(), &pipeline_data);
     }

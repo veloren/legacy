@@ -24,11 +24,13 @@ use client::{self, Client, ClientMode, CHUNK_SIZE};
 use region::{Chunk, VolState};
 
 // Local
+use consts::{ConstHandle, GlobalConsts};
 use camera::Camera;
 use key_state::KeyState;
 use keybinds::Keybinds;
-use voxel;
 use window::{Event, RenderWindow};
+use skybox;
+use voxel;
 
 pub struct Payloads {}
 impl client::Payloads for Payloads {
@@ -39,7 +41,7 @@ pub struct Game {
     running: AtomicBool,
     client: Arc<Client<Payloads>>,
     window: RenderWindow,
-    world_consts: voxel::ConstHandle<voxel::WorldConsts>,
+    global_consts: ConstHandle<GlobalConsts>,
     data: Mutex<Data>,
     camera: Mutex<Camera>,
     key_state: Mutex<KeyState>,
@@ -49,6 +51,7 @@ pub struct Game {
 
 // "Data" includes mutable state
 struct Data {
+    skybox_model: skybox::Model,
     player_model: voxel::Model,
     other_player_model: voxel::Model,
 }
@@ -59,7 +62,10 @@ impl Game {
     pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
         let window = RenderWindow::new();
 
-        let world_consts = voxel::ConstHandle::new(&mut window.renderer_mut());
+        let global_consts = ConstHandle::new(&mut window.renderer_mut());
+
+        let skybox_mesh = skybox::Mesh::new_skybox();
+        let skybox_model = skybox::Model::new(&mut window.renderer_mut(), &skybox_mesh);
 
         info!("trying to load model files");
         let vox = dot_vox::load("assets/cosmetic/creature/friendly/player3.vox")
@@ -88,13 +94,14 @@ impl Game {
 
         Game {
             data: Mutex::new(Data {
+                skybox_model,
                 player_model,
                 other_player_model,
             }),
             running: AtomicBool::new(true),
             client,
             window,
-            world_consts,
+            global_consts,
             camera: Mutex::new(Camera::new()),
             key_state: Mutex::new(KeyState::new()),
             ui: RefCell::new(ui),
@@ -280,9 +287,9 @@ impl Game {
         let mut renderer = self.window.renderer_mut();
         renderer.begin_frame(sky_color);
 
-        self.world_consts.update(
+        self.global_consts.update(
             &mut renderer,
-            voxel::WorldConsts {
+            GlobalConsts {
                 view_mat: *camera_mats.0.as_ref(),
                 proj_mat: *camera_mats.1.as_ref(),
                 sky_color: [sky_color.x, sky_color.y, sky_color.z, 0.0],
@@ -291,6 +298,11 @@ impl Game {
                 time: [time; 4],
             },
         );
+
+        {
+            let data = self.data.lock().unwrap();
+            renderer.render_skybox_model(&data.skybox_model, &self.global_consts);
+        }
 
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(ref chunk, ref payload) = *vol.read().unwrap() {
@@ -307,7 +319,7 @@ impl Game {
                             model_mat: *model_mat.as_ref(),
                         },
                     );
-                    renderer.render_model_object(&model, &self.world_consts);
+                    renderer.render_voxel_model(&model, &self.global_consts);
                 }
             }
         }
@@ -338,7 +350,7 @@ impl Game {
             );
 
             // Actually render the model
-            renderer.render_model_object(&model, &self.world_consts);
+            renderer.render_voxel_model(&model, &self.global_consts);
         }
 
         // Draw ui

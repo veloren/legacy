@@ -43,14 +43,19 @@ mod camera;
 mod game;
 mod key_state;
 mod keybinds;
-mod pipeline;
-mod renderer;
-mod shader;
 mod tests;
 mod ui;
 mod window;
 
+// Rendering
+mod consts;
+mod pipeline;
+mod renderer;
+mod shader;
+
+// Pipelines
 mod voxel;
+mod skybox;
 
 use std::io::{self, Write};
 

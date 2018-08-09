@@ -10,7 +10,7 @@ uniform model_consts {
 };
 
 layout (std140)
-uniform world_consts {
+uniform global_consts {
 	mat4 view_mat;
 	mat4 proj_mat;
 	vec4 sky_color;

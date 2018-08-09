@@ -12,7 +12,7 @@ uniform model_consts {
 };
 
 layout (std140)
-uniform world_consts {
+uniform global_consts {
 	mat4 view_mat;
 	mat4 proj_mat;
 	vec4 sky_color;
@@ -40,7 +40,7 @@ void main() {
 	vec3 world_norm = normalize((model_mat * vec4(frag_norm, 0)).xyz);
 	vec3 world_pos = (model_mat * vec4(frag_pos, 1)).xyz;
 	vec3 cam_pos = (view_mat * vec4(world_pos, 1)).xyz;
-	float play_dist = length(play_origin.xyz - world_pos);
+	float play_dist = length(play_origin.xy - world_pos.xy);
 
 	float mist_start = view_distance.x * 0.8;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;
 	float mist_end = view_distance.x;// + snoise(vec4(world_pos, -time) * 0.02) * 50.0;

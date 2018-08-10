@@ -17,5 +17,5 @@ out vec3 frag_pos;
 void main() {
 	frag_pos = vert_pos;
 
-	gl_Position = proj_mat * view_mat * vec4(100 * vert_pos + play_origin.xyz, 1);
+	gl_Position = proj_mat * view_mat * vec4(3000 * vert_pos + play_origin.xyz, 1);
 }

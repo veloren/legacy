@@ -34,7 +34,7 @@ impl Camera {
 
         (
             mat,
-            *Perspective3::<f32>::new(self.aspect_ratio, self.fov, 0.1, 1000.0).as_matrix(),
+            *Perspective3::<f32>::new(self.aspect_ratio, self.fov, 0.1, 10000.0).as_matrix(),
         )
     }
 

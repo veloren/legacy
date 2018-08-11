@@ -16,7 +16,6 @@ layout (std140)
 uniform global_consts {
 	mat4 view_mat;
 	mat4 proj_mat;
-	vec4 sky_color;
 	vec4 play_origin;
 	vec4 view_distance;
 	vec4 time;
@@ -28,7 +27,7 @@ void main() {
 	target = frag_col;
 
 	// Sunlight
-	float light_level = clamp(cos(time.y / 600.0), 0.1, 1);
+	float light_level = clamp(cos(3.14 * get_time_of_day(time.x)), 0.05, 1);
 	float diffuse_factor = 0.9;
 	float ambient_factor = 0.1;
 	vec3 sun_color = vec3(1.0, 1.0, 1.0) * light_level;
@@ -44,7 +43,7 @@ void main() {
 
 	// Sunlight
 	vec3 sun_dir = get_sun_dir(time.x);
-	vec3 sky_chroma = get_sky_chroma(sky_color.xyz, world_pos - play_origin.xyz, time.x);
+	vec3 sky_chroma = get_sky_chroma(world_pos - play_origin.xyz, time.x);
 
 	float mist_start = view_distance.x * 0.8;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;
 	float mist_end = view_distance.x;// + snoise(vec4(world_pos, -time) * 0.02) * 50.0;

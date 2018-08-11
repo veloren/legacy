@@ -9,7 +9,6 @@ layout (std140)
 uniform global_consts {
 	mat4 view_mat;
 	mat4 proj_mat;
-	vec4 sky_color;
 	vec4 play_origin;
 	vec4 view_distance;
 	vec4 time;
@@ -18,5 +17,5 @@ uniform global_consts {
 out vec4 target;
 
 void main() {
-	target = vec4(get_sky_chroma(sky_color.xyz, frag_pos, time.x), 1);
+	target = vec4(get_sky_chroma(frag_pos, time.x), 1);
 }

@@ -280,19 +280,15 @@ impl Game {
         let play_origin = [play_origin.x, play_origin.y, play_origin.z, 0.0];
         let time = self.client.time() as f32;
 
-        // Calculate ambient parameters according to the time of day
-        let sky_color = vec3!(0.5, 0.7, 1.0) * (time / 600.0).cos().max(0.1).min(1.0);
-
         // Begin rendering
         let mut renderer = self.window.renderer_mut();
-        renderer.begin_frame(sky_color);
+        renderer.begin_frame(vec3!(0.0, 0.0, 0.0));
 
         self.global_consts.update(
             &mut renderer,
             GlobalConsts {
                 view_mat: *camera_mats.0.as_ref(),
                 proj_mat: *camera_mats.1.as_ref(),
-                sky_color: [sky_color.x, sky_color.y, sky_color.z, 0.0],
                 play_origin,
                 view_distance: [self.client.view_distance(); 4],
                 time: [time; 4],

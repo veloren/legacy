@@ -6,8 +6,16 @@ vec3 get_sun_dir(float time) {
 	return vec3(-sin(3.14 * get_time_of_day(time)), 0.0, -cos(3.14 * get_time_of_day(time)));
 }
 
+float day_cycle(float c, float factor, float time) {
+	return cos(3.14 * c * get_time_of_day(time)) * factor + 1.0 - factor;
+}
+
+float day_anticycle(float c, float factor, float time) {
+	return sin(3.14 * c * get_time_of_day(time)) * factor + 1.0 - factor;
+}
+
 vec3 get_sky_chroma(vec3 dir, float time) {
-	vec3 sun_color = vec3(1.8, 1.5, 1.0);
+	vec3 sun_color = vec3(day_anticycle(2, 0.1, time) + 0.8, day_cycle(2, 0.2, time) + 0.5, day_cycle(2, 0.25, time) + 0.25);
 	float sun_size = 0.0004;
 	float sun_strength = 10000;
 	float sun_bloom = 12;

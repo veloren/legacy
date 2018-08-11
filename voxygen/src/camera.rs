@@ -32,6 +32,10 @@ impl Camera {
 
         mat *= Translation3::from_vector(-self.focus).to_homogeneous();
 
+        let inv = mat.try_inverse().unwrap();
+
+        let pos_col = inv.column(3);
+
         (
             mat,
             *Perspective3::new(self.aspect_ratio, self.fov, 0.1, 10000.0).as_matrix(),

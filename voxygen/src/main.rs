@@ -13,6 +13,7 @@ extern crate conrod;
 #[macro_use]
 extern crate coord;
 extern crate nalgebra;
+extern crate alga;
 
 // File loading
 #[macro_use]

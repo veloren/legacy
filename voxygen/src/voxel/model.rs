@@ -7,6 +7,7 @@ use gfx_device_gl;
 
 use consts::{ConstHandle, GlobalConsts};
 use renderer::{ColorFormat, DepthFormat, Renderer};
+use pipeline::Pipeline;
 use voxel::{Mesh, Vertex};
 
 type PipelineData = pipeline::Data<gfx_device_gl::Resources>;
@@ -54,6 +55,7 @@ impl Model {
     }
 
     pub fn slice(&self) -> Slice<gfx_device_gl::Resources> {
+        // TODO: Should we be recreating this every time we render it? Is there a cost associated?
         Slice::<gfx_device_gl::Resources> {
             start: 0,
             end: self.vert_count,
@@ -61,5 +63,15 @@ impl Model {
             instances: None,
             buffer: IndexBuffer::Auto,
         }
+    }
+
+    pub fn render(
+        &self,
+        renderer: &mut Renderer,
+        pipeline: &Pipeline<pipeline::Init<'static>>,
+        global_consts: &ConstHandle<GlobalConsts>
+    ) {
+        let pipeline_data = self.get_pipeline_data(renderer, global_consts);
+        renderer.encoder_mut().draw(&self.slice(), pipeline.pso(), &pipeline_data);
     }
 }

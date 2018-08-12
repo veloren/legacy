@@ -29,6 +29,8 @@ use camera::Camera;
 use key_state::KeyState;
 use keybinds::Keybinds;
 use window::{Event, RenderWindow};
+use pipeline::Pipeline;
+use shader::Shader;
 use skybox;
 use voxel;
 
@@ -39,18 +41,21 @@ impl client::Payloads for Payloads {
 
 pub struct Game {
     running: AtomicBool,
+
     client: Arc<Client<Payloads>>,
     window: RenderWindow,
-    global_consts: ConstHandle<GlobalConsts>,
-    data: Mutex<Data>,
-    camera: Mutex<Camera>,
-    key_state: Mutex<KeyState>,
-    ui: RefCell<Ui>,
-    keys: Keybinds,
-}
 
-// "Data" includes mutable state
-struct Data {
+    global_consts: ConstHandle<GlobalConsts>,
+    camera: Mutex<Camera>,
+
+    ui: RefCell<Ui>,
+
+    key_state: Mutex<KeyState>,
+    keys: Keybinds,
+
+    skybox_pipeline: Pipeline<skybox::pipeline::Init<'static>>,
+    voxel_pipeline: Pipeline<voxel::pipeline::Init<'static>>,
+
     skybox_model: skybox::Model,
     player_model: voxel::Model,
     other_player_model: voxel::Model,
@@ -92,20 +97,42 @@ impl Game {
         let window_dims = window.get_size();
         let ui = Ui::new(&mut window.renderer_mut(), window_dims, &client);
 
+        // Create pipelines
+
+        let voxel_pipeline = Pipeline::new(
+            window.renderer_mut().factory_mut(),
+            voxel::pipeline::new(),
+            &Shader::from_file("shaders/voxel/vert.glsl").expect("Could not load voxel vertex shader"),
+            &Shader::from_file("shaders/voxel/frag.glsl").expect("Could not load voxel fragment shader"),
+        );
+
+        let skybox_pipeline = Pipeline::new(
+            window.renderer_mut().factory_mut(),
+            skybox::pipeline::new(),
+            &Shader::from_file("shaders/skybox/vert.glsl").expect("Could not load skybox vertex shader"),
+            &Shader::from_file("shaders/skybox/frag.glsl").expect("Could not load skybox fragment shader"),
+        );
+
         Game {
-            data: Mutex::new(Data {
-                skybox_model,
-                player_model,
-                other_player_model,
-            }),
             running: AtomicBool::new(true),
+
             client,
             window,
+
             global_consts,
             camera: Mutex::new(Camera::new()),
-            key_state: Mutex::new(KeyState::new()),
+
             ui: RefCell::new(ui),
+
+            key_state: Mutex::new(KeyState::new()),
             keys: Keybinds::new(),
+
+            skybox_pipeline,
+            voxel_pipeline,
+
+            skybox_model,
+            player_model,
+            other_player_model,
         }
     }
 
@@ -272,34 +299,36 @@ impl Game {
     pub fn render_frame(&self) {
         // Calculate frame constants
         let camera_mats = self.camera.lock().unwrap().get_mats();
+        let cam_origin = *self.camera.lock().unwrap().get_pos();
         let play_origin = self
             .client
             .player_entity()
             .map(|p| *p.read().unwrap().pos())
             .unwrap_or(vec3!(0.0, 0.0, 0.0));
-        let play_origin = [play_origin.x, play_origin.y, play_origin.z, 0.0];
+        let play_origin = [play_origin.x, play_origin.y, play_origin.z, 1.0];
         let time = self.client.time() as f32;
 
-        // Begin rendering
+        // Begin rendering, don't clear the frame
         let mut renderer = self.window.renderer_mut();
-        renderer.begin_frame(vec3!(0.0, 0.0, 0.0));
+        renderer.begin_frame(None);
 
+        // Update global constants that apply to the entire frame
         self.global_consts.update(
             &mut renderer,
             GlobalConsts {
                 view_mat: *camera_mats.0.as_ref(),
                 proj_mat: *camera_mats.1.as_ref(),
+                cam_origin: [cam_origin.x, cam_origin.y, cam_origin.z, 1.0],
                 play_origin,
                 view_distance: [self.client.view_distance(); 4],
                 time: [time; 4],
             },
         );
 
-        {
-            let data = self.data.lock().unwrap();
-            renderer.render_skybox_model(&data.skybox_model, &self.global_consts);
-        }
+        // Render the skybox
+        self.skybox_model.render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
+        // Render each chunk
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(ref chunk, ref payload) = *vol.read().unwrap() {
                 if let Some(ref model) = payload.1 {
@@ -309,47 +338,43 @@ impl Game {
                         0.0,
                     )).to_homogeneous();
 
+                    // TODO: We don't need to update this *every* frame. Be cleverer about this.
                     model.const_handle().update(
                         &mut renderer,
-                        voxel::ModelConsts {
-                            model_mat: *model_mat.as_ref(),
-                        },
+                        voxel::ModelConsts { model_mat: *model_mat.as_ref() },
                     );
-                    renderer.render_voxel_model(&model, &self.global_consts);
+
+                    model.render(&mut renderer, &self.voxel_pipeline, &self.global_consts);
                 }
             }
         }
 
-        // Render each and every entity
+        // Render each entity
         for (uid, entity) in self.client.entities().iter() {
             let entity = entity.read().unwrap();
 
             // Calculate a transformation matrix for the entity's model
-            let model_mat = &Translation3::from_vector(Vector3::new(entity.pos().x, entity.pos().y, entity.pos().z))
+            let model_mat = &Translation3::from_vector(Vector3::from(entity.pos().elements()))
                 .to_homogeneous()
                 * Rotation3::new(Vector3::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous()
                 * Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
 
             // Choose the correct model for the entity
-            let data = self.data.lock().unwrap();
             let model = match self.client.player().entity_uid {
-                Some(uid) if uid == uid => &data.player_model,
-                _ => &data.other_player_model,
+                Some(uid) if uid == uid => &self.player_model,
+                _ => &self.other_player_model,
             };
 
             // Update the model's constant buffer with the transformation details previously calculated
             model.const_handle().update(
                 &mut renderer,
-                voxel::ModelConsts {
-                    model_mat: *model_mat.as_ref(),
-                },
+                voxel::ModelConsts { model_mat: *model_mat.as_ref() },
             );
 
-            // Actually render the model
-            renderer.render_voxel_model(&model, &self.global_consts);
+            model.render(&mut renderer, &self.voxel_pipeline, &self.global_consts);
         }
 
-        // Draw ui
+        // Render the UI
         self.ui
             .borrow_mut()
             .render(&mut renderer, &self.client.clone(), &self.window.get_size());

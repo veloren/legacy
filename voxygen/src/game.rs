@@ -34,9 +34,14 @@ use skybox;
 use voxel;
 use window::{Event, RenderWindow};
 
+pub enum ChunkPayload {
+    Mesh(voxel::Mesh),
+    Model(voxel::Model),
+}
+
 pub struct Payloads {}
 impl client::Payloads for Payloads {
-    type Chunk = (voxel::Mesh, Option<voxel::Model>);
+    type Chunk = ChunkPayload;
 }
 
 pub struct Game {
@@ -61,7 +66,9 @@ pub struct Game {
     other_player_model: voxel::Model,
 }
 
-fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk { (voxel::Mesh::from(chunk), None) }
+fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk {
+    ChunkPayload::Mesh(voxel::Mesh::from(chunk))
+}
 
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
@@ -289,8 +296,8 @@ impl Game {
     pub fn model_chunks(&self) {
         for (_, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(_, ref mut payload) = *vol.write().unwrap() {
-                if let None = payload.1 {
-                    payload.1 = Some(voxel::Model::new(&mut self.window.renderer_mut(), &payload.0));
+                if let ChunkPayload::Mesh(ref mut mesh) = payload {
+                    *payload = ChunkPayload::Model(voxel::Model::new(&mut self.window.renderer_mut(), mesh));
                 }
             }
         }
@@ -332,7 +339,7 @@ impl Game {
         // Render each chunk
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(ref chunk, ref payload) = *vol.read().unwrap() {
-                if let Some(ref model) = payload.1 {
+                if let ChunkPayload::Model(ref model) = payload {
                     let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
                         (pos.x * CHUNK_SIZE) as f32,
                         (pos.y * CHUNK_SIZE) as f32,

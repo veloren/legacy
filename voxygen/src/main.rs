@@ -12,8 +12,8 @@ extern crate conrod;
 // Mathematics
 #[macro_use]
 extern crate coord;
-extern crate nalgebra;
 extern crate alga;
+extern crate nalgebra;
 
 // File loading
 #[macro_use]
@@ -55,8 +55,8 @@ mod renderer;
 mod shader;
 
 // Pipelines
-mod voxel;
 mod skybox;
+mod voxel;
 
 use std::io::{self, Write};
 

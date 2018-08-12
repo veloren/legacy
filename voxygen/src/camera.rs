@@ -1,4 +1,4 @@
-use nalgebra::{Matrix4, Perspective3, Translation3, Vector2, Vector3, Vector4 };
+use nalgebra::{Matrix4, Perspective3, Translation3, Vector2, Vector3, Vector4};
 use std::f32::consts::PI;
 
 pub struct Camera {

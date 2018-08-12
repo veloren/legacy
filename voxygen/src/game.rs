@@ -24,15 +24,15 @@ use client::{self, Client, ClientMode, CHUNK_SIZE};
 use region::{Chunk, VolState};
 
 // Local
-use consts::{ConstHandle, GlobalConsts};
 use camera::Camera;
+use consts::{ConstHandle, GlobalConsts};
 use key_state::KeyState;
 use keybinds::Keybinds;
-use window::{Event, RenderWindow};
 use pipeline::Pipeline;
 use shader::Shader;
 use skybox;
 use voxel;
+use window::{Event, RenderWindow};
 
 pub struct Payloads {}
 impl client::Payloads for Payloads {
@@ -326,7 +326,8 @@ impl Game {
         );
 
         // Render the skybox
-        self.skybox_model.render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
+        self.skybox_model
+            .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Render each chunk
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
@@ -341,7 +342,9 @@ impl Game {
                     // TODO: We don't need to update this *every* frame. Be cleverer about this.
                     model.const_handle().update(
                         &mut renderer,
-                        voxel::ModelConsts { model_mat: *model_mat.as_ref() },
+                        voxel::ModelConsts {
+                            model_mat: *model_mat.as_ref(),
+                        },
                     );
 
                     model.render(&mut renderer, &self.voxel_pipeline, &self.global_consts);
@@ -354,8 +357,7 @@ impl Game {
             let entity = entity.read().unwrap();
 
             // Calculate a transformation matrix for the entity's model
-            let model_mat = &Translation3::from_vector(Vector3::from(entity.pos().elements()))
-                .to_homogeneous()
+            let model_mat = &Translation3::from_vector(Vector3::from(entity.pos().elements())).to_homogeneous()
                 * Rotation3::new(Vector3::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous()
                 * Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
 
@@ -368,7 +370,9 @@ impl Game {
             // Update the model's constant buffer with the transformation details previously calculated
             model.const_handle().update(
                 &mut renderer,
-                voxel::ModelConsts { model_mat: *model_mat.as_ref() },
+                voxel::ModelConsts {
+                    model_mat: *model_mat.as_ref(),
+                },
             );
 
             model.render(&mut renderer, &self.voxel_pipeline, &self.global_consts);

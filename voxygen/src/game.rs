@@ -31,8 +31,8 @@ use keybinds::Keybinds;
 use pipeline::Pipeline;
 use shader::Shader;
 use skybox;
-use voxel;
 use tonemapper;
+use voxel;
 use window::{Event, RenderWindow};
 
 pub enum ChunkPayload {
@@ -68,9 +68,7 @@ pub struct Game {
     other_player_model: voxel::Model,
 }
 
-fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk {
-    ChunkPayload::Mesh(voxel::Mesh::from(chunk))
-}
+fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk { ChunkPayload::Mesh(voxel::Mesh::from(chunk)) }
 
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {

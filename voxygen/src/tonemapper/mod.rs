@@ -6,8 +6,8 @@ use gfx::{
 use gfx_device_gl;
 
 use consts::{ConstHandle, GlobalConsts};
-use renderer::{Renderer, ColorFormat};
 use pipeline::Pipeline;
+use renderer::{ColorFormat, Renderer};
 
 pub type PipelineData = pipeline::Data<gfx_device_gl::Resources>;
 

@@ -1,20 +1,19 @@
 use coord::prelude::*;
 use gfx::{
     self,
-    handle::{DepthStencilView, RenderTargetView, ShaderResourceView, Sampler},
-    texture::{SamplerInfo, FilterMethod, WrapMode},
     format::Formatted,
-    Device, Encoder, Factory,
-    Slice, IndexBuffer,
+    handle::{DepthStencilView, RenderTargetView, Sampler, ShaderResourceView},
+    texture::{FilterMethod, SamplerInfo, WrapMode},
+    Device, Encoder, Factory, IndexBuffer, Slice,
 };
 use gfx_device_gl;
 
 use consts::{ConstHandle, GlobalConsts};
 use pipeline::Pipeline;
 use shader::Shader;
-use voxel;
 use skybox;
 use tonemapper;
+use voxel;
 
 pub type HdrFormat = (gfx::format::R32_G32_B32, gfx::format::Float);
 pub type ColorFormat = gfx::format::Srgba8;
@@ -27,7 +26,6 @@ pub type HdrDepthView = DepthStencilView<gfx_device_gl::Resources, HdrDepthForma
 
 pub type HdrShaderView = ShaderResourceView<gfx_device_gl::Resources, <HdrFormat as Formatted>::View>;
 pub type HdrRenderView = RenderTargetView<gfx_device_gl::Resources, HdrFormat>;
-
 
 pub struct Renderer {
     device: gfx_device_gl::Device,
@@ -49,7 +47,8 @@ impl Renderer {
         depth_view: DepthView,
         size: (u16, u16),
     ) -> Renderer {
-        let (hdr_shader_view, hdr_render_view, hdr_depth_view, hdr_sampler) = Self::create_hdr_views(&mut factory, size);
+        let (hdr_shader_view, hdr_render_view, hdr_depth_view, hdr_sampler) =
+            Self::create_hdr_views(&mut factory, size);
         Renderer {
             device,
             color_view,
@@ -63,8 +62,10 @@ impl Renderer {
         }
     }
 
-    pub fn create_hdr_views(factory: &mut gfx_device_gl::Factory, size: (u16, u16))
-    -> (
+    pub fn create_hdr_views(
+        factory: &mut gfx_device_gl::Factory,
+        size: (u16, u16),
+    ) -> (
         HdrShaderView,
         HdrRenderView,
         HdrDepthView,
@@ -72,7 +73,9 @@ impl Renderer {
     ) {
         let (_, hdr_shader_view, hdr_render_view) = factory.create_render_target::<HdrFormat>(size.0, size.1).unwrap();
         let hdr_sampler = factory.create_sampler(SamplerInfo::new(FilterMethod::Scale, WrapMode::Clamp));
-        let hdr_depth_view = factory.create_depth_stencil_view_only::<HdrDepthFormat>(size.0, size.1).unwrap();
+        let hdr_depth_view = factory
+            .create_depth_stencil_view_only::<HdrDepthFormat>(size.0, size.1)
+            .unwrap();
         (hdr_shader_view, hdr_render_view, hdr_depth_view, hdr_sampler)
     }
 
@@ -107,7 +110,8 @@ impl Renderer {
 
     #[allow(dead_code)]
     pub fn set_views(&mut self, color_view: ColorView, depth_view: DepthView, size: (u16, u16)) {
-        let (hdr_shader_view, hdr_render_view, hdr_depth_view, hdr_sampler) = Self::create_hdr_views(&mut self.factory, size);
+        let (hdr_shader_view, hdr_render_view, hdr_depth_view, hdr_sampler) =
+            Self::create_hdr_views(&mut self.factory, size);
         self.hdr_shader_view = hdr_shader_view;
         self.hdr_render_view = hdr_render_view;
         self.hdr_depth_view = hdr_depth_view;

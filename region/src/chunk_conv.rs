@@ -23,7 +23,7 @@ pub struct ChunkConverter<VT: Voxel> {
 }
 
 impl VolumeConverter<Block> for ChunkConverter<Block> {
-    fn convert<P: Send + Sync + 'static>(container: &mut Container<Block, P>, state: PersState) {
+    fn convert<P>(container: &mut Container<Block, P>, state: PersState) {
         match state {
             PersState::Raw => {
                 if let Some(rle) = container.get_mut(PersState::Rle) {
@@ -34,14 +34,13 @@ impl VolumeConverter<Block> for ChunkConverter<Block> {
                     };
                     let mut raw = Chunk::new();
                     raw.set_size(s);
-                    let ref from_voxels = from.voxels_mut();
-                    //let ref raw_voxels = raw.voxels_mut();
+                    let ref voxels = from.voxels_mut();
                     for x in 0..s.x {
                         for y in 0..s.y {
                             let mut old_z = 0;
-                            let ref stack = from_voxels[x as usize][y as usize];
+                            let ref stack = voxels[x as usize][y as usize];
                             for b in stack {
-                                let new_z = old_z + b.cnt;
+                                let new_z = old_z + b.num;
                                 for z in old_z..new_z {
                                     let pos = Vec3::<i64>::new(x, y, z as i64);
                                     raw.set(pos, b.block);

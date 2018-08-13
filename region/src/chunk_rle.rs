@@ -8,18 +8,18 @@ use std::{any::Any, u8};
 
 //TODO: optimizations:
 // currently even empty blocks generate a BlockRle, one could say that if the 3rd vector is empty that all blocks are empty
-// then we could optimize the cnt variable, we could interpret 0 as 1, increasing our capacity from 255 to 256
+// then we could optimize the num variable, we could interpret 0 as 1, increasing our capacity from 255 to 256
 // that means that no empty BlockRle would be allowed, but thats no problem
 
 #[derive(Copy, Clone)]
 pub struct BlockRle {
     pub block: Block,
-    pub cnt: u8,
+    pub num: u8,
 }
 const MAX_CNT: u8 = u8::MAX;
 
 impl BlockRle {
-    fn new(block: Block, cnt: u8) -> Self { BlockRle { block, cnt } }
+    fn new(block: Block, num: u8) -> Self { BlockRle { block, num } }
 }
 
 pub struct ChunkRle {
@@ -38,8 +38,8 @@ impl Volume for ChunkRle {
         for x in self.voxels.iter_mut() {
             for y in x.iter_mut() {
                 y.resize(high, BlockRle::new(block, 0));
-                y.iter_mut().map(|e| e.cnt = MAX_CNT);
-                y.last_mut().unwrap().cnt = lastsize as u8;
+                y.iter_mut().map(|e| e.num = MAX_CNT);
+                y.last_mut().unwrap().num = lastsize as u8;
             }
         }
     }

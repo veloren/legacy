@@ -32,27 +32,31 @@ const NUMBER_OF_ELEMENTS_IN_VOLSTATE: usize = 3; //TODO: really rust ?
  When you modify a version, you must either also change all other implementations or drop them!
 */
 
-/*
-pub trait CommonVolume<VT: Voxel> : Volume<VoxelType=VT> {
-
-}
-*/
-
-pub struct Container<VT: Voxel, P: Send + Sync + 'static> {
+pub struct Container<VT: Voxel, P> {
     payload: Option<P>,
     states: [Option<Box<Volume<VoxelType = VT>>>; NUMBER_OF_ELEMENTS_IN_VOLSTATE],
 }
 
 pub trait VolumeConverter<VT: Voxel>: Send + Sync + 'static {
-    fn convert<P: Send + Sync + 'static>(container: &mut Container<VT, P>, state: PersState);
+    fn convert<P>(container: &mut Container<VT, P>, state: PersState);
 }
 
-pub struct VolPers<K: Eq + Hash + 'static, VT: Voxel, VC: VolumeConverter<VT>, P: Send + Sync + 'static> {
+pub struct VolPers<K: Eq + Hash + 'static, VT: Voxel, VC: VolumeConverter<VT>, P> {
     data: RwLock<HashMap<K, Arc<RwLock<Container<VT, P>>>>>,
     phantom: PhantomData<VC>,
 }
 
-impl<VT: Voxel, P: Send + Sync + 'static> Container<VT, P> {
+impl PersState {
+    fn index(&self) -> usize {
+        match self {
+            PersState::Raw => 0,
+            PersState::Rle => 1,
+            PersState::File => 2,
+        }
+    }
+}
+
+impl<VT: Voxel, P> Container<VT, P> {
     pub fn new() -> Container<VT, P> {
         Container {
             payload: None,
@@ -60,36 +64,22 @@ impl<VT: Voxel, P: Send + Sync + 'static> Container<VT, P> {
         }
     }
 
-    pub fn exists(&self, state: PersState) -> bool {
-        match state {
-            PersState::Raw => self.states[0].is_some(),
-            PersState::Rle => self.states[1].is_some(),
-            PersState::File => self.states[2].is_some(),
-        }
-    }
+    pub fn contains(&self, state: PersState) -> bool { self.states[state.index()].is_some() }
 
     pub fn get(&self, state: PersState) -> &Option<Box<Volume<VoxelType = VT> + 'static>> {
-        match state {
-            PersState::Raw => &self.states[0],
-            PersState::Rle => &self.states[1],
-            PersState::File => &self.states[2],
-        }
+        &self.states[state.index()]
     }
 
     pub fn get_mut(&mut self, state: PersState) -> &mut Option<Box<Volume<VoxelType = VT> + 'static>> {
-        match state {
-            PersState::Raw => &mut self.states[0],
-            PersState::Rle => &mut self.states[1],
-            PersState::File => &mut self.states[2],
-        }
+        &mut self.states[state.index()]
     }
 
-    pub fn payload<'a>(&'a self) -> &'a Option<P> { &self.payload }
+    pub fn payload(&self) -> &Option<P> { &self.payload }
 
-    pub fn payload_mut<'a>(&'a mut self) -> &'a mut Option<P> { &mut self.payload }
+    pub fn payload_mut(&mut self) -> &mut Option<P> { &mut self.payload }
 }
 
-impl<K: Eq + Hash + 'static, VT: Voxel, VC: VolumeConverter<VT>, P: Send + Sync + 'static> VolPers<K, VT, VC, P> {
+impl<K: Eq + Hash + 'static, VT: Voxel, VC: VolumeConverter<VT>, P> VolPers<K, VT, VC, P> {
     pub fn new() -> VolPers<K, VT, VC, P> {
         VolPers {
             data: RwLock::new(HashMap::new()),
@@ -108,7 +98,7 @@ impl<K: Eq + Hash + 'static, VT: Voxel, VC: VolumeConverter<VT>, P: Send + Sync 
     pub fn exists(&self, key: &K, state: PersState) -> bool {
         if let Some(x) = self.data.read().unwrap().get(&key) {
             let con = x.read().unwrap();
-            let contains = con.exists(state);
+            let contains = con.contains(state);
             return contains;
         }
         return false;
@@ -118,9 +108,8 @@ impl<K: Eq + Hash + 'static, VT: Voxel, VC: VolumeConverter<VT>, P: Send + Sync 
         let x = self.data.read().unwrap().get(&key).map(|v| v.clone());
         if let Some(x) = x {
             let mut con = x.write().unwrap();
-            let contains = con.exists(state.clone());
+            let contains = con.contains(state.clone());
             if !contains {
-                //TODO: does this logic belong in this class or in the converter ???
                 VC::convert(&mut con, state);
             }
         }

@@ -64,10 +64,8 @@ impl<V: 'static + Volume, VC: VolumeConverter<V::VoxelType>, P: Send + Sync + 's
         let p = self.pers.get(&pos);
         if let Some(p) = p {
             return Some(VolState::Exists(p));
-        } else {
-            if self.pending.read().unwrap().get(&pos).is_some() {
-                return Some(VolState::Loading);
-            }
+        } else if self.pending.read().unwrap().get(&pos).is_some() {
+            return Some(VolState::Loading);
         }
         return None;
     }
@@ -75,40 +73,26 @@ impl<V: 'static + Volume, VC: VolumeConverter<V::VoxelType>, P: Send + Sync + 's
     pub fn persistence<'a>(&'a self) -> &'a VolPers<Vec2<i64>, V::VoxelType, VC, P> { &self.pers }
 
     pub fn contains(&self, pos: Vec2<i64>) -> bool {
-        let p = self.pers.get(&pos);
-        if let Some(p) = p {
-            return true;
-        } else {
-            if self.pending.read().unwrap().get(&pos).is_some() {
-                return true;
-            }
-        }
-        return false;
+        return self.pers.get(&pos).is_some() || self.pending.read().unwrap().get(&pos).is_some();
     }
 
     pub fn loaded(&self, pos: Vec2<i64>) -> bool {
-        if self.pending.read().unwrap().get(&pos).is_some() {
-            return false;
-        } else {
-            let p = self.pers.get(&pos);
-            return p.is_some();
-        }
+        return self.pending.read().unwrap().get(&pos).is_none() && self.pers.get(&pos).is_some();
     }
 
-    pub fn remove(&self, pos: Vec2<i64>) -> bool {
-        let o = self.pers.data_mut().remove(&pos);
-        return o.is_some();
-    }
+    pub fn remove(&self, pos: Vec2<i64>) -> bool { return self.pers.data_mut().remove(&pos).is_some(); }
 
     pub fn gen(&self, pos: Vec2<i64>) {
-        if self.contains(pos) {
-            return; // Don't try to generate the same chunk twice
-        }
-        //TODO: this is not thread safe, calling it really fast might end up being 2 threads in this path!
         let gen_func = self.gen.gen_func.clone();
         let payload_func = self.gen.payload_func.clone();
         let pen = self.pending.clone();
-        pen.write().unwrap().insert(pos);
+        {
+            let mut pen_lock = pen.write().unwrap();
+            if pen_lock.get(&pos).is_some() {
+                return;
+            }
+            pen_lock.insert(pos); // the lock above guarantees that no 2 threads can generate the same chunk
+        }
         let con = Arc::new(RwLock::new(Container::new()));
         self.pers.data_mut().insert(pos, con.clone());
         POOL.lock().unwrap().execute(move || {
@@ -129,14 +113,13 @@ impl<V: 'static + Volume, VC: VolumeConverter<V::VoxelType>, P: Send + Sync + 's
 
     pub fn get_voxel_at(&self, pos: Vec3<i64>) -> V::VoxelType {
         let vol_pos = vec2!(pos.x.div_euc(self.vol_size), pos.y.div_euc(self.vol_size));
-
         let vox_pos = vec3!(pos.x.mod_euc(self.vol_size), pos.y.mod_euc(self.vol_size), pos.z);
 
-        let ref d = self.pers.data();
-        let ref v = d.get(&vol_pos);
-        if let Some(v) = v {
-            let con = v.read().unwrap();
-            let any_vol = con.get(PersState::Raw); //TODO: allow any vol here for performance which suppoerts at
+        let ref data_ref = self.pers.data();
+        let ref volume = data_ref.get(&vol_pos);
+        if let Some(volume) = volume {
+            let con = volume.read().unwrap();
+            let any_vol = con.get(PersState::Raw); //TODO: also allow for other datasets other than Raw, e.g. Rle
             if let Some(any_vol) = any_vol {
                 return any_vol.at(vox_pos).unwrap_or(V::VoxelType::empty());
             };

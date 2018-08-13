@@ -16,6 +16,8 @@ uniform global_consts {
 	vec4 time;
 };
 
+// The tonemapping curve from Uncharted 2, released by the author here
+// http://filmicworlds.com/blog/filmic-tonemapping-operators/
 vec3 uncharted2Tonemap(const vec3 x) {
 	const float A = 0.15;
 	const float B = 0.50;
@@ -33,6 +35,8 @@ vec3 tonemapUncharted2(const vec3 color, const float exposureBias) {
 	return curr * whiteScale;
 }
 
+// Luminance-only ACES tonemapping fit from
+// https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 vec3 acesFilm(const vec3 x) {
     const float a = 2.51;
     const float b = 0.03;
@@ -49,6 +53,8 @@ vec3 RRTAndODTFit(vec3 v)
     return a / b;
 }
 
+// ACES fit by Stephen Hill (@self_shadow), adapted from the HLSL implementation
+// here https://github.com/TheRealMJP/BakingLab/blob/master/BakingLab/ACES.hlsl
 vec3 ACESFitted(vec3 color)
 {
 
@@ -67,10 +73,9 @@ void main() {
     const float gamma = 2.2;
     vec3 hdrColor = texture(t_Hdr, uv.xy).rgb;
 
-    // exposure correction
+    // exposure correction. Varies between F/16 at midday and F/2.8 at night.
     float ac = day_anticycle(1.0, 0.5, time.x);
     float fstop = ac * ac * -13.2 + 16;
-    // float fstop = 0.0;
     float Exp = pow(2.0, -fstop);
     vec3 mapped = hdrColor * Exp;
   

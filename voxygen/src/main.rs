@@ -12,6 +12,7 @@ extern crate conrod;
 // Mathematics
 #[macro_use]
 extern crate coord;
+extern crate alga;
 extern crate nalgebra;
 
 // File loading
@@ -43,13 +44,19 @@ mod camera;
 mod game;
 mod key_state;
 mod keybinds;
-mod pipeline;
-mod renderer;
-mod shader;
 mod tests;
 mod ui;
 mod window;
 
+// Rendering
+mod consts;
+mod pipeline;
+mod renderer;
+mod shader;
+
+// Pipelines
+mod skybox;
+mod tonemapper;
 mod voxel;
 
 use std::io::{self, Write};

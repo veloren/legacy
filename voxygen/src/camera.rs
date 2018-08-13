@@ -1,4 +1,4 @@
-use nalgebra::{Matrix4, Perspective3, Translation3, Vector2, Vector3};
+use nalgebra::{Matrix4, Perspective3, Translation3, Vector2, Vector3, Vector4};
 use std::f32::consts::PI;
 
 pub struct Camera {
@@ -12,8 +12,8 @@ pub struct Camera {
 impl Camera {
     pub fn new() -> Camera {
         Camera {
-            focus: Vector3::<f32>::new(100.0, 100.0, 50.0),
-            ori: Vector2::<f32>::zeros(),
+            focus: Vector3::new(100.0, 100.0, 50.0),
+            ori: Vector2::zeros(),
             aspect_ratio: 1.618,
             fov: 1.5,
             zoom: 10.0,
@@ -21,20 +21,20 @@ impl Camera {
     }
 
     pub fn get_mats(&self) -> (Matrix4<f32>, Matrix4<f32>) {
-        let mut mat = Matrix4::<f32>::identity();
+        let mut mat = Matrix4::identity();
 
-        mat *= Translation3::<f32>::from_vector(Vector3::<f32>::new(0.0, 0.0, -self.zoom)).to_homogeneous();
+        mat *= Translation3::from_vector(Vector3::new(0.0, 0.0, -self.zoom)).to_homogeneous();
         mat *= Matrix4::from_scaled_axis(&Vector3::x() * self.ori.y)
             * Matrix4::from_scaled_axis(&Vector3::y() * self.ori.x);
 
         // Apply anti-OpenGL correction
         mat *= Matrix4::from_scaled_axis(-&Vector3::x() * PI / 2.0);
 
-        mat *= Translation3::<f32>::from_vector(-self.focus).to_homogeneous();
+        mat *= Translation3::from_vector(-self.focus).to_homogeneous();
 
         (
             mat,
-            *Perspective3::<f32>::new(self.aspect_ratio, self.fov, 0.1, 1000.0).as_matrix(),
+            *Perspective3::new(self.aspect_ratio, self.fov, 0.1, 10000.0).as_matrix(),
         )
     }
 
@@ -52,6 +52,12 @@ impl Camera {
         if self.zoom < 0.0 {
             self.zoom = 0.0;
         }
+    }
+
+    pub fn get_pos(&self) -> Vector3<f32> {
+        // TODO: There should be a more efficient way of doing this, but oh well
+        let p = self.get_mats().0.try_inverse().unwrap_or(Matrix4::zeros()) * Vector4::new(0.0, 0.0, 0.0, 1.0);
+        Vector3::new(p.x, p.y, p.z)
     }
 
     #[allow(dead_code)]

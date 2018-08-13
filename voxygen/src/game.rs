@@ -25,41 +25,59 @@ use region::{Chunk, VolState};
 
 // Local
 use camera::Camera;
+use consts::{ConstHandle, GlobalConsts};
 use key_state::KeyState;
 use keybinds::Keybinds;
+use pipeline::Pipeline;
+use shader::Shader;
+use skybox;
+use tonemapper;
 use voxel;
 use window::{Event, RenderWindow};
 
+pub enum ChunkPayload {
+    Mesh(voxel::Mesh),
+    Model(voxel::Model),
+}
+
 pub struct Payloads {}
 impl client::Payloads for Payloads {
-    type Chunk = (voxel::Mesh, Option<voxel::Model>);
+    type Chunk = ChunkPayload;
 }
 
 pub struct Game {
     running: AtomicBool,
+
     client: Arc<Client<Payloads>>,
     window: RenderWindow,
-    world_consts: voxel::ConstHandle<voxel::WorldConsts>,
-    data: Mutex<Data>,
-    camera: Mutex<Camera>,
-    key_state: Mutex<KeyState>,
-    ui: RefCell<Ui>,
-    keys: Keybinds,
-}
 
-// "Data" includes mutable state
-struct Data {
+    global_consts: ConstHandle<GlobalConsts>,
+    camera: Mutex<Camera>,
+
+    ui: RefCell<Ui>,
+
+    key_state: Mutex<KeyState>,
+    keys: Keybinds,
+
+    skybox_pipeline: Pipeline<skybox::pipeline::Init<'static>>,
+    voxel_pipeline: Pipeline<voxel::pipeline::Init<'static>>,
+    tonemapper_pipeline: Pipeline<tonemapper::pipeline::Init<'static>>,
+
+    skybox_model: skybox::Model,
     player_model: voxel::Model,
     other_player_model: voxel::Model,
 }
 
-fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk { (voxel::Mesh::from(chunk), None) }
+fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk { ChunkPayload::Mesh(voxel::Mesh::from(chunk)) }
 
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
         let window = RenderWindow::new();
 
-        let world_consts = voxel::ConstHandle::new(&mut window.renderer_mut());
+        let global_consts = ConstHandle::new(&mut window.renderer_mut());
+
+        let skybox_mesh = skybox::Mesh::new_skybox();
+        let skybox_model = skybox::Model::new(&mut window.renderer_mut(), &skybox_mesh);
 
         info!("trying to load model files");
         let vox = dot_vox::load("assets/cosmetic/creature/friendly/player3.vox")
@@ -86,19 +104,50 @@ impl Game {
         let window_dims = window.get_size();
         let ui = Ui::new(&mut window.renderer_mut(), window_dims, &client);
 
+        // Create pipelines
+
+        let voxel_pipeline = Pipeline::new(
+            window.renderer_mut().factory_mut(),
+            voxel::pipeline::new(),
+            &Shader::from_file("shaders/voxel/vert.glsl").expect("Could not load voxel vertex shader"),
+            &Shader::from_file("shaders/voxel/frag.glsl").expect("Could not load voxel fragment shader"),
+        );
+
+        let skybox_pipeline = Pipeline::new(
+            window.renderer_mut().factory_mut(),
+            skybox::pipeline::new(),
+            &Shader::from_file("shaders/skybox/vert.glsl").expect("Could not load skybox vertex shader"),
+            &Shader::from_file("shaders/skybox/frag.glsl").expect("Could not load skybox fragment shader"),
+        );
+
+        let tonemapper_pipeline = Pipeline::new(
+            window.renderer_mut().factory_mut(),
+            tonemapper::pipeline::new(),
+            &Shader::from_file("shaders/tonemapper/vert.glsl").expect("Could not load skybox vertex shader"),
+            &Shader::from_file("shaders/tonemapper/frag.glsl").expect("Could not load skybox fragment shader"),
+        );
+
         Game {
-            data: Mutex::new(Data {
-                player_model,
-                other_player_model,
-            }),
             running: AtomicBool::new(true),
+
             client,
             window,
-            world_consts,
+
+            global_consts,
             camera: Mutex::new(Camera::new()),
-            key_state: Mutex::new(KeyState::new()),
+
             ui: RefCell::new(ui),
+
+            key_state: Mutex::new(KeyState::new()),
             keys: Keybinds::new(),
+
+            skybox_pipeline,
+            voxel_pipeline,
+            tonemapper_pipeline,
+
+            skybox_model,
+            player_model,
+            other_player_model,
         }
     }
 
@@ -255,8 +304,8 @@ impl Game {
     pub fn model_chunks(&self) {
         for (_, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(_, ref mut payload) = *vol.write().unwrap() {
-                if let None = payload.1 {
-                    payload.1 = Some(voxel::Model::new(&mut self.window.renderer_mut(), &payload.0));
+                if let ChunkPayload::Mesh(ref mut mesh) = payload {
+                    *payload = ChunkPayload::Model(voxel::Model::new(&mut self.window.renderer_mut(), mesh));
                 }
             }
         }
@@ -265,68 +314,72 @@ impl Game {
     pub fn render_frame(&self) {
         // Calculate frame constants
         let camera_mats = self.camera.lock().unwrap().get_mats();
+        let cam_origin = *self.camera.lock().unwrap().get_pos();
         let play_origin = self
             .client
             .player_entity()
             .map(|p| *p.read().unwrap().pos())
             .unwrap_or(vec3!(0.0, 0.0, 0.0));
-        let play_origin = [play_origin.x, play_origin.y, play_origin.z, 0.0];
+        let play_origin = [play_origin.x, play_origin.y, play_origin.z, 1.0];
         let time = self.client.time() as f32;
 
-        // Calculate ambient parameters according to the time of day
-        let sky_color = vec3!(0.5, 0.7, 1.0) * (time / 600.0).cos().max(0.1).min(1.0);
-
-        // Begin rendering
+        // Begin rendering, don't clear the frame
         let mut renderer = self.window.renderer_mut();
-        renderer.begin_frame(sky_color);
+        renderer.begin_frame(None);
 
-        self.world_consts.update(
+        // Update global constants that apply to the entire frame
+        self.global_consts.update(
             &mut renderer,
-            voxel::WorldConsts {
+            GlobalConsts {
                 view_mat: *camera_mats.0.as_ref(),
                 proj_mat: *camera_mats.1.as_ref(),
-                sky_color: [sky_color.x, sky_color.y, sky_color.z, 0.0],
+                cam_origin: [cam_origin.x, cam_origin.y, cam_origin.z, 1.0],
                 play_origin,
                 view_distance: [self.client.view_distance(); 4],
                 time: [time; 4],
             },
         );
 
+        // Render the skybox
+        self.skybox_model
+            .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
+
+        // Render each chunk
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(ref chunk, ref payload) = *vol.read().unwrap() {
-                if let Some(ref model) = payload.1 {
+                if let ChunkPayload::Model(ref model) = payload {
                     let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
                         (pos.x * CHUNK_SIZE) as f32,
                         (pos.y * CHUNK_SIZE) as f32,
                         0.0,
                     )).to_homogeneous();
 
+                    // TODO: We don't need to update this *every* frame. Be cleverer about this.
                     model.const_handle().update(
                         &mut renderer,
                         voxel::ModelConsts {
                             model_mat: *model_mat.as_ref(),
                         },
                     );
-                    renderer.render_model_object(&model, &self.world_consts);
+
+                    model.render(&mut renderer, &self.voxel_pipeline, &self.global_consts);
                 }
             }
         }
 
-        // Render each and every entity
+        // Render each entity
         for (uid, entity) in self.client.entities().iter() {
             let entity = entity.read().unwrap();
 
             // Calculate a transformation matrix for the entity's model
-            let model_mat = &Translation3::from_vector(Vector3::new(entity.pos().x, entity.pos().y, entity.pos().z))
-                .to_homogeneous()
+            let model_mat = &Translation3::from_vector(Vector3::from(entity.pos().elements())).to_homogeneous()
                 * Rotation3::new(Vector3::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous()
                 * Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
 
             // Choose the correct model for the entity
-            let data = self.data.lock().unwrap();
             let model = match self.client.player().entity_uid {
-                Some(uid) if uid == uid => &data.player_model,
-                _ => &data.other_player_model,
+                Some(uid) if uid == uid => &self.player_model,
+                _ => &self.other_player_model,
             };
 
             // Update the model's constant buffer with the transformation details previously calculated
@@ -337,9 +390,10 @@ impl Game {
                 },
             );
 
-            // Actually render the model
-            renderer.render_model_object(&model, &self.world_consts);
+            model.render(&mut renderer, &self.voxel_pipeline, &self.global_consts);
         }
+
+        tonemapper::render(&mut renderer, &self.tonemapper_pipeline, &self.global_consts);
 
         // Draw ui
         self.ui

@@ -6,7 +6,7 @@ mod vox;
 // Reexports
 pub use self::{
     mesh::{Mesh, Vertex},
-    model::{pipeline, ConstHandle, Model, ModelConsts, WorldConsts},
+    model::{pipeline, Model, ModelConsts},
     render_volume::{RenderVolume, RenderVoxel},
     vox::vox_to_figure,
 };

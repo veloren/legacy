@@ -71,13 +71,23 @@ impl RenderWindow {
 
         let (gl_window, device, factory, color_view, depth_view) =
             gfx_window_glutin::init::<ColorFormat, DepthFormat>(win_builder, ctx_builder, &events_loop.read().unwrap());
-        
-        let size: (u32, u32) = gl_window.get_inner_size().unwrap().to_physical(gl_window.get_hidpi_factor()).into();
+
+        let size: (u32, u32) = gl_window
+            .get_inner_size()
+            .unwrap()
+            .to_physical(gl_window.get_hidpi_factor())
+            .into();
 
         let rw = RenderWindow {
             events_loop,
             gl_window: RwLock::new(gl_window),
-            renderer: RwLock::new(Renderer::new(device, factory, color_view, depth_view, (size.0 as _, size.1 as _))),
+            renderer: RwLock::new(Renderer::new(
+                device,
+                factory,
+                color_view,
+                depth_view,
+                (size.0 as _, size.1 as _),
+            )),
             cursor_trapped: AtomicBool::new(false),
         };
         rw
@@ -105,8 +115,15 @@ impl RenderWindow {
                         let mut color_view = self.renderer.read().unwrap().color_view().clone();
                         let mut depth_view = self.renderer.read().unwrap().depth_view().clone();
                         gfx_window_glutin::update_views(&gl_window, &mut color_view, &mut depth_view);
-                        let size: (u32, u32) = gl_window.get_inner_size().unwrap().to_physical(gl_window.get_hidpi_factor()).into();
-                        self.renderer.write().unwrap().set_views(color_view, depth_view, (size.0 as _, size.1 as _));
+                        let size: (u32, u32) = gl_window
+                            .get_inner_size()
+                            .unwrap()
+                            .to_physical(gl_window.get_hidpi_factor())
+                            .into();
+                        self.renderer
+                            .write()
+                            .unwrap()
+                            .set_views(color_view, depth_view, (size.0 as _, size.1 as _));
                         func(Event::Resized {
                             w: width as u32,
                             h: height as u32,

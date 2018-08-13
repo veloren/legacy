@@ -7,7 +7,7 @@ use gfx_device_gl;
 
 use consts::{ConstHandle, GlobalConsts};
 use pipeline::Pipeline;
-use renderer::{HdrFormat, HdrDepthFormat, Renderer};
+use renderer::{HdrDepthFormat, HdrFormat, Renderer};
 use skybox::{Mesh, Vertex};
 
 type PipelineData = pipeline::Data<gfx_device_gl::Resources>;

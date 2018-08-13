@@ -56,8 +56,8 @@ mod shader;
 
 // Pipelines
 mod skybox;
-mod voxel;
 mod tonemapper;
+mod voxel;
 
 use std::io::{self, Write};
 

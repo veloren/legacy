@@ -32,6 +32,7 @@ use pipeline::Pipeline;
 use shader::Shader;
 use skybox;
 use voxel;
+use tonemapper;
 use window::{Event, RenderWindow};
 
 pub enum ChunkPayload {
@@ -60,6 +61,7 @@ pub struct Game {
 
     skybox_pipeline: Pipeline<skybox::pipeline::Init<'static>>,
     voxel_pipeline: Pipeline<voxel::pipeline::Init<'static>>,
+    tonemapper_pipeline: Pipeline<tonemapper::pipeline::Init<'static>>,
 
     skybox_model: skybox::Model,
     player_model: voxel::Model,
@@ -120,6 +122,13 @@ impl Game {
             &Shader::from_file("shaders/skybox/frag.glsl").expect("Could not load skybox fragment shader"),
         );
 
+        let tonemapper_pipeline = Pipeline::new(
+            window.renderer_mut().factory_mut(),
+            tonemapper::pipeline::new(),
+            &Shader::from_file("shaders/tonemapper/vert.glsl").expect("Could not load skybox vertex shader"),
+            &Shader::from_file("shaders/tonemapper/frag.glsl").expect("Could not load skybox fragment shader"),
+        );
+
         Game {
             running: AtomicBool::new(true),
 
@@ -136,6 +145,7 @@ impl Game {
 
             skybox_pipeline,
             voxel_pipeline,
+            tonemapper_pipeline,
 
             skybox_model,
             player_model,
@@ -385,7 +395,9 @@ impl Game {
             model.render(&mut renderer, &self.voxel_pipeline, &self.global_consts);
         }
 
-        // Render the UI
+        tonemapper::render(&mut renderer, &self.tonemapper_pipeline, &self.global_consts);
+
+        // Draw ui
         self.ui
             .borrow_mut()
             .render(&mut renderer, &self.client.clone(), &self.window.get_size());

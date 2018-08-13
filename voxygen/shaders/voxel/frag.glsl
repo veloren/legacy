@@ -2,6 +2,7 @@
 
 #include <noise.glsl>
 #include <sky.glsl>
+#include <bsdf.glsl>
 
 in vec3 frag_pos;
 in vec3 frag_norm;
@@ -22,47 +23,69 @@ uniform global_consts {
 	vec4 time;
 };
 
-out vec4 target;
+out vec3 target;
 
 void main() {
-	target = frag_col;
-
 	// Sunlight
-	float light_level = clamp(cos(3.14 * get_time_of_day(time.x)), 0.05, 1);
-	float diffuse_factor = 0.9;
-	float ambient_factor = 0.1;
-	vec3 sun_color = vec3(1.0, 1.0, 1.0) * light_level;
-	float sun_specular = 0.5;
-	float sun_factor = 5;
-	float sun_shine = 0;
+	float sunAngularRadius = 0.017; // 1 degree radius, 2 degree diameter (not realistic, irl sun is ~0.5 deg diameter)
+	vec3 sun_color = get_sun_color(time.x);
+	vec3 sun_dir = -get_sun_dir(time.x);
 
 	// Geometry
-	vec3 world_norm = normalize((model_mat * vec4(frag_norm, 0)).xyz);
+	vec3 N = normalize((model_mat * vec4(frag_norm, 0)).xyz);
 	vec3 world_pos = (model_mat * vec4(frag_pos, 1)).xyz;
-	vec3 cam_pos = (view_mat * vec4(world_pos, 1)).xyz;
-	float play_dist = length(play_origin.xy - world_pos.xy);
+	vec3 V = normalize(cam_origin.xyz - world_pos);
 
-	// Sunlight
-	vec3 sun_dir = get_sun_dir(time.x);
-	vec3 sky_chroma = get_sky_chroma(world_pos - cam_origin.xyz, time.x);
+	// calculate closest direction on sun's disk to reflection vector
+	float r = sin(sunAngularRadius);
+	float d = cos(sunAngularRadius);
+	vec3 R = reflect(-V, N);
+	float DdotR = dot(sun_dir, R);
+	vec3 S = R - DdotR * sun_dir;
+	vec3 L = DdotR < d ? normalize(d * sun_dir + normalize(S) * r) : R;
 
-	float mist_start = view_distance.x * 0.8;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;
-	float mist_end = view_distance.x;// + snoise(vec4(world_pos, -time) * 0.02) * 50.0;
+	float NdotV = clamp(dot(N, V), 0.0, 1.0);
+	float NdotL = clamp(dot(N, L), 0.0, 1.0);
+	vec3 H = normalize(V + L);
+	float LdotH = clamp(dot(L, H), 0.0, 1.0);
+	float NdotH = clamp(dot(N, H), 0.0, 0.99999995);// fix artifact
 
-	// Ambiant light
-	vec3 ambient = frag_col.xyz * ambient_factor * sun_color;
+	vec3 sky_chroma = get_sky_chroma(-V, time.x);
+	vec3 atmos_color = get_sky_chroma(N, time.x);
 
-	// Diffuse light
-	vec3 diffuse = frag_col.xyz * diffuse_factor * sun_color * max(0, dot(world_norm, -sun_dir));
+	float ambient_intensity = 0.5;
+	vec3 ambient = frag_col.rgb * ambient_intensity * mix(atmos_color, sun_color, 0.5 * clamp(day_cycle(1.0, 0.9, time.x), 0, 1));
 
-	// Specular light
-	vec3 reflect_vec = (view_mat * vec4(reflect(sun_dir, world_norm), 0)).xyz;
-	float specular_val = clamp(dot(-normalize(cam_pos), reflect_vec) + sun_shine, 0, 1);
-	vec3 specular = sun_color * pow(specular_val, sun_factor) * sun_specular;
+	float smoothness = 0.2;
+	float roughness_linear = clamp(1 - (smoothness - 0.01), 0, 1);
+	float roughness = roughness_linear * roughness_linear;
+
+	float metallic = 0.0;
+	float reflectance = 0.2;
+	vec3 f0 = mix(vec3(mix(0.02, 0.18, reflectance)), frag_col.rgb, metallic);
+	float f90 = 1.0;
+	vec3 fresnel = f_Schlick(f0, f90, LdotH);
+	float geo = vis_SmithGGXCorrelated(NdotL, NdotV, roughness);
+	float ndf = ndf_GGX(NdotH, roughness);
+	vec3 specular = fresnel * ndf * geo / PI;
+
+	float fD = fr_DisneyDiffuse(NdotV, NdotL, LdotH, roughness_linear) / PI;
+	vec3 diffuse = fD * frag_col.rgb;
+
+	float sun_level = clamp(day_cycle(1, 0.9, time.x), 0.0, 1);
+	float sun_intensity = sun_level * 80000;
+	float sun_illuminance = sun_intensity * NdotL;
+
+	vec3 lighted = ambient + ((diffuse + specular) * sun_color * sun_illuminance);
 
 	// Mist
-	float mist_delta = 1 / (mist_end - mist_start);
-	float mist_value = clamp(play_dist * mist_delta - mist_delta * mist_start, 0.0, 1.0);
+	float mist_start = view_distance.x * 0.7;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;
+	float mist_end = view_distance.x;// + snoise(vec4(world_pos, -time) * 0.02) * 50.0;
+	float mist_delta = mist_end - mist_start;
+	float play_dist = length(play_origin.xy - world_pos.xy);
+	float dist = max(play_dist - mist_start, 0);
+	float percent = clamp(dist / mist_delta, 0, 1);
+	float mist_value = percent * percent * percent;
 
-	target = mix(vec4(ambient + diffuse + specular, frag_col.w), vec4(sky_chroma, 1), mist_value);
+	target = mix(lighted, sky_chroma, mist_value);
 }

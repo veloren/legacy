@@ -385,7 +385,9 @@ impl Game {
             model.render(&mut renderer, &self.voxel_pipeline, &self.global_consts);
         }
 
-        // Render the UI
+        renderer.render_tonemapped_output(&self.global_consts);
+
+        // Draw ui
         self.ui
             .borrow_mut()
             .render(&mut renderer, &self.client.clone(), &self.window.get_size());

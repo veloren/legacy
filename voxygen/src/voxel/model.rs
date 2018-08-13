@@ -7,7 +7,7 @@ use gfx_device_gl;
 
 use consts::{ConstHandle, GlobalConsts};
 use pipeline::Pipeline;
-use renderer::{ColorFormat, DepthFormat, Renderer};
+use renderer::{HdrFormat, HdrDepthFormat, Renderer};
 use voxel::{Mesh, Vertex};
 
 type PipelineData = pipeline::Data<gfx_device_gl::Resources>;
@@ -22,8 +22,8 @@ gfx_defines! {
         vbuf: gfx::VertexBuffer<Vertex> = (),
         model_consts: gfx::ConstantBuffer<ModelConsts> = "model_consts",
         global_consts: gfx::ConstantBuffer<GlobalConsts> = "global_consts",
-        out_color: gfx::RenderTarget<ColorFormat> = "target",
-        out_depth: gfx::DepthTarget<DepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
+        out_color: gfx::RenderTarget<HdrFormat> = "target",
+        out_depth: gfx::DepthTarget<HdrDepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 }
 
@@ -53,8 +53,8 @@ impl Model {
             vbuf: self.vbuf.clone(),
             model_consts: self.const_handle.buffer().clone(),
             global_consts: global_consts.buffer().clone(),
-            out_color: renderer.color_view().clone(),
-            out_depth: renderer.depth_view().clone(),
+            out_color: renderer.hdr_render_view().clone(),
+            out_depth: renderer.hdr_depth_view().clone(),
         }
     }
 

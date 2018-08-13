@@ -28,7 +28,7 @@ float snoise(vec2 v){
   vec3 g;
   g.x  = a0.x  * x0.x  + h.x  * x0.y;
   g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-  return 130.0 * dot(m, g);
+  return (130.0 * dot(m, g) + 1.0) * 0.5;
 }
 
 #define M_PI 3.14159265358979323846

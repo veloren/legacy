@@ -1,7 +1,7 @@
 #define PI 3.14159256
 
 float get_time_of_day(float time) {
-	return time / 10;
+	return time / 60;
 }
 
 vec3 get_sun_dir(float time) {

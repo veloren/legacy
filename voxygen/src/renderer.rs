@@ -39,9 +39,6 @@ pub struct Renderer {
     hdr_sampler: Sampler<gfx_device_gl::Resources>,
     factory: gfx_device_gl::Factory,
     encoder: Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer>,
-    skybox_pipeline: Pipeline<skybox::pipeline::Init<'static>>,
-    voxel_pipeline: Pipeline<voxel::pipeline::Init<'static>>,
-    tonemapper_pipeline: Pipeline<tonemapper::pipeline::Init<'static>>,
 }
 
 impl Renderer {
@@ -62,24 +59,6 @@ impl Renderer {
             hdr_depth_view,
             hdr_sampler,
             encoder: factory.create_command_buffer().into(),
-            skybox_pipeline: Pipeline::new(
-                &mut factory,
-                skybox::pipeline::new(),
-                &Shader::from_file("shaders/skybox/vert.glsl").expect("Could not load skybox vertex shader"),
-                &Shader::from_file("shaders/skybox/frag.glsl").expect("Could not load skybox fragment shader"),
-            ),
-            voxel_pipeline: Pipeline::new(
-                &mut factory,
-                voxel::pipeline::new(),
-                &Shader::from_file("shaders/voxel/vert.glsl").expect("Could not load voxel vertex shader"),
-                &Shader::from_file("shaders/voxel/frag.glsl").expect("Could not load voxel fragment shader"),
-            ),
-            tonemapper_pipeline: Pipeline::new(
-                &mut factory,
-                tonemapper::pipeline::new(),
-                &Shader::from_file("shaders/tonemapper/vert.glsl").expect("Could not load voxel vertex shader"),
-                &Shader::from_file("shaders/tonemapper/frag.glsl").expect("Could not load voxel fragment shader"),
-            ),
             factory,
         }
     }
@@ -103,42 +82,6 @@ impl Renderer {
             self.encoder.clear(&self.hdr_render_view, [color.x, color.y, color.z]);
         }
         self.encoder.clear_depth(&self.hdr_depth_view, 1.0);
-    }
-
-    pub fn render_skybox_model(
-        &mut self,
-        vmodel: &skybox::Model,
-        global_consts: &ConstHandle<GlobalConsts>,
-    ) {
-        let pipeline_data = vmodel.get_pipeline_data(self, global_consts);
-        self.encoder
-            .draw(&vmodel.slice(), self.skybox_pipeline.pso(), &pipeline_data);
-    }
-
-    pub fn render_tonemapped_output(&mut self, global_consts: &ConstHandle<GlobalConsts>) {
-        let data = tonemapper::PipelineData {
-            in_hdr: (self.hdr_shader_view.clone(), self.hdr_sampler.clone()),
-            global_consts: global_consts.buffer().clone(),
-            out_color: self.color_view.clone(),
-        };
-        let slice = Slice::<gfx_device_gl::Resources> {
-            start: 0,
-            end: 3,
-            base_vertex: 0,
-            instances: None,
-            buffer: IndexBuffer::Auto,
-        };
-        self.encoder.draw(&slice, self.tonemapper_pipeline.pso(), &data);
-    }
-
-    pub fn render_voxel_model(
-        &mut self,
-        vmodel: &voxel::Model,
-        global_consts: &ConstHandle<GlobalConsts>,
-    ) {
-        let pipeline_data = vmodel.get_pipeline_data(self, global_consts);
-        self.encoder
-            .draw(&vmodel.slice(), self.voxel_pipeline.pso(), &pipeline_data);
     }
 
     pub fn end_frame(&mut self) {

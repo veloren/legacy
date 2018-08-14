@@ -4,18 +4,11 @@ use gfx::{
     format::Formatted,
     handle::{DepthStencilView, RenderTargetView, Sampler, ShaderResourceView},
     texture::{FilterMethod, SamplerInfo, WrapMode},
-    Device, Encoder, Factory, IndexBuffer, Slice,
+    Device, Encoder, Factory,
 };
 use gfx_device_gl;
 
-use consts::{ConstHandle, GlobalConsts};
-use pipeline::Pipeline;
-use shader::Shader;
-use skybox;
-use tonemapper;
-use voxel;
-
-pub type HdrFormat = (gfx::format::R16_G16_B16, gfx::format::Float);
+pub type HdrFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
 pub type ColorFormat = gfx::format::Srgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
 pub type HdrDepthFormat = gfx::format::Depth32F;
@@ -82,7 +75,8 @@ impl Renderer {
     pub fn begin_frame(&mut self, clear_color: Option<Vec3<f32>>) {
         if let Some(color) = clear_color {
             self.encoder.clear(&self.color_view, [color.x, color.y, color.z, 1.0]);
-            self.encoder.clear(&self.hdr_render_view, [color.x, color.y, color.z]);
+            self.encoder
+                .clear(&self.hdr_render_view, [color.x, color.y, color.z, 1.0]);
         }
         self.encoder.clear_depth(&self.hdr_depth_view, 1.0);
     }

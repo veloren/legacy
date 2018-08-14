@@ -16,8 +16,12 @@ use std::{
 // Library
 use coord::prelude::*;
 use dot_vox;
+use fnv::FnvBuildHasher;
 use glutin::ElementState;
+use indexmap::IndexMap;
 use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
+
+type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
 use client::{self, Client, ClientMode, CHUNK_SIZE};
@@ -36,7 +40,7 @@ use voxel;
 use window::{Event, RenderWindow};
 
 pub enum ChunkPayload {
-    Mesh(voxel::Mesh),
+    Meshes(FnvIndexMap<voxel::MaterialKind, voxel::Mesh>),
     Model {
         model: voxel::Model,
         model_consts: ConstHandle<voxel::ModelConsts>,
@@ -64,7 +68,7 @@ pub struct Game {
     keys: Keybinds,
 
     skybox_pipeline: Pipeline<skybox::pipeline::Init<'static>>,
-    voxel_pipeline: Pipeline<voxel::pipeline::Init<'static>>,
+    voxel_pipeline: voxel::VoxelPipeline,
     tonemapper_pipeline: Pipeline<tonemapper::pipeline::Init<'static>>,
 
     skybox_model: skybox::Model,
@@ -72,33 +76,13 @@ pub struct Game {
     other_player_model: voxel::Model,
 }
 
-fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk { ChunkPayload::Mesh(voxel::Mesh::from(chunk)) }
+fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk {
+    ChunkPayload::Meshes(voxel::Mesh::from(chunk))
+}
 
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
         let window = RenderWindow::new();
-
-        let global_consts = ConstHandle::new(&mut window.renderer_mut());
-
-        let skybox_mesh = skybox::Mesh::new_skybox();
-        let skybox_model = skybox::Model::new(&mut window.renderer_mut(), &skybox_mesh);
-
-        info!("trying to load model files");
-        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player3.vox")
-            .expect("cannot find model 3.vox. Make sure to start voxygen from its folder");
-        let voxmodel = voxel::vox_to_figure(vox);
-
-        let player_mesh = voxel::Mesh::from_with_offset(&voxmodel, vec3!(-10.0, -4.0, 0.0));
-
-        let player_model = voxel::Model::new(&mut window.renderer_mut(), &player_mesh);
-
-        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player5.vox")
-            .expect("cannot find model 5.vox. Make sure to start voxygen from its folder");
-        let voxmodel = voxel::vox_to_figure(vox);
-
-        let other_player_mesh = voxel::Mesh::from(&voxmodel);
-
-        let other_player_model = voxel::Model::new(&mut window.renderer_mut(), &other_player_mesh);
 
         let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, view_distance)
             .expect("Could not create new client");
@@ -110,26 +94,43 @@ impl Game {
 
         // Create pipelines
 
-        let voxel_pipeline = Pipeline::new(
-            window.renderer_mut().factory_mut(),
-            voxel::pipeline::new(),
-            &Shader::from_file("shaders/voxel/vert.glsl").expect("Could not load voxel vertex shader"),
-            &Shader::from_file("shaders/voxel/frag.glsl").expect("Could not load voxel fragment shader"),
-        );
+        let mut voxel_pipeline = voxel::VoxelPipeline::new(&mut window.renderer_mut());
 
         let skybox_pipeline = Pipeline::new(
             window.renderer_mut().factory_mut(),
             skybox::pipeline::new(),
-            &Shader::from_file("shaders/skybox/vert.glsl").expect("Could not load skybox vertex shader"),
-            &Shader::from_file("shaders/skybox/frag.glsl").expect("Could not load skybox fragment shader"),
+            &Shader::from_file("shaders/skybox/skybox.vert").expect("Could not load skybox vertex shader"),
+            &Shader::from_file("shaders/skybox/skybox.frag").expect("Could not load skybox fragment shader"),
         );
 
         let tonemapper_pipeline = Pipeline::new(
             window.renderer_mut().factory_mut(),
             tonemapper::pipeline::new(),
-            &Shader::from_file("shaders/tonemapper/vert.glsl").expect("Could not load skybox vertex shader"),
-            &Shader::from_file("shaders/tonemapper/frag.glsl").expect("Could not load skybox fragment shader"),
+            &Shader::from_file("shaders/tonemapper/tonemapper.vert").expect("Could not load skybox vertex shader"),
+            &Shader::from_file("shaders/tonemapper/tonemapper.frag").expect("Could not load skybox fragment shader"),
         );
+
+        let global_consts = ConstHandle::new(&mut window.renderer_mut());
+
+        let skybox_mesh = skybox::Mesh::new_skybox();
+        let skybox_model = skybox::Model::new(&mut window.renderer_mut(), &skybox_mesh);
+
+        info!("trying to load model files");
+        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player3.vox")
+            .expect("cannot find model 3.vox. Make sure to start voxygen from its folder");
+        let voxmodel = voxel::vox_to_figure(vox);
+
+        let player_meshes = voxel::Mesh::from_with_offset(&voxmodel, vec3!(-10.0, -4.0, 0.0));
+
+        let player_model = voxel::Model::new(&mut window.renderer_mut(), &player_meshes);
+
+        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player5.vox")
+            .expect("cannot find model 5.vox. Make sure to start voxygen from its folder");
+        let voxmodel = voxel::vox_to_figure(vox);
+
+        let other_player_meshes = voxel::Mesh::from(&voxmodel);
+
+        let other_player_model = voxel::Model::new(&mut window.renderer_mut(), &other_player_meshes);
 
         Game {
             running: AtomicBool::new(true),
@@ -295,13 +296,13 @@ impl Game {
         self.running.load(Ordering::Relaxed)
     }
 
-    pub fn update_chunks(&self) {
-        let mut renderer = self.window.renderer_mut();
+    pub fn update_chunks(&mut self) {
+        let renderer = &mut self.window.renderer_mut();
 
         for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
             let mut con = con.write().unwrap();
             if let Some(payload) = con.payload_mut() {
-                if let ChunkPayload::Mesh(ref mut mesh) = payload {
+                if let ChunkPayload::Meshes(ref mut meshes) = payload {
                     // Calculate chunk mode matrix
                     let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
                         (pos.x * CHUNK_SIZE) as f32,
@@ -310,11 +311,11 @@ impl Game {
                     )).to_homogeneous();
 
                     // Create set new model constants
-                    let model_consts = ConstHandle::new(&mut renderer);
+                    let model_consts = ConstHandle::new(renderer);
 
                     // Update chunk model constants
                     model_consts.update(
-                        &mut renderer,
+                        renderer,
                         voxel::ModelConsts {
                             model_mat: *model_mat.as_ref(),
                         },
@@ -322,7 +323,7 @@ impl Game {
 
                     // Update the chunk payload
                     *payload = ChunkPayload::Model {
-                        model: voxel::Model::new(&mut renderer, mesh),
+                        model: voxel::Model::new(renderer, meshes),
                         model_consts,
                     };
                 }
@@ -367,7 +368,7 @@ impl Game {
         }
     }
 
-    pub fn render_frame(&self) {
+    pub fn render_frame(&mut self) {
         // Calculate frame constants
         let camera_mats = self.camera.lock().unwrap().get_mats();
         let cam_origin = *self.camera.lock().unwrap().get_pos();
@@ -409,7 +410,8 @@ impl Game {
                     ref model_consts,
                 } = payload
                 {
-                    model.render(&mut renderer, &self.voxel_pipeline, model_consts, &self.global_consts);
+                    self.voxel_pipeline
+                        .draw_model(&model, model_consts, &self.global_consts);
                 }
             }
         }
@@ -423,9 +425,13 @@ impl Game {
             };
 
             if let Some(ref model_consts) = entity.read().unwrap().payload() {
-                model.render(&mut renderer, &self.voxel_pipeline, model_consts, &self.global_consts);
+                self.voxel_pipeline
+                    .draw_model(&model, model_consts, &self.global_consts);
             }
         }
+
+        // flush voxel pipeline draws
+        self.voxel_pipeline.flush(&mut renderer);
 
         tonemapper::render(&mut renderer, &self.tonemapper_pipeline, &self.global_consts);
 
@@ -438,7 +444,7 @@ impl Game {
         renderer.end_frame();
     }
 
-    pub fn run(&self) {
+    pub fn run(&mut self) {
         while self.handle_window_events() {
             self.update_chunks();
             self.update_entities();

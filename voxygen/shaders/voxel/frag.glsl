@@ -52,11 +52,13 @@ void main() {
 
 	vec3 sky_chroma = get_sky_chroma(-V, time.x);
 	vec3 atmos_color = get_sky_chroma(N, time.x);
+	atmos_color.r *= 0.5 + 0.5 * clamp(sunrise_anticycle(1, 0.9, time.x), 0, 1); // TODO: make less janky
 
-	float ambient_intensity = 0.5;
-	vec3 ambient = frag_col.rgb * ambient_intensity * mix(atmos_color, sun_color, 0.5 * clamp(day_cycle(1.0, 0.9, time.x), 0, 1));
+	float ambient_intensity = 0.2;
+	// vec3 ambient = frag_col.rgb * ambient_intensity * mix(atmos_color, sun_color, 0.5 * clamp(day_cycle(1.0, 0.9, time.x), 0, 1));
+	vec3 ambient = frag_col.rgb * ambient_intensity * atmos_color;
 
-	float smoothness = 0.2;
+	float smoothness = 0.3;
 	float roughness_linear = clamp(1 - (smoothness - 0.01), 0, 1);
 	float roughness = roughness_linear * roughness_linear;
 

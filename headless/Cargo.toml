@@ -3,6 +3,11 @@ name = "headless"
 version = "0.1.0"
 authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
 
+[profile.dev]
+
+[profile.release]
+debug = true
+
 [dependencies]
 client = { path = "../client" }
 common = { path = "../common" }

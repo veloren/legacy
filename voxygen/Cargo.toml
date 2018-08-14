@@ -4,6 +4,11 @@ version = "0.1.0"
 authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
 build = "build.rs"
 
+[profile.dev]
+
+[profile.release]
+debug = true
+
 [dependencies]
 
 # Local

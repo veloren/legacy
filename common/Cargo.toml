@@ -3,6 +3,11 @@ name = "common"
 version = "0.1.0"
 authors = ["Marcel Märtens <marcel.cochem@googlemail.com>", "Terah <terah.dev@gmail.com>"]
 
+[profile.dev]
+
+[profile.release]
+debug = true
+
 [dependencies]
 time = "0.1.40"
 log = "0.4"

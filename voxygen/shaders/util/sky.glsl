@@ -31,9 +31,9 @@ vec3 get_sun_color(float time) {
 vec3 get_atmos_color(float time) {
     float ac = day_anticycle(1.0, 0.5, time);
 	vec3 atmos_color = vec3(
-		0.15 + 0.2 * sunrise_cycle(1.0, 0.5, time) + 0.15 * ac,
-        0.3 - 0.15 * ac,
-        1.0 + 0.3 * ac
+		0.25 + 0.2 * sunrise_cycle(1.0, 0.5, time),
+        0.5 - 0.1 * ac,
+        1.0
     );
     return atmos_color;
 }
@@ -45,7 +45,7 @@ vec3 get_sky_chroma(vec3 dir, float time) {
 	float sun_bloom = 20;
 
     float c = clamp(day_cycle(1.0,0.5,time), 0, 1);
-    vec3 atmos_color = get_atmos_color(time) * 20000.0 * clamp(c*c*c*c, 0.000001, 1);
+    vec3 atmos_color = get_atmos_color(time) * 20000.0 * clamp(c*c*c*c, 0.00001, 1);
 
 	dir = normalize(dir);
 
@@ -56,7 +56,7 @@ vec3 get_sky_chroma(vec3 dir, float time) {
 	float factor = (pow(angle, 1 / sun_bloom) - 1 + sun_size) * sun_strength * clamp(dothoriz * 0.1, 0, 1);
 
 	float red_factor = pow(clamp((angle - abs(dothoriz) - 0.3), 0, 1) * smoothstep(-0.1, 0.0, dothoriz), 2);
-	vec3 sky_color = mix(atmos_color, vec3(2, 0.2, 0.0) * 8000.0 * clamp(c*c, 0.00001, 1), red_factor);
+	vec3 sky_color = mix(atmos_color, vec3(1, 0.15, 0.0) * 25000.0 * clamp(c*c, 0.00001, 1), red_factor);
 
 	return mix(sky_color.xyz, sun_color, clamp(factor, 0, 1));
 }

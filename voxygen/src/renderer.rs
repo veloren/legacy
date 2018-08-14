@@ -15,7 +15,7 @@ use skybox;
 use tonemapper;
 use voxel;
 
-pub type HdrFormat = (gfx::format::R32_G32_B32, gfx::format::Float);
+pub type HdrFormat = (gfx::format::R16_G16_B16, gfx::format::Float);
 pub type ColorFormat = gfx::format::Srgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
 pub type HdrDepthFormat = gfx::format::Depth32F;

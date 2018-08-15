@@ -30,7 +30,7 @@ pub struct ServerContext {
 
     // Entities$
     last_uid: Uid,
-    entities: HashMap<Uid, Box<Entity>>,
+    entities: HashMap<Uid, Box<Entity<()>>>,
     players: HashMap<Uid, Box<Player>>,
 }
 
@@ -78,15 +78,15 @@ impl ServerContext {
     // Entities
 
     #[allow(dead_code)]
-    pub fn add_entity(&mut self, id: Uid, entity: Box<Entity>) { self.entities.insert(id, entity); }
+    pub fn add_entity(&mut self, id: Uid, entity: Box<Entity<()>>) { self.entities.insert(id, entity); }
     #[allow(dead_code)]
-    pub fn get_entity(&mut self, id: Uid) -> Option<&mut Entity> { self.entities.get_mut(&id).map(|s| s.as_mut()) }
+    pub fn get_entity(&mut self, id: Uid) -> Option<&mut Entity<()>> { self.entities.get_mut(&id).map(|s| s.as_mut()) }
     #[allow(dead_code)]
-    pub fn del_entity(&mut self, id: Uid) -> Option<Box<Entity>> { self.entities.remove(&id) }
+    pub fn del_entity(&mut self, id: Uid) -> Option<Box<Entity<()>>> { self.entities.remove(&id) }
     #[allow(dead_code)]
-    pub fn get_entities(&self) -> Iter<Uid, Box<Entity>> { self.entities.iter() }
+    pub fn get_entities(&self) -> Iter<Uid, Box<Entity<()>>> { self.entities.iter() }
     #[allow(dead_code)]
-    pub fn get_entities_mut(&mut self) -> IterMut<Uid, Box<Entity>> { self.entities.iter_mut() }
+    pub fn get_entities_mut(&mut self) -> IterMut<Uid, Box<Entity<()>>> { self.entities.iter_mut() }
 
     // Players
 

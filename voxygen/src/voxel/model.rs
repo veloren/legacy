@@ -29,7 +29,6 @@ gfx_defines! {
 
 pub struct Model {
     vbuf: VertexBuffer,
-    const_handle: ConstHandle<ModelConsts>,
     vert_count: u32,
 }
 
@@ -37,35 +36,7 @@ impl Model {
     pub fn new(renderer: &mut Renderer, mesh: &Mesh) -> Model {
         Model {
             vbuf: renderer.factory_mut().create_vertex_buffer(&mesh.vertices()),
-            const_handle: ConstHandle::new(renderer),
             vert_count: mesh.vert_count(),
-        }
-    }
-
-    pub fn const_handle(&self) -> &ConstHandle<ModelConsts> { &self.const_handle }
-
-    pub fn get_pipeline_data(
-        &self,
-        renderer: &mut Renderer,
-        global_consts: &ConstHandle<GlobalConsts>,
-    ) -> PipelineData {
-        PipelineData {
-            vbuf: self.vbuf.clone(),
-            model_consts: self.const_handle.buffer().clone(),
-            global_consts: global_consts.buffer().clone(),
-            out_color: renderer.hdr_render_view().clone(),
-            out_depth: renderer.hdr_depth_view().clone(),
-        }
-    }
-
-    pub fn slice(&self) -> Slice<gfx_device_gl::Resources> {
-        // TODO: Should we be recreating this every time we render it? Is there a cost associated?
-        Slice::<gfx_device_gl::Resources> {
-            start: 0,
-            end: self.vert_count,
-            base_vertex: 0,
-            instances: None,
-            buffer: IndexBuffer::Auto,
         }
     }
 
@@ -73,11 +44,25 @@ impl Model {
         &self,
         renderer: &mut Renderer,
         pipeline: &Pipeline<pipeline::Init<'static>>,
+        model_consts: &ConstHandle<ModelConsts>,
         global_consts: &ConstHandle<GlobalConsts>,
     ) {
-        let pipeline_data = self.get_pipeline_data(renderer, global_consts);
-        renderer
-            .encoder_mut()
-            .draw(&self.slice(), pipeline.pso(), &pipeline_data);
+        let pipeline_data = PipelineData {
+            vbuf: self.vbuf.clone(),
+            model_consts: model_consts.buffer().clone(),
+            global_consts: global_consts.buffer().clone(),
+            out_color: renderer.hdr_render_view().clone(),
+            out_depth: renderer.hdr_depth_view().clone(),
+        };
+
+        let slice = Slice::<gfx_device_gl::Resources> {
+            start: 0,
+            end: self.vert_count,
+            base_vertex: 0,
+            instances: None,
+            buffer: IndexBuffer::Auto,
+        };
+
+        renderer.encoder_mut().draw(&slice, pipeline.pso(), &pipeline_data);
     }
 }

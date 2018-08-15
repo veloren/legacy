@@ -3,20 +3,22 @@
 // Library
 use coord::prelude::*;
 
-pub struct Entity {
+pub struct Entity<P: Send + Sync + 'static> {
     pos: Vec3f, //middle x,y of the figure, z pos is on the ground
     vel: Vec3f,
     ctrl_acc: Vec3f,
     look_dir: Vec2f,
+    payload: Option<P>,
 }
 
-impl Entity {
-    pub fn new(pos: Vec3f, vel: Vec3f, ctrl_acc: Vec3f, look_dir: Vec2f) -> Entity {
+impl<P: Send + Sync + 'static> Entity<P> {
+    pub fn new(pos: Vec3f, vel: Vec3f, ctrl_acc: Vec3f, look_dir: Vec2f) -> Entity<P> {
         Entity {
             pos,
             vel,
             ctrl_acc, //entity triest to move in this directory (maybe should be made a acceleration in future versions with correct netwon movement)
             look_dir,
+            payload: None,
         }
     }
 
@@ -35,4 +37,7 @@ impl Entity {
     pub fn ctrl_acc_mut(&mut self) -> &mut Vec3f { &mut self.ctrl_acc }
 
     pub fn look_dir_mut(&mut self) -> &mut Vec2f { &mut self.look_dir }
+
+    pub fn payload(&self) -> &Option<P> { &self.payload }
+    pub fn payload_mut(&mut self) -> &mut Option<P> { &mut self.payload }
 }

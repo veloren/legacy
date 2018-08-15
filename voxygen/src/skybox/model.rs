@@ -35,38 +35,27 @@ impl Model {
         }
     }
 
-    pub fn get_pipeline_data(
-        &self,
-        renderer: &mut Renderer,
-        global_consts: &ConstHandle<GlobalConsts>,
-    ) -> PipelineData {
-        PipelineData {
-            vbuf: self.vbuf.clone(),
-            global_consts: global_consts.buffer().clone(),
-            out_color: renderer.hdr_render_view().clone(),
-            out_depth: renderer.hdr_depth_view().clone(),
-        }
-    }
-
-    pub fn slice(&self) -> Slice<gfx_device_gl::Resources> {
-        Slice::<gfx_device_gl::Resources> {
-            start: 0,
-            end: self.vert_count,
-            base_vertex: 0,
-            instances: None,
-            buffer: IndexBuffer::Auto,
-        }
-    }
-
     pub fn render(
         &self,
         renderer: &mut Renderer,
         pipeline: &Pipeline<pipeline::Init<'static>>,
         global_consts: &ConstHandle<GlobalConsts>,
     ) {
-        let pipeline_data = self.get_pipeline_data(renderer, global_consts);
-        renderer
-            .encoder_mut()
-            .draw(&self.slice(), pipeline.pso(), &pipeline_data);
+        let pipeline_data = PipelineData {
+            vbuf: self.vbuf.clone(),
+            global_consts: global_consts.buffer().clone(),
+            out_color: renderer.hdr_render_view().clone(),
+            out_depth: renderer.hdr_depth_view().clone(),
+        };
+
+        let slice = Slice::<gfx_device_gl::Resources> {
+            start: 0,
+            end: self.vert_count,
+            base_vertex: 0,
+            instances: None,
+            buffer: IndexBuffer::Auto,
+        };
+
+        renderer.encoder_mut().draw(&slice, pipeline.pso(), &pipeline_data);
     }
 }

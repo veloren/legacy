@@ -8,7 +8,7 @@ fn validate_vox_files() {
 
     for path in paths {
         let path = path.unwrap();
-        if path.file_name() == ".gitignore" {
+        if path.file_name().into_string().unwrap() == ".gitignore" {
             continue;
         }
         let path_string = path.path().into_os_string().into_string().unwrap();

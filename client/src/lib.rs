@@ -27,7 +27,7 @@ pub const CHUNK_SIZE: i64 = 32;
 use std::{
     collections::HashMap,
     net::ToSocketAddrs,
-    sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard},
     thread, time,
 };
 
@@ -54,6 +54,7 @@ pub enum ClientStatus {
 
 pub trait Payloads: 'static {
     type Chunk: Send + Sync + 'static;
+    type Entity: Send + Sync + 'static;
 }
 
 pub struct Client<P: Payloads> {
@@ -65,7 +66,8 @@ pub struct Client<P: Payloads> {
 
     time: RwLock<f64>,
     player: RwLock<Player>,
-    entities: RwLock<HashMap<Uid, Arc<RwLock<Entity>>>>,
+    entities: RwLock<HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>>,
+    phys_lock: Mutex<()>,
 
     chunk_mgr: VolMgr<Chunk, <P as Payloads>::Chunk>,
 
@@ -104,6 +106,7 @@ impl<P: Payloads> Client<P> {
             time: RwLock::new(0.0),
             player: RwLock::new(Player::new(alias)),
             entities: RwLock::new(HashMap::new()),
+            phys_lock: Mutex::new(()),
 
             chunk_mgr: VolMgr::new(CHUNK_SIZE, VolGen::new(world::gen_chunk, gen_payload)),
 
@@ -156,18 +159,22 @@ impl<P: Payloads> Client<P> {
     pub fn player<'a>(&'a self) -> RwLockReadGuard<'a, Player> { self.player.read().unwrap() }
     pub fn player_mut<'a>(&'a self) -> RwLockWriteGuard<'a, Player> { self.player.write().unwrap() }
 
-    pub fn entities<'a>(&'a self) -> RwLockReadGuard<'a, HashMap<Uid, Arc<RwLock<Entity>>>> {
+    pub fn entities<'a>(&'a self) -> RwLockReadGuard<'a, HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>> {
         self.entities.read().unwrap()
     }
-    pub fn entities_mut<'a>(&'a self) -> RwLockWriteGuard<'a, HashMap<Uid, Arc<RwLock<Entity>>>> {
+    pub fn entities_mut<'a>(
+        &'a self,
+    ) -> RwLockWriteGuard<'a, HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>> {
         self.entities.write().unwrap()
     }
 
-    pub fn entity<'a>(&'a self, uid: Uid) -> Option<Arc<RwLock<Entity>>> {
+    pub fn entity<'a>(&'a self, uid: Uid) -> Option<Arc<RwLock<Entity<<P as Payloads>::Entity>>>> {
         self.entities.read().unwrap().get(&uid).map(|e| e.clone())
     }
 
-    pub fn add_entity(&self, uid: Uid, entity: Entity) -> bool {
+    pub fn take_phys_lock<'a>(&'a self) -> MutexGuard<'a, ()> { self.phys_lock.lock().unwrap() }
+
+    pub fn add_entity(&self, uid: Uid, entity: Entity<<P as Payloads>::Entity>) -> bool {
         !self
             .entities
             .write()
@@ -176,7 +183,7 @@ impl<P: Payloads> Client<P> {
             .is_some()
     }
 
-    pub fn player_entity(&self) -> Option<Arc<RwLock<Entity>>> {
+    pub fn player_entity(&self) -> Option<Arc<RwLock<Entity<<P as Payloads>::Entity>>>> {
         self.player().entity_uid.and_then(|uid| self.entity(uid))
     }
 }

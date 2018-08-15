@@ -37,12 +37,13 @@ use window::{Event, RenderWindow};
 
 pub enum ChunkPayload {
     Mesh(voxel::Mesh),
-    Model(voxel::Model),
+    Model { model: voxel::Model, model_consts: ConstHandle<voxel::ModelConsts> },
 }
 
 pub struct Payloads {}
 impl client::Payloads for Payloads {
     type Chunk = ChunkPayload;
+    type Entity = ConstHandle<voxel::ModelConsts>;
 }
 
 pub struct Game {
@@ -288,6 +289,47 @@ impl Game {
             player_entity.look_dir_mut().y = vec2!(looking.x, looking.y).length() * LEANING_FAC;
         }
 
+        self.running.load(Ordering::Relaxed)
+    }
+
+    pub fn model_chunks(&self) {
+        let mut renderer = self.window.renderer_mut();
+
+        for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
+            if let VolState::Exists(_, ref mut payload) = *vol.write().unwrap() {
+                if let ChunkPayload::Mesh(ref mut mesh) = payload {
+                    // Calculate chunk mode matrix
+                    let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
+                        (pos.x * CHUNK_SIZE) as f32,
+                        (pos.y * CHUNK_SIZE) as f32,
+                        0.0,
+                    )).to_homogeneous();
+
+                    // Create set new model constants
+                    let model_consts = ConstHandle::new(&mut renderer);
+
+                    // Update chunk model constants
+                    model_consts.update(
+                        &mut renderer,
+                        voxel::ModelConsts {
+                            model_mat: *model_mat.as_ref(),
+                        },
+                    );
+
+                    // Update the chunk payload
+                    *payload = ChunkPayload::Model {
+                        model: voxel::Model::new(&mut renderer, mesh),
+                        model_consts,
+                    };
+                }
+            }
+        }
+    }
+
+    pub fn update_entities(&self) {
+        // Take the physics lock to sync client and frontend updates
+        let _ = self.client.take_phys_lock();
+
         // Set camera focus to the player's head
         if let Some(player_entity) = self.client.player_entity() {
             let player_entity = player_entity.read().unwrap();
@@ -298,16 +340,27 @@ impl Game {
             ));
         }
 
-        self.running.load(Ordering::Relaxed)
-    }
+        let mut renderer = self.window.renderer_mut();
 
-    pub fn model_chunks(&self) {
-        for (_, vol) in self.client.chunk_mgr().volumes().iter() {
-            if let VolState::Exists(_, ref mut payload) = *vol.write().unwrap() {
-                if let ChunkPayload::Mesh(ref mut mesh) = payload {
-                    *payload = ChunkPayload::Model(voxel::Model::new(&mut self.window.renderer_mut(), mesh));
-                }
-            }
+        // Update each entity constbuffer
+        for (uid, entity) in self.client.entities().iter() {
+            let mut entity = entity.write().unwrap();
+
+            // Calculate entity model matrix
+            let model_mat = &Translation3::from_vector(Vector3::from(entity.pos().elements())).to_homogeneous()
+                * Rotation3::new(Vector3::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous()
+                * Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
+
+            // Update the model const buffer (its payload)
+            // TODO: Put the model into the payload so we can have per-entity models!
+            entity.payload_mut()
+                .get_or_insert_with(|| ConstHandle::new(&mut renderer))
+                .update(
+                    &mut renderer,
+                    voxel::ModelConsts {
+                        model_mat: *model_mat.as_ref(),
+                    },
+                );
         }
     }
 
@@ -345,52 +398,35 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Render each chunk
-        for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
+        for (_, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(ref chunk, ref payload) = *vol.read().unwrap() {
-                if let ChunkPayload::Model(ref model) = payload {
-                    let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
-                        (pos.x * CHUNK_SIZE) as f32,
-                        (pos.y * CHUNK_SIZE) as f32,
-                        0.0,
-                    )).to_homogeneous();
-
-                    // TODO: We don't need to update this *every* frame. Be cleverer about this.
-                    model.const_handle().update(
+                if let ChunkPayload::Model { ref model, ref model_consts } = payload {
+                    model.render(
                         &mut renderer,
-                        voxel::ModelConsts {
-                            model_mat: *model_mat.as_ref(),
-                        },
+                        &self.voxel_pipeline,
+                        model_consts,
+                        &self.global_consts,
                     );
-
-                    model.render(&mut renderer, &self.voxel_pipeline, &self.global_consts);
                 }
             }
         }
 
         // Render each entity
         for (uid, entity) in self.client.entities().iter() {
-            let entity = entity.read().unwrap();
-
-            // Calculate a transformation matrix for the entity's model
-            let model_mat = &Translation3::from_vector(Vector3::from(entity.pos().elements())).to_homogeneous()
-                * Rotation3::new(Vector3::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous()
-                * Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
-
             // Choose the correct model for the entity
             let model = match self.client.player().entity_uid {
                 Some(uid) if uid == uid => &self.player_model,
                 _ => &self.other_player_model,
             };
 
-            // Update the model's constant buffer with the transformation details previously calculated
-            model.const_handle().update(
-                &mut renderer,
-                voxel::ModelConsts {
-                    model_mat: *model_mat.as_ref(),
-                },
-            );
-
-            model.render(&mut renderer, &self.voxel_pipeline, &self.global_consts);
+            if let Some(ref model_consts) = entity.read().unwrap().payload() {
+                model.render(
+                    &mut renderer,
+                    &self.voxel_pipeline,
+                    model_consts,
+                    &self.global_consts,
+                );
+            }
         }
 
         tonemapper::render(&mut renderer, &self.tonemapper_pipeline, &self.global_consts);
@@ -407,6 +443,7 @@ impl Game {
     pub fn run(&self) {
         while self.handle_window_events() {
             self.model_chunks();
+            self.update_entities();
             self.render_frame();
         }
 

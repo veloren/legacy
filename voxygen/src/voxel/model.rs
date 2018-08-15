@@ -47,11 +47,12 @@ impl Model {
     pub fn get_pipeline_data(
         &self,
         renderer: &mut Renderer,
+        model_consts: &ConstHandle<ModelConsts>,
         global_consts: &ConstHandle<GlobalConsts>,
     ) -> PipelineData {
         PipelineData {
             vbuf: self.vbuf.clone(),
-            model_consts: self.const_handle.buffer().clone(),
+            model_consts: model_consts.buffer().clone(),
             global_consts: global_consts.buffer().clone(),
             out_color: renderer.hdr_render_view().clone(),
             out_depth: renderer.hdr_depth_view().clone(),
@@ -73,9 +74,10 @@ impl Model {
         &self,
         renderer: &mut Renderer,
         pipeline: &Pipeline<pipeline::Init<'static>>,
+        model_consts: &ConstHandle<ModelConsts>,
         global_consts: &ConstHandle<GlobalConsts>,
     ) {
-        let pipeline_data = self.get_pipeline_data(renderer, global_consts);
+        let pipeline_data = self.get_pipeline_data(renderer, model_consts, global_consts);
         renderer
             .encoder_mut()
             .draw(&self.slice(), pipeline.pso(), &pipeline_data);

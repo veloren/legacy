@@ -18,7 +18,7 @@ mod world;
 
 // Reexport
 pub use common::net::ClientMode;
-pub use region::{Block, Chunk, ChunkConverter, FnPayloadFunc, Volume, Voxel};
+pub use region::{Block, Chunk, ChunkContainer, ChunkConverter, FnPayloadFunc, Volume, Voxel};
 
 // Constants
 pub const CHUNK_SIZE: i64 = 32;
@@ -69,7 +69,12 @@ pub struct Client<P: Payloads> {
     entities: RwLock<HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>>,
     phys_lock: Mutex<()>,
 
-    chunk_mgr: VolMgr<Chunk, ChunkConverter<Block>, <P as Payloads>::Chunk>,
+    chunk_mgr: VolMgr<
+        Chunk,
+        ChunkContainer<<P as Payloads>::Chunk>,
+        ChunkConverter<<P as Payloads>::Chunk>,
+        <P as Payloads>::Chunk,
+    >,
 
     callbacks: RwLock<Callbacks>,
 
@@ -148,7 +153,16 @@ impl<P: Payloads> Client<P> {
 
     pub fn view_distance(&self) -> f32 { (self.view_distance * CHUNK_SIZE) as f32 }
 
-    pub fn chunk_mgr(&self) -> &VolMgr<Chunk, ChunkConverter<Block>, P::Chunk> { &self.chunk_mgr }
+    pub fn chunk_mgr(
+        &self,
+    ) -> &VolMgr<
+        Chunk,
+        ChunkContainer<<P as Payloads>::Chunk>,
+        ChunkConverter<<P as Payloads>::Chunk>,
+        <P as Payloads>::Chunk,
+    > {
+        &self.chunk_mgr
+    }
 
     pub fn status<'a>(&'a self) -> RwLockReadGuard<'a, ClientStatus> { self.status.read().unwrap() }
 

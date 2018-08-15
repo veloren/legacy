@@ -22,6 +22,7 @@ impl BlockRle {
     fn new(block: Block, num: u8) -> Self { BlockRle { block, num } }
 }
 
+#[derive(Clone)]
 pub struct ChunkRle {
     //per x and y coord store the z coord rle
     size: Vec3<i64>,

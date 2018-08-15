@@ -21,7 +21,7 @@ use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
 
 // Project
 use client::{self, Client, ClientMode, CHUNK_SIZE};
-use region::{Chunk, VolState};
+use region::{Chunk, Container, VolState};
 
 // Local
 use camera::Camera;

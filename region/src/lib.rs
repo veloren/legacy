@@ -33,10 +33,11 @@ mod vol_per;
 pub use block::{Block, BlockMaterial};
 pub use cell::Cell;
 pub use chunk::Chunk;
-pub use chunk_conv::ChunkConverter;
+pub use chunk_conv::{ChunkContainer, ChunkConverter};
 pub use entity::Entity;
 pub use figure::Figure;
 pub use vol_mgr::{FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolState};
+pub use vol_per::{Container, PersState, VolPers, VolumeConverter};
 
 use coord::prelude::*;
 use std::any::Any;

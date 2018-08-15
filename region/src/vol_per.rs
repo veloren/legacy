@@ -16,7 +16,6 @@ pub enum PersState {
     File,
     //Network,
 }
-const NUMBER_OF_ELEMENTS_IN_VOLSTATE: usize = 3; //TODO: really rust ?
 
 /*
  How persistence works:
@@ -32,68 +31,44 @@ const NUMBER_OF_ELEMENTS_IN_VOLSTATE: usize = 3; //TODO: really rust ?
  When you modify a version, you must either also change all other implementations or drop them!
 */
 
-pub struct Container<VT: Voxel, P> {
-    payload: Option<P>,
-    states: [Option<Box<Volume<VoxelType = VT>>>; NUMBER_OF_ELEMENTS_IN_VOLSTATE],
+pub trait Container<VT: Voxel, P>: Send + Sync + 'static /*where Volume<VoxelType = VT>: Sized*/ {
+    fn new() -> Self;
+    fn contains(&self, state: PersState) -> bool;
+    fn insert<V: Volume<VoxelType = VT>>(&mut self, vol: V, state: PersState);
+    fn get<'a>(&'a self, state: PersState) -> Option<&'a (dyn Volume<VoxelType = VT> + 'static)>;
+    fn get_mut<'a>(&'a mut self, state: PersState) -> Option<&'a mut (dyn Volume<VoxelType = VT> + 'static)>;
+    fn payload<'a>(&'a self) -> &'a Option<P>;
+    fn payload_mut<'a>(&'a mut self) -> &'a mut Option<P>;
 }
 
-pub trait VolumeConverter<VT: Voxel>: Send + Sync + 'static {
-    fn convert<P>(container: &mut Container<VT, P>, state: PersState);
+pub trait VolumeConverter<VT: Voxel, P, C: Container<VT, P>> {
+    fn convert(container: &mut C, state: PersState);
 }
 
-pub struct VolPers<K: Eq + Hash + 'static, VT: Voxel, VC: VolumeConverter<VT>, P> {
-    data: RwLock<HashMap<K, Arc<RwLock<Container<VT, P>>>>>,
+pub struct VolPers<K: Eq + Hash + 'static, VT: Voxel, C: Container<VT, P>, VC: VolumeConverter<VT, P, C>, P> {
+    data: RwLock<HashMap<K, Arc<RwLock<C>>>>,
     phantom: PhantomData<VC>,
+    phantom2: PhantomData<VT>,
+    phantom3: PhantomData<P>,
 }
 
-impl PersState {
-    fn index(&self) -> usize {
-        match self {
-            PersState::Raw => 0,
-            PersState::Rle => 1,
-            PersState::File => 2,
-        }
-    }
-}
-
-impl<VT: Voxel, P> Container<VT, P> {
-    pub fn new() -> Container<VT, P> {
-        Container {
-            payload: None,
-            states: [None, None, None], // this needs no Copy trait
-        }
-    }
-
-    pub fn contains(&self, state: PersState) -> bool { self.states[state.index()].is_some() }
-
-    pub fn get(&self, state: PersState) -> &Option<Box<Volume<VoxelType = VT> + 'static>> {
-        &self.states[state.index()]
-    }
-
-    pub fn get_mut(&mut self, state: PersState) -> &mut Option<Box<Volume<VoxelType = VT> + 'static>> {
-        &mut self.states[state.index()]
-    }
-
-    pub fn payload(&self) -> &Option<P> { &self.payload }
-
-    pub fn payload_mut(&mut self) -> &mut Option<P> { &mut self.payload }
-}
-
-impl<K: Eq + Hash + 'static, VT: Voxel, VC: VolumeConverter<VT>, P> VolPers<K, VT, VC, P> {
-    pub fn new() -> VolPers<K, VT, VC, P> {
+impl<K: Eq + Hash + 'static, VT: Voxel, C: Container<VT, P>, VC: VolumeConverter<VT, P, C>, P>
+    VolPers<K, VT, C, VC, P>
+{
+    pub fn new() -> VolPers<K, VT, C, VC, P> {
         VolPers {
             data: RwLock::new(HashMap::new()),
             phantom: PhantomData,
+            phantom2: PhantomData,
+            phantom3: PhantomData,
         }
     }
 
-    pub fn data_mut(&self) -> RwLockWriteGuard<HashMap<K, Arc<RwLock<Container<VT, P>>>>> { self.data.write().unwrap() }
+    pub fn data_mut(&self) -> RwLockWriteGuard<HashMap<K, Arc<RwLock<C>>>> { self.data.write().unwrap() }
 
-    pub fn data(&self) -> RwLockReadGuard<HashMap<K, Arc<RwLock<Container<VT, P>>>>> { self.data.read().unwrap() }
+    pub fn data(&self) -> RwLockReadGuard<HashMap<K, Arc<RwLock<C>>>> { self.data.read().unwrap() }
 
-    pub fn get(&self, key: &K) -> Option<Arc<RwLock<Container<VT, P>>>> {
-        self.data.read().unwrap().get(&key).map(|v| v.clone())
-    }
+    pub fn get(&self, key: &K) -> Option<Arc<RwLock<C>>> { self.data.read().unwrap().get(&key).map(|v| v.clone()) }
 
     pub fn exists(&self, key: &K, state: PersState) -> bool {
         if let Some(x) = self.data.read().unwrap().get(&key) {

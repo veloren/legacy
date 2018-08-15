@@ -1,6 +1,6 @@
 // Standard
 use block::Block;
-use chunk_conv::ChunkConverter;
+use chunk_conv::{ChunkContainer, ChunkConverter};
 use std::{
     clone::Clone,
     collections::HashMap,
@@ -26,7 +26,7 @@ pub fn tick<
     I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)>,
 >(
     entities: I,
-    chunk_mgr: &VolMgr<Chunk, ChunkConverter<Block>, CP>,
+    chunk_mgr: &VolMgr<Chunk, ChunkContainer<CP>, ChunkConverter<CP>, CP>,
     chunk_size: i64,
     dt: f32,
 ) {

@@ -6,6 +6,7 @@ use Voxel;
 
 use std::{any::Any, u8};
 
+#[derive(Clone)]
 pub struct ChunkFile {
     //per x and y coord store the z coord rle
     size: Vec3<i64>,

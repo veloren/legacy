@@ -9,6 +9,7 @@ use Voxel;
 
 use std::any::Any;
 
+#[derive(Clone)]
 pub struct Chunk {
     size: Vec3<i64>,
     offset: Vec3<i64>,

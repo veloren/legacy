@@ -295,11 +295,12 @@ impl Game {
         self.running.load(Ordering::Relaxed)
     }
 
-    pub fn model_chunks(&self) {
+    pub fn update_chunks(&self) {
         let mut renderer = self.window.renderer_mut();
 
         for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(_, ref mut payload) = *vol.write().unwrap() {
+                // If we have a chunk mesh but it's not a model yet, convert it to a model
                 if let ChunkPayload::Mesh(ref mut mesh) = payload {
                     // Calculate chunk mode matrix
                     let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
@@ -336,10 +337,8 @@ impl Game {
         // Set camera focus to the player's head
         if let Some(player_entity) = self.client.player_entity() {
             let player_entity = player_entity.read().unwrap();
-            self.camera.lock().unwrap().set_focus(Vector3::<f32>::new(
-                player_entity.pos().x,
-                player_entity.pos().y,
-                player_entity.pos().z + 1.75,
+            self.camera.lock().unwrap().set_focus(Vector3::<f32>::from(
+                (*player_entity.pos() + vec3!(0.0, 0.0, 1.75)).elements(),
             ));
         }
 
@@ -440,7 +439,7 @@ impl Game {
 
     pub fn run(&self) {
         while self.handle_window_events() {
-            self.model_chunks();
+            self.update_chunks();
             self.update_entities();
             self.render_frame();
         }

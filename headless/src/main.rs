@@ -17,6 +17,7 @@ use client::{Chunk, Client, ClientMode};
 struct Payloads {}
 impl client::Payloads for Payloads {
     type Chunk = ();
+    type Entity = ();
 }
 
 fn gen_payload(_: &Chunk) -> <Payloads as client::Payloads>::Chunk { () }

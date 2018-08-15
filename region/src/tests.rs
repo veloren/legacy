@@ -681,7 +681,7 @@ fn physics_fall() {
     vol_mgr.gen(vec2!(0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
                                                      //touch
-    let mut ent: HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    let mut ent: HashMap<Uid, Arc<RwLock<Entity<()>>>> = HashMap::new();
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(
@@ -706,7 +706,7 @@ fn physics_fallfast() {
     vol_mgr.gen(vec2!(0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
                                                      //touch
-    let mut ent: HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    let mut ent: HashMap<Uid, Arc<RwLock<Entity<()>>>> = HashMap::new();
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(
@@ -731,7 +731,7 @@ fn physics_jump() {
     vol_mgr.gen(vec2!(0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
                                                      //touch
-    let mut ent: HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    let mut ent: HashMap<Uid, Arc<RwLock<Entity<()>>>> = HashMap::new();
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(
@@ -765,7 +765,7 @@ fn physics_walk() {
     vol_mgr.gen(vec2!(0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
                                                      //touch
-    let mut ent: HashMap<Uid, Arc<RwLock<Entity>>> = HashMap::new();
+    let mut ent: HashMap<Uid, Arc<RwLock<Entity<()>>>> = HashMap::new();
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(

@@ -17,7 +17,12 @@ use super::{Chunk, Entity, VolMgr, VolState};
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 
-pub fn tick<'a, CP: Send + Sync + 'static, EP: Send + Sync + 'static, I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)>>(
+pub fn tick<
+    'a,
+    CP: Send + Sync + 'static,
+    EP: Send + Sync + 'static,
+    I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)>,
+>(
     entities: I,
     chunk_mgr: &VolMgr<Chunk, CP>,
     chunk_size: i64,

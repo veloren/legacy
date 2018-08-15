@@ -27,7 +27,7 @@ pub const CHUNK_SIZE: i64 = 32;
 use std::{
     collections::HashMap,
     net::ToSocketAddrs,
-    sync::{Arc, Mutex, RwLock, MutexGuard, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard},
     thread, time,
 };
 
@@ -162,7 +162,9 @@ impl<P: Payloads> Client<P> {
     pub fn entities<'a>(&'a self) -> RwLockReadGuard<'a, HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>> {
         self.entities.read().unwrap()
     }
-    pub fn entities_mut<'a>(&'a self) -> RwLockWriteGuard<'a, HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>> {
+    pub fn entities_mut<'a>(
+        &'a self,
+    ) -> RwLockWriteGuard<'a, HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>> {
         self.entities.write().unwrap()
     }
 
@@ -170,9 +172,7 @@ impl<P: Payloads> Client<P> {
         self.entities.read().unwrap().get(&uid).map(|e| e.clone())
     }
 
-    pub fn take_phys_lock<'a>(&'a self) -> MutexGuard<'a, ()> {
-        self.phys_lock.lock().unwrap()
-    }
+    pub fn take_phys_lock<'a>(&'a self) -> MutexGuard<'a, ()> { self.phys_lock.lock().unwrap() }
 
     pub fn add_entity(&self, uid: Uid, entity: Entity<<P as Payloads>::Entity>) -> bool {
         !self

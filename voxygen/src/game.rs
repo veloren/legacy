@@ -37,7 +37,10 @@ use window::{Event, RenderWindow};
 
 pub enum ChunkPayload {
     Mesh(voxel::Mesh),
-    Model { model: voxel::Model, model_consts: ConstHandle<voxel::ModelConsts> },
+    Model {
+        model: voxel::Model,
+        model_consts: ConstHandle<voxel::ModelConsts>,
+    },
 }
 
 pub struct Payloads {}
@@ -353,7 +356,8 @@ impl Game {
 
             // Update the model const buffer (its payload)
             // TODO: Put the model into the payload so we can have per-entity models!
-            entity.payload_mut()
+            entity
+                .payload_mut()
                 .get_or_insert_with(|| ConstHandle::new(&mut renderer))
                 .update(
                     &mut renderer,
@@ -400,13 +404,12 @@ impl Game {
         // Render each chunk
         for (_, vol) in self.client.chunk_mgr().volumes().iter() {
             if let VolState::Exists(ref chunk, ref payload) = *vol.read().unwrap() {
-                if let ChunkPayload::Model { ref model, ref model_consts } = payload {
-                    model.render(
-                        &mut renderer,
-                        &self.voxel_pipeline,
-                        model_consts,
-                        &self.global_consts,
-                    );
+                if let ChunkPayload::Model {
+                    ref model,
+                    ref model_consts,
+                } = payload
+                {
+                    model.render(&mut renderer, &self.voxel_pipeline, model_consts, &self.global_consts);
                 }
             }
         }
@@ -420,12 +423,7 @@ impl Game {
             };
 
             if let Some(ref model_consts) = entity.read().unwrap().payload() {
-                model.render(
-                    &mut renderer,
-                    &self.voxel_pipeline,
-                    model_consts,
-                    &self.global_consts,
-                );
+                model.render(&mut renderer, &self.voxel_pipeline, model_consts, &self.global_consts);
             }
         }
 

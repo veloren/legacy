@@ -17,6 +17,9 @@ extern crate common;
 mod block;
 mod cell;
 mod chunk;
+mod chunk_conv;
+mod chunk_file;
+mod chunk_rle;
 mod collision;
 mod entity;
 mod figure;
@@ -24,18 +27,22 @@ pub mod physics;
 #[cfg(test)]
 mod tests;
 mod vol_mgr;
+mod vol_per;
 
 // Reexports
 pub use block::{Block, BlockMaterial};
 pub use cell::Cell;
 pub use chunk::Chunk;
+pub use chunk_conv::{ChunkContainer, ChunkConverter};
 pub use entity::Entity;
 pub use figure::Figure;
 pub use vol_mgr::{FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolState};
+pub use vol_per::{Container, PersState, VolPers, VolumeConverter};
 
 use coord::prelude::*;
+use std::any::Any;
 
-pub trait Voxel: Copy + Clone {
+pub trait Voxel: Copy + Clone + Any {
     type Material: Copy + Clone;
     fn empty() -> Self;
     fn new(mat: Self::Material) -> Self;
@@ -43,10 +50,9 @@ pub trait Voxel: Copy + Clone {
     fn material(&self) -> Self::Material;
 }
 
-pub trait Volume: Send + Sync {
-    type VoxelType: Voxel + Copy + Clone;
+pub trait Volume: Send + Sync + Any {
+    type VoxelType: Voxel;
 
-    fn new() -> Self;
     fn fill(&mut self, block: Self::VoxelType);
 
     // number of Voxel in x, and z direction
@@ -57,6 +63,14 @@ pub trait Volume: Send + Sync {
     fn ori(&self) -> Vec3<f32>;
     // scale is applied to size and offset
     fn scale(&self) -> Vec3<f32>;
+
+    // returns the size of the contained data
+    //fn byte_size(&self) -> u64;
+    // returns the size of the contained data hold in memory
+    //TODO: sizeof?
+    //fn memory_size(&self) -> u64;
+
+    fn as_any(&mut self) -> &mut Any;
 
     fn set_size(&mut self, size: Vec3<i64>);
     fn set_offset(&mut self, offset: Vec3<i64>);

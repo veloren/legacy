@@ -7,6 +7,9 @@ use BlockMaterial;
 use Volume;
 use Voxel;
 
+use std::any::Any;
+
+#[derive(Clone)]
 pub struct Chunk {
     size: Vec3<i64>,
     offset: Vec3<i64>,
@@ -183,18 +186,20 @@ impl Chunk {
     fn pos_to_index(&self, pos: Vec3<i64>) -> usize {
         (pos.x * self.size.y * self.size.z + pos.y * self.size.z + pos.z) as usize
     }
-}
 
-impl Volume for Chunk {
-    type VoxelType = Block;
+    pub fn voxels_mut(&mut self) -> &mut Vec<Block> { &mut self.voxels }
 
-    fn new() -> Self {
+    pub fn new() -> Self {
         Chunk {
             size: Vec3::from((0, 0, 0)),
             offset: Vec3::from((0, 0, 0)),
             voxels: Vec::new(),
         }
     }
+}
+
+impl Volume for Chunk {
+    type VoxelType = Block;
 
     fn fill(&mut self, block: Block) {
         for v in self.voxels.iter_mut() {
@@ -232,4 +237,6 @@ impl Volume for Chunk {
             self.voxels[i] = vt;
         }
     }
+
+    fn as_any(&mut self) -> &mut Any { self }
 }

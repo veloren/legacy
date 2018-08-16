@@ -21,7 +21,7 @@ use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
 
 // Project
 use client::{self, Client, ClientMode, CHUNK_SIZE};
-use region::{Chunk, VolState};
+use region::{Chunk, Container, VolState};
 
 // Local
 use camera::Camera;
@@ -298,9 +298,9 @@ impl Game {
     pub fn update_chunks(&self) {
         let mut renderer = self.window.renderer_mut();
 
-        for (pos, vol) in self.client.chunk_mgr().volumes().iter() {
-            if let VolState::Exists(_, ref mut payload) = *vol.write().unwrap() {
-                // If we have a chunk mesh but it's not a model yet, convert it to a model
+        for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
+            let mut con = con.write().unwrap();
+            if let Some(payload) = con.payload_mut() {
                 if let ChunkPayload::Mesh(ref mut mesh) = payload {
                     // Calculate chunk mode matrix
                     let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
@@ -401,8 +401,9 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Render each chunk
-        for (_, vol) in self.client.chunk_mgr().volumes().iter() {
-            if let VolState::Exists(ref chunk, ref payload) = *vol.read().unwrap() {
+        for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
+            let con = con.write().unwrap();
+            if let Some(payload) = con.payload() {
                 if let ChunkPayload::Model {
                     ref model,
                     ref model_consts,

@@ -298,12 +298,10 @@ impl Game {
     pub fn update_chunks(&self) {
         let mut renderer = self.window.renderer_mut();
 
-        let pers = self.client.chunk_mgr().persistence();
-        for (pos, con) in pers.data().iter() {
+        for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
             let mut con = con.write().unwrap();
-            let p = con.payload_mut();
-            if let Some(pl) = p {
-                if let ChunkPayload::Mesh(ref mut mesh) = pl {
+            if let Some(payload) = con.payload_mut() {
+                if let ChunkPayload::Mesh(ref mut mesh) = payload {
                     // Calculate chunk mode matrix
                     let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
                         (pos.x * CHUNK_SIZE) as f32,
@@ -323,7 +321,7 @@ impl Game {
                     );
 
                     // Update the chunk payload
-                    *pl = ChunkPayload::Model {
+                    *payload = ChunkPayload::Model {
                         model: voxel::Model::new(&mut renderer, mesh),
                         model_consts,
                     };
@@ -403,15 +401,13 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Render each chunk
-        let pers = self.client.chunk_mgr().persistence();
-        for (pos, con) in pers.data().iter() {
+        for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
             let con = con.write().unwrap();
-            let p = con.payload();
-            if let Some(pl) = p {
+            if let Some(payload) = con.payload() {
                 if let ChunkPayload::Model {
                     ref model,
                     ref model_consts,
-                } = pl
+                } = payload
                 {
                     model.render(&mut renderer, &self.voxel_pipeline, model_consts, &self.global_consts);
                 }

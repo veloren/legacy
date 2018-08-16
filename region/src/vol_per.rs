@@ -31,36 +31,33 @@ pub enum PersState {
  When you modify a version, you must either also change all other implementations or drop them!
 */
 
-pub trait Container<VT: Voxel, P>: Send + Sync + 'static /*where Volume<VoxelType = VT>: Sized*/ {
+pub trait Container: Send + Sync + 'static {
+    type VoxelType: Voxel;
+    type Payload;
+
     fn new() -> Self;
     fn contains(&self, state: PersState) -> bool;
-    fn insert<V: Volume<VoxelType = VT>>(&mut self, vol: V, state: PersState);
-    fn get<'a>(&'a self, state: PersState) -> Option<&'a (dyn Volume<VoxelType = VT> + 'static)>;
-    fn get_mut<'a>(&'a mut self, state: PersState) -> Option<&'a mut (dyn Volume<VoxelType = VT> + 'static)>;
-    fn payload<'a>(&'a self) -> &'a Option<P>;
-    fn payload_mut<'a>(&'a mut self) -> &'a mut Option<P>;
+    fn insert<V: Volume<VoxelType = Self::VoxelType>>(&mut self, vol: V, state: PersState);
+    fn get<'a>(&'a self, state: PersState) -> Option<&'a dyn Volume<VoxelType = Self::VoxelType>>;
+    fn get_mut<'a>(&'a mut self, state: PersState) -> Option<&'a mut dyn Volume<VoxelType = Self::VoxelType>>;
+    fn payload<'a>(&'a self) -> &'a Option<Self::Payload>;
+    fn payload_mut<'a>(&'a mut self) -> &'a mut Option<Self::Payload>;
 }
 
-pub trait VolumeConverter<VT: Voxel, P, C: Container<VT, P>> {
+pub trait VolumeConverter<C: Container> {
     fn convert(container: &mut C, state: PersState);
 }
 
-pub struct VolPers<K: Eq + Hash + 'static, VT: Voxel, C: Container<VT, P>, VC: VolumeConverter<VT, P, C>, P> {
+pub struct VolPers<K: Eq + Hash + 'static, C: Container, VC: VolumeConverter<C>> {
     data: RwLock<HashMap<K, Arc<RwLock<C>>>>,
     phantom: PhantomData<VC>,
-    phantom2: PhantomData<VT>,
-    phantom3: PhantomData<P>,
 }
 
-impl<K: Eq + Hash + 'static, VT: Voxel, C: Container<VT, P>, VC: VolumeConverter<VT, P, C>, P>
-    VolPers<K, VT, C, VC, P>
-{
-    pub fn new() -> VolPers<K, VT, C, VC, P> {
+impl<K: Eq + Hash + 'static, C: Container, VC: VolumeConverter<C>> VolPers<K, C, VC> {
+    pub fn new() -> VolPers<K, C, VC> {
         VolPers {
             data: RwLock::new(HashMap::new()),
             phantom: PhantomData,
-            phantom2: PhantomData,
-            phantom3: PhantomData,
         }
     }
 
@@ -72,9 +69,7 @@ impl<K: Eq + Hash + 'static, VT: Voxel, C: Container<VT, P>, VC: VolumeConverter
 
     pub fn exists(&self, key: &K, state: PersState) -> bool {
         if let Some(x) = self.data.read().unwrap().get(&key) {
-            let con = x.read().unwrap();
-            let contains = con.contains(state);
-            return contains;
+            return x.read().unwrap().contains(state);
         }
         return false;
     }

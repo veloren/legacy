@@ -69,12 +69,7 @@ pub struct Client<P: Payloads> {
     entities: RwLock<HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>>,
     phys_lock: Mutex<()>,
 
-    chunk_mgr: VolMgr<
-        Chunk,
-        ChunkContainer<<P as Payloads>::Chunk>,
-        ChunkConverter<<P as Payloads>::Chunk>,
-        <P as Payloads>::Chunk,
-    >,
+    chunk_mgr: VolMgr<Chunk, ChunkContainer<<P as Payloads>::Chunk>, ChunkConverter, <P as Payloads>::Chunk>,
 
     callbacks: RwLock<Callbacks>,
 
@@ -155,12 +150,7 @@ impl<P: Payloads> Client<P> {
 
     pub fn chunk_mgr(
         &self,
-    ) -> &VolMgr<
-        Chunk,
-        ChunkContainer<<P as Payloads>::Chunk>,
-        ChunkConverter<<P as Payloads>::Chunk>,
-        <P as Payloads>::Chunk,
-    > {
+    ) -> &VolMgr<Chunk, ChunkContainer<<P as Payloads>::Chunk>, ChunkConverter, <P as Payloads>::Chunk> {
         &self.chunk_mgr
     }
 

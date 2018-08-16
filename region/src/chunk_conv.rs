@@ -25,11 +25,12 @@ pub struct ChunkContainer<P> {
     file: Option<ChunkFile>,
 }
 
-pub struct ChunkConverter<P> {
-    dummy: Option<P>,
-}
+pub struct ChunkConverter {}
 
-impl<P: Send + Sync + 'static> Container<Block, P> for ChunkContainer<P> {
+impl<P: Send + Sync + 'static> Container for ChunkContainer<P> {
+    type VoxelType = Block;
+    type Payload = P;
+
     fn new() -> ChunkContainer<P> {
         ChunkContainer {
             payload: None,
@@ -50,57 +51,34 @@ impl<P: Send + Sync + 'static> Container<Block, P> for ChunkContainer<P> {
     fn insert<V: Volume<VoxelType = Block>>(&mut self, mut vol: V, state: PersState) {
         match state {
             PersState::Raw => {
-                let raw: &mut Chunk = match vol.as_any().downcast_mut::<Chunk>() {
-                    Some(mut b) => b,
-                    None => panic!("Should be Chunk"),
-                };
+                let raw: &mut Chunk = vol.as_any().downcast_mut::<Chunk>().expect("Should be Chunk");
                 self.raw = Some(raw.clone());
             },
             PersState::Rle => {
-                let rle: &mut ChunkRle = match vol.as_any().downcast_mut::<ChunkRle>() {
-                    Some(mut b) => b,
-                    None => panic!("Should be ChunkRle"),
-                };
+                let rle: &mut ChunkRle = vol.as_any().downcast_mut::<ChunkRle>().expect("Should be ChunkRle");
                 self.rle = Some(rle.clone());
             },
             PersState::File => {
-                let file: &mut ChunkFile = match vol.as_any().downcast_mut::<ChunkFile>() {
-                    Some(mut b) => b,
-                    None => panic!("Should be ChunkFile"),
-                };
+                let file: &mut ChunkFile = vol.as_any().downcast_mut::<ChunkFile>().expect("Should be ChunkFile");
                 self.file = Some(file.clone());
             },
         }
     }
 
-    fn get<'a>(&'a self, state: PersState) -> Option<&'a (dyn Volume<VoxelType = Block> + 'static)> {
-        match state {
-            PersState::Raw => if let Some(r) = &self.raw {
-                return Some(r);
-            },
-            PersState::Rle => if let Some(r) = &self.rle {
-                return Some(r);
-            },
-            PersState::File => if let Some(r) = &self.file {
-                return Some(r);
-            },
-        }
-        None
+    fn get<'a>(&'a self, state: PersState) -> Option<&'a dyn Volume<VoxelType = Block>> {
+        return match state {
+            PersState::Raw => self.raw.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
+            PersState::Rle => self.rle.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
+            PersState::File => self.file.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
+        };
     }
 
-    fn get_mut<'a>(&'a mut self, state: PersState) -> Option<&'a mut (dyn Volume<VoxelType = Block> + 'static)> {
-        match state {
-            PersState::Raw => if let Some(r) = &mut self.raw {
-                return Some(r);
-            },
-            PersState::Rle => if let Some(r) = &mut self.rle {
-                return Some(r);
-            },
-            PersState::File => if let Some(r) = &mut self.file {
-                return Some(r);
-            },
-        }
-        None
+    fn get_mut<'a>(&'a mut self, state: PersState) -> Option<&'a mut dyn Volume<VoxelType = Block>> {
+        return match state {
+            PersState::Raw => self.raw.as_mut().map(|c| c as &mut dyn Volume<VoxelType = Block>),
+            PersState::Rle => self.rle.as_mut().map(|c| c as &mut dyn Volume<VoxelType = Block>),
+            PersState::File => self.file.as_mut().map(|c| c as &mut dyn Volume<VoxelType = Block>),
+        };
     }
 
     fn payload<'a>(&'a self) -> &'a Option<P> { &self.payload }
@@ -108,22 +86,19 @@ impl<P: Send + Sync + 'static> Container<Block, P> for ChunkContainer<P> {
     fn payload_mut<'a>(&'a mut self) -> &'a mut Option<P> { &mut self.payload }
 }
 
-impl<P: Send + Sync + 'static> VolumeConverter<Block, P, ChunkContainer<P>> for ChunkConverter<P> {
+impl<P: Send + Sync + 'static> VolumeConverter<ChunkContainer<P>> for ChunkConverter {
     fn convert(container: &mut ChunkContainer<P>, state: PersState) {
         match state {
             PersState::Raw => {
                 if let Some(rle) = container.get_mut(PersState::Rle) {
-                    let s = rle.size();
-                    let from: &mut ChunkRle = match rle.as_any().downcast_mut::<ChunkRle>() {
-                        Some(mut b) => b,
-                        None => panic!("Should be ChunkRle"),
-                    };
+                    let from: &mut ChunkRle = rle.as_any().downcast_mut::<ChunkRle>().expect("Should be ChunkRle");
+                    let size = from.size();
                     let mut raw = Chunk::new();
-                    raw.set_size(s);
+                    raw.set_size(size);
                     let ref voxels = from.voxels_mut();
-                    for x in 0..s.x {
-                        for y in 0..s.y {
-                            let mut old_z = 0;
+                    for x in 0..size.x {
+                        for y in 0..size.y {
+                            let old_z = 0;
                             let ref stack = voxels[x as usize][y as usize];
                             for b in stack {
                                 let new_z = old_z + b.num;

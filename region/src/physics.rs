@@ -26,7 +26,7 @@ pub fn tick<
     I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)>,
 >(
     entities: I,
-    chunk_mgr: &VolMgr<Chunk, ChunkContainer<CP>, ChunkConverter<CP>, CP>,
+    chunk_mgr: &VolMgr<Chunk, ChunkContainer<CP>, ChunkConverter, CP>,
     chunk_size: i64,
     dt: f32,
 ) {

@@ -200,7 +200,7 @@ void main() {
 
     // exposure correction. Varies between F/16 at midday and F/2.8 at night.
     float ac = day_anticycle(1.0, 0.5, time.x);
-    float fstop = ac * ac * -15.5 + 16.5;
+    float fstop = ac * ac * -17.0 + 16.5;
     float Exp = pow(2.0, -fstop);
     vec3 mapped = hdrColor * Exp;
   

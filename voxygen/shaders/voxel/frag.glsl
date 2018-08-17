@@ -29,7 +29,7 @@ void main() {
 	// Sunlight
 	float sunAngularRadius = 0.017; // 1 degree radius, 2 degree diameter (not realistic, irl sun is ~0.5 deg diameter)
 	vec3 sun_color = get_sun_color(time.x);
-	vec3 sun_dir = -get_sun_dir(time.x);
+	vec3 sun_dir = get_sun_dir(time.x);
 
 	// Geometry
 	vec3 N = normalize((model_mat * vec4(frag_norm, 0)).xyz);
@@ -54,7 +54,7 @@ void main() {
 	vec3 atmos_color = get_sky_chroma(N, time.x);
 	atmos_color.r *= 0.5 + 0.5 * clamp(sunrise_anticycle(1, 0.9, time.x), 0, 1); // TODO: make less janky
 
-	float ambient_intensity = 0.2;
+	float ambient_intensity = 0.08;
 	// vec3 ambient = frag_col.rgb * ambient_intensity * mix(atmos_color, sun_color, 0.5 * clamp(day_cycle(1.0, 0.9, time.x), 0, 1));
 	vec3 ambient = frag_col.rgb * ambient_intensity * atmos_color;
 
@@ -76,9 +76,9 @@ void main() {
 
 	float sun_level = clamp(day_cycle(1, 0.9, time.x), 0.0, 1);
 	float sun_intensity = sun_level * 80000;
-	float sun_illuminance = sun_intensity * NdotL;
+	vec3 sun_illuminance = sun_color * vec3(sun_intensity * NdotL);
 
-	vec3 lighted = ambient + ((diffuse + specular) * sun_color * sun_illuminance);
+	vec3 lighted = ambient + ((diffuse + specular) * sun_illuminance);
 
 	// Mist
 	float mist_start = view_distance.x * 0.7;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;

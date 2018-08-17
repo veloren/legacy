@@ -18,5 +18,5 @@ uniform global_consts {
 out vec3 target;
 
 void main() {
-	target = get_sky_chroma(frag_pos, time.x);
+	target = get_sky_chroma(normalize(frag_pos), time.x);
 }

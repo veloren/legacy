@@ -52,7 +52,7 @@ const float noon_bot_strength = 15000.0;
 // Sunset
 const vec3 sunset_top_col = vec3(0.15, 0.1, 0.175);
 const float sunset_top_strength = 6000;
-const vec3 sunset_mid_col = vec3(1.0, 0.15, 0.0);
+const vec3 sunset_mid_col = vec3(1.0, 0.2, 0.025);
 const float sunset_mid_strength = 2000;
 const vec3 sunset_bot_col = vec3(0.075, 0.05, 0.1);
 const float sunset_bot_strength = 1900;
@@ -163,7 +163,8 @@ vec3 get_sky(vec3 dir, float time, bool sun) {
 
 	// Sun disc builder
 	vec3 sun_dir = get_sun_dir(time);
-	float dotsun = saturate(dot(sun_dir, dir));
+	float ds = dot(sun_dir, dir);
+	float dotsun = saturate(ds);
 	float d = cos(sun_size);
 	float disc_factor = smoothstep(d - sun_bloom / 1000, d, dotsun) * ssdt;
 
@@ -182,8 +183,9 @@ vec3 get_sky(vec3 dir, float time, bool sun) {
 
 	// horizon halo builder
 	float horiz_halo_factor = pow(1 - abs(dottop), 1 / horiz_halo_bloom * 100);
+	float sun_fac = saturate((PI - acos(ds)) / PI);
 	#ifdef OUTPUT_HORIZ_HALO
-	output_col += horiz_halo_col * horiz_halo_strength * horiz_halo_factor;
+	output_col += horiz_halo_col * horiz_halo_strength * horiz_halo_factor * sun_fac * sun_fac;
 	#endif
 
 	return output_col;

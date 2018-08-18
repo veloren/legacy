@@ -1,111 +1,147 @@
-#define PI 3.14159256
 
 float get_time_of_day(float time) {
-	return 1.0;
-	// return time / 60;
+	return mod(time / 60, 2.0);
 }
 
 vec3 get_sun_dir(float time) {
-	return vec3(sin(PI * get_time_of_day(time)), 0.0, cos(PI * get_time_of_day(time)));
+	return vec3(sin(PI * time), 0.0, cos(PI * time));
 }
 
 float day_cycle(float c, float factor, float time) {
-	return cos(PI * c * get_time_of_day(time)) * factor + 1.0 - factor;
+	return cos(PI * c * time) * factor + 1.0 - factor;
 }
 
 float sunrise_cycle(float c, float factor, float time) {
-	return sin(PI * 2 * c * get_time_of_day(time) - PI/2) * factor + 1.0 - factor;
+	return sin(PI * 2 * c * time - PI/2) * factor + 1.0 - factor;
 }
 
 float sunrise_anticycle(float c, float factor, float time) {
-	return cos(PI * 2 * c * get_time_of_day(time)) * factor + 1.0 - factor;
+	return cos(PI * 2 * c * time) * factor + 1.0 - factor;
 }
 
 float day_anticycle(float c, float factor, float time) {
-	return cos(PI * c * get_time_of_day(time) + PI) * factor + 1.0 - factor;
+	return cos(PI * c * time + PI) * factor + 1.0 - factor;
 }
 
 vec3 get_sun_color(float time) {
-	return vec3(sunrise_cycle(1, 0.25, time) + 1.0, sunrise_anticycle(1, 0.2, time) + 0.4, sunrise_anticycle(1, 0.4, time));
+	return vec3(sunrise_cycle(1, 0.25, time) + 1.1, sunrise_anticycle(1, 0.2, time) + 0.2, sunrise_anticycle(1, 0.4, time) - 0.2);
 }
 
-vec3 get_atmos_color(float time) {
-    float ac = day_anticycle(1.0, 0.5, time);
-	vec3 atmos_color = vec3(
-		0.25 + 0.2 * sunrise_cycle(1.0, 0.5, time),
-        0.5 - 0.1 * ac,
-        1.0
-    );
-    return atmos_color;
+vec3 interp(vec3 v1, vec3 v2, vec3 v3, float r1, float r2, float r3, float r4) {
+	return r4 > 0.0 ? mix(v2, v1, r4)
+		   : r3 > 0.0 ? mix(v3, v2, r3)
+		   : r2 > 0.0 ? mix(v2, v3, r2)
+		   : mix(v1, v2, r1);
 }
 
-vec3 hsv2rgb(vec3 c) {
-  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+float interp(float v1, float v2, float v3, float r1, float r2, float r3, float r4) {
+	return r4 > 0.0 ? mix(v2, v1, r4)
+		   : r3 > 0.0 ? mix(v3, v2, r3)
+		   : r2 > 0.0 ? mix(v2, v3, r2)
+		   : mix(v1, v2, r1);
 }
 
-vec3 get_sky_chroma(vec3 dir, float time) {
+////// Main gradient params://////
+// Noon
+const vec3 noon_top_col = vec3(0.02, 0.3, 0.8);
+const float noon_top_strength = 20000.0;
+const vec3 noon_mid_col = vec3(0.2, 0.5, 1.0);
+const float noon_mid_strength = 20000.0;
+const vec3 noon_bot_col = vec3(0.03, 0.15, 0.4);
+const float noon_bot_strength = 15000.0;
+// Sunset
+const vec3 sunset_top_col = vec3(0.15, 0.1, 0.175);
+const float sunset_top_strength = 6000;
+const vec3 sunset_mid_col = vec3(1.0, 0.15, 0.0);
+const float sunset_mid_strength = 2000;
+const vec3 sunset_bot_col = vec3(0.075, 0.05, 0.1);
+const float sunset_bot_strength = 1900;
+// Midnight
+const vec3 midnight_top_col = vec3(0.105, 0.11, 0.25);
+const float midnight_top_strength = 0.5;
+const vec3 midnight_mid_col = vec3(0.13, 0.14, 0.17);
+const float midnight_mid_strength = 0.4;
+const vec3 midnight_bot_col = vec3(0.075, 0.05, 0.1);
+const float midnight_bot_strength = 0.3;
+
+////// Sun disc params: ////
+// Midday
+const float noon_sun_strength = 100000.0;
+// Sunset
+const float sunset_sun_strength = 100000.0 * 0.25;
+// Midnight
+const float midnight_sun_strength = 0.0;
+// Universal
+const float sun_size = 0.017; // 2 deg ang diameter
+const float sun_bloom = 1;
+
+////// Sun halo params: ///////
+// Midday
+const vec3 noon_sun_halo_col = vec3(0.2, 0.8, 1.2);
+const float noon_sun_halo_strength = 10000;
+const float noon_sun_halo_bloom = 6;
+// Sunset
+const vec3 sunset_sun_halo_col = vec3(1.0, 0.10, 0.0);
+const float sunset_sun_halo_strength = 15000;
+const float sunset_sun_halo_bloom = 10;
+// Midnight
+const vec3 midnight_sun_halo_col = vec3(0.12, 0.10, 0.1);
+const float midnight_sun_halo_strength = 0.0;
+const float midnight_sun_halo_bloom = 0;
+
+////// Horizon halo params: //////
+// Midday
+const vec3 noon_horiz_halo_col = vec3(2.0, 0.8, 0.2);
+const float noon_horiz_halo_strength = 0.0;
+// Sunset
+const vec3 sunset_horiz_halo_col = vec3(2.0, 0.8, 0.2);
+const float sunset_horiz_halo_strength = 4000;
+// Midnight
+const vec3 midnight_horiz_halo_col = vec3(0.12, 0.10, 0.11);
+const float midnight_horiz_halo_strength = 0;
+// Universal
+const float horiz_halo_bloom = 6;
+
+#define OUTPUT_GRADIENT
+#define OUTPUT_DISC
+#define OUTPUT_SUN_HALO
+#define OUTPUT_HORIZ_HALO
+
+vec3 get_sky(vec3 dir, float time, bool sun) {
+	// Noon to sunset
+	float nts = saturate(time * 2.0);
+	// Sunset to midnight
+	float x = clamp(time * 2.0 - 2.0, -1.0, 1.0);
+	float sts = pow(max0(abs(x) * 2.0 - 1.0), 6.0);
+	float stm = saturate(1.0 - sts);
+	// Midnight to sunrise
+	float mts = step(0.0, time * 2.0 - 2.0) * saturate(sts);
+	// Sunrise to noon
+	float stn = saturate(time * 2.0 - 3.0);
+
 	// Main gradient variables:
-	// Midday
-	// vec3 top_col = vec3(0.02, 0.3, 1.0);
-	// float top_strength = 20000.0;
-	// vec3 mid_col = vec3(0.2, 0.8, 1.2);
-	// float mid_strength = 20000.0;
-	// vec3 bot_col = vec3(0.03, 0.15, 0.4);
-	// float bot_strength = 20000.0;
-
-	// Sunset
-	// vec3 top_col = vec3(0.15, 0.1, 0.175);
-	// float top_strength = 20000.0 * 0.05;
-	// vec3 mid_col = vec3(1.0, 0.15, 0.0);
-	// float mid_strength = 20000.0 * 0.1;
-	// vec3 bot_col = vec3(0.075, 0.05, 0.1);
-	// float bot_strength = 20000.0 * 0.05;
-
-	// Midnight
-	vec3 top_col = vec3(0.105, 0.11, 0.25);
-	float top_strength = 20000.0 * 0.00002;
-	vec3 mid_col = vec3(0.13, 0.14, 0.17);
-	float mid_strength = 20000.0 * 0.0000025;
-	vec3 bot_col = vec3(0.075, 0.05, 0.1);
-	float bot_strength = 20000.0 * 0.000005;
+	vec3 top_col = interp(noon_top_col, sunset_top_col, midnight_top_col, nts, stm, mts, stn);
+	float top_strength = interp(noon_top_strength, sunset_top_strength, midnight_top_strength, nts, stm, mts, stn);
+	vec3 mid_col = interp(noon_mid_col, sunset_mid_col, midnight_mid_col, nts, stm, mts, stn);
+	float mid_strength = interp(noon_mid_strength, sunset_mid_strength, midnight_mid_strength, nts, stm, mts, stn);
+	vec3 bot_col = interp(noon_bot_col, sunset_bot_col, midnight_bot_col, nts, stm, mts, stn);
+	float bot_strength = interp(noon_bot_strength, sunset_bot_strength, midnight_bot_strength, nts, stm, mts, stn);
 
 	// Sun disc params:
     vec3 sun_col = get_sun_color(time);
-	// Midday
-	// float sun_strength = 100000.0;
-	// Sunset
-	// float sun_strength = 100000.0 * 0.25;
-	// Midnight
-	float sun_strength = 0.0;
-	float sun_size = 0.017; // 2 deg ang diameter
-	float sun_bloom = 1;
+	float sun_strength = interp(noon_sun_strength, sunset_sun_strength, midnight_sun_strength, nts, stm, mts, stn);
 
 	// Sun halo params:
-	// Midday
-	// vec3 sun_halo_col = vec3(0.2, 0.8, 1.2);
-	// float sun_halo_strength = 20000.0 * 0.5;
-	// Sunset
-	// vec3 sun_halo_col = vec3(1.0, 0.10, 0.0);
-	// float sun_halo_strength = 20000.0 * 0.5;
-	// Midnight
-	vec3 sun_halo_col = vec3(0.12, 0.10, 0.1);
-	float sun_halo_strength = 0.0;
-	float sun_halo_bloom = 10;
+	vec3 sun_halo_col = interp(noon_sun_halo_col, sunset_sun_halo_col, midnight_sun_halo_col, nts, stm, mts, stn);
+	float sun_halo_strength = interp(noon_sun_halo_strength, sunset_sun_halo_strength, midnight_sun_halo_strength, nts, stm, mts, stn);
+	float sun_halo_bloom = interp(noon_sun_halo_bloom, sunset_sun_halo_bloom, midnight_sun_halo_bloom, nts, stm, mts, stn);
 
 	// Horizon halo params:
-	// Midday
-	// vec3 horiz_halo_col = vec3(2.0, 0.8, 0.2);
-	// float horiz_halo_strength = 0.0;
-	// Sunset
-	// vec3 horiz_halo_col = vec3(2.0, 0.8, 0.2);
-	// float horiz_halo_strength = 20000.0 * 0.1;
-	// Midnight
-	vec3 horiz_halo_col = vec3(0.12, 0.10, 0.11);
-	float horiz_halo_strength = 20000.0 * 0.000001;
+	vec3 horiz_halo_col = interp(noon_horiz_halo_col, sunset_horiz_halo_col, midnight_horiz_halo_col, nts, stm, mts, stn);
+	float horiz_halo_strength = interp(noon_horiz_halo_strength, sunset_horiz_halo_strength, midnight_horiz_halo_strength, nts, stm, mts, stn);
 	float horiz_halo_bloom = 10;
 
+	// Output
 	vec3 output_col = vec3(0);
 
 	// Main gradient builder
@@ -117,39 +153,47 @@ vec3 get_sky_chroma(vec3 dir, float time) {
 	float omdb = 0.6 - 0.6 * dotbot;
 	float ssdt = smoothstep(-0.01, 0.0, dottop);
 	float ssdb = smoothstep(0.0, 0.01, dotbot);
-	output_col += top_col * top_strength * ssdt;
-	output_col += bot_col * bot_strength * ssdb;
-	output_col += mid_col * mid_strength * omdt4 * ssdt;
-	output_col += mid_col * mid_strength * omdb * omdb * ssdb;
+
+	#ifdef OUTPUT_GRADIENT
+	output_col += mix(top_col * top_strength, mid_col * mid_strength, omdt4) * ssdt;
+	output_col += mix(bot_col * bot_strength, mid_col * mid_strength, omdb * omdb) * ssdb;
+	// output_col += mid_col * mid_strength * omdt4 * ssdt;
+	// output_col += mid_col * mid_strength * omdb * omdb * ssdb;
+	#endif
 
 	// Sun disc builder
 	vec3 sun_dir = get_sun_dir(time);
-	float dotsun = clamp(dot(sun_dir, dir), 0, 1);
+	float dotsun = saturate(dot(sun_dir, dir));
 	float d = cos(sun_size);
 	float disc_factor = smoothstep(d - sun_bloom / 1000, d, dotsun) * ssdt;
-	output_col += sun_col * sun_strength * disc_factor;
+
+	#ifdef OUTPUT_DISC
+	output_col += sun ? sun_col * sun_strength * disc_factor : vec3(0.0);
+	#endif
 
 	// Sun halo builder
 	float halo_factor = pow(dotsun, 1 / (sun_halo_bloom + sun_halo_bloom * omdt4 * omdt2) * 100);
 	halo_factor += 0.5 * pow(dotsun, 1 / (sun_halo_bloom * omdt4) * 200);
 	halo_factor *= ssdt;
-	output_col += sun_halo_col * sun_halo_strength * clamp(halo_factor, 0, 1);
+
+	#ifdef OUTPUT_SUN_HALO
+	output_col += sun_halo_col * sun_halo_strength * saturate(halo_factor);
+	#endif
 
 	// horizon halo builder
 	float horiz_halo_factor = pow(1 - abs(dottop), 1 / horiz_halo_bloom * 100);
+	#ifdef OUTPUT_HORIZ_HALO
 	output_col += horiz_halo_col * horiz_halo_strength * horiz_halo_factor;
+	#endif
 
-
-    // float c = clamp(day_cycle(1.0,0.5,time), 0, 1);
-    // vec3 atmos_color = get_atmos_color(time) * 20000.0 * clamp(c*c*c*c, 0.00001, 1);
-
-	// float angle = dot(-sun_dir, dir);
-
-	// float factor = (pow(angle, 1 / sun_bloom) - 1 + sun_size) * sun_strength * clamp(dothoriz * 0.1, 0, 1);
-
-	// float red_factor = pow(clamp((angle - abs(dothoriz) - 0.3), 0, 1) * smoothstep(-0.1, 0.0, dothoriz), 2);
-	// vec3 sky_color = mix(atmos_color, vec3(1, 0.15, 0.0) * 25000.0 * clamp(c*c, 0.00001, 1), red_factor);
-
-	// return mix(sky_color.xyz, sun_color, clamp(factor, 0, 1));
 	return output_col;
+	// return sun_col * 10000;
+}
+
+vec3 get_sky_chroma(vec3 dir, float time) {
+	return get_sky(dir, time, false);
+}
+
+vec3 get_skybox(vec3 dir, float time) {
+	return get_sky(dir, time, true);
 }

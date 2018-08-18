@@ -1,6 +1,6 @@
 #version 330 core
 
-#include <noise.glsl>
+#include <common.glsl>
 #include <sky.glsl>
 
 in vec3 frag_pos;
@@ -18,5 +18,6 @@ uniform global_consts {
 out vec3 target;
 
 void main() {
-	target = get_sky_chroma(normalize(frag_pos), time.x);
+	float tod = get_time_of_day(time.x);
+	target = get_skybox(normalize(frag_pos), tod);
 }

@@ -1,6 +1,7 @@
 #version 330 core
 
 #include <noise.glsl>
+#include <common.glsl>
 #include <sky.glsl>
 #include <bsdf.glsl>
 
@@ -28,8 +29,9 @@ out vec3 target;
 void main() {
 	// Sunlight
 	float sunAngularRadius = 0.017; // 1 degree radius, 2 degree diameter (not realistic, irl sun is ~0.5 deg diameter)
-	vec3 sun_color = get_sun_color(time.x);
-	vec3 sun_dir = get_sun_dir(time.x);
+	float time_of_day = get_time_of_day(time.x);
+	vec3 sun_color = get_sun_color(time_of_day);
+	vec3 sun_dir = get_sun_dir(time_of_day);
 
 	// Geometry
 	vec3 N = normalize((model_mat * vec4(frag_norm, 0)).xyz);
@@ -44,22 +46,19 @@ void main() {
 	vec3 S = R - DdotR * sun_dir;
 	vec3 L = DdotR < d ? normalize(d * sun_dir + normalize(S) * r) : R;
 
-	float NdotV = clamp(dot(N, V), 0.0, 1.0);
-	float NdotL = clamp(dot(N, L), 0.0, 1.0);
+	float NdotV = saturate(dot(N, V));
+	float NdotL = saturate(dot(N, L));
 	vec3 H = normalize(V + L);
-	float LdotH = clamp(dot(L, H), 0.0, 1.0);
+	float LdotH = saturate(dot(L, H));
 	float NdotH = clamp(dot(N, H), 0.0, 0.99999995);// fix artifact
 
-	vec3 sky_chroma = get_sky_chroma(-V, time.x);
-	vec3 atmos_color = get_sky_chroma(N, time.x);
-	atmos_color.r *= 0.5 + 0.5 * clamp(sunrise_anticycle(1, 0.9, time.x), 0, 1); // TODO: make less janky
+	vec3 atmos_color = get_sky_chroma(N, time_of_day);
 
-	float ambient_intensity = 0.08;
-	// vec3 ambient = frag_col.rgb * ambient_intensity * mix(atmos_color, sun_color, 0.5 * clamp(day_cycle(1.0, 0.9, time.x), 0, 1));
+	float ambient_intensity = 0.3;
 	vec3 ambient = frag_col.rgb * ambient_intensity * atmos_color;
 
 	float smoothness = 0.3;
-	float roughness_linear = clamp(1 - (smoothness - 0.01), 0, 1);
+	float roughness_linear = saturate(1 - (smoothness - 0.01));
 	float roughness = roughness_linear * roughness_linear;
 
 	float metallic = 0.0;
@@ -74,7 +73,7 @@ void main() {
 	float fD = fr_DisneyDiffuse(NdotV, NdotL, LdotH, roughness_linear) / PI;
 	vec3 diffuse = fD * frag_col.rgb;
 
-	float sun_level = clamp(day_cycle(1, 0.9, time.x), 0.0, 1);
+	float sun_level = saturate(day_cycle(1, 0.9, time_of_day));
 	float sun_intensity = sun_level * 80000;
 	vec3 sun_illuminance = sun_color * vec3(sun_intensity * NdotL);
 
@@ -86,8 +85,9 @@ void main() {
 	float mist_delta = mist_end - mist_start;
 	float play_dist = length(play_origin.xy - world_pos.xy);
 	float dist = max(play_dist - mist_start, 0);
-	float percent = clamp(dist / mist_delta, 0, 1);
+	float percent = saturate(dist / mist_delta);
 	float mist_value = percent * percent * percent;
 
+	vec3 sky_chroma = get_sky_chroma(-V, time_of_day);
 	target = mix(lighted, sky_chroma, mist_value);
 }

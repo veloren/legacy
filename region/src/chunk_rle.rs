@@ -11,37 +11,36 @@ use std::{any::Any, u8};
 // then we could optimize the num variable, we could interpret 0 as 1, increasing our capacity from 255 to 256
 // that means that no empty BlockRle would be allowed, but thats no problem
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct BlockRle {
     pub block: Block,
-    pub num: u8,
+    pub num_minus_one: u8, // num_minus_one = 0 --> num is 1 and 255->256
 }
-const MAX_CNT: u8 = u8::MAX;
+pub const BLOCK_RLE_MAX_CNT: u8 = u8::MAX;
 
 impl BlockRle {
-    fn new(block: Block, num: u8) -> Self { BlockRle { block, num } }
+    pub fn new(block: Block, num_minus_one: u8) -> Self { BlockRle { block, num_minus_one } }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ChunkRle {
     //per x and y coord store the z coord rle
     size: Vec3<i64>,
     offset: Vec3<i64>,
-    voxels: Vec<Vec<Vec<BlockRle>>>,
+    voxels: Vec<Vec<BlockRle>>,
+    // Vec1= x und y kombinier, Vec2 z
 }
 
 impl Volume for ChunkRle {
     type VoxelType = Block;
 
     fn fill(&mut self, block: Block) {
-        let high = ((self.size.z as f32) / (MAX_CNT as f32)).ceil() as usize;
-        let lastsize = self.size.z % (MAX_CNT as i64);
-        for x in self.voxels.iter_mut() {
-            for y in x.iter_mut() {
-                y.resize(high, BlockRle::new(block, 0));
-                y.iter_mut().map(|e| e.num = MAX_CNT);
-                y.last_mut().unwrap().num = lastsize as u8;
-            }
+        let high = ((self.size.z as f32) / (BLOCK_RLE_MAX_CNT as f32 + 1.0)).ceil() as usize;
+        let lastsize = self.size.z % (BLOCK_RLE_MAX_CNT as i64 + 1);
+        for xy in self.voxels.iter_mut() {
+            xy.resize(high, BlockRle::new(block, 0));
+            xy.iter_mut().map(|e| e.num_minus_one = BLOCK_RLE_MAX_CNT);
+            xy.last_mut().unwrap().num_minus_one = lastsize as u8;
         }
     }
 
@@ -55,9 +54,7 @@ impl Volume for ChunkRle {
 
     fn set_size(&mut self, size: Vec3<i64>) {
         self.size = size;
-        self.voxels.resize(size.x as usize, Vec::new());
-        self.voxels.iter_mut().map(|e| e.resize(size.y as usize, Vec::new()));
-        self.fill(Block::empty()); //TODO: only change new sizes, dont change everything
+        self.voxels.resize((size.x * size.y) as usize, Vec::new());
     }
 
     fn set_offset(&mut self, offset: Vec3<i64>) { self.offset = offset; }
@@ -74,7 +71,7 @@ impl Volume for ChunkRle {
 }
 
 impl ChunkRle {
-    pub fn voxels_mut(&mut self) -> &mut Vec<Vec<Vec<BlockRle>>> { &mut self.voxels }
+    pub fn voxels_mut(&mut self) -> &mut Vec<Vec<BlockRle>> { &mut self.voxels }
 
     pub fn new() -> Self {
         ChunkRle {
@@ -83,4 +80,6 @@ impl ChunkRle {
             voxels: Vec::new(),
         }
     }
+
+    fn pos_to_index(&self, x: i64, y: i64) -> usize { (x * self.size.y + y) as usize }
 }

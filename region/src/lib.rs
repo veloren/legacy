@@ -35,6 +35,8 @@ pub use block::{Block, BlockMaterial};
 pub use cell::{Cell, CellMaterial};
 pub use chunk::Chunk;
 pub use chunk_conv::{ChunkContainer, ChunkConverter};
+pub use chunk_file::ChunkFile;
+pub use chunk_rle::{BlockRle, ChunkRle};
 pub use entity::Entity;
 pub use figure::Figure;
 pub use vol_mgr::{FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolState};

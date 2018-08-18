@@ -1,6 +1,6 @@
 use chunk::Chunk;
 use chunk_file::ChunkFile;
-use chunk_rle::ChunkRle;
+use chunk_rle::{BlockRle, ChunkRle, BLOCK_RLE_MAX_CNT};
 use coord::prelude::*;
 use vol_per::{Container, PersState, VolPers, VolumeConverter};
 
@@ -98,25 +98,88 @@ impl<P: Send + Sync + 'static> VolumeConverter<ChunkContainer<P>> for ChunkConve
                     let ref voxels = from.voxels_mut();
                     for x in 0..size.x {
                         for y in 0..size.y {
-                            let old_z = 0;
-                            let ref stack = voxels[x as usize][y as usize];
+                            let mut old_z: i64 = 0;
+                            let ref stack = voxels[(x * size.y + y) as usize];
                             for b in stack {
-                                let new_z = old_z + b.num;
+                                let new_z = old_z + (b.num_minus_one + 1) as i64;
                                 for z in old_z..new_z {
                                     let pos = Vec3::<i64>::new(x, y, z as i64);
                                     raw.set(pos, b.block);
                                 }
+                                old_z = new_z;
+                            }
+                            for z in old_z..size.z {
+                                let pos = Vec3::<i64>::new(x, y, z as i64);
+                                raw.set(pos, Block::empty());
                             }
                         }
                     }
-                    let ref mut con_vol = container.get_mut(PersState::Raw);
-                    *con_vol = Some(&mut raw);
+                    container.insert(raw, PersState::Raw);
                 }
 
                 // Rle -> Raw
                 // File -> Rle -> Raw
             },
             PersState::Rle => {
+                if let Some(raw) = container.get_mut(PersState::Raw) {
+                    let from: &mut Chunk = raw.as_any().downcast_mut::<Chunk>().expect("Should be Chunk");
+                    let size = from.size();
+                    let mut rle = ChunkRle::new();
+                    rle.set_size(size);
+                    let ref mut voxels = rle.voxels_mut();
+                    for x in 0..size.x {
+                        for y in 0..size.y {
+                            let mut old_z: i64 = 0;
+                            let ref mut xy = voxels[(x * size.y + y) as usize];
+                            xy.clear();
+                            let mut last_block = from.at(Vec3::new(x, y, 0)).unwrap().material();
+                            //println!("start pillar {}/{}", x,y);
+                            for z in 1..size.z {
+                                let block = from.at(Vec3::new(x, y, z)).unwrap().material();
+                                //println!("block: {:?}, last_block {:?}, z {}, old_z {}", block, last_block, z, old_z);
+                                if block != last_block {
+                                    let zcnt = z - old_z;
+                                    old_z = z;
+                                    let high = ((zcnt as f32) / (BLOCK_RLE_MAX_CNT as f32 + 1.0)).ceil() as usize;
+                                    let lastsize = zcnt % (BLOCK_RLE_MAX_CNT as i64 + 1);
+                                    //println!("zcnt {} high {}", zcnt, high);
+                                    for i in 0..high {
+                                        //println!("add {:?}", last_block);
+                                        xy.push(BlockRle::new(
+                                            Block::new(last_block),
+                                            if i == (high - 1) {
+                                                (lastsize - 1) as u8
+                                            } else {
+                                                BLOCK_RLE_MAX_CNT
+                                            },
+                                        ));
+                                    }
+                                    last_block = block;
+                                }
+                            }
+                            if old_z != size.z && last_block != Block::empty().material() {
+                                //println!("END last_block {:?}, old_z {}", last_block, old_z);
+                                let zcnt = size.z - old_z;
+                                let high = ((zcnt as f32) / (BLOCK_RLE_MAX_CNT as f32 + 1.0)).ceil() as usize;
+                                let lastsize = zcnt % (BLOCK_RLE_MAX_CNT as i64 + 1);
+                                //println!("zcnt {} high {}", zcnt, high);
+                                for i in 0..high {
+                                    //println!("add {:?}", last_block);
+                                    xy.push(BlockRle::new(
+                                        Block::new(last_block),
+                                        if i == (high - 1) {
+                                            (lastsize - 1) as u8
+                                        } else {
+                                            BLOCK_RLE_MAX_CNT
+                                        },
+                                    ));
+                                }
+                            }
+                            //println!("pillar done");
+                        }
+                    }
+                    container.insert(rle, PersState::Rle);
+                }
                 let raw = container.get_mut(PersState::Raw);
                 let rle = container.get_mut(PersState::Rle);
                 // Raw -> Rle

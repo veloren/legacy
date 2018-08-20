@@ -79,7 +79,7 @@ impl<P: Payloads> Client<P> {
                     self.add_entity(uid, Entity::new(pos, vel, ctrl_acc, look_dir));
                 },
             },
-            ServerMessage::Ping => self.conn.send(ClientMessage::Pong),
+            ServerMessage::Ping => { self.conn.send(ClientMessage::Pong); },
             _ => {},
         }
     }

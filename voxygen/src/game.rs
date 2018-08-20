@@ -68,7 +68,7 @@ pub struct Game {
     keys: Keybinds,
 
     skybox_pipeline: Pipeline<skybox::pipeline::Init<'static>>,
-    voxel_pipeline: voxel::VoxelPipeline,
+    volume_pipeline: voxel::VolumePipeline,
     tonemapper_pipeline: Pipeline<tonemapper::pipeline::Init<'static>>,
 
     skybox_model: skybox::Model,
@@ -94,7 +94,7 @@ impl Game {
 
         // Create pipelines
 
-        let mut voxel_pipeline = voxel::VoxelPipeline::new(&mut window.renderer_mut());
+        let volume_pipeline = voxel::VolumePipeline::new(&mut window.renderer_mut());
 
         let skybox_pipeline = Pipeline::new(
             window.renderer_mut().factory_mut(),
@@ -147,7 +147,7 @@ impl Game {
             keys: Keybinds::new(),
 
             skybox_pipeline,
-            voxel_pipeline,
+            volume_pipeline,
             tonemapper_pipeline,
 
             skybox_model,
@@ -410,7 +410,7 @@ impl Game {
                     ref model_consts,
                 } = payload
                 {
-                    self.voxel_pipeline
+                    self.volume_pipeline
                         .draw_model(&model, model_consts, &self.global_consts);
                 }
             }
@@ -425,13 +425,13 @@ impl Game {
             };
 
             if let Some(ref model_consts) = entity.read().unwrap().payload() {
-                self.voxel_pipeline
+                self.volume_pipeline
                     .draw_model(&model, model_consts, &self.global_consts);
             }
         }
 
         // flush voxel pipeline draws
-        self.voxel_pipeline.flush(&mut renderer);
+        self.volume_pipeline.flush(&mut renderer);
 
         tonemapper::render(&mut renderer, &self.tonemapper_pipeline, &self.global_consts);
 

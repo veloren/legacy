@@ -41,13 +41,13 @@ struct DrawPacket {
     global_consts: gfx::handle::Buffer<gfx_device_gl::Resources, GlobalConsts>,
 }
 
-pub struct VoxelPipeline {
+pub struct VolumePipeline {
     voxel_pipeline: Pipeline<voxel_pipeline::Init<'static>>,
     water_pipeline: Pipeline<water_pipeline::Init<'static>>,
     draw_queue: FnvIndexMap<MaterialKind, Vec<DrawPacket>>,
 }
 
-impl VoxelPipeline {
+impl VolumePipeline {
     pub fn new(renderer: &mut Renderer) -> Self {
         let voxel_pipeline = Pipeline::new(
             renderer.factory_mut(),
@@ -63,7 +63,7 @@ impl VoxelPipeline {
             &Shader::from_file("shaders/voxel/water.frag").expect("Could not load voxel fragment shader"),
         );
 
-        VoxelPipeline {
+        VolumePipeline {
             voxel_pipeline,
             water_pipeline,
             draw_queue: FnvIndexMap::with_capacity_and_hasher(4, Default::default()),
@@ -94,8 +94,11 @@ impl VoxelPipeline {
         let encoder = renderer.encoder_mut();
         let vox_pso = self.voxel_pipeline.pso();
         let water_pso = self.water_pipeline.pso();
+        // Sort the draw queue by draw priority. Solid -> Translucent -> Water
         self.draw_queue.sort_keys();
+        // Iterate the sorted queue and draw the contained DrawPackets for each kind
         self.draw_queue.iter_mut().for_each(|(mat, ref mut packets)| {
+            // Drain the vector of packets so they don't carry over to the next frame
             packets.drain(..).for_each(|packet| match *mat {
                 MaterialKind::Water => {
                     let pipe_data = &WaterPipelineData {

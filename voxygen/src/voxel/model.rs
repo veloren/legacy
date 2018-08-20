@@ -24,22 +24,22 @@ impl Model {
     pub fn new(renderer: &mut Renderer, meshes: &FnvIndexMap<MaterialKind, Mesh>) -> Model {
         let mut vbufs = FnvIndexMap::with_capacity_and_hasher(4, Default::default());
 
-        meshes.iter().for_each(|(mat, mesh)| {
-            if mesh.vert_count() < 1 {
-                return;
-            }
-            let vbuf = renderer.factory_mut().create_vertex_buffer(mesh.vertices());
+        meshes
+            .iter()
+            .filter(|(_, mesh)| mesh.vert_count() > 0)
+            .for_each(|(mat, mesh)| {
+                let vbuf = renderer.factory_mut().create_vertex_buffer(mesh.vertices());
 
-            let slice = Slice::<gfx_device_gl::Resources> {
-                start: 0,
-                end: mesh.vert_count(),
-                base_vertex: 0,
-                instances: None,
-                buffer: IndexBuffer::Auto,
-            };
+                let slice = Slice::<gfx_device_gl::Resources> {
+                    start: 0,
+                    end: mesh.vert_count(),
+                    base_vertex: 0,
+                    instances: None,
+                    buffer: IndexBuffer::Auto,
+                };
 
-            vbufs.insert(*mat, (vbuf, slice));
-        });
+                vbufs.insert(*mat, (vbuf, slice));
+            });
         Model { vbufs }
     }
 

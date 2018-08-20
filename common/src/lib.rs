@@ -1,4 +1,4 @@
-#![feature(nll)]
+#![feature(nll, integer_atomics)]
 
 extern crate bincode;
 extern crate get_if_addrs;
@@ -23,6 +23,8 @@ pub mod names;
 //pub mod network;
 pub mod jobs;
 pub mod net;
+pub mod post;
+pub mod session;
 
 pub use jobs::{JobHandle, JobMultiHandle, Jobs};
 

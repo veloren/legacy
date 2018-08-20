@@ -1,6 +1,6 @@
 use std::{
     iter::IntoIterator,
-    sync::{Arc, Mutex, RwLock, Weak},
+    sync::{Arc, RwLock, Weak},
     thread::{self, JoinHandle},
 };
 

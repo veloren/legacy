@@ -16,7 +16,7 @@ use super::{
         Error::{self, NetworkErr},
         Message,
     },
-    packet::{Frame, FrameError, IncommingPacket, OutgoingPacket},
+    packet::{Frame, FrameError, IncomingPacket, OutgoingPacket},
     protocol::Protocol,
     tcp::Tcp,
     udpmgr::UdpMgr,
@@ -49,14 +49,7 @@ pub enum TestMessage {
     SmallMessage { value: u64 },
     LargeMessage { text: String },
 }
-
-impl Message for TestMessage {
-    fn from_bytes(data: &[u8]) -> Result<TestMessage, Error> {
-        bincode::deserialize(data).map_err(|_e| Error::CannotDeserialize)
-    }
-
-    fn to_bytes(&self) -> Result<Vec<u8>, Error> { bincode::serialize(&self).map_err(|_e| Error::CannotSerialize) }
-}
+impl Message for TestMessage {}
 
 fn check_header(frame: &Result<Frame, FrameError>, id: u64, length: u64) {
     match frame {
@@ -113,7 +106,8 @@ fn check_done(frame: &Result<Frame, FrameError>) {
 
 #[test]
 fn construct_frame() {
-    let mut p = OutgoingPacket::new(TestMessage::SmallMessage { value: 7 }, 3);
+    let msg = TestMessage::SmallMessage { value: 7 };
+    let mut p = OutgoingPacket::new(msg.to_bytes().unwrap(), 3);
     let f = p.generate_frame(10);
     check_header(&f, 3, 12);
     let f = p.generate_frame(12);
@@ -124,7 +118,8 @@ fn construct_frame() {
 
 #[test]
 fn construct_frame2() {
-    let mut p = OutgoingPacket::new(TestMessage::SmallMessage { value: 7 }, 3);
+    let msg = TestMessage::SmallMessage { value: 7 };
+    let mut p = OutgoingPacket::new(msg.to_bytes().unwrap(), 3);
     let f = p.generate_frame(10);
     check_header(&f, 3, 12);
     let f = p.generate_frame(100);
@@ -135,7 +130,8 @@ fn construct_frame2() {
 
 #[test]
 fn construct_splitframe() {
-    let mut p = OutgoingPacket::new(TestMessage::SmallMessage { value: 7 }, 3);
+    let msg = TestMessage::SmallMessage { value: 7 };
+    let mut p = OutgoingPacket::new(msg.to_bytes().unwrap(), 3);
     let f = p.generate_frame(10);
     check_header(&f, 3, 12);
     let f = p.generate_frame(10);
@@ -148,13 +144,11 @@ fn construct_splitframe() {
 
 #[test]
 fn construct_largeframe() {
-    let mut p = OutgoingPacket::new(
-        TestMessage::LargeMessage {
-            text: "1234567890A1234567890B1234567890C1234567890D1234567890E1234567890F1234567890G1234567890H1234567890"
-                .to_string(),
-        },
-        123,
-    );
+    let msg = TestMessage::LargeMessage {
+        text: "1234567890A1234567890B1234567890C1234567890D1234567890E1234567890F1234567890G1234567890H1234567890"
+            .to_string(),
+    };
+    let mut p = OutgoingPacket::new(msg.to_bytes().unwrap(), 123);
     let f = p.generate_frame(10);
     check_header(&f, 123, 110);
     let f = p.generate_frame(40);
@@ -189,13 +183,11 @@ fn construct_largeframe() {
 
 #[test]
 fn construct_message() {
-    let mut p = OutgoingPacket::new(
-        TestMessage::LargeMessage {
-            text: "1234567890A1234567890B1234567890C1234567890D1234567890E1234567890F1234567890G1234567890H1234567890"
-                .to_string(),
-        },
-        123,
-    );
+    let msg = TestMessage::LargeMessage {
+        text: "1234567890A1234567890B1234567890C1234567890D1234567890E1234567890F1234567890G1234567890H1234567890"
+            .to_string(),
+    };
+    let mut p = OutgoingPacket::new(msg.to_bytes().unwrap(), 123);
     let f1 = p.generate_frame(10);
     check_header(&f1, 123, 110);
     let f2 = p.generate_frame(40);
@@ -226,7 +218,7 @@ fn construct_message() {
     check_data(&f6, 123, 4, vec![49, 50, 51, 52, 53, 54, 55, 56, 57, 48]);
     let f7 = p.generate_frame(10);
     check_done(&f7);
-    let mut i = IncommingPacket::new(f1.unwrap());
+    let mut i = IncomingPacket::new(f1.unwrap());
     assert!(!i.load_data_frame(f2.unwrap()));
     assert!(!i.load_data_frame(f3.unwrap()));
     assert!(!i.load_data_frame(f4.unwrap()));
@@ -248,13 +240,11 @@ fn construct_message() {
 #[test]
 #[should_panic]
 fn construct_message_wrong_order() {
-    let mut p = OutgoingPacket::new(
-        TestMessage::LargeMessage {
-            text: "1234567890A1234567890B1234567890C1234567890D1234567890E1234567890F1234567890G1234567890H1234567890"
-                .to_string(),
-        },
-        123,
-    );
+    let msg = TestMessage::LargeMessage {
+        text: "1234567890A1234567890B1234567890C1234567890D1234567890E1234567890F1234567890G1234567890H1234567890"
+            .to_string(),
+    };
+    let mut p = OutgoingPacket::new(msg.to_bytes().unwrap(), 123);
     let f1 = p.generate_frame(10);
     check_header(&f1, 123, 110);
     let f2 = p.generate_frame(40);
@@ -285,7 +275,7 @@ fn construct_message_wrong_order() {
     check_data(&f6, 123, 4, vec![49, 50, 51, 52, 53, 54, 55, 56, 57, 48]);
     let f7 = p.generate_frame(10);
     check_done(&f7);
-    let mut i = IncommingPacket::new(f1.unwrap());
+    let mut i = IncomingPacket::new(f1.unwrap());
     assert!(!i.load_data_frame(f6.unwrap()));
     assert!(!i.load_data_frame(f4.unwrap()));
     assert!(!i.load_data_frame(f2.unwrap()));

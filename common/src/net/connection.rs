@@ -4,43 +4,27 @@ use std::{
     net::{SocketAddr, TcpStream, ToSocketAddrs, UdpSocket},
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex, MutexGuard, RwLock,
+        mpsc::{self, RecvError, TryRecvError},
+        Arc, Mutex, RwLock,
     },
     thread::{self, JoinHandle},
 };
 
 // Library
-use bincode;
 use get_if_addrs::get_if_addrs;
 
 // Parent
 use super::{
-    message::Message,
-    packet::{Frame, FrameError, IncommingPacket, OutgoingPacket},
+    packet::{Frame, FrameError, IncomingPacket, OutgoingPacket},
     protocol::Protocol,
     tcp::Tcp,
     udp::Udp,
     udpmgr::UdpMgr,
-    Error,
+    ConnectionMessage, Error, Message,
 };
 
-pub trait Callback<RM: Message> {
-    fn recv(&self, Result<RM, Error>);
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-enum ConnectionMessage {
-    OpenedUdp { host: SocketAddr },
-    Shutdown,
-    Ping,
-}
-
-impl Message for ConnectionMessage {
-    fn from_bytes(data: &[u8]) -> Result<ConnectionMessage, Error> {
-        bincode::deserialize(data).map_err(|_e| Error::CannotDeserialize)
-    }
-
-    fn to_bytes(&self) -> Result<Vec<u8>, Error> { bincode::serialize(&self).map_err(|_e| Error::CannotSerialize) }
+enum ConnectionError {
+    Disconnected,
 }
 
 pub struct Connection<RM: Message> {
@@ -48,9 +32,7 @@ pub struct Connection<RM: Message> {
     tcp: Tcp,
     udpmgr: Arc<UdpMgr>,
     udp: Mutex<Option<Udp>>,
-    callback: Mutex<Box<Fn(Result<RM, Error>) + Send>>,
-    callbackobj: Mutex<Option<Arc<Callback<RM> + Send + Sync>>>,
-    packet_in: Mutex<HashMap<u64, IncommingPacket>>,
+    packet_in: Mutex<HashMap<u64, IncomingPacket>>,
     packet_out: Mutex<Vec<VecDeque<OutgoingPacket>>>,
     packet_out_count: RwLock<u64>,
     running: AtomicBool,
@@ -59,46 +41,39 @@ pub struct Connection<RM: Message> {
     send_thread_udp: Mutex<Option<JoinHandle<()>>>,
     recv_thread_udp: Mutex<Option<JoinHandle<()>>>,
     next_id: Mutex<u64>,
+
+    // Message channel
+    recvd_message_write: Mutex<mpsc::Sender<RM>>,
+    recvd_message_read: Mutex<mpsc::Receiver<RM>>,
+
+    // Error channel
+    error_write: Mutex<mpsc::Sender<ConnectionError>>,
+    error_read: Mutex<mpsc::Receiver<ConnectionError>>,
 }
 
-impl<'a, RM: Message + 'static> Connection<RM> {
-    pub fn new<A: ToSocketAddrs>(
-        remote: &A,
-        callback: Box<Fn(Result<RM, Error>) + Send>,
-        cb: Option<Arc<Callback<RM> + Send + Sync>>,
-        udpmgr: Arc<UdpMgr>,
-    ) -> Result<Arc<Connection<RM>>, Error> {
-        Connection::new_internal(Tcp::new(&remote)?, callback, cb, udpmgr)
+impl<RM: Message> Connection<RM> {
+    pub fn new<A: ToSocketAddrs>(remote: &A, udpmgr: Arc<UdpMgr>) -> Result<Arc<Connection<RM>>, Error> {
+        Connection::new_internal(Tcp::new(&remote)?, udpmgr)
     }
 
-    pub fn new_stream(
-        stream: TcpStream,
-        callback: Box<Fn(Result<RM, Error>) + Send>,
-        cb: Option<Arc<Callback<RM> + Send + Sync>>,
-        udpmgr: Arc<UdpMgr>,
-    ) -> Result<Arc<Connection<RM>>, Error> {
-        Connection::new_internal(Tcp::new_stream(stream)?, callback, cb, udpmgr)
+    pub fn new_stream(stream: TcpStream, udpmgr: Arc<UdpMgr>) -> Result<Arc<Connection<RM>>, Error> {
+        Connection::new_internal(Tcp::new_stream(stream)?, udpmgr)
     }
 
-    fn new_internal(
-        tcp: Tcp,
-        callback: Box<Fn(Result<RM, Error>) + Send>,
-        cb: Option<Arc<Callback<RM> + Send + Sync>>,
-        udpmgr: Arc<UdpMgr>,
-    ) -> Result<Arc<Connection<RM>>, Error> {
-        let packet_in = HashMap::new();
+    fn new_internal(tcp: Tcp, udpmgr: Arc<UdpMgr>) -> Result<Arc<Connection<RM>>, Error> {
         let mut packet_out = Vec::new();
         for _i in 0..255 {
             packet_out.push(VecDeque::new());
         }
 
+        let (error_sender, error_receiver) = mpsc::channel();
+        let (message_sender, message_receiver) = mpsc::channel();
+
         let m = Connection {
             tcp,
             udpmgr,
             udp: Mutex::new(None),
-            callback: Mutex::new(callback),
-            callbackobj: Mutex::new(cb),
-            packet_in: Mutex::new(packet_in),
+            packet_in: Mutex::new(HashMap::new()),
             packet_out_count: RwLock::new(0),
             packet_out: Mutex::new(packet_out),
             running: AtomicBool::new(true),
@@ -107,17 +82,24 @@ impl<'a, RM: Message + 'static> Connection<RM> {
             send_thread_udp: Mutex::new(None),
             recv_thread_udp: Mutex::new(None),
             next_id: Mutex::new(1),
+            recvd_message_write: Mutex::new(message_sender),
+            recvd_message_read: Mutex::new(message_receiver),
+            error_write: Mutex::new(error_sender),
+            error_read: Mutex::new(error_receiver),
         };
 
         Ok(Arc::new(m))
     }
 
-    pub fn open_udp<'b>(manager: &'b Arc<Connection<RM>>, listen: SocketAddr, sender: SocketAddr) {
+    pub fn open_udp<'b>(manager: &'b Arc<Connection<ConnectionMessage>>, listen: SocketAddr, sender: SocketAddr) {
         if let Some(..) = *manager.udp.lock().unwrap() {
             panic!("not implemented");
         }
+
+        let msg = ConnectionMessage::OpenedUdp { host: listen };
+
         *manager.udp.lock().unwrap() = Some(Udp::new(listen, sender).unwrap());
-        manager.send(ConnectionMessage::OpenedUdp { host: listen });
+        manager.send(msg);
 
         let m = manager.clone();
         let mut rt = manager.recv_thread_udp.lock().unwrap();
@@ -154,7 +136,7 @@ impl<'a, RM: Message + 'static> Connection<RM> {
 
     pub fn send<M: Message>(&self, message: M) {
         let mut id = self.next_id.lock().unwrap();
-        self.packet_out.lock().unwrap()[16].push_back(OutgoingPacket::new(message, *id));
+        self.packet_out.lock().unwrap()[16].push_back(OutgoingPacket::new(message.to_bytes().unwrap(), *id));
         *id += 1;
         let mut p = self.packet_out_count.write().unwrap();
         *p += 1;
@@ -165,18 +147,42 @@ impl<'a, RM: Message + 'static> Connection<RM> {
         }
     }
 
-    fn trigger_callback(&self, msg: Result<RM, Error>) {
-        //trigger callback
-        let f = self.callback.lock().unwrap();
-        let co = self.callbackobj.lock();
-        match co.unwrap().as_mut() {
-            Some(cb) => {
-                cb.recv(msg);
-            },
-            None => {
-                f(msg);
-            },
+    pub fn try_recv(&self) -> Result<RM, TryRecvError> {
+        if let Ok(error_read) = self.error_read.lock() {
+            match error_read.try_recv() {
+                Ok(ConnectionError::Disconnected) => return Err(TryRecvError::Disconnected),
+                Err(TryRecvError::Disconnected) => return Err(TryRecvError::Disconnected),
+                _ => {},
+            }
         }
+
+        if let Ok(recvd_message_read) = self.recvd_message_read.lock() {
+            match recvd_message_read.try_recv() {
+                Ok(msg) => return Ok(msg),
+                Err(e) => return Err(e),
+            }
+        }
+
+        return Err(TryRecvError::Disconnected);
+    }
+
+    pub fn recv(&self) -> Result<RM, RecvError> {
+        if let Ok(error_read) = self.error_read.lock() {
+            match error_read.try_recv() {
+                Ok(ConnectionError::Disconnected) => return Err(RecvError),
+                Err(TryRecvError::Disconnected) => return Err(RecvError),
+                _ => {},
+            }
+        }
+
+        if let Ok(recvd_message_read) = self.recvd_message_read.lock() {
+            match recvd_message_read.recv() {
+                Ok(msg) => return Ok(msg),
+                Err(e) => return Err(e),
+            }
+        }
+
+        return Err(RecvError);
     }
 
     fn send_worker(&self) {
@@ -222,7 +228,7 @@ impl<'a, RM: Message + 'static> Connection<RM> {
                 Ok(frame) => {
                     match frame {
                         Frame::Header { id, .. } => {
-                            let msg = IncommingPacket::new(frame);
+                            let msg = IncomingPacket::new(frame);
                             let mut packets = self.packet_in.lock().unwrap();
                             packets.insert(id, msg);
                         },
@@ -234,15 +240,24 @@ impl<'a, RM: Message + 'static> Connection<RM> {
                                 let packet = packets.get_mut(&id);
                                 let data = packet.unwrap().data();
                                 debug!("received packet: {:?}", &data);
-                                let msg = RM::from_bytes(data);
-                                self.trigger_callback(Ok(msg.unwrap()));
+
+                                let recvd_message_write = self.recvd_message_write.lock().unwrap();
+                                recvd_message_write.send(RM::from_bytes(data).unwrap()).unwrap();
                             }
                         },
                     }
                 },
                 Err(e) => {
                     error!("Net Error {:?}", &e);
-                    self.trigger_callback(Err(e));
+
+                    // TODO: Handle errors that can be resolved locally
+                    match e {
+                        _ => {
+                            if let Ok(error_write) = self.error_write.lock() {
+                                error_write.send(ConnectionError::Disconnected).unwrap();
+                            }
+                        },
+                    }
                 },
             }
         }
@@ -293,7 +308,7 @@ impl<'a, RM: Message + 'static> Connection<RM> {
                 Ok(frame) => {
                     match frame {
                         Frame::Header { id, .. } => {
-                            let msg = IncommingPacket::new(frame);
+                            let msg = IncomingPacket::new(frame);
                             let mut packets = self.packet_in.lock().unwrap();
                             packets.insert(id, msg);
                         },
@@ -305,21 +320,30 @@ impl<'a, RM: Message + 'static> Connection<RM> {
                                 let packet = packets.get_mut(&id);
                                 let data = packet.unwrap().data();
                                 debug!("received packet: {:?}", &data);
-                                let msg = RM::from_bytes(data);
-                                self.trigger_callback(Ok(msg.unwrap()));
+
+                                let recvd_message_write = self.recvd_message_write.lock().unwrap();
+                                recvd_message_write.send(RM::from_bytes(data).unwrap()).unwrap();
                             }
                         },
                     }
                 },
                 Err(e) => {
                     error!("Net Error {:?}", &e);
-                    self.trigger_callback(Err(e));
+
+                    // TODO: Handle errors that can be resolved locally
+                    match e {
+                        _ => {
+                            if let Ok(error_write) = self.error_write.lock() {
+                                error_write.send(ConnectionError::Disconnected).unwrap();
+                            }
+                        },
+                    }
                 },
             }
         }
     }
 
-    fn bind_udp<T: ToSocketAddrs>(bind_addr: &T) -> Result<UdpSocket, Error> {
+    fn bind_udp<U: ToSocketAddrs>(bind_addr: &U) -> Result<UdpSocket, Error> {
         let sock = UdpSocket::bind(&bind_addr);
         match sock {
             Ok(s) => Ok(s),
@@ -331,10 +355,5 @@ impl<'a, RM: Message + 'static> Connection<RM> {
                 Connection::<RM>::bind_udp(&new_addr)
             },
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn callbackobj(&self) -> MutexGuard<Option<Arc<Callback<RM> + Send + Sync>>> {
-        self.callbackobj.lock().unwrap()
     }
 }

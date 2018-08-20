@@ -10,8 +10,8 @@ pub mod udpmgr;
 
 // Reexports
 pub use self::{
-    connection::{Callback, Connection},
-    message::{ClientMessage, Error, Message, ServerMessage},
+    connection::Connection,
+    message::{ClientMessage, ConnectionMessage, Error, Message, ServerMessage},
     udpmgr::UdpMgr,
 };
 

@@ -1,9 +1,10 @@
 // Standard
-use std::io;
+use std::{io, net::SocketAddr};
 
 // Library
 use bincode;
 use coord::prelude::*;
+use serde::{de::DeserializeOwned, Serialize};
 
 // Local
 use Uid;
@@ -22,11 +23,15 @@ impl From<io::Error> for Error {
     fn from(e: io::Error) -> Error { Error::NetworkErr(e) }
 }
 
-pub trait Message {
-    fn to_bytes(&self) -> Result<Vec<u8>, Error>;
+pub trait Message: Send + Sync + 'static + Serialize + DeserializeOwned {
+    fn to_bytes(&self) -> Result<Vec<u8>, Error> { bincode::serialize(&self).map_err(|_e| Error::CannotSerialize) }
+
     fn from_bytes(data: &[u8]) -> Result<Self, Error>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        bincode::deserialize(data).map_err(|_e| Error::CannotDeserialize)
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -54,14 +59,7 @@ pub enum ServerMessage {
     },
     ChunkData {},
 }
-
-impl Message for ServerMessage {
-    fn from_bytes(data: &[u8]) -> Result<ServerMessage, Error> {
-        bincode::deserialize(data).map_err(|_e| Error::CannotDeserialize)
-    }
-
-    fn to_bytes(&self) -> Result<Vec<u8>, Error> { bincode::serialize(&self).map_err(|_e| Error::CannotSerialize) }
-}
+impl Message for ServerMessage {}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ClientMessage {
@@ -86,11 +84,12 @@ pub enum ClientMessage {
         look_dir: Vec2f,
     },
 }
+impl Message for ClientMessage {}
 
-impl Message for ClientMessage {
-    fn from_bytes(data: &[u8]) -> Result<ClientMessage, Error> {
-        bincode::deserialize(data).map_err(|_e| Error::CannotDeserialize)
-    }
-
-    fn to_bytes(&self) -> Result<Vec<u8>, Error> { bincode::serialize(&self).map_err(|_e| Error::CannotSerialize) }
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum ConnectionMessage {
+    OpenedUdp { host: SocketAddr },
+    Shutdown,
+    Ping,
 }
+impl Message for ConnectionMessage {}

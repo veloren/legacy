@@ -214,7 +214,7 @@ const Material mat_lut[15] = Material[15](
         1.0
     ),
     Material( //MetallicRough
-        0.3,
+        0.92,
         1.0,
         1.0,
         0.0,

@@ -72,16 +72,13 @@ void main() {
 
 	vec3 col = frag_col.rgb + col_noise;
 
-    float ao = (frag_ao / 3.0);
-	float ambient_intensity = 0.3;
-	vec3 ambient = col.rgb * ambient_intensity * ao * atmos_color;
-
 	float smoothness = mat.smoothness;
 	float roughness_linear = saturate(1 - (smoothness - 0.01));
 	float roughness = roughness_linear * roughness_linear;
 
 	float reflectance = mat.reflectance;
 	float metalness = mat.metalness;
+	float omm = 1.0 - mat.metalness;
 	vec3 f0 = mix(vec3(mix(0.02, 0.18, reflectance)), col.rgb, metalness);
 	float f90 = 1.0;
 	vec3 fresnel = f_Schlick(f0, f90, LdotH);
@@ -90,13 +87,17 @@ void main() {
 	vec3 specular = fresnel * ndf * geo / PI;
 
 	float fD = fr_DisneyDiffuse(NdotV, NdotL, LdotH, roughness_linear) / PI;
-	vec3 diffuse = fD * col.rgb;
+	vec3 diffuse = fD * col.rgb * omm;
 
 	float sun_level = saturate(day_cycle(1, 0.9, time_of_day));
 	float sun_intensity = sun_level * 80000;
-	vec3 sun_illuminance = sun_color * vec3(sun_intensity * NdotL);
+	vec3 sun_illuminance = sun_color * sun_intensity;
 
-	vec3 lighted = ambient + ((diffuse + specular) * sun_illuminance * ao);
+    float ao = (frag_ao / 3.0);
+	float ambient_intensity = 0.05 + 0.25 * omm; // TODO: have specular ambient so that we don't have to hack this
+	vec3 ambient = col.rgb * ambient_intensity * ao * atmos_color;
+
+	vec3 lighted = ambient + (saturate((diffuse + specular) * NdotL) * sun_illuminance * ao);
 
 	// Mist
 	float mist_start = view_distance.x * 0.7;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;

@@ -29,23 +29,19 @@ impl Message for ServerMsg {}
 fn post_office() {
     // Server
     let listener = TcpListener::bind("0.0.0.0:8888").unwrap();
-    thread::spawn(move || {
-        match listener.incoming().next() {
-            Some(Ok(stream)) => {
-                thread::spawn(move || handle_client(PostOffice::to_client(stream).unwrap()));
-            },
-            Some(Err(e)) => panic!("Connection error: {}", e),
-            None => panic!("No client received"),
-        }
+    thread::spawn(move || match listener.incoming().next() {
+        Some(Ok(stream)) => {
+            thread::spawn(move || handle_client(PostOffice::to_client(stream).unwrap()));
+        },
+        Some(Err(e)) => panic!("Connection error: {}", e),
+        None => panic!("No client received"),
     });
 
     // Client
     handle_remote(PostOffice::to_server("127.0.0.1:8888").unwrap());
 }
 
-fn handle_client(postoffice: Arc<PostOffice<ServerMsg, ClientMsg>>) {
-    PostOffice::start(postoffice.clone());
-
+fn handle_client(postoffice: PostOffice<SessionKind, ServerMsg, ClientMsg>) {
     while let Ok(session) = postoffice.await_incoming() {
         match session.kind {
             SessionKind::PingPong => thread::spawn(move || handle_pingpong(session.postbox)),
@@ -53,19 +49,19 @@ fn handle_client(postoffice: Arc<PostOffice<ServerMsg, ClientMsg>>) {
     }
 }
 
-fn handle_pingpong(pb: PostBox<ServerMsg, ClientMsg>) {
+fn handle_pingpong(pb: PostBox<SessionKind, ServerMsg, ClientMsg>) {
     while let Ok(msg) = pb.recv() {
         assert_eq!(msg, ClientMsg::Ping);
         let _ = pb.send(ServerMsg::Pong);
     }
 }
 
-fn handle_remote(postoffice: Arc<PostOffice<ClientMsg, ServerMsg>>) {
-    PostOffice::start(postoffice.clone());
+fn handle_remote(po: PostOffice<SessionKind, ClientMsg, ServerMsg>) {
+    let po = Arc::new(po);
 
-    let po = postoffice.clone();
+    let po_ref = po.clone();
     thread::spawn(move || {
-        while let Ok(_pb) = po.await_incoming() {
+        while let Ok(_pb) = po_ref.await_incoming() {
             // Handle server sessions
         }
     });
@@ -73,7 +69,7 @@ fn handle_remote(postoffice: Arc<PostOffice<ClientMsg, ServerMsg>>) {
     thread::sleep(Duration::from_millis(1000)); // Waiting for connection
 
     for _ in 0..10 {
-        let pb_r = postoffice.create_postbox(SessionKind::PingPong);
+        let pb_r = po.create_postbox(SessionKind::PingPong);
 
         let _ = pb_r.send(ClientMsg::Ping);
         let msg = pb_r.recv().unwrap();

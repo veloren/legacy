@@ -126,7 +126,10 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
         let conn_ref = conn.clone();
         let worker = Some(thread::spawn(move || {
             while running_ref.load(Ordering::Relaxed) {
-                let _ = recv.recv().map(|l| conn_ref.send(l));
+                match recv.recv() {
+                    Ok(letter) => conn_ref.send(letter),
+                    Err(_) => break,
+                }
             }
 
             Connection::stop(&conn_ref);

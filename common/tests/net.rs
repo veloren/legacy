@@ -10,7 +10,6 @@ use std::{net::TcpListener, sync::Arc, thread, time::Duration};
 use common::{
     net::Message,
     post::{PostBox, PostOffice},
-    session::SessionKind,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]

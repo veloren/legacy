@@ -12,7 +12,6 @@ use std::{
 
 // Local
 use net::{Connection, Error, Message, UdpMgr};
-use session::SessionKind;
 
 // Information
 // -----------
@@ -88,6 +87,7 @@ pub struct PostOffice<SK: Message, SM: Message, RM: Message> {
     // Data shared with worker thread: running bool and internal connection used for networking
     running: Arc<AtomicBool>,
     conn: Arc<Connection<Letter<SK, RM>>>,
+    worker: Option<thread::JoinHandle<()>>,
 }
 
 impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
@@ -121,24 +121,25 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
         // Create shared running flag
         let running = Arc::new(AtomicBool::new(true));
 
-        let po = PostOffice {
+        // Start the worker thread that sends outgoing messages using the Connection instance
+        let running_ref = running.clone();
+        let conn_ref = conn.clone();
+        let worker = Some(thread::spawn(move || {
+            while running_ref.load(Ordering::Relaxed) {
+                let _ = recv.recv().map(|l| conn_ref.send(l));
+            }
+
+            Connection::stop(&conn_ref);
+        }));
+
+        PostOffice {
             uid_counter: AtomicU64::new(start_uid),
             send_tmp,
             pb_sends: Mutex::new(HashMap::new()),
-            running: running.clone(),
-            conn: conn.clone(),
-        };
-
-        // Start the worker thread that sends outgoing messages using the Connection instance
-        thread::spawn(move || {
-            while running.load(Ordering::Relaxed) {
-                recv.recv().map(|l| conn.send(l));
-            }
-
-            Connection::stop(&conn);
-        });
-
-        po
+            running,
+            conn,
+            worker,
+        }
     }
 
     // Utility to generate a new postbox UID. Server uses even integers, client uses odd integers.
@@ -188,5 +189,8 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
 }
 
 impl<SK: Message, SM: Message, RM: Message> Drop for PostOffice<SK, SM, RM> {
-    fn drop(&mut self) { self.running.store(false, Ordering::Relaxed); }
+    fn drop(&mut self) {
+        self.running.store(false, Ordering::Relaxed);
+        self.worker.take().map(|w| w.join());
+    }
 }

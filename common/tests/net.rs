@@ -27,34 +27,30 @@ impl Message for ServerMsg {}
 
 #[test]
 fn post_office() {
-    // SERVER
+    // Server
     let listener = TcpListener::bind("0.0.0.0:8888").unwrap();
     thread::spawn(move || {
-        for stream in listener.incoming() {
-            match stream {
-                Ok(stream) => {
-                    thread::spawn(move || handle_client(PostOffice::new_host(stream).unwrap()));
-                },
-                Err(e) => panic!("Connection error: {}", e),
-            }
+        match listener.incoming().next() {
+            Some(Ok(stream)) => {
+                thread::spawn(move || handle_client(PostOffice::to_client(stream).unwrap()));
+            },
+            Some(Err(e)) => panic!("Connection error: {}", e),
+            None => panic!("No client received"),
         }
     });
 
-    // REMOTE
-    handle_remote(PostOffice::new_remote("127.0.0.1:8888").unwrap());
+    // Client
+    handle_remote(PostOffice::to_server("127.0.0.1:8888").unwrap());
 }
 
 fn handle_client(postoffice: Arc<PostOffice<ServerMsg, ClientMsg>>) {
     PostOffice::start(postoffice.clone());
 
     while let Ok(session) = postoffice.await_incoming() {
-        let pb = session.postbox;
         match session.kind {
-            SessionKind::PingPong => thread::spawn(move || handle_pingpong(pb)),
+            SessionKind::PingPong => thread::spawn(move || handle_pingpong(session.postbox)),
         };
     }
-
-    PostOffice::stop(postoffice.clone());
 }
 
 fn handle_pingpong(pb: PostBox<ServerMsg, ClientMsg>) {

@@ -10,6 +10,7 @@ use std::{net::TcpListener, sync::Arc, thread, time::Duration};
 use common::{
     net::Message,
     post::{PostBox, PostOffice},
+    manager::Manager,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -37,17 +38,17 @@ fn post_office() {
     let listener = TcpListener::bind("0.0.0.0:8888").unwrap();
     thread::spawn(move || match listener.incoming().next() {
         Some(Ok(stream)) => {
-            thread::spawn(move || handle_client(PostOffice::to_client(stream).unwrap()));
+            thread::spawn(move || handle_client(Manager::init(PostOffice::to_client(stream).unwrap())));
         },
         Some(Err(e)) => panic!("Connection error: {}", e),
         None => panic!("No client received"),
     });
 
     // Client
-    handle_remote(PostOffice::to_server("127.0.0.1:8888").unwrap());
+    handle_remote(Manager::init(PostOffice::to_server("127.0.0.1:8888").unwrap()));
 }
 
-fn handle_client(postoffice: PostOffice<SessionKind, ServerMsg, ClientMsg>) {
+fn handle_client(postoffice: Manager<PostOffice<SessionKind, ServerMsg, ClientMsg>>) {
     while let Ok(session) = postoffice.await_incoming() {
         match session.kind {
             SessionKind::PingPong => thread::spawn(move || handle_pingpong(session.postbox)),
@@ -62,7 +63,7 @@ fn handle_pingpong(pb: PostBox<SessionKind, ServerMsg, ClientMsg>) {
     }
 }
 
-fn handle_remote(po: PostOffice<SessionKind, ClientMsg, ServerMsg>) {
+fn handle_remote(po: Manager<PostOffice<SessionKind, ClientMsg, ServerMsg>>) {
     let po = Arc::new(po);
 
     let po_ref = po.clone();

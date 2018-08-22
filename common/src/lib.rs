@@ -25,6 +25,7 @@ pub mod names;
 pub mod jobs;
 pub mod net;
 pub mod post;
+pub mod manager;
 
 pub use jobs::{JobHandle, JobMultiHandle, Jobs};
 

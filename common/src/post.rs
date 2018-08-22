@@ -12,6 +12,7 @@ use std::{
 
 // Local
 use net::{Connection, Error, Message, UdpMgr};
+use manager::{Managed, Manager};
 
 // Information
 // -----------
@@ -66,7 +67,9 @@ impl<SK: Message, SM: Message, RM: Message> PostBox<SK, SM, RM> {
 
     pub fn recv(&self) -> Result<RM, RecvError> { self.recv.recv() }
 
-    pub fn close(self) -> Result<(), SendError<Letter<SK, SM>>> { self.po_send.send(Letter::CloseBox(self.uid)) }
+    pub fn close(self) -> Result<(), SendError<Letter<SK, SM>>> {
+        self.po_send.send(Letter::CloseBox(self.uid))
+    }
 }
 
 impl<SK: Message, SM: Message, RM: Message> Drop for PostBox<SK, SM, RM> {
@@ -78,16 +81,15 @@ impl<SK: Message, SM: Message, RM: Message> Drop for PostBox<SK, SM, RM> {
 pub struct PostOffice<SK: Message, SM: Message, RM: Message> {
     uid_counter: AtomicU64,
 
-    // The send end of the outgoing mpsc, used for cloning and passing to postboxes
+    // The send + recv ends of the outgoing mpsc, used for cloning and passing to postboxes
     send_tmp: Mutex<mpsc::Sender<Letter<SK, SM>>>,
+    recv: Mutex<mpsc::Receiver<Letter<SK, SM>>>,
 
     // The send ends for the PostBox incoming mpscs
     pb_sends: Mutex<HashMap<u64, mpsc::Sender<RM>>>,
 
-    // Data shared with worker thread: running bool and internal connection used for networking
-    running: Arc<AtomicBool>,
+    // Internal connection used for networking
     conn: Arc<Connection<Letter<SK, RM>>>,
-    worker: Option<thread::JoinHandle<()>>,
 }
 
 impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
@@ -116,32 +118,17 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
 
         // Create the mpsc for outgoing messages
         let (send_tmp, recv) = mpsc::channel();
-        let send_tmp = Mutex::new(send_tmp);
+        let (send_tmp, recv) = (Mutex::new(send_tmp), Mutex::new(recv));
 
         // Create shared running flag
         let running = Arc::new(AtomicBool::new(true));
-
-        // Start the worker thread that sends outgoing messages using the Connection instance
-        let running_ref = running.clone();
-        let conn_ref = conn.clone();
-        let worker = Some(thread::spawn(move || {
-            while running_ref.load(Ordering::Relaxed) {
-                match recv.recv() {
-                    Ok(letter) => conn_ref.send(letter),
-                    Err(_) => break,
-                }
-            }
-
-            Connection::stop(&conn_ref);
-        }));
 
         PostOffice {
             uid_counter: AtomicU64::new(start_uid),
             send_tmp,
             pb_sends: Mutex::new(HashMap::new()),
-            running,
             conn,
-            worker,
+            recv,
         }
     }
 
@@ -191,9 +178,19 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
     }
 }
 
-impl<SK: Message, SM: Message, RM: Message> Drop for PostOffice<SK, SM, RM> {
-    fn drop(&mut self) {
-        self.running.store(false, Ordering::Relaxed);
-        self.worker.take().map(|w| w.join());
+impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
+    fn init_workers(&self, manager: &mut Manager<Self>) {
+        // Create a worker to relay outgoing messages to the connection
+        Manager::add_worker(manager, |po, running| {
+            let recv = po.recv.lock().unwrap(); // Hold the receiver permanently
+            while running.load(Ordering::Relaxed) {
+                match recv.recv() {
+                    Ok(letter) => po.conn.send(letter),
+                    Err(_) => break,
+                }
+            }
+
+            Connection::stop(&po.conn);
+        });
     }
 }

@@ -10,7 +10,7 @@ pub use self::{
     material::{Material, MaterialKind, RenderMaterial},
     mesh::{Mesh, Vertex},
     model::{Model, ModelConsts},
-    pipeline::VoxelPipeline,
+    pipeline::VolumePipeline,
     render_volume::{RenderVolume, RenderVoxel},
     vox::vox_to_figure,
 };

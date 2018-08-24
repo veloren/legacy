@@ -22,7 +22,11 @@ impl Voxel for Cell {
 
     fn new(mat: Self::Material) -> Self { Cell { mat } }
 
-    fn empty() -> Self { Cell { mat: CellMaterial::Empty } }
+    fn empty() -> Self {
+        Cell {
+            mat: CellMaterial::Empty,
+        }
+    }
 
     fn is_solid(&self) -> bool { self.mat != CellMaterial::Empty }
 

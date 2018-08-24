@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 use renderer::Renderer;
-use voxel::{mesh::VertexBuffer, pipeline::VoxelPipeline, MaterialKind, Mesh};
+use voxel::{mesh::VertexBuffer, MaterialKind, Mesh};
 
 gfx_defines! {
     constant ModelConsts {

@@ -31,6 +31,8 @@ extern crate pretty_env_logger;
 extern crate serde_derive;
 #[macro_use]
 extern crate enum_map;
+extern crate fnv;
+extern crate indexmap;
 
 // Time
 extern crate chrono;

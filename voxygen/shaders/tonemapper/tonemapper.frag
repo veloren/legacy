@@ -133,4 +133,5 @@ void main() {
     mapped = linear_to_srgb(mapped);
   
     target = vec4(mapped, 1.0);
+    // target = vec4(hdrColor, 1.0);
 }    

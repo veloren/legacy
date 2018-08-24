@@ -1,12 +1,16 @@
+mod material;
 mod mesh;
 mod model;
+mod pipeline;
 mod render_volume;
 mod vox;
 
 // Reexports
 pub use self::{
+    material::{Material, MaterialKind, RenderMaterial},
     mesh::{Mesh, Vertex},
-    model::{pipeline, Model, ModelConsts},
+    model::{Model, ModelConsts},
+    pipeline::VolumePipeline,
     render_volume::{RenderVolume, RenderVoxel},
     vox::vox_to_figure,
 };

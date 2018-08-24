@@ -2,6 +2,7 @@ use coord::prelude::*;
 use std::any::Any;
 
 use Cell;
+use CellMaterial;
 use Volume;
 use Voxel;
 
@@ -20,7 +21,7 @@ impl Figure {
         for _i in 0..size.x {
             for _j in 0..size.y {
                 for _k in 0..size.z {
-                    voxels.push(Cell::new(0));
+                    voxels.push(Cell::new(CellMaterial::MatteSmooth(0)));
                 }
             }
         }
@@ -62,7 +63,10 @@ impl Volume for Figure {
 
     fn set_size(&mut self, size: Vec3<i64>) {
         self.size = size;
-        self.voxels.resize((size.x * size.y * size.z) as usize, Cell::new(0));
+        self.voxels.resize(
+            (size.x * size.y * size.z) as usize,
+            Cell::new(CellMaterial::MatteSmooth(0)),
+        );
     }
 
     fn set_offset(&mut self, offset: Vec3<i64>) { self.offset = offset; }

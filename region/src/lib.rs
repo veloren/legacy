@@ -31,7 +31,7 @@ mod vol_per;
 
 // Reexports
 pub use block::{Block, BlockMaterial};
-pub use cell::Cell;
+pub use cell::{Cell, CellMaterial};
 pub use chunk::Chunk;
 pub use chunk_conv::{ChunkContainer, ChunkConverter};
 pub use entity::Entity;

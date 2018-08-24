@@ -20,6 +20,7 @@ gfx_defines! {
 
 type ConstBuffer<T> = gfx::handle::Buffer<gfx_device_gl::Resources, T>;
 
+#[derive(Clone)]
 pub struct ConstHandle<T: Copy + Pod> {
     buffer: ConstBuffer<T>,
 }

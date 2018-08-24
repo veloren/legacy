@@ -15,9 +15,10 @@ uniform global_consts {
 	vec4 time;
 };
 
-out vec3 target;
+out vec4 target;
 
 void main() {
 	float tod = get_time_of_day(time.x);
-	target = get_skybox(normalize(frag_pos), tod);
+	target = vec4(get_skybox(normalize(frag_pos), tod), 1.0);
+	// target = vec4(vec3(0.5), 1.0);
 }

@@ -7,6 +7,10 @@ extern crate enum_map;
 extern crate nalgebra;
 extern crate noise;
 extern crate rand;
+extern crate bincode;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 #[macro_use]
 extern crate coord;
 extern crate threadpool;
@@ -39,7 +43,7 @@ pub use chunk_rle::{BlockRle, ChunkRle};
 pub use entity::Entity;
 pub use figure::Figure;
 pub use vol_mgr::{FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolState};
-pub use vol_per::{Container, PersState, VolPers, VolumeConverter};
+pub use vol_per::{Key, VolContainer, Container, PersState, VolPers, VolumeConverter};
 
 use coord::prelude::*;
 use std::any::Any;
@@ -72,7 +76,8 @@ pub trait Volume: Send + Sync + Any {
     //TODO: sizeof?
     //fn memory_size(&self) -> u64;
 
-    fn as_any(&mut self) -> &mut Any;
+    fn as_any_mut(&mut self) -> &mut Any;
+    fn as_any(&self) -> &Any;
 
     fn set_size(&mut self, size: Vec3<i64>);
     fn set_offset(&mut self, offset: Vec3<i64>);

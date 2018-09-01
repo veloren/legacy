@@ -11,7 +11,7 @@ pub struct ChunkFile {
     //per x and y coord store the z coord rle
     size: Vec3<i64>,
     offset: Vec3<i64>,
-    file: &'static str,
+    file: String,
 }
 
 impl Volume for ChunkFile {
@@ -34,7 +34,7 @@ impl Volume for ChunkFile {
     }
 
     fn set_offset(&mut self, offset: Vec3<i64>) {
-        panic!("FEATURE NOT IMPLEMENTED YET: Cannot set offset on File Chunk");
+        self.offset = offset;
     }
 
     fn at(&self, pos: Vec3<i64>) -> Option<Block> {
@@ -45,15 +45,25 @@ impl Volume for ChunkFile {
         panic!("FEATURE NOT IMPLEMENTED YET: Cannot work on File Chunk");
     }
 
-    fn as_any(&mut self) -> &mut Any { self }
+    fn as_any_mut(&mut self) -> &mut Any { self }
+
+    fn as_any(&self) -> &Any { self }
 }
 
 impl ChunkFile {
-    pub fn new() -> Self {
+    pub fn new(size: Vec3<i64>) -> Self {
         ChunkFile {
-            size: Vec3::from((0, 0, 0)),
+            size,
             offset: Vec3::from((0, 0, 0)),
-            file: "",
+            file: "".to_string(),
         }
+    }
+
+    pub fn file(&mut self) -> &String {
+        return &self.file;
+    }
+
+    pub fn file_mut(&mut self) -> &mut String {
+        return &mut self.file;
     }
 }

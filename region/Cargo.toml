@@ -11,6 +11,9 @@ debug = true
 [dependencies]
 common = { path = "../common" }
 enum-map = "0.2.31"
+bincode = "1.0.0"
+serde = "1.0.63"
+serde_derive = "1.0.63"
 log = "0.4"
 rand = "0.5.0"
 noise = "0.5.1"

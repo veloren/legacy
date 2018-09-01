@@ -10,6 +10,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
     },
+    time::{SystemTime, UNIX_EPOCH},
 };
 //use std::f32::{sin, cos};
 
@@ -21,7 +22,7 @@ use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
 
 // Project
 use client::{self, Client, ClientMode, CHUNK_SIZE};
-use region::{Chunk, Container, VolState};
+use region::{Chunk, Container, VolState, VolContainer, PersState, ChunkContainer, ChunkConverter, VolumeConverter};
 
 // Local
 use camera::Camera;
@@ -72,7 +73,19 @@ pub struct Game {
     other_player_model: voxel::Model,
 }
 
-fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk { ChunkPayload::Mesh(voxel::Mesh::from(chunk)) }
+fn gen_payload(key: Vec2<i64>, con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>) {
+    if con.vols().get(PersState::Raw).is_none() {
+        //only get mutable lock if no Raw exists
+        println!("try to convert");
+        ChunkConverter::convert(&key, &mut con.vols_mut(), PersState::Raw);
+    }
+    if let Some(raw) = con.vols().get(PersState::Raw) {
+        let chunk: &Chunk = raw.as_any().downcast_ref::<Chunk>().expect("Should be Chunk");
+        *con.payload_mut() = Some(ChunkPayload::Mesh(voxel::Mesh::from(chunk)));
+    } else {
+        panic!("Raw does not exist");
+    }
+}
 
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
@@ -297,10 +310,21 @@ impl Game {
 
     pub fn update_chunks(&self) {
         let mut renderer = self.window.renderer_mut();
+        // Find the chunk the camera is in
+        let cam_origin = *self.camera.lock().unwrap().get_pos();
+        let cam_chunk = Vec2::<i64>::new((cam_origin.x as i64).div_euc(CHUNK_SIZE), (cam_origin.y as i64).div_euc(CHUNK_SIZE));
 
         for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
-            let mut con = con.write().unwrap();
-            if let Some(payload) = con.payload_mut() {
+            if (*pos - cam_chunk).snake_length() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE {
+                continue;
+            }
+            con.set_access();
+            if con.payload().is_none() && con.vols().contains(PersState::Raw) {
+                //payload got dropped by persistence, lets regenerate it
+                gen_payload(*pos, con);
+            }
+            let lock = &mut *con.payload_mut();
+            if let Some(ref mut payload) = lock {
                 if let ChunkPayload::Mesh(ref mut mesh) = payload {
                     // Calculate chunk mode matrix
                     let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
@@ -397,13 +421,19 @@ impl Game {
         );
 
         // Render the skybox
-        self.skybox_model
-            .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
+        self.skybox_model.render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
+
+        // Find the chunk the camera is in
+        let cam_chunk = Vec2::<i64>::new((cam_origin.x as i64).div_euc(CHUNK_SIZE), (cam_origin.y as i64).div_euc(CHUNK_SIZE));
 
         // Render each chunk
         for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
-            let con = con.write().unwrap();
-            if let Some(payload) = con.payload() {
+            if (*pos - cam_chunk).snake_length() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE {
+                continue;
+            }
+            // rendering actually does not set the time, but updating does it
+            let lock = &*con.payload();
+            if let Some(ref payload) = lock {
                 if let ChunkPayload::Model {
                     ref model,
                     ref model_consts,

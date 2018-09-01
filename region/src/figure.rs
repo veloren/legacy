@@ -83,7 +83,9 @@ impl Volume for Figure {
         }
     }
 
-    fn as_any(&mut self) -> &mut Any { self }
+    fn as_any_mut(&mut self) -> &mut Any { self }
+
+    fn as_any(&self) -> &Any { self }
 }
 
 impl Figure {

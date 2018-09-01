@@ -60,6 +60,7 @@ pub trait Payloads: 'static {
 pub struct Client<P: Payloads> {
     pub(crate) jobs: Jobs<Client<P>>,
     run_job: Mutex<Option<JobHandle<()>>>,
+    run_job2: Mutex<Option<JobHandle<()>>>,
 
     status: RwLock<ClientStatus>,
     conn: Arc<Connection<ServerMessage>>,
@@ -69,7 +70,7 @@ pub struct Client<P: Payloads> {
     entities: RwLock<HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>>,
     phys_lock: Mutex<()>,
 
-    chunk_mgr: VolMgr<Chunk, ChunkContainer<<P as Payloads>::Chunk>, ChunkConverter, <P as Payloads>::Chunk>,
+    chunk_mgr: VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk>,
 
     callbacks: RwLock<Callbacks>,
 
@@ -81,7 +82,7 @@ impl<P: Payloads> Callback<ServerMessage> for Client<P> {
 }
 
 impl<P: Payloads> Client<P> {
-    pub fn new<U: ToSocketAddrs, GF: FnPayloadFunc<Chunk, P::Chunk, Output = P::Chunk>>(
+    pub fn new<U: ToSocketAddrs, GF: FnPayloadFunc<Chunk, ChunkContainer, P::Chunk>>(
         mode: ClientMode,
         alias: String,
         remote_addr: U,
@@ -99,6 +100,7 @@ impl<P: Payloads> Client<P> {
         let client = Arc::new(Client {
             jobs: Jobs::new(),
             run_job: Mutex::new(None),
+            run_job2: Mutex::new(None),
 
             status: RwLock::new(ClientStatus::Connecting),
             conn,
@@ -126,10 +128,18 @@ impl<P: Payloads> Client<P> {
     fn set_status(&self, status: ClientStatus) { *self.status.write().unwrap() = status; }
 
     pub fn start(&self) {
-        if self.run_job.lock().unwrap().is_none() {
-            *self.run_job.lock().unwrap() = Some(self.jobs.do_loop(|c| {
+        let mut lock = self.run_job.lock().unwrap();
+        if lock.is_none() {
+            *lock = Some(self.jobs.do_loop(|c| {
                 thread::sleep(time::Duration::from_millis(40));
                 c.tick(40.0 / 1000.0)
+            }));
+        }
+        let mut lock = self.run_job2.lock().unwrap();
+        if lock.is_none() {
+            *lock = Some(self.jobs.do_loop(|c| {
+                thread::sleep(time::Duration::from_millis(1000));
+                c.tick2(1.0)
             }));
         }
     }
@@ -138,6 +148,9 @@ impl<P: Payloads> Client<P> {
         self.conn.send(ClientMessage::Disconnect);
         self.set_status(ClientStatus::Disconnected);
         if let Some(jh) = self.run_job.lock().unwrap().take() {
+            jh.await();
+        }
+        if let Some(jh) = self.run_job2.lock().unwrap().take() {
             jh.await();
         }
     }
@@ -150,7 +163,7 @@ impl<P: Payloads> Client<P> {
 
     pub fn chunk_mgr(
         &self,
-    ) -> &VolMgr<Chunk, ChunkContainer<<P as Payloads>::Chunk>, ChunkConverter, <P as Payloads>::Chunk> {
+    ) -> &VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk> {
         &self.chunk_mgr
     }
 

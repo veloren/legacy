@@ -11,7 +11,7 @@ use std::{any::Any, u8};
 // then we could optimize the num variable, we could interpret 0 as 1, increasing our capacity from 255 to 256
 // that means that no empty BlockRle would be allowed, but thats no problem
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct BlockRle {
     pub block: Block,
     pub num_minus_one: u8, // num_minus_one = 0 --> num is 1 and 255->256
@@ -22,7 +22,7 @@ impl BlockRle {
     pub fn new(block: Block, num_minus_one: u8) -> Self { BlockRle { block, num_minus_one } }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct ChunkRle {
     //per x and y coord store the z coord rle
     size: Vec3<i64>,
@@ -67,7 +67,9 @@ impl Volume for ChunkRle {
         panic!("FEATURE NOT IMPLEMENTED YET: i dont feel like implement this now");
     }
 
-    fn as_any(&mut self) -> &mut Any { self }
+    fn as_any_mut(&mut self) -> &mut Any { self }
+
+    fn as_any(&self) -> &Any { self }
 }
 
 impl ChunkRle {

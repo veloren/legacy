@@ -1,11 +1,12 @@
 // Local
 use collision::{Collider, Primitive};
-use vol_per::{Container, PersState, VolPers, VolumeConverter};
+use vol_per::{Key, VolContainer, Container, PersState, VolPers, VolumeConverter};
 use Volume;
 use Voxel;
 
 // Standard
 use std::{
+    path::Path,
     collections::{HashMap, HashSet},
     sync::Arc,
 };
@@ -15,28 +16,28 @@ use coord::prelude::*;
 use parking_lot::{Mutex, RwLock};
 use threadpool::ThreadPool;
 
-pub enum VolState<C: Container> {
+pub enum VolState<C: VolContainer, P: Send + Sync + 'static> {
     Loading,
-    Exists(Arc<RwLock<C>>),
+    Exists(Arc<Container<C, P>>),
 }
 
 lazy_static! {
     static ref POOL: Mutex<ThreadPool> = Mutex::new(ThreadPool::new(2));
 }
 
-pub trait FnGenFunc<V>: Fn(Vec2<i64>) -> V + Send + Sync + 'static {}
-impl<V, T: Fn(Vec2<i64>) -> V + Send + Sync + 'static> FnGenFunc<V> for T {}
+pub trait FnGenFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>: Fn(Vec2<i64>, &Container<C, P>) + Send + Sync + 'static {}
+impl<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static, T: Fn(Vec2<i64>, &Container<C, P>) > FnGenFunc<V, C, P> for T where T: Send + Sync + 'static {}
 
-pub trait FnPayloadFunc<V, P: Send + Sync + 'static>: Fn(&V) -> P + Send + Sync + 'static {}
-impl<V, P: Send + Sync + 'static, T: Fn(&V) -> P + Send + Sync + 'static> FnPayloadFunc<V, P> for T {}
+pub trait FnPayloadFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>: Fn(Vec2<i64>, &Container<C, P>) + Send + Sync + 'static {}
+impl<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static, T: Fn(Vec2<i64>, &Container<C, P>) > FnPayloadFunc<V, C, P> for T where T: Send + Sync + 'static {}
 
-pub struct VolGen<V: Volume, P: Send + Sync + 'static> {
-    gen_func: Arc<FnGenFunc<V, Output = V>>,
-    payload_func: Arc<FnPayloadFunc<V, P, Output = P>>,
+pub struct VolGen<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static> {
+    gen_func: Arc<FnGenFunc<V, C, P, Output = ()> + Send + Sync + 'static>,
+    payload_func: Arc<FnPayloadFunc<V, C, P, Output = ()>>,
 }
 
-impl<V: Volume, P: Send + Sync + 'static> VolGen<V, P> {
-    pub fn new<GF: FnGenFunc<V>, PF: FnPayloadFunc<V, P>>(gen_func: GF, payload_func: PF) -> VolGen<V, P> {
+impl<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static> VolGen<V, C, P> {
+    pub fn new<GF: FnGenFunc<V, C, P> + Send + Sync + 'static, PF: FnPayloadFunc<V, C, P>>(gen_func: GF, payload_func: PF) -> VolGen<V, C, P> {
         VolGen {
             gen_func: Arc::new(gen_func),
             payload_func: Arc::new(payload_func),
@@ -44,26 +45,32 @@ impl<V: Volume, P: Send + Sync + 'static> VolGen<V, P> {
     }
 }
 
+impl Key for Vec2<i64> {
+    fn print(&self) -> String {
+        return format!("c{},{}", self.x, self.y).to_string();
+    }
+}
+
 pub struct VolMgr<
     V: 'static + Volume,
-    C: Container<VoxelType = V::VoxelType, Payload = P>,
+    C: VolContainer<VoxelType = V::VoxelType>,
     VC: VolumeConverter<C>,
     P: Send + Sync + 'static,
 > {
     vol_size: i64,
     pending: Arc<RwLock<HashSet<Vec2<i64>>>>,
-    pers: VolPers<Vec2<i64>, C, VC>,
-    gen: VolGen<V, P>,
+    pers: VolPers<Vec2<i64>, C, VC, P>,
+    gen: VolGen<V, C, P>,
 }
 
 impl<
         V: 'static + Volume,
-        C: Container<VoxelType = V::VoxelType, Payload = P>,
+        C: VolContainer<VoxelType = V::VoxelType>,
         VC: VolumeConverter<C>,
         P: Send + Sync + 'static,
     > VolMgr<V, C, VC, P>
 {
-    pub fn new(vol_size: i64, gen: VolGen<V, P>) -> VolMgr<V, C, VC, P> {
+    pub fn new(vol_size: i64, gen: VolGen<V, C, P>) -> VolMgr<V, C, VC, P> {
         VolMgr {
             vol_size,
             pending: Arc::new(RwLock::new(HashSet::new())),
@@ -72,7 +79,7 @@ impl<
         }
     }
 
-    pub fn at(&self, pos: Vec2<i64>) -> Option<VolState<C>> {
+    pub fn at(&self, pos: Vec2<i64>) -> Option<VolState<C, P>> {
         if let Some(con) = self.pers.get(&pos) {
             return Some(VolState::Exists(con));
         } else if self.pending.read().get(&pos).is_some() {
@@ -81,7 +88,7 @@ impl<
         return None;
     }
 
-    pub fn persistence<'a>(&'a self) -> &'a VolPers<Vec2<i64>, C, VC> { &self.pers }
+    pub fn persistence<'a>(&'a self) -> &'a VolPers<Vec2<i64>, C, VC, P> { &self.pers }
 
     pub fn contains(&self, pos: Vec2<i64>) -> bool {
         return self.pers.get(&pos).is_some() || self.pending.read().get(&pos).is_some();
@@ -104,24 +111,21 @@ impl<
             }
             pen_lock.insert(pos); // the lock above guarantees that no 2 threads can generate the same chunk
         }
-        let con = Arc::new(RwLock::new(C::new()));
+        let con = Arc::new(Container::new());
         self.pers.data_mut().insert(pos, con.clone());
         // we copied the Arc above and added the blank container to the persistence because those operations are inexpensive
         // and we can now run the chunk generaton which is expensive in a new thread without locking the whole persistence
         POOL.lock().execute(move || {
-            let vol = gen_func(pos);
-            let payload = payload_func(&vol);
-            *con.write().payload_mut() = Some(payload);
-            con.write().insert(vol, PersState::Raw);
+            gen_func(pos, &con);
+            payload_func(pos, &con);
             pen.write().remove(&pos);
+            /*
+            let (vol, state)  = gen_func(pos);
+            let payload = payload_func(&vol);
+            *con.payload_mut() = Some(payload);
+            con.vols_mut().insert(vol, state);
+            pen.write().unwrap().remove(&pos);*/
         });
-    }
-
-    pub fn set(&self, pos: Vec2<i64>, mut vol: V, payload: P) {
-        let mut con = C::new();
-        *con.payload_mut() = Some(payload);
-        con.insert(vol, PersState::Raw);
-        self.pers.data_mut().insert(pos, Arc::new(RwLock::new(con)));
     }
 
     pub fn get_voxel_at(&self, pos: Vec3<i64>) -> V::VoxelType {
@@ -129,8 +133,8 @@ impl<
         let vox_pos = vec3!(pos.x.mod_euc(self.vol_size), pos.y.mod_euc(self.vol_size), pos.z);
 
         let ref data_ref = self.pers.data();
-        if let Some(volume) = data_ref.get(&vol_pos) {
-            if let Some(any_vol) = volume.read().get(PersState::Raw) {
+        if let Some(container) = data_ref.get(&vol_pos) {
+            if let Some(any_vol) = container.vols().get(PersState::Raw) {
                 //TODO: also allow for other datasets other than Raw, e.g. Rle
                 return any_vol.at(vox_pos).unwrap_or(V::VoxelType::empty());
             };
@@ -142,7 +146,7 @@ impl<
 pub struct VolMgrIter<
     'a,
     V: 'static + Volume,
-    C: 'a + Container<VoxelType = V::VoxelType, Payload = P>,
+    C: 'a + VolContainer<VoxelType = V::VoxelType>,
     VC: 'a + VolumeConverter<C>,
     P: Send + Sync + 'static,
 > {
@@ -155,7 +159,7 @@ pub struct VolMgrIter<
 impl<
         'a,
         V: 'static + Volume,
-        C: Container<VoxelType = V::VoxelType, Payload = P>,
+        C: VolContainer<VoxelType = V::VoxelType>,
         VC: VolumeConverter<C>,
         P: Send + Sync + 'static,
     > Iterator for VolMgrIter<'a, V, C, VC, P>
@@ -193,7 +197,7 @@ impl<
 impl<
         'a,
         V: 'static + Volume,
-        C: 'a + Container<VoxelType = V::VoxelType, Payload = P>,
+        C: 'a + VolContainer<VoxelType = V::VoxelType>,
         VC: 'a + VolumeConverter<C>,
         P: Send + Sync + 'static,
     > Collider<'a> for VolMgr<V, C, VC, P>

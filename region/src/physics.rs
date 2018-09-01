@@ -23,7 +23,7 @@ pub fn tick<
     I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)>,
 >(
     entities: I,
-    chunk_mgr: &VolMgr<Chunk, ChunkContainer<CP>, ChunkConverter, CP>,
+    chunk_mgr: &VolMgr<Chunk, ChunkContainer, ChunkConverter, CP>,
     chunk_size: i64,
     dt: f32,
 ) {
@@ -98,7 +98,7 @@ pub fn tick<
         *entity.vel_mut() *= fric_fac;
 
         let mut velocity = *entity.vel() * dt;
-        debug!("velocity: {}", velocity);
+        //debug!("velocity: {}", velocity);
 
         // movement can be executed in max 3 steps because we are using TTI
         for _ in 0..3 {

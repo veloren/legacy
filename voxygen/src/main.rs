@@ -1,4 +1,4 @@
-#![feature(nll)]
+#![feature(nll, euclidean_division)]
 
 // Graphics
 #[macro_use]

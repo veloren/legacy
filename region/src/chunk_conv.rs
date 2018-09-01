@@ -1,19 +1,30 @@
+use bincode;
+
 use chunk::Chunk;
 use chunk_file::ChunkFile;
 use chunk_rle::{BlockRle, ChunkRle, BLOCK_RLE_MAX_CNT};
 use coord::prelude::*;
-use vol_per::{Container, PersState, VolPers, VolumeConverter};
+use vol_per::{Key, Container, VolContainer, PersState, VolPers, VolumeConverter};
 
 use Block;
 use Volume;
 use Voxel;
 
-use std::{any::Any, cmp::Eq, collections::HashMap, hash::Hash, marker::PhantomData, sync::Arc, u8};
-
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::{
+    any::Any,
+    cmp::Eq,
+    fmt::Debug,
+    fs::File,
+    io::prelude::*,
+    collections::{HashMap, hash_map::DefaultHasher},
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+    sync::{Arc},
+    u8,
+};
 
-pub struct ChunkContainer<P> {
-    payload: Option<P>,
+pub struct ChunkContainer {
     raw: Option<Chunk>,
     rle: Option<ChunkRle>,
     file: Option<ChunkFile>,
@@ -21,13 +32,11 @@ pub struct ChunkContainer<P> {
 
 pub struct ChunkConverter {}
 
-impl<P: Send + Sync + 'static> Container for ChunkContainer<P> {
+impl VolContainer for ChunkContainer {
     type VoxelType = Block;
-    type Payload = P;
 
-    fn new() -> ChunkContainer<P> {
+    fn new() -> ChunkContainer {
         ChunkContainer {
-            payload: None,
             raw: None,
             rle: None,
             file: None,
@@ -45,17 +54,25 @@ impl<P: Send + Sync + 'static> Container for ChunkContainer<P> {
     fn insert<V: Volume<VoxelType = Block>>(&mut self, mut vol: V, state: PersState) {
         match state {
             PersState::Raw => {
-                let raw: &mut Chunk = vol.as_any().downcast_mut::<Chunk>().expect("Should be Chunk");
+                let raw: &mut Chunk = vol.as_any_mut().downcast_mut::<Chunk>().expect("Should be Chunk");
                 self.raw = Some(raw.clone());
             },
             PersState::Rle => {
-                let rle: &mut ChunkRle = vol.as_any().downcast_mut::<ChunkRle>().expect("Should be ChunkRle");
+                let rle: &mut ChunkRle = vol.as_any_mut().downcast_mut::<ChunkRle>().expect("Should be ChunkRle");
                 self.rle = Some(rle.clone());
             },
             PersState::File => {
-                let file: &mut ChunkFile = vol.as_any().downcast_mut::<ChunkFile>().expect("Should be ChunkFile");
+                let file: &mut ChunkFile = vol.as_any_mut().downcast_mut::<ChunkFile>().expect("Should be ChunkFile");
                 self.file = Some(file.clone());
             },
+        }
+    }
+
+    fn remove(&mut self, state: PersState) {
+        match state {
+            PersState::Raw => self.raw = None,
+            PersState::Rle => self.rle = None,
+            PersState::File => self.file = None,
         }
     }
 
@@ -74,21 +91,21 @@ impl<P: Send + Sync + 'static> Container for ChunkContainer<P> {
             PersState::File => self.file.as_mut().map(|c| c as &mut dyn Volume<VoxelType = Block>),
         };
     }
-
-    fn payload<'a>(&'a self) -> &'a Option<P> { &self.payload }
-
-    fn payload_mut<'a>(&'a mut self) -> &'a mut Option<P> { &mut self.payload }
 }
 
-impl<P: Send + Sync + 'static> VolumeConverter<ChunkContainer<P>> for ChunkConverter {
-    fn convert(container: &mut ChunkContainer<P>, state: PersState) {
+impl VolumeConverter<ChunkContainer> for ChunkConverter {
+    fn convert<K: Key>(key: &K, container: &mut ChunkContainer, state: PersState) {
         match state {
             PersState::Raw => {
+                if container.get_mut(PersState::Rle).is_none() && container.get_mut(PersState::File).is_some(){
+                    Self::convert(key, container, PersState::Rle);
+                };
                 if let Some(rle) = container.get_mut(PersState::Rle) {
-                    let from: &mut ChunkRle = rle.as_any().downcast_mut::<ChunkRle>().expect("Should be ChunkRle");
+                    let from: &mut ChunkRle = rle.as_any_mut().downcast_mut::<ChunkRle>().expect("Should be ChunkRle");
                     let size = from.size();
                     let mut raw = Chunk::new();
                     raw.set_size(size);
+                    raw.set_offset(from.offset());
                     let ref voxels = from.voxels_mut();
                     for x in 0..size.x {
                         for y in 0..size.y {
@@ -116,10 +133,11 @@ impl<P: Send + Sync + 'static> VolumeConverter<ChunkContainer<P>> for ChunkConve
             },
             PersState::Rle => {
                 if let Some(raw) = container.get_mut(PersState::Raw) {
-                    let from: &mut Chunk = raw.as_any().downcast_mut::<Chunk>().expect("Should be Chunk");
+                    let from: &mut Chunk = raw.as_any_mut().downcast_mut::<Chunk>().expect("Should be Chunk");
                     let size = from.size();
                     let mut rle = ChunkRle::new();
                     rle.set_size(size);
+                    rle.set_offset(from.offset());
                     let ref mut voxels = rle.voxels_mut();
                     for x in 0..size.x {
                         for y in 0..size.y {
@@ -174,12 +192,41 @@ impl<P: Send + Sync + 'static> VolumeConverter<ChunkContainer<P>> for ChunkConve
                     }
                     container.insert(rle, PersState::Rle);
                 }
+                if let Some(file) = container.get_mut(PersState::File) {
+                    let from: &mut ChunkFile = file.as_any_mut().downcast_mut::<ChunkFile>().expect("Should be ChunkFile");
+                    let filename = from.file();
+                    let mut datfile = File::open( filename ).unwrap();
+                    let mut content = Vec::<u8>::new();
+                    println!("{}", filename);
+                    datfile.read_to_end(&mut content).expect(&format!("read of file {} failed", filename));
+                    println!("llin {}", content.len());
+                    let mut rle : ChunkRle = bincode::deserialize(&content).expect("Cannot Load Chunk from File");
+                    rle.set_size(from.size());
+                    rle.set_offset(from.offset());
+                    container.rle = Some(rle);
+                }
                 let raw = container.get_mut(PersState::Raw);
                 let rle = container.get_mut(PersState::Rle);
                 // Raw -> Rle
                 // File -> Rle
             },
             PersState::File => {
+                if container.get_mut(PersState::Rle).is_none() && container.get_mut(PersState::Raw).is_some(){
+                    Self::convert(key, container, PersState::Rle);
+                };
+                if let Some(rle) = container.get_mut(PersState::Rle) {
+                    let from: &mut ChunkRle = rle.as_any_mut().downcast_mut::<ChunkRle>().expect("Should be ChunkRle");
+                    let mut file = ChunkFile::new(from.size());
+                    file.set_offset(from.offset());
+                    let filename = key.print() + ".dat";
+                    let content = bincode::serialize(&from).expect("Cannot Store Chunk in File");
+                    println!("llout {}", content.len());
+                    let filepath = "./saves/".to_owned() + &(filename);
+                    *file.file_mut() = (filepath).to_string();
+                    let mut datfile = File::create( filepath ).unwrap();
+                    datfile.write_all(&content).unwrap();
+                    container.file = Some(file);
+                }
                 // Rle -> File
                 // Raw -> Rle -> File
             },

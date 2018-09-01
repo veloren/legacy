@@ -1,7 +1,7 @@
 use Voxel;
 
 #[repr(u16)]
-#[derive(Copy, Clone, PartialEq, EnumMap, Debug)]
+#[derive(Copy, Clone, PartialEq, EnumMap, Debug, Serialize, Deserialize)]
 pub enum BlockMaterial {
     Air,
     Grass,
@@ -15,7 +15,7 @@ pub enum BlockMaterial {
     Gold,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Block {
     mat: BlockMaterial,
 }

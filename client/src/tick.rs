@@ -28,4 +28,13 @@ impl<P: Payloads> Client<P> {
 
         *self.status() != ClientStatus::Disconnected
     }
+
+    pub(crate) fn tick2(&self, dt: f32) -> bool {
+        // Remove chunks that are too far from the player
+        // TODO: Could be more efficient (maybe? careful: deadlocks)
+        let pers = self.chunk_mgr().persistence();
+        pers.offload();
+
+        *self.status() != ClientStatus::Disconnected
+    }
 }

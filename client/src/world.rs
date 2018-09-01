@@ -2,18 +2,30 @@
 use coord::prelude::*;
 
 // Project
-use region::Chunk;
+use region::{Key, Chunk, ChunkFile, Container, VolContainer, ChunkContainer, PersState};
 
 // Local
 use Client;
 use Payloads;
 use CHUNK_SIZE;
 
-pub(crate) fn gen_chunk(pos: Vec2<i64>) -> Chunk {
-    Chunk::test(
-        vec3!(pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, 0),
-        vec3!(CHUNK_SIZE, CHUNK_SIZE, 256),
-    )
+use std::path::Path;
+
+pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec2<i64>, con: &Container<ChunkContainer, P>) {
+    let filename = pos.print() + ".dat";
+    let filepath = "./saves/".to_owned() + &(filename);
+    let path = Path::new(&filepath);
+    if path.exists() {
+        let mut vol = ChunkFile::new(vec3!(CHUNK_SIZE, CHUNK_SIZE, 256));
+        *vol.file_mut() = filepath;
+        con.vols_mut().insert(vol, PersState::File);
+    } else {
+        let mut vol = Chunk::test(
+            vec3!(pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, 0),
+            vec3!(CHUNK_SIZE, CHUNK_SIZE, 256),
+        );
+        con.vols_mut().insert(vol, PersState::Raw);
+    }
 }
 
 impl<P: Payloads> Client<P> {
@@ -30,18 +42,11 @@ impl<P: Payloads> Client<P> {
                 for j in player_chunk.y - self.view_distance..player_chunk.y + self.view_distance + 1 {
                     if !self.chunk_mgr().contains(vec2!(i, j)) {
                         self.chunk_mgr().gen(vec2!(i, j));
+                    } else {
+                        if self.chunk_mgr().loaded(vec2!(i, j)) {
+                            self.chunk_mgr().persistence().generate(&vec2!(i, j), PersState::Raw);
+                        }
                     }
-                }
-            }
-
-            // Remove chunks that are too far from the player
-            // TODO: Could be more efficient (maybe? careful: deadlocks)
-            let pers = self.chunk_mgr().persistence();
-            let chunk_pos = pers.data().keys().map(|p| *p).collect::<Vec<_>>();
-            for pos in chunk_pos {
-                // What?! Don't use snake_length
-                if (pos - vec2!(player_chunk.x, player_chunk.y)).snake_length() > self.view_distance * 2 {
-                    self.jobs.do_once(move |c| c.chunk_mgr().remove(pos));
                 }
             }
         }

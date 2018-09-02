@@ -1,13 +1,10 @@
 // Local
+use super::{Container, Key, PersState, VolContainer, VolConverter, VolPers, Volume, Voxel};
 use collision::{Collider, Primitive};
-use vol_per::{Key, VolContainer, Container, PersState, VolPers, VolumeConverter};
-use Volume;
-use Voxel;
 
 // Standard
 use std::{
-    path::Path,
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     sync::Arc,
 };
 
@@ -25,11 +22,33 @@ lazy_static! {
     static ref POOL: Mutex<ThreadPool> = Mutex::new(ThreadPool::new(2));
 }
 
-pub trait FnGenFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>: Fn(Vec2<i64>, &Container<C, P>) + Send + Sync + 'static {}
-impl<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static, T: Fn(Vec2<i64>, &Container<C, P>) > FnGenFunc<V, C, P> for T where T: Send + Sync + 'static {}
+pub trait FnGenFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:
+    Fn(Vec2<i64>, &Container<C, P>) + Send + Sync + 'static
+{
+}
+impl<
+        V: Volume,
+        C: VolContainer<VoxelType = V::VoxelType>,
+        P: Send + Sync + 'static,
+        T: Fn(Vec2<i64>, &Container<C, P>),
+    > FnGenFunc<V, C, P> for T
+where
+    T: Send + Sync + 'static,
+{}
 
-pub trait FnPayloadFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>: Fn(Vec2<i64>, &Container<C, P>) + Send + Sync + 'static {}
-impl<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static, T: Fn(Vec2<i64>, &Container<C, P>) > FnPayloadFunc<V, C, P> for T where T: Send + Sync + 'static {}
+pub trait FnPayloadFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:
+    Fn(Vec2<i64>, &Container<C, P>) + Send + Sync + 'static
+{
+}
+impl<
+        V: Volume,
+        C: VolContainer<VoxelType = V::VoxelType>,
+        P: Send + Sync + 'static,
+        T: Fn(Vec2<i64>, &Container<C, P>),
+    > FnPayloadFunc<V, C, P> for T
+where
+    T: Send + Sync + 'static,
+{}
 
 pub struct VolGen<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static> {
     gen_func: Arc<FnGenFunc<V, C, P, Output = ()> + Send + Sync + 'static>,
@@ -37,7 +56,10 @@ pub struct VolGen<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send 
 }
 
 impl<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static> VolGen<V, C, P> {
-    pub fn new<GF: FnGenFunc<V, C, P> + Send + Sync + 'static, PF: FnPayloadFunc<V, C, P>>(gen_func: GF, payload_func: PF) -> VolGen<V, C, P> {
+    pub fn new<GF: FnGenFunc<V, C, P> + Send + Sync + 'static, PF: FnPayloadFunc<V, C, P>>(
+        gen_func: GF,
+        payload_func: PF,
+    ) -> VolGen<V, C, P> {
         VolGen {
             gen_func: Arc::new(gen_func),
             payload_func: Arc::new(payload_func),
@@ -46,15 +68,13 @@ impl<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'sta
 }
 
 impl Key for Vec2<i64> {
-    fn print(&self) -> String {
-        return format!("c{},{}", self.x, self.y).to_string();
-    }
+    fn print(&self) -> String { return format!("c{},{}", self.x, self.y).to_string(); }
 }
 
 pub struct VolMgr<
     V: 'static + Volume,
     C: VolContainer<VoxelType = V::VoxelType>,
-    VC: VolumeConverter<C>,
+    VC: VolConverter<C>,
     P: Send + Sync + 'static,
 > {
     vol_size: i64,
@@ -63,12 +83,8 @@ pub struct VolMgr<
     gen: VolGen<V, C, P>,
 }
 
-impl<
-        V: 'static + Volume,
-        C: VolContainer<VoxelType = V::VoxelType>,
-        VC: VolumeConverter<C>,
-        P: Send + Sync + 'static,
-    > VolMgr<V, C, VC, P>
+impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConverter<C>, P: Send + Sync + 'static>
+    VolMgr<V, C, VC, P>
 {
     pub fn new(vol_size: i64, gen: VolGen<V, C, P>) -> VolMgr<V, C, VC, P> {
         VolMgr {
@@ -147,7 +163,7 @@ pub struct VolMgrIter<
     'a,
     V: 'static + Volume,
     C: 'a + VolContainer<VoxelType = V::VoxelType>,
-    VC: 'a + VolumeConverter<C>,
+    VC: 'a + VolConverter<C>,
     P: Send + Sync + 'static,
 > {
     cur: Vec3<i64>,
@@ -160,7 +176,7 @@ impl<
         'a,
         V: 'static + Volume,
         C: VolContainer<VoxelType = V::VoxelType>,
-        VC: VolumeConverter<C>,
+        VC: VolConverter<C>,
         P: Send + Sync + 'static,
     > Iterator for VolMgrIter<'a, V, C, VC, P>
 {
@@ -198,7 +214,7 @@ impl<
         'a,
         V: 'static + Volume,
         C: 'a + VolContainer<VoxelType = V::VoxelType>,
-        VC: 'a + VolumeConverter<C>,
+        VC: 'a + VolConverter<C>,
         P: Send + Sync + 'static,
     > Collider<'a> for VolMgr<V, C, VC, P>
 {

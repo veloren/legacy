@@ -27,7 +27,10 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
 use client::{self, Client, ClientMode, CHUNK_SIZE};
-use region::{Chunk, Container, VolState, VolContainer, PersState, ChunkContainer, ChunkConverter, VolumeConverter};
+use region::{
+    chunk::{Chunk, ChunkContainer, ChunkConverter},
+    Container, PersState, VolContainer, VolConverter, VolState,
+};
 
 // Local
 use camera::Camera;
@@ -306,7 +309,10 @@ impl Game {
         let mut renderer = self.window.renderer_mut();
         // Find the chunk the camera is in
         let cam_origin = *self.camera.lock().get_pos();
-        let cam_chunk = Vec2::<i64>::new((cam_origin.x as i64).div_euc(CHUNK_SIZE), (cam_origin.y as i64).div_euc(CHUNK_SIZE));
+        let cam_chunk = Vec2::<i64>::new(
+            (cam_origin.x as i64).div_euc(CHUNK_SIZE),
+            (cam_origin.y as i64).div_euc(CHUNK_SIZE),
+        );
 
         for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
             if (*pos - cam_chunk).snake_length() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE {
@@ -415,10 +421,14 @@ impl Game {
         );
 
         // Render the skybox
-        self.skybox_model.render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
+        self.skybox_model
+            .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Find the chunk the camera is in
-        let cam_chunk = Vec2::<i64>::new((cam_origin.x as i64).div_euc(CHUNK_SIZE), (cam_origin.y as i64).div_euc(CHUNK_SIZE));
+        let cam_chunk = Vec2::<i64>::new(
+            (cam_origin.x as i64).div_euc(CHUNK_SIZE),
+            (cam_origin.y as i64).div_euc(CHUNK_SIZE),
+        );
 
         // Render each chunk
         for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {

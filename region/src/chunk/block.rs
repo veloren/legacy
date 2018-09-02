@@ -1,4 +1,4 @@
-use Voxel;
+use super::super::Voxel;
 
 #[repr(u16)]
 #[derive(Copy, Clone, PartialEq, EnumMap, Debug, Serialize, Deserialize)]

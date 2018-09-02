@@ -8,8 +8,6 @@ extern crate region;
 mod gen;
 mod map;
 
-use region::Chunk;
-
 // Reexports
 pub use map::{Biome, Map};
 

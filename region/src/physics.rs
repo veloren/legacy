@@ -1,7 +1,10 @@
 // Standard
-use block::Block;
-use chunk_conv::{ChunkContainer, ChunkConverter};
-use std::{clone::Clone, collections::HashMap, sync::Arc};
+use super::VolMgr;
+use chunk::{Chunk, ChunkContainer, ChunkConverter};
+use std::{
+    clone::Clone,
+    sync::Arc,
+};
 
 // Library
 use coord::prelude::*;
@@ -12,7 +15,7 @@ use collision::{Collider, Primitive, ResolutionTti, PLANCK_LENGTH};
 use common::Uid;
 
 // Local
-use super::{Chunk, Entity, VolMgr, VolState};
+use super::Entity;
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 

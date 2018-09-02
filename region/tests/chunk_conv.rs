@@ -1,13 +1,14 @@
 #![feature(test)]
 
+#[macro_use]
 extern crate coord;
 extern crate region;
 extern crate test;
 
 use coord::prelude::*;
 use region::{
-    Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, ChunkConverter, ChunkFile, ChunkRle, Container, PersState,
-    VolPers, Volume, VolumeConverter, Voxel,
+    chunk::{Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, ChunkConverter, ChunkRle},
+    Container, PersState, VolContainer, VolConverter, VolPers, Volume, Voxel,
 };
 use std::any::Any;
 use test::Bencher;
@@ -150,7 +151,7 @@ fn gen_rle() -> ChunkRle {
 
 #[test]
 fn fill_container() {
-    let mut con = ChunkContainer::<()>::new();
+    let mut con = ChunkContainer::new();
     con.insert(gen_raw(), PersState::Raw);
     assert!(con.contains(PersState::Raw));
     assert!(!con.contains(PersState::File));
@@ -159,9 +160,9 @@ fn fill_container() {
 
 #[test]
 fn convert_raw_to_rle() {
-    let mut con = ChunkContainer::<()>::new();
+    let mut con = ChunkContainer::new();
     con.insert(gen_raw(), PersState::Raw);
-    ChunkConverter::convert(&mut con, PersState::Rle);
+    ChunkConverter::convert(&Vec2::<i64>::new(0, 0), &mut con, PersState::Rle);
     assert!(con.contains(PersState::Raw));
     assert!(!con.contains(PersState::File));
     assert!(con.contains(PersState::Rle));
@@ -173,9 +174,9 @@ fn convert_raw_to_rle() {
 
 #[test]
 fn convert_rle_to_raw() {
-    let mut con = ChunkContainer::<()>::new();
+    let mut con = ChunkContainer::new();
     con.insert(gen_rle(), PersState::Rle);
-    ChunkConverter::convert(&mut con, PersState::Raw);
+    ChunkConverter::convert(&Vec2::<i64>::new(0, 0), &mut con, PersState::Raw);
     assert!(con.contains(PersState::Raw));
     assert!(!con.contains(PersState::File));
     assert!(con.contains(PersState::Rle));
@@ -187,14 +188,14 @@ fn convert_rle_to_raw() {
 
 #[bench]
 fn raw_to_rle_speed(b: &mut Bencher) {
-    let mut con = ChunkContainer::<()>::new();
+    let mut con = ChunkContainer::new();
     con.insert(gen_raw(), PersState::Raw);
-    b.iter(|| ChunkConverter::convert(&mut con, PersState::Rle));
+    b.iter(|| ChunkConverter::convert(&Vec2::<i64>::new(0, 0), &mut con, PersState::Rle));
 }
 
 #[bench]
 fn rle_to_raw_speed(b: &mut Bencher) {
-    let mut con = ChunkContainer::<()>::new();
+    let mut con = ChunkContainer::new();
     con.insert(gen_rle(), PersState::Rle);
-    b.iter(|| ChunkConverter::convert(&mut con, PersState::Raw));
+    b.iter(|| ChunkConverter::convert(&Vec2::<i64>::new(0, 0), &mut con, PersState::Raw));
 }

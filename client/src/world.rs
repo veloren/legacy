@@ -2,7 +2,10 @@
 use coord::prelude::*;
 
 // Project
-use region::{Key, Chunk, ChunkFile, Container, VolContainer, ChunkContainer, PersState};
+use region::{
+    chunk::{Chunk, ChunkContainer, ChunkFile},
+    Container, Key, PersState, VolContainer,
+};
 
 // Local
 use Client;

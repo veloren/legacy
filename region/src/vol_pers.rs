@@ -1,25 +1,11 @@
-use Volume;
-use Voxel;
-
-use std::{thread, time};
+use super::{Container, Key, PersState, VolContainer, VolConverter};
 
 use std::{
-    cmp::Eq,
-    fmt::Debug,
     collections::HashMap,
-    hash::Hash,
     marker::PhantomData,
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
-    time::{SystemTime, UNIX_EPOCH},
+    time::SystemTime,
 };
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub enum PersState {
-    Raw,
-    Rle,
-    File,
-    //Network,
-}
 
 /*
  How persistence works:
@@ -35,74 +21,12 @@ pub enum PersState {
  When you modify a version, you must either also change all other implementations or drop them!
 */
 
-pub trait Key: Copy + Eq + Hash + Debug + 'static {
-    fn print(&self) -> String;
-}
-
-pub trait VolContainer: Send + Sync + 'static {
-    type VoxelType: Voxel;
-
-    fn new() -> Self;
-    fn contains(&self, state: PersState) -> bool;
-    fn insert<V: Volume<VoxelType = Self::VoxelType>>(&mut self, vol: V, state: PersState);
-    fn remove(&mut self, state: PersState);
-    fn get<'a>(&'a self, state: PersState) -> Option<&'a dyn Volume<VoxelType = Self::VoxelType>>;
-    fn get_mut<'a>(&'a mut self, state: PersState) -> Option<&'a mut dyn Volume<VoxelType = Self::VoxelType>>;
-}
-
-pub struct Container<C: VolContainer, P: Send + Sync + 'static> {
-    last_access: RwLock<SystemTime>,
-    payload: RwLock<Option<P>>,
-    vols: RwLock<C>,
-}
-
-impl<C: VolContainer, P: Send + Sync + 'static> Container<C, P> {
-    pub fn new() -> Container<C, P> {
-        Container {
-            last_access: RwLock::new(SystemTime::now()),
-            payload: RwLock::new(None),
-            vols: RwLock::new(C::new()),
-        }
-    }
-
-    pub fn payload(&self) -> RwLockReadGuard<Option<P>> { self.payload.read().unwrap() }
-
-    pub fn payload_mut(&self) -> RwLockWriteGuard<Option<P>> { self.payload.write().unwrap() }
-
-    pub fn vols(&self) -> RwLockReadGuard<C> { self.vols.read().unwrap() }
-
-    pub fn vols_mut(&self) -> RwLockWriteGuard<C> { self.vols.write().unwrap() }
-
-    pub fn last_access(&self) -> RwLockReadGuard<SystemTime> { self.last_access.read().unwrap() }
-
-    pub fn set_access(&self) { *self.last_access.write().unwrap() = SystemTime::now(); }
-}
-
-/*
-pub trait Container: Send + Sync + 'static {
-    type VoxelType: Voxel;
-    type Payload;
-
-    fn new() -> Self;
-    fn contains(&self, state: PersState) -> bool;
-    fn insert<V: Volume<VoxelType = Self::VoxelType>>(&mut self, vol: V, state: PersState);
-    fn drop(&mut self, state: PersState);
-    fn get<'a>(&'a self, state: PersState) -> Option<&'a dyn Volume<VoxelType = Self::VoxelType>>;
-    fn get_mut<'a>(&'a mut self, state: PersState) -> Option<&'a mut dyn Volume<VoxelType = Self::VoxelType>>;
-    fn payload<'a>(&'a self) -> &'a Option<Self::Payload>;
-    fn payload_mut<'a>(&'a mut self) -> &'a mut Option<Self::Payload>;
-}*/
-
-pub trait VolumeConverter<C: VolContainer> {
-    fn convert<K: Key>(key: &K, container: &mut C, state: PersState);
-}
-
-pub struct VolPers<K: Key, C: VolContainer, VC: VolumeConverter<C>, P: Send + Sync + 'static> {
+pub struct VolPers<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> {
     data: RwLock<HashMap<K, Arc<Container<C, P>>>>,
     phantom: PhantomData<VC>,
 }
 
-impl<K: Key, C: VolContainer, VC: VolumeConverter<C>, P: Send + Sync + 'static> VolPers<K, C, VC, P> {
+impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> VolPers<K, C, VC, P> {
     pub fn new() -> VolPers<K, C, VC, P> {
         VolPers {
             data: RwLock::new(HashMap::new()),
@@ -115,14 +39,12 @@ impl<K: Key, C: VolContainer, VC: VolumeConverter<C>, P: Send + Sync + 'static> 
     pub fn data(&self) -> RwLockReadGuard<HashMap<K, Arc<Container<C, P>>>> { self.data.read().unwrap() }
 
     pub fn get(&self, key: &K) -> Option<Arc<Container<C, P>>> {
-        self.data.read().unwrap().get(&key).map(|v| {
-            v.clone()
-        })
+        self.data.read().unwrap().get(&key).map(|v| v.clone())
     }
 
     pub fn exists(&self, key: &K, state: PersState) -> bool {
         if let Some(entry) = self.data.read().unwrap().get(&key) {
-            return entry.vols.read().unwrap().contains(state);
+            return entry.vols().contains(state);
         }
         return false;
     }
@@ -143,7 +65,7 @@ impl<K: Key, C: VolContainer, VC: VolumeConverter<C>, P: Send + Sync + 'static> 
 
     pub fn offload(&self) {
         let now = SystemTime::now();
-        let mut offload_queue = vec!(); //we allocate in a container here, to reduce lock phase
+        let mut offload_queue = vec![]; //we allocate in a container here, to reduce lock phase
         for (key, container) in self.data.read().unwrap().iter() {
             let diff;
             let contains;

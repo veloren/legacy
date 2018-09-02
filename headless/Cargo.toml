@@ -10,7 +10,9 @@ debug = true
 
 [dependencies]
 client = { path = "../client" }
+region = { path = "../region" }
 common = { path = "../common" }
+coord = "0.11.0"
 get_if_addrs = "0.5.2"
 syrup = "0.1"
 log = "0.4.1"

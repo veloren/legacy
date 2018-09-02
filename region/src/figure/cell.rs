@@ -1,4 +1,4 @@
-use Voxel;
+use super::super::Voxel;
 
 #[derive(Copy, Clone)]
 pub struct Cell {

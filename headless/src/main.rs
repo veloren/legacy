@@ -2,8 +2,10 @@
 
 extern crate client;
 extern crate common;
+extern crate coord;
 extern crate get_if_addrs;
 extern crate pretty_env_logger;
+extern crate region;
 extern crate syrup;
 #[macro_use]
 extern crate log;
@@ -12,7 +14,12 @@ use std::{io, sync::mpsc};
 
 use syrup::Window;
 
-use client::{Chunk, Client, ClientMode};
+use client::{Client, ClientMode};
+use coord::prelude::*;
+use region::{
+    chunk::{Chunk, ChunkContainer},
+    Container,
+};
 
 struct Payloads {}
 impl client::Payloads for Payloads {
@@ -20,7 +27,12 @@ impl client::Payloads for Payloads {
     type Entity = ();
 }
 
-fn gen_payload(_: &Chunk) -> <Payloads as client::Payloads>::Chunk { () }
+fn gen_payload(
+    key: Vec2<i64>,
+    con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>,
+) -> <Payloads as client::Payloads>::Chunk {
+    ()
+}
 
 fn main() {
     info!("Starting headless client...");

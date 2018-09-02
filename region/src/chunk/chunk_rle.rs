@@ -1,8 +1,7 @@
 use coord::prelude::*;
 
-use Block;
-use Volume;
-use Voxel;
+use super::super::Volume;
+use chunk::Block;
 
 use std::{any::Any, u8};
 
@@ -59,11 +58,11 @@ impl Volume for ChunkRle {
 
     fn set_offset(&mut self, offset: Vec3<i64>) { self.offset = offset; }
 
-    fn at(&self, pos: Vec3<i64>) -> Option<Block> {
+    fn at(&self, _pos: Vec3<i64>) -> Option<Block> {
         panic!("FEATURE NOT IMPLEMENTED YET: i dont feel like implement this now");
     }
 
-    fn set(&mut self, pos: Vec3<i64>, vt: Block) {
+    fn set(&mut self, _pos: Vec3<i64>, _vt: Block) {
         panic!("FEATURE NOT IMPLEMENTED YET: i dont feel like implement this now");
     }
 

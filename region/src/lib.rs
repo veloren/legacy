@@ -4,10 +4,10 @@
 extern crate log;
 #[macro_use]
 extern crate enum_map;
+extern crate bincode;
 extern crate nalgebra;
 extern crate noise;
 extern crate rand;
-extern crate bincode;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -18,35 +18,42 @@ extern crate threadpool;
 extern crate lazy_static;
 extern crate common;
 
-mod block;
-mod cell;
-mod chunk;
-mod chunk_conv;
-mod chunk_file;
-mod chunk_rle;
+pub mod chunk;
 mod collision;
+mod container;
 mod entity;
-mod figure;
+pub mod figure;
 pub mod physics;
 #[cfg(test)]
 mod tests;
 mod vol_mgr;
-mod vol_per;
+mod vol_pers;
 
 // Reexports
-pub use block::{Block, BlockMaterial};
-pub use cell::Cell;
-pub use chunk::Chunk;
-pub use chunk_conv::{ChunkContainer, ChunkConverter};
-pub use chunk_file::ChunkFile;
-pub use chunk_rle::{BlockRle, ChunkRle};
+pub use container::{Container, VolContainer};
 pub use entity::Entity;
-pub use figure::Figure;
 pub use vol_mgr::{FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolState};
-pub use vol_per::{Key, VolContainer, Container, PersState, VolPers, VolumeConverter};
+pub use vol_pers::VolPers;
 
+// Project
 use coord::prelude::*;
-use std::any::Any;
+use std::{any::Any, cmp::Eq, fmt::Debug, hash::Hash};
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum PersState {
+    Raw,
+    Rle,
+    File,
+    //Network,
+}
+
+pub trait Key: Copy + Eq + Hash + Debug + 'static {
+    fn print(&self) -> String;
+}
+
+pub trait VolConverter<C: VolContainer> {
+    fn convert<K: Key>(key: &K, container: &mut C, state: PersState);
+}
 
 pub trait Voxel: Copy + Clone + Any {
     type Material: Copy + Clone;
@@ -85,3 +92,39 @@ pub trait Volume: Send + Sync + Any {
     fn at(&self, pos: Vec3<i64>) -> Option<Self::VoxelType>;
     fn set(&mut self, pos: Vec3<i64>, vt: Self::VoxelType);
 }
+
+/*
+
+mod block;
+mod chunk_container;
+mod chunk_conv;
+mod chunk_file;
+mod chunk_rle;
+mod chunk;
+mod container;
+mod vol_mgr;
+mod vol_pers;
+
+use std::{
+    any::Any,
+    cmp::Eq,
+    fmt::Debug,
+    hash::Hash,
+};
+
+use coord::prelude::*;
+
+// Reexports
+pub use self::{
+    block::{BlockMaterial, Block},
+    chunk_container::{ChunkContainer},
+    chunk_conv::{ChunkConverter},
+    chunk_file::{ChunkFile},
+    chunk_rle::{ChunkRle, BlockRle, BLOCK_RLE_MAX_CNT},
+    chunk::{Chunk},
+    container::{VolContainer, Container},
+    vol_mgr::{VolState, FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolMgrIter},
+    vol_pers::{VolPers},
+};
+
+*/

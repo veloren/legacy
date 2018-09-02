@@ -1,9 +1,8 @@
 use coord::prelude::*;
 use std::any::Any;
 
-use Cell;
-use Volume;
-use Voxel;
+use super::super::{Volume, Voxel};
+use figure::Cell;
 
 pub struct Figure {
     size: Vec3<i64>,

@@ -11,8 +11,9 @@ use std::{
 
 // Parent
 use super::{
+    chunk::{Block, BlockMaterial, Chunk, ChunkContainer},
     collision::{Cuboid, Primitive, ResolutionCol, ResolutionTti},
-    physics, Block, BlockMaterial, Chunk, Entity, VolGen, VolMgr, VolState, Volume, Voxel,
+    physics, Container, Entity, PersState, VolContainer, VolGen, VolMgr, VolState, Volume, Voxel,
 };
 use common::Uid;
 
@@ -643,7 +644,7 @@ fn tti_diagonal_in_to_dirs_negative() {
 const CHUNK_SIZE: i64 = 64;
 const CHUNK_MID: f32 = CHUNK_SIZE as f32 / 2.0;
 
-fn gen_chunk_flat(pos: Vec2<i64>) -> Chunk {
+fn gen_chunk_flat(pos: Vec2<i64>, con: &Container<ChunkContainer, i64>) {
     let mut c = Chunk::new();
     c.set_size(vec3!(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE));
     c.set_offset(vec3!(pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, 0));
@@ -652,28 +653,31 @@ fn gen_chunk_flat(pos: Vec2<i64>) -> Chunk {
             c.set(vec3!(x, y, 2), Block::new(BlockMaterial::Stone));
         }
     }
-    return c;
+    con.vols_mut().insert(c, PersState::Raw);
 }
 
-fn gen_chunk_flat_border(pos: Vec2<i64>) -> Chunk {
-    let mut c = gen_chunk_flat(pos);
-    c.set_size(vec3!(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE));
-    c.set_offset(vec3!(pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, 0));
-    for i in 0..CHUNK_SIZE {
-        c.set(vec3!(i, 0, 3), Block::new(BlockMaterial::Stone));
-        c.set(vec3!(i, CHUNK_SIZE - 1, 3), Block::new(BlockMaterial::Stone));
-        c.set(vec3!(0, i, 3), Block::new(BlockMaterial::Stone));
-        c.set(vec3!(CHUNK_SIZE - 1, i, 3), Block::new(BlockMaterial::Stone));
+fn gen_chunk_flat_border(pos: Vec2<i64>, con: &Container<ChunkContainer, i64>) {
+    gen_chunk_flat(pos, con);
+    let mut vols = con.vols_mut();
+    if let Some(c) = vols.get_mut(PersState::Raw) {
+        let c: &mut Chunk = c.as_any_mut().downcast_mut::<Chunk>().expect("Should be Chunk");
+        c.set_size(vec3!(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE));
+        c.set_offset(vec3!(pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, 0));
+        for i in 0..CHUNK_SIZE {
+            c.set(vec3!(i, 0, 3), Block::new(BlockMaterial::Stone));
+            c.set(vec3!(i, CHUNK_SIZE - 1, 3), Block::new(BlockMaterial::Stone));
+            c.set(vec3!(0, i, 3), Block::new(BlockMaterial::Stone));
+            c.set(vec3!(CHUNK_SIZE - 1, i, 3), Block::new(BlockMaterial::Stone));
 
-        c.set(vec3!(i, 0, 4), Block::new(BlockMaterial::Stone));
-        c.set(vec3!(i, CHUNK_SIZE - 1, 4), Block::new(BlockMaterial::Stone));
-        c.set(vec3!(0, i, 4), Block::new(BlockMaterial::Stone));
-        c.set(vec3!(CHUNK_SIZE - 1, i, 4), Block::new(BlockMaterial::Stone));
+            c.set(vec3!(i, 0, 4), Block::new(BlockMaterial::Stone));
+            c.set(vec3!(i, CHUNK_SIZE - 1, 4), Block::new(BlockMaterial::Stone));
+            c.set(vec3!(0, i, 4), Block::new(BlockMaterial::Stone));
+            c.set(vec3!(CHUNK_SIZE - 1, i, 4), Block::new(BlockMaterial::Stone));
+        }
     }
-    return c;
 }
 
-fn gen_payload(chunk: &Chunk) -> i64 { 42 }
+fn gen_payload(pos: Vec2<i64>, con: &Container<ChunkContainer, i64>) { *con.payload_mut() = Some(42); }
 
 #[test]
 fn physics_fall() {

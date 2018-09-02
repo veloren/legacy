@@ -18,7 +18,6 @@ mod world;
 
 // Reexport
 pub use common::net::ClientMode;
-pub use region::{Block, Chunk, ChunkContainer, ChunkConverter, FnPayloadFunc, Volume, Voxel};
 
 // Constants
 pub const CHUNK_SIZE: i64 = 32;
@@ -37,7 +36,10 @@ use common::{
     net::{Callback, ClientMessage, Connection, ServerMessage, UdpMgr},
     JobHandle, Jobs, Uid,
 };
-use region::{Entity, VolGen, VolMgr};
+use region::{
+    chunk::{Block, Chunk, ChunkContainer, ChunkConverter},
+    Entity, FnPayloadFunc, VolGen, VolMgr, Volume, Voxel,
+};
 
 // Local
 use callbacks::Callbacks;
@@ -161,9 +163,7 @@ impl<P: Payloads> Client<P> {
 
     pub fn view_distance(&self) -> f32 { (self.view_distance * CHUNK_SIZE) as f32 }
 
-    pub fn chunk_mgr(
-        &self,
-    ) -> &VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk> {
+    pub fn chunk_mgr(&self) -> &VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk> {
         &self.chunk_mgr
     }
 

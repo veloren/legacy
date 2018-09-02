@@ -3,8 +3,10 @@ use coord::prelude::*;
 use dot_vox::DotVoxData;
 
 // Project
-use client::Volume;
-use region::{Cell, Figure, Voxel};
+use region::{
+    figure::{Cell, Figure},
+    Volume, Voxel,
+};
 
 pub fn vox_to_figure(vox: DotVoxData) -> Figure {
     let mut figure = Figure::new();

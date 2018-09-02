@@ -2,10 +2,8 @@ use coord::prelude::*;
 use noise::{NoiseFn, OpenSimplex, Seedable};
 use rand::{rngs::SmallRng, SeedableRng};
 
-use Block;
-use BlockMaterial;
-use Volume;
-use Voxel;
+use super::super::{Volume, Voxel};
+use chunk::{Block, BlockMaterial};
 
 use std::any::Any;
 

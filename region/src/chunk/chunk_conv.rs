@@ -119,7 +119,7 @@ impl VolConverter<ChunkContainer> for ChunkConverter {
                     datfile
                         .read_to_end(&mut content)
                         .expect(&format!("read of file {} failed", filename));
-                    println!("llin {}", content.len());
+                    debug!("write to file: {}, bytes: {}", filename, content.len());
                     let mut rle: ChunkRle = bincode::deserialize(&content).expect("Cannot Load Chunk from File");
                     rle.set_size(from.size());
                     rle.set_offset(from.offset());
@@ -138,7 +138,6 @@ impl VolConverter<ChunkContainer> for ChunkConverter {
                     file.set_offset(from.offset());
                     let filename = key.print() + ".dat";
                     let content = bincode::serialize(&from).expect("Cannot Store Chunk in File");
-                    println!("llout {}", content.len());
                     let filepath = "./saves/".to_owned() + &(filename);
                     *file.file_mut() = (filepath).to_string();
                     let mut datfile = File::create(filepath).unwrap();

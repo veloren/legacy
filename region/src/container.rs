@@ -1,7 +1,7 @@
 use super::{PersState, Volume, Voxel};
 
 use std::{
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard, TryLockResult},
     time::SystemTime,
 };
 
@@ -34,6 +34,10 @@ impl<C: VolContainer, P: Send + Sync + 'static> Container<C, P> {
     pub fn payload(&self) -> RwLockReadGuard<Option<P>> { self.payload.read().unwrap() }
 
     pub fn payload_mut(&self) -> RwLockWriteGuard<Option<P>> { self.payload.write().unwrap() }
+
+    pub fn payload_try(&self) -> TryLockResult<RwLockReadGuard<Option<P>>> { self.payload.try_read() }
+
+    pub fn payload_try_mut(&self) -> TryLockResult<RwLockWriteGuard<Option<P>>> { self.payload.try_write() }
 
     pub fn vols(&self) -> RwLockReadGuard<C> { self.vols.read().unwrap() }
 

@@ -79,7 +79,6 @@ pub struct Game {
 fn gen_payload(key: Vec2<i64>, con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>) {
     if con.vols().get(PersState::Raw).is_none() {
         //only get mutable lock if no Raw exists
-        println!("try to convert");
         ChunkConverter::convert(&key, &mut con.vols_mut(), PersState::Raw);
     }
     if let Some(raw) = con.vols().get(PersState::Raw) {
@@ -325,36 +324,34 @@ impl Game {
                 continue;
             }
             con.set_access();
-            if con.payload().is_none() && con.vols().contains(PersState::Raw) {
-                //payload got dropped by persistence, lets regenerate it
-                gen_payload(*pos, con);
-            }
-            let lock = &mut *con.payload_mut();
-            if let Some(ref mut payload) = lock {
-                if let ChunkPayload::Mesh(ref mut mesh) = payload {
-                    // Calculate chunk mode matrix
-                    let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
-                        (pos.x * CHUNK_SIZE) as f32,
-                        (pos.y * CHUNK_SIZE) as f32,
-                        0.0,
-                    )).to_homogeneous();
+            let mut trylock = con.payload_try_mut(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
+            if let Ok(mut lock) = trylock {
+                if let Some(ref mut payload) = &mut *lock {
+                    if let ChunkPayload::Mesh(ref mut mesh) = payload {
+                        // Calculate chunk mode matrix
+                        let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
+                            (pos.x * CHUNK_SIZE) as f32,
+                            (pos.y * CHUNK_SIZE) as f32,
+                            0.0,
+                        )).to_homogeneous();
 
-                    // Create set new model constants
-                    let model_consts = ConstHandle::new(&mut renderer);
+                        // Create set new model constants
+                        let model_consts = ConstHandle::new(&mut renderer);
 
-                    // Update chunk model constants
-                    model_consts.update(
-                        &mut renderer,
-                        voxel::ModelConsts {
-                            model_mat: *model_mat.as_ref(),
-                        },
-                    );
+                        // Update chunk model constants
+                        model_consts.update(
+                            &mut renderer,
+                            voxel::ModelConsts {
+                                model_mat: *model_mat.as_ref(),
+                            },
+                        );
 
-                    // Update the chunk payload
-                    *payload = ChunkPayload::Model {
-                        model: voxel::Model::new(&mut renderer, mesh),
-                        model_consts,
-                    };
+                        // Update the chunk payload
+                        *payload = ChunkPayload::Model {
+                            model: voxel::Model::new(&mut renderer, mesh),
+                            model_consts,
+                        };
+                    }
                 }
             }
         }
@@ -442,14 +439,16 @@ impl Game {
                 continue;
             }
             // rendering actually does not set the time, but updating does it
-            let lock = &*con.payload();
-            if let Some(ref payload) = lock {
-                if let ChunkPayload::Model {
-                    ref model,
-                    ref model_consts,
-                } = payload
-                {
-                    model.render(&mut renderer, &self.voxel_pipeline, model_consts, &self.global_consts);
+            let mut trylock = con.payload_try_mut(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
+            if let Ok(mut lock) = trylock {
+                if let Some(ref mut payload) = &mut *lock {
+                    if let ChunkPayload::Model {
+                        ref model,
+                        ref model_consts,
+                    } = payload
+                    {
+                        model.render(&mut renderer, &self.voxel_pipeline, model_consts, &self.global_consts);
+                    }
                 }
             }
         }

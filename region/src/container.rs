@@ -1,9 +1,7 @@
 use super::{PersState, Volume, Voxel};
 
-use std::{
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
-    time::SystemTime,
-};
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::time::SystemTime;
 
 pub trait VolContainer: Send + Sync + 'static {
     type VoxelType: Voxel;
@@ -31,15 +29,19 @@ impl<C: VolContainer, P: Send + Sync + 'static> Container<C, P> {
         }
     }
 
-    pub fn payload(&self) -> RwLockReadGuard<Option<P>> { self.payload.read().unwrap() }
+    pub fn payload(&self) -> RwLockReadGuard<Option<P>> { self.payload.read() }
 
-    pub fn payload_mut(&self) -> RwLockWriteGuard<Option<P>> { self.payload.write().unwrap() }
+    pub fn payload_mut(&self) -> RwLockWriteGuard<Option<P>> { self.payload.write() }
 
-    pub fn vols(&self) -> RwLockReadGuard<C> { self.vols.read().unwrap() }
+    pub fn payload_try(&self) -> Option<RwLockReadGuard<Option<P>>> { self.payload.try_read() }
 
-    pub fn vols_mut(&self) -> RwLockWriteGuard<C> { self.vols.write().unwrap() }
+    pub fn payload_try_mut(&self) -> Option<RwLockWriteGuard<Option<P>>> { self.payload.try_write() }
 
-    pub fn last_access(&self) -> RwLockReadGuard<SystemTime> { self.last_access.read().unwrap() }
+    pub fn vols(&self) -> RwLockReadGuard<C> { self.vols.read() }
 
-    pub fn set_access(&self) { *self.last_access.write().unwrap() = SystemTime::now(); }
+    pub fn vols_mut(&self) -> RwLockWriteGuard<C> { self.vols.write() }
+
+    pub fn last_access(&self) -> RwLockReadGuard<SystemTime> { self.last_access.read() }
+
+    pub fn set_access(&self) { *self.last_access.write() = SystemTime::now(); }
 }

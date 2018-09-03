@@ -35,6 +35,9 @@ impl<P: Payloads> Client<P> {
         let pers = self.chunk_mgr().persistence();
         pers.offload();
 
+        //generate missing Payloads
+        self.lazy_recreate_payload();
+
         *self.status() != ClientStatus::Disconnected
     }
 }

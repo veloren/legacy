@@ -40,6 +40,19 @@ impl<P: Payloads> Client<P> {
             // Find the chunk the player is in
             let player_chunk = player_entity.pos().map(|e| e as i64).div_euc(vec3!([CHUNK_SIZE; 3]));
 
+            // Generate chunks around the player first, hacky hack, fix this somehow
+            for i in player_chunk.x - 1..player_chunk.x + 2 {
+                for j in player_chunk.y - 1..player_chunk.y + 2 {
+                    let pos = vec2!(i, j);
+                    if !self.chunk_mgr().contains(pos) {
+                        self.chunk_mgr().gen(pos);
+                    }
+                    if let Some(con) = self.chunk_mgr().persistence().get(&pos) {
+                        con.set_access(); // always keep around player
+                    }
+                }
+            }
+
             // Generate chunks around the player
             for i in player_chunk.x - self.view_distance..player_chunk.x + self.view_distance + 1 {
                 for j in player_chunk.y - self.view_distance..player_chunk.y + self.view_distance + 1 {
@@ -48,6 +61,28 @@ impl<P: Payloads> Client<P> {
                     } else {
                         if self.chunk_mgr().loaded(vec2!(i, j)) {
                             self.chunk_mgr().persistence().generate(&vec2!(i, j), PersState::Raw);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub(crate) fn lazy_recreate_payload(&self) {
+        // Only update payloads if the player exists
+        if let Some(player_entity) = self.player_entity() {
+            let player_entity = player_entity.write();
+
+            // Find the chunk the player is in
+            let player_chunk = player_entity.pos().map(|e| e as i64).div_euc(vec3!([CHUNK_SIZE; 3]));
+
+            // Generate payload around the player if it got dropped by persistence
+            for i in player_chunk.x - self.view_distance..player_chunk.x + self.view_distance + 1 {
+                for j in player_chunk.y - self.view_distance..player_chunk.y + self.view_distance + 1 {
+                    let pos = vec2!(i, j);
+                    if let Some(con) = self.chunk_mgr().persistence().get(&pos) {
+                        if con.payload().is_none() {
+                            self.chunk_mgr().gen_payload(pos);
                         }
                     }
                 }

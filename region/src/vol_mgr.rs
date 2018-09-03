@@ -135,12 +135,15 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
             gen_func(pos, &con);
             payload_func(pos, &con);
             pen.write().remove(&pos);
-            /*
-            let (vol, state)  = gen_func(pos);
-            let payload = payload_func(&vol);
-            *con.payload_mut() = Some(payload);
-            con.vols_mut().insert(vol, state);
-            pen.write().unwrap().remove(&pos);*/
+        });
+    }
+
+    pub fn gen_payload(&self, pos: Vec2<i64>) {
+        // regenerate the payload if it got invalid
+        let payload_func = self.gen.payload_func.clone();
+        let con = self.pers.data().get(&pos).unwrap().clone();
+        POOL.lock().execute(move || {
+            payload_func(pos, &con);
         });
     }
 

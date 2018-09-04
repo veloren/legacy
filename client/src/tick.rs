@@ -19,7 +19,7 @@ impl<P: Payloads> Client<P> {
         {
             // Take the physics lock to sync client and frontend updates
             let _ = self.take_phys_lock();
-            physics::tick(entities.iter(), &self.chunk_mgr, CHUNK_SIZE, dt);
+            physics::tick(entities.iter(), &self.chunk_mgr, vec3!(CHUNK_SIZE), dt);
         }
 
         self.update_server();

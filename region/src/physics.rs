@@ -26,7 +26,7 @@ pub fn tick<
 >(
     entities: I,
     chunk_mgr: &VolMgr<Chunk, ChunkContainer, ChunkConverter, CP>,
-    chunk_size: i64,
+    chunk_size: Vec3<i64>,
     dt: f32,
 ) {
     //consts
@@ -198,11 +198,8 @@ pub fn tick<
             }
         }
 
-        let chunk = entity_prim
-            .col_center()
-            .map(|e| e as i64)
-            .div_euc(vec3!([chunk_size; 3]));
-        let chunk_exists = chunk_mgr.loaded(vec2!(chunk.x, chunk.y));
+        let chunk = entity_prim.col_center().map(|e| e as i64).div_euc(chunk_size);
+        let chunk_exists = chunk_mgr.loaded(chunk);
         if !chunk_exists {
             *entity.vel_mut() = vec3![0.0; 3];
             continue; //skip applying

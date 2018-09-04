@@ -76,7 +76,7 @@ pub struct Game {
     other_player_model: voxel::Model,
 }
 
-fn gen_payload(key: Vec2<i64>, con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>) {
+fn gen_payload(key: Vec3<i64>, con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>) {
     if con.vols().get(PersState::Raw).is_none() {
         //only get mutable lock if no Raw exists
         ChunkConverter::convert(&key, &mut con.vols_mut(), PersState::Raw);
@@ -314,13 +314,15 @@ impl Game {
         let mut renderer = self.window.renderer_mut();
         // Find the chunk the camera is in
         let cam_origin = *self.camera.lock().unwrap().get_pos();
-        let cam_chunk = Vec2::<i64>::new(
-            (cam_origin.x as i64).div_euc(CHUNK_SIZE),
-            (cam_origin.y as i64).div_euc(CHUNK_SIZE),
+        let cam_chunk = Vec3::<i64>::new(
+            (cam_origin.x as i64).div_euc(CHUNK_SIZE[0]),
+            (cam_origin.y as i64).div_euc(CHUNK_SIZE[1]),
+            (cam_origin.z as i64).div_euc(CHUNK_SIZE[2]),
         );
 
         for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
-            if (*pos - cam_chunk).snake_length() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE {
+            // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
+            if (*pos - cam_chunk).snake_length() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE[0] {
                 continue;
             }
             con.set_access();
@@ -330,9 +332,9 @@ impl Game {
                     if let ChunkPayload::Mesh(ref mut mesh) = payload {
                         // Calculate chunk mode matrix
                         let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
-                            (pos.x * CHUNK_SIZE) as f32,
-                            (pos.y * CHUNK_SIZE) as f32,
-                            0.0,
+                            (pos.x * CHUNK_SIZE[0]) as f32,
+                            (pos.y * CHUNK_SIZE[1]) as f32,
+                            (pos.z * CHUNK_SIZE[2]) as f32,
                         )).to_homogeneous();
 
                         // Create set new model constants
@@ -428,14 +430,16 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Find the chunk the camera is in
-        let cam_chunk = Vec2::<i64>::new(
-            (cam_origin.x as i64).div_euc(CHUNK_SIZE),
-            (cam_origin.y as i64).div_euc(CHUNK_SIZE),
+        let cam_chunk = Vec3::<i64>::new(
+            (cam_origin.x as i64).div_euc(CHUNK_SIZE[0]),
+            (cam_origin.y as i64).div_euc(CHUNK_SIZE[1]),
+            (cam_origin.z as i64).div_euc(CHUNK_SIZE[2]),
         );
 
         // Render each chunk
         for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
-            if (*pos - cam_chunk).snake_length() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE {
+            // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
+            if (*pos - cam_chunk).snake_length() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE[0] {
                 continue;
             }
             // rendering actually does not set the time, but updating does it

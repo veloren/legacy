@@ -16,11 +16,19 @@ mod player;
 mod tick;
 mod world;
 
+// Library
+use coord::prelude::*;
+
 // Reexport
 pub use common::net::ClientMode;
 
 // Constants
-pub const CHUNK_SIZE: i64 = 32;
+pub const CHUNK_SIZE: [i64; 3] = [32, 32, 32];
+pub const CHUNK_MID: [f32; 3] = [
+    CHUNK_SIZE[0] as f32 / 2.0,
+    CHUNK_SIZE[1] as f32 / 2.0,
+    CHUNK_SIZE[2] as f32 / 2.0,
+];
 
 // Standard
 use std::{
@@ -112,7 +120,7 @@ impl<P: Payloads> Client<P> {
             entities: RwLock::new(HashMap::new()),
             phys_lock: Mutex::new(()),
 
-            chunk_mgr: VolMgr::new(CHUNK_SIZE, VolGen::new(world::gen_chunk, gen_payload)),
+            chunk_mgr: VolMgr::new(vec3!(CHUNK_SIZE), VolGen::new(world::gen_chunk, gen_payload)),
 
             callbacks: RwLock::new(Callbacks::new()),
 
@@ -161,7 +169,7 @@ impl<P: Payloads> Client<P> {
 
     pub fn send_cmd(&self, cmd: String) { self.conn.send(ClientMessage::SendCmd { cmd }) }
 
-    pub fn view_distance(&self) -> f32 { (self.view_distance * CHUNK_SIZE) as f32 }
+    pub fn view_distance(&self) -> f32 { (vec3!(CHUNK_SIZE).map(|e| e as f32) * (self.view_distance as f32)).length() }
 
     pub fn chunk_mgr(&self) -> &VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk> {
         &self.chunk_mgr

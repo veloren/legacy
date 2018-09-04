@@ -22,28 +22,28 @@ lazy_static! {
 }
 
 pub trait FnGenFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:
-    Fn(Vec2<i64>, &Container<C, P>) + Send + Sync + 'static
+    Fn(Vec3<i64>, &Container<C, P>) + Send + Sync + 'static
 {
 }
 impl<
         V: Volume,
         C: VolContainer<VoxelType = V::VoxelType>,
         P: Send + Sync + 'static,
-        T: Fn(Vec2<i64>, &Container<C, P>),
+        T: Fn(Vec3<i64>, &Container<C, P>),
     > FnGenFunc<V, C, P> for T
 where
     T: Send + Sync + 'static,
 {}
 
 pub trait FnPayloadFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:
-    Fn(Vec2<i64>, &Container<C, P>) + Send + Sync + 'static
+    Fn(Vec3<i64>, &Container<C, P>) + Send + Sync + 'static
 {
 }
 impl<
         V: Volume,
         C: VolContainer<VoxelType = V::VoxelType>,
         P: Send + Sync + 'static,
-        T: Fn(Vec2<i64>, &Container<C, P>),
+        T: Fn(Vec3<i64>, &Container<C, P>),
     > FnPayloadFunc<V, C, P> for T
 where
     T: Send + Sync + 'static,
@@ -66,8 +66,8 @@ impl<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'sta
     }
 }
 
-impl Key for Vec2<i64> {
-    fn print(&self) -> String { return format!("c{},{}", self.x, self.y).to_string(); }
+impl Key for Vec3<i64> {
+    fn print(&self) -> String { return format!("c{},{},{}", self.x, self.y, self.z).to_string(); }
 }
 
 pub struct VolMgr<
@@ -76,16 +76,16 @@ pub struct VolMgr<
     VC: VolConverter<C>,
     P: Send + Sync + 'static,
 > {
-    vol_size: i64,
-    pending: Arc<RwLock<HashSet<Vec2<i64>>>>,
-    pers: VolPers<Vec2<i64>, C, VC, P>,
+    vol_size: Vec3<i64>,
+    pending: Arc<RwLock<HashSet<Vec3<i64>>>>,
+    pers: VolPers<Vec3<i64>, C, VC, P>,
     gen: VolGen<V, C, P>,
 }
 
 impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConverter<C>, P: Send + Sync + 'static>
     VolMgr<V, C, VC, P>
 {
-    pub fn new(vol_size: i64, gen: VolGen<V, C, P>) -> VolMgr<V, C, VC, P> {
+    pub fn new(vol_size: Vec3<i64>, gen: VolGen<V, C, P>) -> VolMgr<V, C, VC, P> {
         VolMgr {
             vol_size,
             pending: Arc::new(RwLock::new(HashSet::new())),
@@ -94,7 +94,7 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
         }
     }
 
-    pub fn at(&self, pos: Vec2<i64>) -> Option<VolState<C, P>> {
+    pub fn at(&self, pos: Vec3<i64>) -> Option<VolState<C, P>> {
         if let Some(con) = self.pers.get(&pos) {
             return Some(VolState::Exists(con));
         } else if self.pending.read().unwrap().get(&pos).is_some() {
@@ -103,19 +103,19 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
         return None;
     }
 
-    pub fn persistence<'a>(&'a self) -> &'a VolPers<Vec2<i64>, C, VC, P> { &self.pers }
+    pub fn persistence<'a>(&'a self) -> &'a VolPers<Vec3<i64>, C, VC, P> { &self.pers }
 
-    pub fn contains(&self, pos: Vec2<i64>) -> bool {
+    pub fn contains(&self, pos: Vec3<i64>) -> bool {
         return self.pers.get(&pos).is_some() || self.pending.read().unwrap().get(&pos).is_some();
     }
 
-    pub fn loaded(&self, pos: Vec2<i64>) -> bool {
+    pub fn loaded(&self, pos: Vec3<i64>) -> bool {
         return self.pending.read().unwrap().get(&pos).is_none() && self.pers.get(&pos).is_some();
     }
 
-    pub fn remove(&self, pos: Vec2<i64>) -> bool { return self.pers.data_mut().remove(&pos).is_some(); }
+    pub fn remove(&self, pos: Vec3<i64>) -> bool { return self.pers.data_mut().remove(&pos).is_some(); }
 
-    pub fn gen(&self, pos: Vec2<i64>) {
+    pub fn gen(&self, pos: Vec3<i64>) {
         let gen_func = self.gen.gen_func.clone();
         let payload_func = self.gen.payload_func.clone();
         let pen = self.pending.clone();
@@ -137,7 +137,7 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
         });
     }
 
-    pub fn gen_payload(&self, pos: Vec2<i64>) {
+    pub fn gen_payload(&self, pos: Vec3<i64>) {
         // regenerate the payload if it got invalid
         let payload_func = self.gen.payload_func.clone();
         let con = self.pers.data().get(&pos).unwrap().clone();
@@ -147,9 +147,12 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
     }
 
     pub fn get_voxel_at(&self, pos: Vec3<i64>) -> V::VoxelType {
-        let vol_pos = vec2!(pos.x.div_euc(self.vol_size), pos.y.div_euc(self.vol_size));
-        let vox_pos = vec3!(pos.x.mod_euc(self.vol_size), pos.y.mod_euc(self.vol_size), pos.z);
-
+        let vol_pos = pos.div_euc(self.vol_size);
+        let vox_pos = vec3!(
+            pos.x.mod_euc(self.vol_size.x),
+            pos.y.mod_euc(self.vol_size.y),
+            pos.z.mod_euc(self.vol_size.z)
+        );
         let ref data_ref = self.pers.data();
         if let Some(container) = data_ref.get(&vol_pos) {
             if let Some(any_vol) = container.vols().get(PersState::Raw) {

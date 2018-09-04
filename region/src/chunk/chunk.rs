@@ -46,6 +46,7 @@ impl Chunk {
         let ore_scarcity = 48.0;
 
         let mut voxels = Vec::new();
+        println!("offs {},   ssize {}", offset, size);
 
         for i in 0..size.x {
             for j in 0..size.y {
@@ -61,31 +62,31 @@ impl Chunk {
                     let ridge = 1.0 - 2.0 * ridge_noise.get((pos / terrain_scale).elements()).abs();
                     let terrain = height_noise.get(((pos + offs) / terrain_scale).elements()) * (1.0 - ridge_factor)
                         + ridge * ridge_factor;
-                    let height = (terrain * mountain_height + terrain_height) as i64;
+                    let height = (terrain * mountain_height + terrain_height);
 
-                    voxels.push(Block::new(if k == 0 {
+                    voxels.push(Block::new(if pos.z == 0.0 {
                         BlockMaterial::Stone
-                    } else if k <= height {
+                    } else if pos.z <= height {
                         let cave0 = 1.0 - cave_noise_0.get((pos / cave_scale).elements()).abs();
                         let cave1 = 1.0 - cave_noise_1.get((pos / cave_scale).elements()).abs();
 
                         if cave0 + cave1 > 1.94 {
                             BlockMaterial::Air
-                        } else if k < height - 4 {
+                        } else if pos.z < height - 4.0 {
                             if ore_noise.get((pos / ore_scarcity).elements()) > 0.4 {
                                 BlockMaterial::Gold
                             } else {
                                 BlockMaterial::Stone
                             }
-                        } else if k < height {
+                        } else if pos.z < height {
                             BlockMaterial::Earth
-                        } else if k <= size.z / 3 + 5 {
+                        } else if pos.z <= (size.z as f64) / 3.0 + 5.0 {
                             BlockMaterial::Sand
                         } else {
                             BlockMaterial::Earth
                         }
                     } else {
-                        if k <= size.z / 3 {
+                        if pos.z <= (size.z as f64) / 3.0 {
                             BlockMaterial::Water
                         } else {
                             BlockMaterial::Air

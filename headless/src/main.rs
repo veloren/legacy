@@ -28,7 +28,7 @@ impl client::Payloads for Payloads {
 }
 
 fn gen_payload(
-    key: Vec2<i64>,
+    key: Vec3<i64>,
     con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>,
 ) -> <Payloads as client::Payloads>::Chunk {
     ()

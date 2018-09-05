@@ -3,10 +3,7 @@ use super::{Container, Key, PersState, VolContainer, VolConverter, VolPers, Volu
 use collision::{Collider, Primitive};
 
 // Standard
-use std::{
-    collections::HashSet,
-    sync::Arc,
-};
+use std::{collections::HashSet, sync::Arc};
 
 // Library
 use coord::prelude::*;
@@ -114,7 +111,7 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
         return self.pending.read().get(&pos).is_none() && self.pers.get(&pos).is_some();
     }
 
-    pub fn remove(&self, pos: Vec3<i64>) -> bool { return self.pers.data_mut().remove(&pos).is_some(); }
+    pub fn remove(&self, pos: Vec3<i64>) -> bool { return self.pers.hot_mut().remove(&pos).is_some(); }
 
     pub fn gen(&self, pos: Vec3<i64>) {
         let gen_func = self.gen.gen_func.clone();
@@ -128,7 +125,7 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
             pen_lock.insert(pos); // the lock above guarantees that no 2 threads can generate the same chunk
         }
         let con = Arc::new(Container::new());
-        self.pers.data_mut().insert(pos, con.clone());
+        self.pers.hot_mut().insert(pos, con.clone());
         // we copied the Arc above and added the blank container to the persistence because those operations are inexpensive
         // and we can now run the chunk generaton which is expensive in a new thread without locking the whole persistence
         POOL.lock().execute(move || {
@@ -141,7 +138,7 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
     pub fn gen_payload(&self, pos: Vec3<i64>) {
         // regenerate the payload if it got invalid
         let payload_func = self.gen.payload_func.clone();
-        let con = self.pers.data().get(&pos).unwrap().clone();
+        let con = self.pers.hot().get(&pos).unwrap().clone();
         POOL.lock().execute(move || {
             payload_func(pos, &con);
         });
@@ -154,7 +151,7 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
             pos.y.mod_euc(self.vol_size.y),
             pos.z.mod_euc(self.vol_size.z)
         );
-        let ref data_ref = self.pers.data();
+        let ref data_ref = self.pers.hot();
         if let Some(container) = data_ref.get(&vol_pos) {
             if let Some(any_vol) = container.vols().get(PersState::Raw) {
                 //TODO: also allow for other datasets other than Raw, e.g. Rle

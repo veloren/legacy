@@ -1,12 +1,12 @@
 use coord::prelude::*;
 use std::cmp::{Ord, Ordering, PartialOrd};
 
-use voxel::{Material, MaterialKind, RenderMaterial};
 use region::{
     chunk::{Block, BlockMaterial, Chunk},
     figure::{Cell, CellMaterial, Figure},
     Volume, Voxel,
 };
+use voxel::{Material, MaterialKind, RenderMaterial};
 
 pub trait RenderVoxel: Voxel {
     fn get_color(&self) -> u8;

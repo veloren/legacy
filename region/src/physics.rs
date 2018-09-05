@@ -1,10 +1,7 @@
 // Standard
 use super::VolMgr;
 use chunk::{Chunk, ChunkContainer, ChunkConverter};
-use std::{
-    clone::Clone,
-    sync::Arc,
-};
+use std::{clone::Clone, sync::Arc};
 
 // Library
 use coord::prelude::*;

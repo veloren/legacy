@@ -37,6 +37,7 @@ impl<P: Payloads> Client<P> {
 
         //generate missing Payloads
         self.lazy_recreate_payload();
+        self.chunk_mgr().persistence().debug();
 
         *self.status() != ClientStatus::Disconnected
     }

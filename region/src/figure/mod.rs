@@ -2,4 +2,7 @@ mod cell;
 mod figure;
 
 // Reexports
-pub use self::{cell::Cell, cell::CellMaterial, figure::Figure};
+pub use self::{
+    cell::{Cell, CellMaterial},
+    figure::Figure,
+};

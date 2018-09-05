@@ -115,7 +115,6 @@ impl VolConverter<ChunkContainer> for ChunkConverter {
                     let filename = from.file();
                     let mut datfile = File::open(filename).unwrap();
                     let mut content = Vec::<u8>::new();
-                    println!("{}", filename);
                     datfile
                         .read_to_end(&mut content)
                         .expect(&format!("read of file {} failed", filename));

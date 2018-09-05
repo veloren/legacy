@@ -48,7 +48,6 @@ impl Chunk {
         let ore_scarcity = 48.0;
 
         let mut voxels = Vec::new();
-        println!("offs {},   ssize {}", offset, size);
 
         for i in 0..size.x {
             for j in 0..size.y {
@@ -128,13 +127,11 @@ impl Chunk {
                     if chunk
                         .at(vec3!(i, j, k))
                         .unwrap_or(Block::new(BlockMaterial::Air))
-                        .material()
-                        == BlockMaterial::Earth
+                        .material() == BlockMaterial::Earth
                         && chunk
                             .at(vec3!(i, j, k + 1))
                             .unwrap_or(Block::new(BlockMaterial::Air))
-                            .material()
-                            == BlockMaterial::Air
+                            .material() == BlockMaterial::Air
                     {
                         if boulder_noise.get((pos2d * 123.573).elements()) > 0.54 {
                             let mut rng = XorShiftRng::from_seed([

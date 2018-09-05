@@ -245,10 +245,10 @@ fn tti_simple() {
 
 macro_rules! checkWillCollide {
     ($x:expr, $tti2:expr, $normal2:expr) => {
+
         let res = $x;
         println!("EXPT: {:?} {:?}", $tti2, $normal2);
         println!("{:?}", res);
-
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
         if let ResolutionTti::WillCollide { tti, normal } = res {
@@ -263,10 +263,10 @@ macro_rules! checkWillCollide {
 
 macro_rules! checkTouching {
     ($x:expr, $normal2:expr) => {
+
         let res = $x;
         println!("EXPT: {:?}", $normal2);
         println!("{:?}", res);
-
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
         if let ResolutionTti::Touching { normal } = res {
@@ -279,10 +279,10 @@ macro_rules! checkTouching {
 
 macro_rules! checkOverlapping {
     ($x:expr, $since2:expr) => {
+
         let res = $x;
         println!("EXPT: {:?}", $since2);
         println!("{:?}", res);
-
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
         if let ResolutionTti::Overlapping { since } = res {
@@ -296,6 +296,7 @@ macro_rules! checkOverlapping {
 
 macro_rules! checkNone {
     ($x:expr) => {
+
         let res = $x;
         println!("{:?}", res);
         assert!(res.is_none());
@@ -785,8 +786,7 @@ fn physics_walk() {
     }
     {
         let p = ent.get(&1);
-        let d =
-            *p.unwrap().read().pos() - vec3!(CHUNK_MID[0]*2.0-1.0 - /*player size*/0.45, CHUNK_MID[1], 3.0);
+        let d = *p.unwrap().read().pos() - vec3!(CHUNK_MID[0]*2.0-1.0 - /*player size*/0.45, CHUNK_MID[1], 3.0);
         println!("length {}", d.length());
         assert!(d.length() < 0.01);
     }

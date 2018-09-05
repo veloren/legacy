@@ -16,49 +16,70 @@ use std::{
  It needs to have a Volume it atleast one state for this conversion to work.
  It tries to cache specific often needed Volumes in it's memory and can "reduce the PersState", e.g. store a VOlume to file if it's not used for a while
  When it's requiered again it will be reloaded into the requiered state.
+ File PersState are hold in the cold storage, while all others are hold in the hot storage to not increase the HashMap for normal usage
 
  When accessing a Chunk you get access to all States of a Chunk.
  When you modify a version, you must either also change all other implementations or drop them!
 */
 
 pub struct VolPers<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> {
-    data: RwLock<HashMap<K, Arc<Container<C, P>>>>,
+    hot: RwLock<HashMap<K, Arc<Container<C, P>>>>,
+    cold: RwLock<HashMap<K, Arc<Container<C, P>>>>,
     phantom: PhantomData<VC>,
 }
 
 impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> VolPers<K, C, VC, P> {
     pub fn new() -> VolPers<K, C, VC, P> {
         VolPers {
-            data: RwLock::new(HashMap::new()),
+            hot: RwLock::new(HashMap::new()),
+            cold: RwLock::new(HashMap::new()),
             phantom: PhantomData,
         }
     }
 
-    pub fn data_mut(&self) -> RwLockWriteGuard<HashMap<K, Arc<Container<C, P>>>> { self.data.write().unwrap() }
+    pub fn hot_mut(&self) -> RwLockWriteGuard<HashMap<K, Arc<Container<C, P>>>> { self.hot.write().unwrap() }
 
-    pub fn data(&self) -> RwLockReadGuard<HashMap<K, Arc<Container<C, P>>>> { self.data.read().unwrap() }
+    pub fn hot(&self) -> RwLockReadGuard<HashMap<K, Arc<Container<C, P>>>> { self.hot.read().unwrap() }
 
-    pub fn get(&self, key: &K) -> Option<Arc<Container<C, P>>> {
-        self.data.read().unwrap().get(&key).map(|v| v.clone())
+    pub fn get(&self, key: &K) -> Option<Arc<Container<C, P>>> { self.hot.read().unwrap().get(&key).map(|v| v.clone()) }
+
+    pub fn getCold(&self, key: &K) -> Option<Arc<Container<C, P>>> {
+        self.cold.read().unwrap().get(&key).map(|v| v.clone())
     }
 
     pub fn exists(&self, key: &K, state: PersState) -> bool {
-        if let Some(entry) = self.data.read().unwrap().get(&key) {
-            return entry.vols().contains(state);
+        if state == PersState::File {
+            if let Some(entry) = self.cold.read().unwrap().get(&key) {
+                return entry.vols().contains(state);
+            }
+        } else {
+            if let Some(entry) = self.hot.read().unwrap().get(&key) {
+                return entry.vols().contains(state);
+            }
         }
         return false;
     }
 
     pub fn generate(&self, key: &K, state: PersState) {
-        let x = self.data.read().unwrap().get(&key).map(|v| v.clone());
+        let mut isCold = false;
+        let mut x = self.hot.read().unwrap().get(&key).map(|v| v.clone());
+        if x.is_none() {
+            x = self.cold.read().unwrap().get(&key).map(|v| v.clone());
+            isCold = true;
+        }
         if let Some(container) = x {
             container.set_access();
             let mut lock = container.vols_mut();
             let contains = lock.contains(state.clone());
             if !contains {
                 info!("generate from persistence key: {:?} state: {:?}", key, state);
-                println!("contains file: {}", lock.contains(PersState::File));
                 VC::convert(key, &mut lock, state);
+            }
+            if isCold {
+                let mut h = self.hot.write().unwrap();
+                let mut c = self.cold.write().unwrap();
+                h.insert(*key, container.clone());
+                c.remove(key);
             }
         }
     }
@@ -66,7 +87,7 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
     pub fn offload(&self) {
         let now = SystemTime::now();
         let mut offload_queue = vec![]; //we allocate in a container here, to reduce lock phase
-        for (key, container) in self.data.read().unwrap().iter() {
+        for (key, container) in self.hot.read().unwrap().iter() {
             let diff;
             let contains;
             {
@@ -76,7 +97,7 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
             }
             if let Ok(diff) = diff {
                 if diff.as_secs() > 5 && contains {
-                    info!("drop persistence to Rle: {:?} after {}", key, diff.as_secs());
+                    info!("drop persistence to File: {:?} after {}", key, diff.as_secs());
                     offload_queue.push(((*key).clone(), container.clone()));
                 }
             }
@@ -84,11 +105,22 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
         for (key, container) in offload_queue.iter() {
             let mut lock = container.vols_mut();
             VC::convert(key, &mut lock, PersState::File);
-            println!("offload contains file: {}", lock.contains(PersState::File));
             lock.remove(PersState::Raw);
             lock.remove(PersState::Rle);
             *container.payload_mut() = None;
+            let mut h = self.hot.write().unwrap();
+            let mut c = self.cold.write().unwrap();
+            c.insert(*key, container.clone());
+            h.remove(key);
         }
         info!("DONE DONE");
+    }
+
+    pub fn debug(&self) {
+        debug!(
+            "hot containers: {}, cold containers: {}",
+            self.hot.read().unwrap().len(),
+            self.cold.read().unwrap().len()
+        );
     }
 }

@@ -320,7 +320,7 @@ impl Game {
             (cam_origin.z as i64).div_euc(CHUNK_SIZE[2]),
         );
 
-        for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
+        for (pos, con) in self.client.chunk_mgr().persistence().hot().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
             if (*pos - cam_chunk).snake_length() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE[0] {
                 continue;
@@ -437,7 +437,7 @@ impl Game {
         );
 
         // Render each chunk
-        for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
+        for (pos, con) in self.client.chunk_mgr().persistence().hot().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
             if (*pos - cam_chunk).snake_length() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE[0] {
                 continue;

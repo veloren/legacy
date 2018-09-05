@@ -46,7 +46,6 @@ impl Chunk {
         let ore_scarcity = 48.0;
 
         let mut voxels = Vec::new();
-        println!("offs {},   ssize {}", offset, size);
 
         for i in 0..size.x {
             for j in 0..size.y {

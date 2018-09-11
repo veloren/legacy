@@ -17,6 +17,7 @@ extern crate region;
 extern crate world;
 
 mod config;
+mod error;
 mod init;
 mod network;
 mod player;

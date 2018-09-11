@@ -1,5 +1,5 @@
 // Standard
-use std::io;
+use std::{fmt, io};
 
 // Library
 use bincode;
@@ -20,6 +20,16 @@ pub enum Error {
 
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Error { Error::NetworkErr(e) }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::NetworkErr(e) => write!(f, "{}", e),
+            Error::CannotSerialize => write!(f, "failed to serialize message"),
+            Error::CannotDeserialize => write!(f, "failed to deserialize message"),
+        }
+    }
 }
 
 pub trait Message {

@@ -1,6 +1,5 @@
 // Standard
 use std::{
-    io::Error,
     net::{SocketAddr, TcpListener, TcpStream},
     sync::Arc,
     thread,
@@ -13,6 +12,7 @@ use bifrost::Relay;
 use common::net::UdpMgr;
 
 // Local
+use error::Error;
 use network::event::NewSessionEvent;
 use server_context::ServerContext;
 

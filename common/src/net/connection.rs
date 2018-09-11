@@ -4,7 +4,7 @@ use std::{
     net::{SocketAddr, TcpStream, ToSocketAddrs, UdpSocket},
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex, MutexGuard, RwLock,
+        Arc,
     },
     thread::{self, JoinHandle},
 };
@@ -12,6 +12,7 @@ use std::{
 // Library
 use bincode;
 use get_if_addrs::get_if_addrs;
+use parking_lot::{Mutex, MutexGuard, RwLock};
 
 // Parent
 use super::{
@@ -113,20 +114,20 @@ impl<'a, RM: Message + 'static> Connection<RM> {
     }
 
     pub fn open_udp<'b>(manager: &'b Arc<Connection<RM>>, listen: SocketAddr, sender: SocketAddr) {
-        if let Some(..) = *manager.udp.lock().unwrap() {
+        if let Some(..) = *manager.udp.lock() {
             panic!("not implemented");
         }
-        *manager.udp.lock().unwrap() = Some(Udp::new(listen, sender).unwrap());
+        *manager.udp.lock() = Some(Udp::new(listen, sender).unwrap());
         manager.send(ConnectionMessage::OpenedUdp { host: listen });
 
         let m = manager.clone();
-        let mut rt = manager.recv_thread_udp.lock().unwrap();
+        let mut rt = manager.recv_thread_udp.lock();
         *rt = Some(thread::spawn(move || {
             m.recv_worker_udp();
         }));
 
         let m = manager.clone();
-        let mut st = manager.send_thread_udp.lock().unwrap();
+        let mut st = manager.send_thread_udp.lock();
         *st = Some(thread::spawn(move || {
             m.send_worker_udp();
         }));
@@ -134,13 +135,13 @@ impl<'a, RM: Message + 'static> Connection<RM> {
 
     pub fn start<'b>(manager: &'b Arc<Connection<RM>>) {
         let m = manager.clone();
-        let mut rt = manager.recv_thread.lock().unwrap();
+        let mut rt = manager.recv_thread.lock();
         *rt = Some(thread::spawn(move || {
             m.recv_worker();
         }));
 
         let m = manager.clone();
-        let mut st = manager.send_thread.lock().unwrap();
+        let mut st = manager.send_thread.lock();
         *st = Some(thread::spawn(move || {
             m.send_worker();
         }));
@@ -153,13 +154,13 @@ impl<'a, RM: Message + 'static> Connection<RM> {
     }
 
     pub fn send<M: Message>(&self, message: M) {
-        let mut id = self.next_id.lock().unwrap();
-        self.packet_out.lock().unwrap()[16].push_back(OutgoingPacket::new(message, *id));
+        let mut id = self.next_id.lock();
+        self.packet_out.lock()[16].push_back(OutgoingPacket::new(message, *id));
         *id += 1;
-        let mut p = self.packet_out_count.write().unwrap();
+        let mut p = self.packet_out_count.write();
         *p += 1;
-        let rt = self.send_thread.lock();
-        if let Some(cb) = rt.unwrap().as_mut() {
+        let mut rt = self.send_thread.lock();
+        if let Some(cb) = rt.as_mut() {
             //trigger sending
             cb.thread().unpark();
         }
@@ -167,9 +168,9 @@ impl<'a, RM: Message + 'static> Connection<RM> {
 
     fn trigger_callback(&self, msg: Result<RM, Error>) {
         //trigger callback
-        let f = self.callback.lock().unwrap();
-        let co = self.callbackobj.lock();
-        match co.unwrap().as_mut() {
+        let f = self.callback.lock();
+        let mut co = self.callbackobj.lock();
+        match co.as_mut() {
             Some(cb) => {
                 cb.recv(msg);
             },
@@ -184,12 +185,12 @@ impl<'a, RM: Message + 'static> Connection<RM> {
             if !self.running.load(Ordering::Relaxed) {
                 break;
             }
-            if *self.packet_out_count.read().unwrap() == 0 {
+            if *self.packet_out_count.read() == 0 {
                 thread::park();
                 continue;
             }
             // find next package
-            let mut packets = self.packet_out.lock().unwrap();
+            let mut packets = self.packet_out.lock();
             for i in 0..255 {
                 if packets[i].len() != 0 {
                     // build part
@@ -201,7 +202,7 @@ impl<'a, RM: Message + 'static> Connection<RM> {
                         },
                         Err(FrameError::SendDone) => {
                             packets[i].pop_front();
-                            let mut p = self.packet_out_count.write().unwrap();
+                            let mut p = self.packet_out_count.write();
                             *p -= 1;
                         },
                     }
@@ -223,11 +224,11 @@ impl<'a, RM: Message + 'static> Connection<RM> {
                     match frame {
                         Frame::Header { id, .. } => {
                             let msg = IncommingPacket::new(frame);
-                            let mut packets = self.packet_in.lock().unwrap();
+                            let mut packets = self.packet_in.lock();
                             packets.insert(id, msg);
                         },
                         Frame::Data { id, .. } => {
-                            let mut packets = self.packet_in.lock().unwrap();
+                            let mut packets = self.packet_in.lock();
                             let packet = packets.get_mut(&id);
                             if packet.unwrap().load_data_frame(frame) {
                                 //convert
@@ -253,12 +254,12 @@ impl<'a, RM: Message + 'static> Connection<RM> {
             if !self.running.load(Ordering::Relaxed) {
                 break;
             }
-            if *self.packet_out_count.read().unwrap() == 0 {
+            if *self.packet_out_count.read() == 0 {
                 thread::park();
                 continue;
             }
             // find next package
-            let mut packets = self.packet_out.lock().unwrap();
+            let mut packets = self.packet_out.lock();
             for i in 0..255 {
                 if packets[i].len() != 0 {
                     // build part
@@ -266,12 +267,12 @@ impl<'a, RM: Message + 'static> Connection<RM> {
                     match packets[i][0].generate_frame(SPLIT_SIZE) {
                         Ok(frame) => {
                             // send it
-                            let mut udp = self.udp.lock().unwrap();
+                            let mut udp = self.udp.lock();
                             udp.as_mut().unwrap().send(frame).unwrap();
                         },
                         Err(FrameError::SendDone) => {
                             packets[i].pop_front();
-                            let mut p = self.packet_out_count.write().unwrap();
+                            let mut p = self.packet_out_count.write();
                             *p -= 1;
                         },
                     }
@@ -287,18 +288,18 @@ impl<'a, RM: Message + 'static> Connection<RM> {
             if !self.running.load(Ordering::Relaxed) {
                 break;
             }
-            let mut udp = self.udp.lock().unwrap();
+            let mut udp = self.udp.lock();
             let frame = udp.as_mut().unwrap().recv();
             match frame {
                 Ok(frame) => {
                     match frame {
                         Frame::Header { id, .. } => {
                             let msg = IncommingPacket::new(frame);
-                            let mut packets = self.packet_in.lock().unwrap();
+                            let mut packets = self.packet_in.lock();
                             packets.insert(id, msg);
                         },
                         Frame::Data { id, .. } => {
-                            let mut packets = self.packet_in.lock().unwrap();
+                            let mut packets = self.packet_in.lock();
                             let packet = packets.get_mut(&id);
                             if packet.unwrap().load_data_frame(frame) {
                                 //convert
@@ -334,7 +335,5 @@ impl<'a, RM: Message + 'static> Connection<RM> {
     }
 
     #[allow(dead_code)]
-    pub fn callbackobj(&self) -> MutexGuard<Option<Arc<Callback<RM> + Send + Sync>>> {
-        self.callbackobj.lock().unwrap()
-    }
+    pub fn callbackobj(&self) -> MutexGuard<Option<Arc<Callback<RM> + Send + Sync>>> { self.callbackobj.lock() }
 }

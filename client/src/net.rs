@@ -1,5 +1,5 @@
 // Standard
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 // Library
 use coord::prelude::*;
@@ -20,7 +20,7 @@ impl<P: Payloads> Client<P> {
     pub(crate) fn update_server(&self) {
         // Update the server with information about the player
         if let Some(player_entity) = self.player_entity() {
-            let player_entity = player_entity.read().unwrap();
+            let player_entity = player_entity.read();
             self.conn.send(ClientMessage::PlayerEntityUpdate {
                 pos: *player_entity.pos(),
                 vel: *player_entity.vel(),
@@ -69,7 +69,7 @@ impl<P: Payloads> Client<P> {
                 look_dir,
             } => match self.entity(uid) {
                 Some(entity) => {
-                    let mut entity = entity.write().unwrap();
+                    let mut entity = entity.write();
                     *entity.pos_mut() = pos;
                     *entity.vel_mut() = vel;
                     *entity.ctrl_acc_mut() = ctrl_acc;

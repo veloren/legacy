@@ -1,9 +1,12 @@
 // Standard
 use std::{
     net::{SocketAddr, ToSocketAddrs, UdpSocket},
-    sync::{Arc, RwLock},
+    sync::Arc,
     thread::{self, JoinHandle},
 };
+
+// Library
+use parking_lot::RwLock;
 
 // Parent
 use super::udp::Udp;
@@ -39,7 +42,7 @@ impl UdpMgr {
         let listen = listen.to_socket_addrs().unwrap().next().unwrap();
         let remote = remote.to_socket_addrs().unwrap().next().unwrap();
         {
-            let subscriber = mgr.subscriber.read().unwrap();
+            let subscriber = mgr.subscriber.read();
             for c in &(*subscriber) {
                 if c.socket_info.socket.local_addr().unwrap() == listen {
                     socket_info = Some(c.socket_info.clone());
@@ -61,7 +64,7 @@ impl UdpMgr {
                 socket: socketclone,
                 recv_thread,
             });
-            mgr.sockets.write().as_mut().unwrap().push(si.clone());
+            let sockets = mgr.sockets.write().push(si.clone());
             socket_info = Some(si.clone());
             debug!("listen on new udp socket, started a new thread {}", listen);
         }
@@ -75,7 +78,7 @@ impl UdpMgr {
             udp: udp.clone(),
         };
 
-        mgr.subscriber.write().as_mut().unwrap().push(ui);
+        mgr.subscriber.write().push(ui);
         return udp.clone();
         /*
         manager.send(ConnectionMessage::OpenedUdp{ host: listen });*/
@@ -83,8 +86,7 @@ impl UdpMgr {
 
     pub fn stop_udp(mgr: Arc<UdpMgr>, udp: Arc<Udp>) {
         let mut subscriber = mgr.subscriber.write();
-        let subscriber = subscriber.as_mut().unwrap();
-        let _sockets = mgr.sockets.write().as_mut().unwrap();
+        let _sockets = mgr.sockets.write();
         let mut udp_info = None;
         for s in subscriber.iter() {
             if Arc::ptr_eq(&s.udp, &udp) {
@@ -118,7 +120,7 @@ impl UdpMgr {
             let (size, remote) = socket.recv_from(&mut buff).unwrap();
             buff.resize(size, 0);
             println!("rcved sth of  {} bytes on {}", size, socket.local_addr().unwrap());
-            let subscriber = self.subscriber.read().unwrap();
+            let subscriber = self.subscriber.read();
             for c in subscriber.iter() {
                 if remote == c.remote && socket.local_addr().unwrap() == c.socket_info.socket.local_addr().unwrap() {
                     println!(

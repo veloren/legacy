@@ -13,7 +13,7 @@ use CHUNK_SIZE;
 impl<P: Payloads> Client<P> {
     pub(crate) fn tick(&self, dt: f32) -> bool {
         self.update_chunks();
-        let entities = self.entities.read().unwrap();
+        let entities = self.entities.read();
 
         // Physics tick
         {
@@ -24,7 +24,7 @@ impl<P: Payloads> Client<P> {
 
         self.update_server();
 
-        *self.time.write().unwrap() += dt as f64;
+        *self.time.write() += dt as f64;
 
         *self.status() != ClientStatus::Disconnected
     }

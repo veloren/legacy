@@ -2,13 +2,13 @@
 use std::{
     io::ErrorKind::UnexpectedEof,
     net::{Shutdown::Both, TcpListener, TcpStream},
-    sync::Mutex,
     thread,
     time::Duration,
 };
 
 // Library
 use bincode;
+use parking_lot::Mutex;
 
 // Parent
 use super::{
@@ -34,7 +34,7 @@ impl TestPorts {
     }
 
     pub fn next(&self) -> String {
-        let mut n = self.next.lock().unwrap();
+        let mut n = self.next.lock();
         *n += 1;
         format!("127.0.0.1:{}", *n)
     }

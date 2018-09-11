@@ -2,11 +2,11 @@
 use std::{
     io::{Read, Write},
     net::{TcpStream, ToSocketAddrs},
-    sync::Mutex,
 };
 
 // Library
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use parking_lot::Mutex;
 
 // Parent
 use super::{packet::Frame, protocol::Protocol, Error};
@@ -33,7 +33,7 @@ impl Tcp {
 
 impl Protocol for Tcp {
     fn send(&self, frame: Frame) -> Result<(), Error> {
-        let mut stream = self.stream_out.lock().unwrap();
+        let mut stream = self.stream_out.lock();
         match frame {
             Frame::Header { id, length } => {
                 stream.write_u8(1)?; // 1 is const for Header
@@ -54,7 +54,7 @@ impl Protocol for Tcp {
 
     //blocking
     fn recv(&self) -> Result<Frame, Error> {
-        let mut stream = self.stream_in.lock().unwrap();
+        let mut stream = self.stream_in.lock();
         let frame = stream.read_u8()? as u8;
         match frame {
             1 => {

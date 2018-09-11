@@ -1,13 +1,9 @@
 use Volume;
 use Voxel;
 
-use std::{
-    cmp::Eq,
-    collections::HashMap,
-    hash::Hash,
-    marker::PhantomData,
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
-};
+use std::{cmp::Eq, collections::HashMap, hash::Hash, marker::PhantomData, sync::Arc};
+
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum PersState {
@@ -61,23 +57,23 @@ impl<K: Eq + Hash + 'static, C: Container, VC: VolumeConverter<C>> VolPers<K, C,
         }
     }
 
-    pub fn data_mut(&self) -> RwLockWriteGuard<HashMap<K, Arc<RwLock<C>>>> { self.data.write().unwrap() }
+    pub fn data_mut(&self) -> RwLockWriteGuard<HashMap<K, Arc<RwLock<C>>>> { self.data.write() }
 
-    pub fn data(&self) -> RwLockReadGuard<HashMap<K, Arc<RwLock<C>>>> { self.data.read().unwrap() }
+    pub fn data(&self) -> RwLockReadGuard<HashMap<K, Arc<RwLock<C>>>> { self.data.read() }
 
-    pub fn get(&self, key: &K) -> Option<Arc<RwLock<C>>> { self.data.read().unwrap().get(&key).map(|v| v.clone()) }
+    pub fn get(&self, key: &K) -> Option<Arc<RwLock<C>>> { self.data.read().get(&key).map(|v| v.clone()) }
 
     pub fn exists(&self, key: &K, state: PersState) -> bool {
-        if let Some(x) = self.data.read().unwrap().get(&key) {
-            return x.read().unwrap().contains(state);
+        if let Some(x) = self.data.read().get(&key) {
+            return x.read().contains(state);
         }
         return false;
     }
 
     pub fn generate(&self, key: &K, state: PersState) {
-        let x = self.data.read().unwrap().get(&key).map(|v| v.clone());
+        let x = self.data.read().get(&key).map(|v| v.clone());
         if let Some(x) = x {
-            let mut con = x.write().unwrap();
+            let mut con = x.write();
             let contains = con.contains(state.clone());
             if !contains {
                 VC::convert(&mut con, state);

@@ -13,6 +13,7 @@ extern crate threadpool;
 #[macro_use]
 extern crate lazy_static;
 extern crate common;
+extern crate parking_lot;
 
 mod block;
 mod cell;

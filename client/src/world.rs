@@ -20,7 +20,7 @@ impl<P: Payloads> Client<P> {
     pub(crate) fn update_chunks(&self) {
         // Only update chunks if the player exists
         if let Some(player_entity) = self.player_entity() {
-            let player_entity = player_entity.write().unwrap();
+            let player_entity = player_entity.write();
 
             // Find the chunk the player is in
             let player_chunk = player_entity.pos().map(|e| e as i64).div_euc(vec3!([CHUNK_SIZE; 3]));

@@ -14,6 +14,7 @@ extern crate time;
 #[macro_use]
 extern crate lazy_static;
 extern crate parking_lot;
+extern crate vek;
 
 // Reexports
 pub use clock::Clock;
@@ -21,12 +22,13 @@ pub use clock::Clock;
 pub mod clock;
 pub mod names;
 //pub mod network;
-pub mod jobs;
+//pub mod jobs;
 pub mod net;
 pub mod post;
 pub mod manager;
+pub mod msg;
 
-pub use jobs::{JobHandle, JobMultiHandle, Jobs};
+//pub use jobs::{JobHandle, JobMultiHandle, Jobs};
 
 pub type Uid = u64;
 

@@ -1,9 +1,18 @@
+// Standard
+use std::{
+    cmp::Eq,
+    collections::HashMap,
+    hash::Hash,
+    marker::PhantomData,
+    sync::Arc,
+};
+
+// Library
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+
+// Local
 use Volume;
 use Voxel;
-
-use std::{cmp::Eq, collections::HashMap, hash::Hash, marker::PhantomData, sync::Arc};
-
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum PersState {

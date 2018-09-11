@@ -6,8 +6,7 @@ extern crate log;
 extern crate enum_map;
 extern crate noise;
 extern crate rand;
-#[macro_use]
-extern crate coord;
+extern crate vek;
 extern crate threadpool;
 #[macro_use]
 extern crate lazy_static;
@@ -39,7 +38,7 @@ pub use figure::Figure;
 pub use vol_mgr::{FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolState};
 pub use vol_per::{Container, PersState, VolPers, VolumeConverter};
 
-use coord::prelude::*;
+use vek::*;
 use std::any::Any;
 
 pub trait Voxel: Copy + Clone + Any {

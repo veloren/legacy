@@ -1,10 +1,11 @@
 // Library
-use coord::prelude::*;
+use vek::*;
 
 // Project
 use common::{
     get_version,
-    net::{ClientMessage, ServerMessage},
+    msg::{SessionKind, ClientMsg, ServerMsg, ClientPostOffice, ClientPostBox},
+    post::Incoming,
 };
 use region::Entity;
 
@@ -14,11 +15,26 @@ use ClientStatus;
 use Payloads;
 
 impl<P: Payloads> Client<P> {
+    pub(crate) fn handle_incoming(&self) {
+        while let Ok(incoming) = self.postoffice.await_incoming() {
+            match incoming {
+                // Sessions
+                Incoming::Session(_) => {},
+
+                // One-shot messages
+                Incoming::Msg(ServerMsg::ChatMsg { alias, text }) => {
+                    self.callbacks().call_recv_chat_msg(&alias, &text)
+                },
+                Incoming::Msg(_) => {},
+            }
+        }
+    }
+
     pub(crate) fn update_server(&self) {
         // Update the server with information about the player
         if let Some(player_entity) = self.player_entity() {
             let player_entity = player_entity.read();
-            self.conn.send(ClientMessage::PlayerEntityUpdate {
+            self.postoffice.send_one(ClientMsg::PlayerEntityUpdate {
                 pos: *player_entity.pos(),
                 vel: *player_entity.vel(),
                 ctrl_acc: *player_entity.ctrl_acc(),
@@ -27,6 +43,7 @@ impl<P: Payloads> Client<P> {
         }
     }
 
+    /*
     pub(crate) fn handle_packet(&self, packet: ServerMessage) {
         match packet {
             ServerMessage::Connected { entity_uid, version } => {
@@ -82,4 +99,5 @@ impl<P: Payloads> Client<P> {
             _ => {},
         }
     }
+    */
 }

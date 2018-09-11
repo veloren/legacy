@@ -11,12 +11,6 @@ pub mod udpmgr;
 // Reexports
 pub use self::{
     connection::Connection,
-    message::{ClientMessage, ConnectionMessage, Error, Message, ServerMessage},
+    message::{ConnectionMessage, Error, Message},
     udpmgr::UdpMgr,
 };
-
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub enum ClientMode {
-    Headless,
-    Character,
-}

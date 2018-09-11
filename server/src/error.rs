@@ -1,20 +1,13 @@
-use std::fmt;
-
-use common::net;
+// Standard
+use std::io;
 
 #[derive(Debug)]
 pub enum Error {
-    NetworkErr(net::Error),
+    IoErr(io::Error),
 }
 
-impl From<net::Error> for Error {
-    fn from(e: net::Error) -> Error { Error::NetworkErr(e) }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::NetworkErr(e) => write!(f, "{}", e),
-        }
+impl From<io::Error> for Error {
+    fn from(e: io::Error) -> Self {
+        Error::IoErr(e)
     }
 }

@@ -1,16 +1,16 @@
+// Standard
+use std::{collections::HashSet, sync::Arc};
+
+// Library
+use vek::*;
+use parking_lot::{Mutex, RwLock};
+use threadpool::ThreadPool;
+
 // Local
 use collision::{Collider, Primitive};
 use vol_per::{Container, PersState, VolPers, VolumeConverter};
 use Volume;
 use Voxel;
-
-// Standard
-use std::{collections::HashSet, sync::Arc};
-
-// Library
-use coord::prelude::*;
-use parking_lot::{Mutex, RwLock};
-use threadpool::ThreadPool;
 
 pub enum VolState<C: Container> {
     Loading,
@@ -122,8 +122,8 @@ impl<
     }
 
     pub fn get_voxel_at(&self, pos: Vec3<i64>) -> V::VoxelType {
-        let vol_pos = vec2!(pos.x.div_euc(self.vol_size), pos.y.div_euc(self.vol_size));
-        let vox_pos = vec3!(pos.x.mod_euc(self.vol_size), pos.y.mod_euc(self.vol_size), pos.z);
+        let vol_pos = Vec2::new(pos.x.div_euc(self.vol_size), pos.y.div_euc(self.vol_size));
+        let vox_pos = Vec3::new(pos.x.mod_euc(self.vol_size), pos.y.mod_euc(self.vol_size), pos.z);
 
         let ref data_ref = self.pers.data();
         if let Some(volume) = data_ref.get(&vol_pos) {
@@ -165,12 +165,12 @@ impl<
                 while self.cur.x < self.high.x {
                     if self.mgr.get_voxel_at(self.cur).is_solid() {
                         let col = Primitive::new_cuboid(
-                            vec3!(
+                            Vec3::new(
                                 self.cur.x as f32 + 0.5,
                                 self.cur.y as f32 + 0.5,
                                 self.cur.z as f32 + 0.5
                             ),
-                            vec3!(0.5, 0.5, 0.5),
+                            Vec3::new(0.5, 0.5, 0.5),
                         );
                         self.cur.x += 1;
                         return Some(col);
@@ -198,7 +198,7 @@ impl<
     type Iter = VolMgrIter<'a, V, C, VC, P>;
 
     fn get_nearby(&'a self, col: &Primitive) -> Self::Iter {
-        let scale = vec3!(1.0, 1.0, 1.0);
+        let scale = Vec3::new(1.0, 1.0, 1.0);
         let area = col.col_approx_abc() + scale;
 
         let pos = col.col_center();
@@ -218,8 +218,8 @@ impl<
 
     fn get_nearby_dir(&'a self, col: &Primitive, dir: Vec3<f32>) -> Self::Iter {
         //one might optimze this later on
-        let scale = vec3!(1.0, 1.0, 1.0);
-        let dirabs = vec3!(dir.x.abs(), dir.y.abs(), dir.z.abs()) / 2.0;
+        let scale = Vec3::new(1.0, 1.0, 1.0);
+        let dirabs = Vec3::new(dir.x.abs(), dir.y.abs(), dir.z.abs()) / 2.0;
         let area = col.col_approx_abc() + dirabs + scale;
 
         let pos = col.col_center() + dir / 2.0;

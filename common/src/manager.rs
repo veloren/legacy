@@ -24,10 +24,11 @@ pub struct Manager<T: Managed> {
 
 impl<T: Managed> Manager<T> {
     pub fn init(internal: T) -> Manager<T> {
-        let internal = Arc::new(internal);
-        let running = Arc::new(AtomicBool::new(true));
-
-        let mut manager = Manager { internal, running, workers: vec!() };
+        let mut manager = Manager {
+            internal: Arc::new(internal),
+            running: Arc::new(AtomicBool::new(true)),
+            workers: vec!(),
+        };
 
         // Start workers
         manager.internal.clone().init_workers(&mut manager);
@@ -35,13 +36,25 @@ impl<T: Managed> Manager<T> {
         manager
     }
 
-    pub fn add_worker<F: FnOnce(&T, &AtomicBool) + Send + Sync + 'static>(this: &mut Self, f: F) {
+    fn new_child(&self) -> Manager<T> {
+        Manager {
+            internal: self.internal.clone(),
+            running: Arc::new(AtomicBool::new(true)),
+            workers: vec!(),
+        }
+    }
+
+    pub fn add_worker<F: FnOnce(&T, &AtomicBool, Manager<T>) + Send + Sync + 'static>(this: &mut Self, f: F) {
         let internal = this.internal.clone();
         let running = this.running.clone();
+
+        let child_mgr = this.new_child();
         this.workers.push(thread::spawn(move || {
-            f(&internal, &running)
+            f(&internal, &running, child_mgr)
         }));
     }
+
+    pub fn internal(this: &Self) -> &Arc<T> { &this.internal }
 }
 
 impl<T: Managed> Deref for Manager<T> {
@@ -62,6 +75,8 @@ impl<T: Managed> Drop for Manager<T> {
 #[cfg(test)]
 mod tests {
     use std::sync::atomic::Ordering;
+    use std::thread;
+    use std::time::Duration;
     use super::{Managed, Manager};
 
     struct Server;
@@ -74,11 +89,13 @@ mod tests {
 
     impl Managed for Server {
         fn init_workers(&self, manager: &mut Manager<Self>) {
-            Manager::add_worker(manager, |_, running| while running.load(Ordering::Relaxed) {
+            Manager::add_worker(manager, |_, running, _| while running.load(Ordering::Relaxed) {
                 println!("Hello, world!")
             });
-            Manager::add_worker(manager, |_, running| while running.load(Ordering::Relaxed) {
-                println!("Hi, planet!")
+            Manager::add_worker(manager, |_, running, mut mgr| while running.load(Ordering::Relaxed) {
+                println!("Hi, planet!");
+
+                Manager::add_worker(&mut mgr, |_, _, _| println!("Greetings, Earth!"))
             });
         }
     }
@@ -86,5 +103,6 @@ mod tests {
     #[test]
     fn test_manager() {
         let server_mgr = Manager::init(Server::new());
+        thread::sleep(Duration::from_millis(50));
     }
 }

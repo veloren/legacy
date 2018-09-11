@@ -1,6 +1,4 @@
-use Volume;
-use Voxel;
-
+// Standard
 use std::{
     cmp::Eq,
     collections::HashMap,
@@ -8,6 +6,10 @@ use std::{
     marker::PhantomData,
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
+
+// Local
+use Volume;
+use Voxel;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum PersState {

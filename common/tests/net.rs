@@ -9,7 +9,7 @@ use std::{net::TcpListener, sync::Arc, thread, time::Duration};
 // Project
 use common::{
     net::Message,
-    post::{PostBox, PostOffice},
+    post::{PostBox, PostOffice, Incoming},
     manager::Manager,
 };
 
@@ -38,20 +38,20 @@ fn post_office() {
     let listener = TcpListener::bind("0.0.0.0:8888").unwrap();
     thread::spawn(move || match listener.incoming().next() {
         Some(Ok(stream)) => {
-            thread::spawn(move || handle_client(Manager::init(PostOffice::to_client(stream).unwrap())));
+            thread::spawn(move || handle_client(PostOffice::to_client(stream).unwrap()));
         },
         Some(Err(e)) => panic!("Connection error: {}", e),
         None => panic!("No client received"),
     });
 
     // Client
-    handle_remote(Manager::init(PostOffice::to_server("127.0.0.1:8888").unwrap()));
+    handle_remote(PostOffice::to_server("127.0.0.1:8888").unwrap());
 }
 
 fn handle_client(postoffice: Manager<PostOffice<SessionKind, ServerMsg, ClientMsg>>) {
-    while let Ok(session) = postoffice.await_incoming() {
-        match session.kind {
-            SessionKind::PingPong => thread::spawn(move || handle_pingpong(session.postbox)),
+    while let Ok(Incoming::Session(s)) = postoffice.await_incoming() {
+        match s.kind {
+            SessionKind::PingPong => thread::spawn(move || handle_pingpong(s.postbox)),
         };
     }
 }

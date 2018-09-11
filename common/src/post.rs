@@ -36,6 +36,7 @@ pub enum Letter<SK, M> {
     OpenBox { uid: u64, kind: SK },
     CloseBox(u64),
     Message { uid: u64, payload: M },
+    OneShot(M),
 }
 
 impl<SK: Message, M: Message> Message for Letter<SK, M> {}
@@ -82,7 +83,7 @@ pub struct PostOffice<SK: Message, SM: Message, RM: Message> {
     uid_counter: AtomicU64,
 
     // The send + recv ends of the outgoing mpsc, used for cloning and passing to postboxes
-    send_tmp: Mutex<mpsc::Sender<Letter<SK, SM>>>,
+    send: Mutex<mpsc::Sender<Letter<SK, SM>>>,
     recv: Mutex<mpsc::Receiver<Letter<SK, SM>>>,
 
     // The send ends for the PostBox incoming mpscs
@@ -92,23 +93,28 @@ pub struct PostOffice<SK: Message, SM: Message, RM: Message> {
     conn: Arc<Connection<Letter<SK, RM>>>,
 }
 
+pub enum Incoming<SK: Message, SM: Message, RM: Message> {
+    Session(PostBoxSession<SK, SM, RM>),
+    Msg(RM),
+}
+
 impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
     // Create a postoffice that runs on the client, talking to a server
-    pub fn to_server<U: ToSocketAddrs>(remote_addr: U) -> Result<PostOffice<SK, SM, RM>, Error> {
+    pub fn to_server<U: ToSocketAddrs>(remote_addr: U) -> Result<Manager<PostOffice<SK, SM, RM>>, Error> {
         // Client-side UIDs start from 1 and count odds
-        Ok(PostOffice::new_internal(
+        Ok(Manager::init(PostOffice::new_internal(
             1,
             Connection::new(&remote_addr, UdpMgr::new())?,
-        ))
+        )))
     }
 
     // Create a postoffice that runs on the server, talking to a client
-    pub fn to_client(stream: TcpStream) -> Result<PostOffice<SK, SM, RM>, Error> {
+    pub fn to_client(stream: TcpStream) -> Result<Manager<PostOffice<SK, SM, RM>>, Error> {
         // Server-side UIDs start from 0 and count evens
-        Ok(PostOffice::new_internal(
+        Ok(Manager::init(PostOffice::new_internal(
             0,
             Connection::new_stream(stream, UdpMgr::new())?,
-        ))
+        )))
     }
 
     // Create a postoffice with a few characteristics
@@ -117,15 +123,15 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
         Connection::start(&conn);
 
         // Create the mpsc for outgoing messages
-        let (send_tmp, recv) = mpsc::channel();
-        let (send_tmp, recv) = (Mutex::new(send_tmp), Mutex::new(recv));
+        let (send, recv) = mpsc::channel();
+        let (send, recv) = (Mutex::new(send), Mutex::new(recv));
 
         // Create shared running flag
         let running = Arc::new(AtomicBool::new(true));
 
         PostOffice {
             uid_counter: AtomicU64::new(start_uid),
-            send_tmp,
+            send,
             pb_sends: Mutex::new(HashMap::new()),
             conn,
             recv,
@@ -133,7 +139,7 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
     }
 
     // Utility to generate a new postbox UID. Server uses even integers, client uses odd integers.
-    fn generate_uid(&self) -> u64 { self.uid_counter.fetch_add(2, Ordering::Relaxed) }
+    fn gen_uid(&self) -> u64 { self.uid_counter.fetch_add(2, Ordering::Relaxed) }
 
     // Utility to create a new postbox with a predetermined UID (not visible to the user)
     fn create_postbox_with_uid(&self, uid: u64) -> PostBox<SK, SM, RM> {
@@ -143,28 +149,28 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
         PostBox {
             uid,
             recv: pb_recv,
-            po_send: self.send_tmp.lock().unwrap().clone(),
+            po_send: self.send.lock().unwrap().clone(),
         }
     }
 
     // Create a new master postbox, triggering the creation of a slave postbox on the other end
     pub fn create_postbox(&self, kind: SK) -> PostBox<SK, SM, RM> {
-        let uid = self.generate_uid();
+        let uid = self.gen_uid();
         self.conn.send(Letter::OpenBox::<SK, SM> { uid, kind });
         self.create_postbox_with_uid(uid)
     }
 
     // Handle incoming packets, returning any new incoming postboxes as they get created
-    pub fn await_incoming(&self) -> Result<PostBoxSession<SK, SM, RM>, RecvError> {
+    pub fn await_incoming(&self) -> Result<Incoming<SK, SM, RM>, RecvError> {
         // Keep receiving messages, relaying the messages to their corresponding target postbox.
         // If Letter::OpenBox or Letter::Message are received, handle them appropriately
         loop {
             match self.conn.recv() {
                 Ok(Letter::OpenBox { uid, kind }) => {
-                    return Ok(PostBoxSession {
+                    return Ok(Incoming::Session(PostBoxSession {
                         postbox: self.create_postbox_with_uid(uid),
                         kind,
-                    })
+                    }))
                 },
                 Ok(Letter::CloseBox(uid)) => {
                     self.pb_sends.lock().unwrap().remove(&uid);
@@ -172,16 +178,24 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
                 Ok(Letter::Message { uid, payload }) => {
                     self.pb_sends.lock().unwrap().get(&uid).map(|s| s.send(payload));
                 },
+                Ok(Letter::OneShot(m)) => {
+                    return Ok(Incoming::Msg(m));
+                },
                 Err(e) => return Err(e),
             }
         }
+    }
+
+    // Send a single one-off message to the remote postoffice
+    pub fn send_one(&self, msg: SM) -> Result<(), SendError<Letter<SK, SM>>> {
+        self.send.lock().unwrap().send(Letter::OneShot(msg))
     }
 }
 
 impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
     fn init_workers(&self, manager: &mut Manager<Self>) {
         // Create a worker to relay outgoing messages to the connection
-        Manager::add_worker(manager, |po, running| {
+        Manager::add_worker(manager, |po, running, _| {
             let recv = po.recv.lock().unwrap(); // Hold the receiver permanently
             while running.load(Ordering::Relaxed) {
                 match recv.recv() {

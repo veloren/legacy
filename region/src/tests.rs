@@ -1,13 +1,14 @@
-//Library
-use coord::prelude::*;
-use rand::prelude::*;
-
+// Standard
 use std::{
     collections::HashMap,
     f32::INFINITY,
     sync::{Arc, RwLock},
     thread, time,
 };
+
+//Library
+use rand::prelude::*;
+use vek::*;
 
 // Parent
 use super::{

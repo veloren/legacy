@@ -52,8 +52,6 @@ fn main() {
         Err(e) => panic!("An error occured when attempting to initiate the client: {:?}", e),
     };
 
-    client.start();
-
     let (tx, rx) = mpsc::channel();
     client.callbacks().set_recv_chat_msg(move |alias, msg| {
         tx.send(format!("{}: {}", alias, msg)).unwrap();
@@ -66,7 +64,7 @@ fn main() {
 
         if let Some(msg) = win.get() {
             if msg.starts_with("!") {
-                client.send_cmd(msg[1..].to_string());
+                client.send_cmd(msg[1..].split_whitespace().map(|s| s.into()).collect());
             } else {
                 client.send_chat_msg(msg.clone());
             }

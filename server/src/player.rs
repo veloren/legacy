@@ -1,3 +1,4 @@
+/*
 // Project
 use common::Uid;
 
@@ -26,4 +27,23 @@ impl Player {
     pub fn get_session_id(&self) -> u32 { self.session_id }
     #[allow(dead_code)]
     pub fn get_entity_uid(&self) -> Option<Uid> { self.entity_uid }
+}
+*/
+
+// Project
+use common::{
+    manager::{Manager, Managed},
+    msg::{SessionKind, ClientMsg, ServerMsg, ServerPostOffice, ServerPostBox},
+};
+
+pub struct Player {
+    postoffice: Manager<ServerPostOffice>,
+}
+
+impl From<Manager<ServerPostOffice>> for Player {
+    fn from(po: Manager<ServerPostOffice>) -> Player {
+        Player {
+            postoffice: po,
+        }
+    }
 }

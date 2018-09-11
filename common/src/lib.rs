@@ -15,6 +15,7 @@ extern crate time;
 extern crate coord;
 #[macro_use]
 extern crate lazy_static;
+extern crate parking_lot;
 
 // Reexports
 pub use clock::Clock;

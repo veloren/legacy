@@ -8,15 +8,9 @@ use Block;
 use Volume;
 use Voxel;
 
-use std::{
-    any::Any,
-    cmp::Eq,
-    collections::HashMap,
-    hash::Hash,
-    marker::PhantomData,
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
-    u8,
-};
+use std::{any::Any, cmp::Eq, collections::HashMap, hash::Hash, marker::PhantomData, sync::Arc, u8};
+
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 pub struct ChunkContainer<P> {
     payload: Option<P>,

@@ -7,11 +7,12 @@ use Voxel;
 // Standard
 use std::{
     collections::{HashMap, HashSet},
-    sync::{Arc, Mutex, RwLock, RwLockReadGuard},
+    sync::Arc,
 };
 
 // Library
 use coord::prelude::*;
+use parking_lot::{Mutex, RwLock};
 use threadpool::ThreadPool;
 
 pub enum VolState<C: Container> {
@@ -74,7 +75,7 @@ impl<
     pub fn at(&self, pos: Vec2<i64>) -> Option<VolState<C>> {
         if let Some(con) = self.pers.get(&pos) {
             return Some(VolState::Exists(con));
-        } else if self.pending.read().unwrap().get(&pos).is_some() {
+        } else if self.pending.read().get(&pos).is_some() {
             return Some(VolState::Loading);
         }
         return None;
@@ -83,11 +84,11 @@ impl<
     pub fn persistence<'a>(&'a self) -> &'a VolPers<Vec2<i64>, C, VC> { &self.pers }
 
     pub fn contains(&self, pos: Vec2<i64>) -> bool {
-        return self.pers.get(&pos).is_some() || self.pending.read().unwrap().get(&pos).is_some();
+        return self.pers.get(&pos).is_some() || self.pending.read().get(&pos).is_some();
     }
 
     pub fn loaded(&self, pos: Vec2<i64>) -> bool {
-        return self.pending.read().unwrap().get(&pos).is_none() && self.pers.get(&pos).is_some();
+        return self.pending.read().get(&pos).is_none() && self.pers.get(&pos).is_some();
     }
 
     pub fn remove(&self, pos: Vec2<i64>) -> bool { return self.pers.data_mut().remove(&pos).is_some(); }
@@ -97,7 +98,7 @@ impl<
         let payload_func = self.gen.payload_func.clone();
         let pen = self.pending.clone();
         {
-            let mut pen_lock = pen.write().unwrap();
+            let mut pen_lock = pen.write();
             if pen_lock.get(&pos).is_some() {
                 return;
             }
@@ -107,12 +108,12 @@ impl<
         self.pers.data_mut().insert(pos, con.clone());
         // we copied the Arc above and added the blank container to the persistence because those operations are inexpensive
         // and we can now run the chunk generaton which is expensive in a new thread without locking the whole persistence
-        POOL.lock().unwrap().execute(move || {
+        POOL.lock().execute(move || {
             let vol = gen_func(pos);
             let payload = payload_func(&vol);
-            *con.write().unwrap().payload_mut() = Some(payload);
-            con.write().unwrap().insert(vol, PersState::Raw);
-            pen.write().unwrap().remove(&pos);
+            *con.write().payload_mut() = Some(payload);
+            con.write().insert(vol, PersState::Raw);
+            pen.write().remove(&pos);
         });
     }
 
@@ -129,7 +130,7 @@ impl<
 
         let ref data_ref = self.pers.data();
         if let Some(volume) = data_ref.get(&vol_pos) {
-            if let Some(any_vol) = volume.read().unwrap().get(PersState::Raw) {
+            if let Some(any_vol) = volume.read().get(PersState::Raw) {
                 //TODO: also allow for other datasets other than Raw, e.g. Rle
                 return any_vol.at(vox_pos).unwrap_or(V::VoxelType::empty());
             };

@@ -1,13 +1,10 @@
+// Standard
+use std::{collections::HashMap, f32::INFINITY, sync::Arc, thread, time};
+
 //Library
 use coord::prelude::*;
+use parking_lot::RwLock;
 use rand::prelude::*;
-
-use std::{
-    collections::HashMap,
-    f32::INFINITY,
-    sync::{Arc, RwLock},
-    thread, time,
-};
 
 // Parent
 use super::{
@@ -695,7 +692,7 @@ fn physics_fall() {
         physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.1)
     }
     let p = ent.get(&1);
-    let d = *p.unwrap().read().unwrap().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
+    let d = *p.unwrap().read().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
     //println!("{}", d.length());
     assert!(d.length() < 0.01);
 }
@@ -720,7 +717,7 @@ fn physics_fallfast() {
         physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.1)
     }
     let p = ent.get(&1);
-    let d = *p.unwrap().read().unwrap().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
+    let d = *p.unwrap().read().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
     println!("{}", d.length());
     assert!(d.length() < 0.01);
 }
@@ -746,14 +743,14 @@ fn physics_jump() {
     }
     {
         let p = ent.get(&1);
-        assert!(p.unwrap().read().unwrap().pos().z > 10.2);
+        assert!(p.unwrap().read().pos().z > 10.2);
     }
     for _ in 0..50 {
         physics::tick(ent.iter(), &vol_mgr, CHUNK_SIZE, 0.1)
     }
     {
         let p = ent.get(&1);
-        let d = *p.unwrap().read().unwrap().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
+        let d = *p.unwrap().read().pos() - vec3!(CHUNK_MID, CHUNK_MID, 3.0);
         //println!("{}", d.length());
         assert!(d.length() < 0.01);
     }
@@ -780,7 +777,7 @@ fn physics_walk() {
     }
     {
         let p = ent.get(&1);
-        let d = *p.unwrap().read().unwrap().pos() - vec3!(CHUNK_MID*2.0-1.0 - /*player size*/0.45, CHUNK_MID, 3.0);
+        let d = *p.unwrap().read().pos() - vec3!(CHUNK_MID*2.0-1.0 - /*player size*/0.45, CHUNK_MID, 3.0);
         println!("length {}", d.length());
         assert!(d.length() < 0.01);
     }

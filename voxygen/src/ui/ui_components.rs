@@ -1,12 +1,15 @@
-use ui::{Ui, UiInternalEvent};
+// Standard
+use std::{cmp::min, collections::VecDeque};
 
-use std::collections::VecDeque;
-pub const MAX_CHAT_LINES: usize = 12;
-
+// Library
 use conrod::{self, color, widget, Borderable, Colorable, Positionable, Sizeable, Widget};
 
+// Local
 use get_build_time;
 use get_git_hash;
+use ui::{Ui, UiInternalEvent};
+
+pub const MAX_CHAT_LINES: usize = 12;
 
 #[derive(Clone, Debug)]
 pub struct UiState {
@@ -243,7 +246,8 @@ pub fn render(ui: &mut Ui) {
         }
     }
 
-    widget::Text::new(&format!("Build {}", &get_git_hash()[..8]))
+    let git_hash = get_git_hash();
+    widget::Text::new(&format!("Build {}", &git_hash[..min(8, git_hash.len())]))
         .color(color::BLACK)
         .font_size((height * 0.03) as u32)
         .right_justify()

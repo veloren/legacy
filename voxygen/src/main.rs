@@ -75,9 +75,9 @@ const GIT_TIME: Option<&'static str> = option_env!("GIT_TIME");
 const PROFILE: Option<&'static str> = option_env!("PROFILE");
 const BUILD_TIME: Option<&'static str> = option_env!("BUILD_TIME");
 
-pub fn get_git_hash() -> String { GIT_HASH.unwrap_or("UNKNOWN GIT HASH").to_string() }
+pub fn get_git_hash() -> &'static str { GIT_HASH.unwrap_or("UNKNOWN GIT HASH") }
 pub fn get_git_time() -> DateTime<Utc> { Utc.timestamp(GIT_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0) }
-pub fn get_profile() -> String { PROFILE.unwrap_or("UNKNOWN PROFILE").to_string() }
+pub fn get_profile() -> &'static str { PROFILE.unwrap_or("UNKNOWN PROFILE") }
 
 pub fn get_build_time() -> DateTime<Utc> { Utc.timestamp(BUILD_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0) }
 // END Environment variables

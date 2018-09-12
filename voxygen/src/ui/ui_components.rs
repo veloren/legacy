@@ -15,7 +15,7 @@ pub struct UiState {
     pub show_chat: bool,
     pub show_menu: bool,
     pub menupage: MenuPage,
-    pub chat_lines: VecDeque<(String, String)>,
+    pub chat_lines: VecDeque<String>,
     pub chat_message: String,
 }
 
@@ -186,8 +186,8 @@ pub fn render(ui: &mut Ui) {
 
         while let Some(item) = items.next(uicell) {
             let i = item.i;
-            let (alias, msg) = &state.chat_lines[i];
-            let label = format!("{}: {}", alias, msg);
+            let text = &state.chat_lines[i];
+            let label = text.to_string();
 
             let text = widget::Text::new(&label)
                 .color(color::BLACK)

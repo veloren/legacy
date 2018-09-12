@@ -27,6 +27,7 @@ use std::{
     collections::HashMap,
     net::ToSocketAddrs,
     sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard, atomic::Ordering},
+    time::Duration,
     thread, time,
 };
 
@@ -46,6 +47,7 @@ use player::Player;
 
 // Constants
 pub const CHUNK_SIZE: i64 = 32;
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum ClientStatus {
@@ -86,13 +88,13 @@ impl<P: Payloads> Client<P> {
         // Attempt to connect to the server
         let postoffice = ClientPostOffice::to_server(remote_addr)?;
 
-        // Perform a connection handshake
+        // Initiate a connection handshake
         let pb = postoffice.create_postbox(SessionKind::Connect);
-        pb.send(ClientMsg::Connect(mode));
+        pb.send(ClientMsg::Connect { alias: alias.clone(), mode });
 
         // Was the handshake successful?
-        if let ServerMsg::Connected = pb.recv()? {
-            let client = Manager::init(Client {
+        if let ServerMsg::Connected = pb.recv_timeout(CONNECT_TIMEOUT)? {
+            Ok(Manager::init(Client {
                 status: RwLock::new(ClientStatus::Connected),
                 postoffice,
 
@@ -106,15 +108,11 @@ impl<P: Payloads> Client<P> {
                 callbacks: RwLock::new(Callbacks::new()),
 
                 view_distance: view_distance.max(1).min(10),
-            });
-
-            Ok(client)
+            }))
         } else {
-            Err(Error::Unknown)
+            Err(Error::InvalidResponse)
         }
     }
-
-    fn set_status(&self, status: ClientStatus) { *self.status.write().unwrap() = status; }
 
     pub fn send_chat_msg(&self, text: String) {
         self.postoffice.send_one(ClientMsg::ChatMsg { text });
@@ -174,9 +172,9 @@ impl<P: Payloads> Managed for Client<P> {
     fn init_workers(&self, manager: &mut Manager<Self>) {
 
         // Incoming messages worker
-        Manager::add_worker(manager, |client, running, _| {
+        Manager::add_worker(manager, |client, running, mut mgr| {
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
-                client.handle_incoming();
+                client.handle_incoming(&mut mgr);
             }
 
             // Send a disconnect message to the server

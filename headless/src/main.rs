@@ -44,18 +44,16 @@ fn main() {
         alias = default_alias.to_string();
     }
 
-    let mut win = Window::initscr();
-    win.writeln("Welcome to the Veloren headless client.");
-
-    let client = match Client::<Payloads>::new(ClientMode::Headless, alias, &remote_addr.trim(), gen_payload, 0) {
-        Ok(c) => c,
-        Err(e) => panic!("An error occured when attempting to initiate the client: {:?}", e),
-    };
+    let client = Client::<Payloads>::new(ClientMode::Headless, alias, &remote_addr.trim(), gen_payload, 0)
+        .unwrap_or_else(|e| panic!("An error occured when attempting to initiate the client: {:?}", e));
 
     let (tx, rx) = mpsc::channel();
-    client.callbacks().set_recv_chat_msg(move |alias, msg| {
-        tx.send(format!("{}: {}", alias, msg)).unwrap();
+    client.callbacks().set_recv_chat_msg(move |text| {
+        tx.send(format!("{}", text)).unwrap();
     });
+
+    let mut win = Window::initscr();
+    win.writeln("Welcome to the Veloren headless client.");
 
     loop {
         if let Ok(msg) = rx.try_recv() {

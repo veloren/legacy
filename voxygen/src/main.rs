@@ -10,8 +10,7 @@ extern crate glutin;
 extern crate conrod;
 
 // Mathematics
-#[macro_use]
-extern crate coord;
+extern crate vek;
 extern crate alga;
 extern crate nalgebra;
 

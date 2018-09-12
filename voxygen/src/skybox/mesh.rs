@@ -1,5 +1,5 @@
 // Library
-use coord::prelude::*;
+use vek::*;
 
 // Local
 use voxel::{RenderVolume, RenderVoxel};

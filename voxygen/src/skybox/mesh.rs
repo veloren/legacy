@@ -1,3 +1,9 @@
+// Library
+use vek::*;
+
+// Local
+use voxel::{RenderVolume, RenderVoxel};
+
 gfx_defines! {
     vertex Vertex {
         pos: [f32; 3] = "vert_pos",

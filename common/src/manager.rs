@@ -13,6 +13,7 @@ use std::ops::Deref;
 
 pub trait Managed: Send + Sync + Sized + 'static {
     fn init_workers(&self, manager: &mut Manager<Self>);
+    fn on_drop(&self, manager: &mut Manager<Self>) {}
 }
 
 pub struct Manager<T: Managed> {
@@ -67,6 +68,9 @@ impl<T: Managed> Deref for Manager<T> {
 
 impl<T: Managed> Drop for Manager<T> {
     fn drop(&mut self) {
+        let internal = self.internal.clone();
+        internal.on_drop(self);
+
         self.running.store(false, Ordering::Relaxed);
         let _ = self.workers.drain(..).for_each(|w| w.join().unwrap());
     }

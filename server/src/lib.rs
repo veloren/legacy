@@ -36,6 +36,11 @@ extern crate region;
 // Modules
 mod player;
 mod error;
+mod net;
+
+// Reexports
+pub use player::Player;
+pub use error::Error;
 
 // Standard
 use std::{
@@ -47,37 +52,44 @@ use std::{
 // Project
 use common::{
     manager::{Manager, Managed},
-    msg::{SessionKind, ClientMsg, ServerMsg, ServerPostOffice, ServerPostBox},
+    msg::ServerPostOffice,
     Uid,
 };
 use region::{
     Entity,
 };
 
-// Local
-use player::Player;
-use error::Error;
-
-pub trait Payloads: 'static {
+pub trait Payloads: Send + Sync + 'static {
     type Chunk: Send + Sync + 'static;
     type Entity: Send + Sync + 'static;
     type Player: Send + Sync + 'static;
+
+    fn on_player_connect(&self, player: &Player<Self::Player>) -> bool { true }
+    fn on_player_kick(&self, player: &Player<Self::Player>, reason: &str) -> bool { true }
+    fn on_player_disconnect(&self, player: &Player<Self::Player>) {}
+    fn on_chat_msg(&self, player: &Player<Self::Player>, text: &str) -> Option<String> {
+        Some(format!("[{}] {}", player.alias(), text))
+    }
 }
 
 pub struct Server<P: Payloads> {
     listener: TcpListener,
 
+    payload: P,
+
     uid_counter: AtomicU64,
     time: RwLock<f64>,
 
-    entities: RwLock<HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>>,
-    players: RwLock<HashMap<Uid, Arc<RwLock<Player>>>>,
+    entities: RwLock<HashMap<Uid, Arc<Entity<<P as Payloads>::Entity>>>>,
+    players: RwLock<HashMap<Uid, Arc<Player<<P as Payloads>::Player>>>>,
 }
 
 impl<P: Payloads> Server<P> {
-    pub fn new<S: ToSocketAddrs>(bind_addr: S) -> Result<Manager<Server<P>>, Error> {
+    pub fn new<S: ToSocketAddrs>(payload: P, bind_addr: S) -> Result<Manager<Server<P>>, Error> {
         Ok(Manager::init(Server {
             listener: TcpListener::bind(bind_addr)?,
+
+            payload,
 
             uid_counter: AtomicU64::new(0),
             time: RwLock::new(0.0),
@@ -92,17 +104,27 @@ impl<P: Payloads> Server<P> {
 }
 
 impl<P: Payloads> Managed for Server<P> {
-    fn init_workers(&self, manager: &mut Manager<Self>) {
+    fn init_workers(&self, mgr: &mut Manager<Self>) {
         // Incoming clients worker
-        Manager::add_worker(manager, |server, running, _| {
+        Manager::add_worker(mgr, |server, running, mut mgr| {
             while let Ok((stream, addr)) = server.listener.accept() {
+                // Convert the incoming stream to a postoffice ready to begin the connection handshake
                 if let Ok(po) = ServerPostOffice::to_client(stream) {
-                    let uid = server.gen_uid();
+                    Manager::add_worker(&mut mgr, move |server, running, mgr| {
+                        server.handle_incoming(po, running, mgr)
+                    });
+                }
+            }
+        });
 
-                    let player = Arc::new(RwLock::new(po.into()));
-
-                    server.players.write().unwrap().insert(uid, player);
-                    println!("Incoming!");
+        // Incoming clients worker
+        Manager::add_worker(mgr, |server, running, mut mgr| {
+            while let Ok((stream, addr)) = server.listener.accept() {
+                // Convert the incoming stream to a postoffice ready to begin the connection handshake
+                if let Ok(po) = ServerPostOffice::to_client(stream) {
+                    Manager::add_worker(&mut mgr, move |server, running, mgr| {
+                        server.handle_incoming(po, running, mgr)
+                    });
                 }
             }
         });

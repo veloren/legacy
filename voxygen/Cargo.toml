@@ -20,8 +20,8 @@ conrod = { git = "https://gitlab.com/veloren/conrod", branch = "master", version
 #conrod = { path = "../../conrod", features = ["gfx_rs"] } // For local testing
 
 # Mathematics
-coord = "0.11.0"
-nalgebra = "0.16.1"
+nalgebra = "0.16"
+vek = "0.9"
 alga = "0.7.1"
 
 # File loading

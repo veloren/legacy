@@ -1,11 +1,23 @@
+// Standard
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+    thread,
+};
+
 // Library
 use vek::*;
+use parking_lot::Mutex;
 
 // Project
 use common::{
     get_version,
     msg::{SessionKind, ClientMsg, ServerMsg, ClientPostOffice, ClientPostBox},
     post::Incoming,
+    manager::Manager,
 };
 use region::Entity;
 
@@ -14,18 +26,47 @@ use Client;
 use ClientStatus;
 use Payloads;
 
+// Constants
+const PING_TIMEOUT: Duration = Duration::from_secs(10);
+const PING_FREQ: Duration = Duration::from_secs(2);
+
 impl<P: Payloads> Client<P> {
-    pub(crate) fn handle_incoming(&self) {
+    pub(crate) fn handle_incoming(&self, mgr: &mut Manager<Self>) {
         while let Ok(incoming) = self.postoffice.await_incoming() {
             match incoming {
                 // Sessions
-                Incoming::Session(_) => {},
+                Incoming::Session(session) => match session.kind {
+                    SessionKind::Ping => {
+                        let pb = Mutex::new(session.postbox);
+                        Manager::add_worker(mgr, |client, running, _| {
+                            client.handle_ping_session(pb.into_inner(), running);
+                        })
+                    },
+                    _ => {},
+                },
 
                 // One-shot messages
-                Incoming::Msg(ServerMsg::ChatMsg { alias, text }) => {
-                    self.callbacks().call_recv_chat_msg(&alias, &text)
+                Incoming::Msg(ServerMsg::ChatMsg { text }) => {
+                    self.callbacks().call_recv_chat_msg(&text)
                 },
                 Incoming::Msg(_) => {},
+
+                // End
+                Incoming::End => {}, // TODO: Something here
+            }
+        }
+
+        *self.status.write().unwrap() = ClientStatus::Disconnected;
+    }
+
+    fn handle_ping_session(&self, pb: ClientPostBox, running: &AtomicBool) {
+        while running.load(Ordering::Relaxed) {
+            thread::sleep(PING_FREQ);
+            pb.send(ClientMsg::Ping);
+
+            match pb.recv_timeout(PING_TIMEOUT) {
+                Ok(ServerMsg::Ping) => {},
+                _ => break, // Anything other than a ping     over this session is invalid
             }
         }
     }

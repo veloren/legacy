@@ -44,12 +44,12 @@ pub struct Connection<RM: Message> {
     next_id: Mutex<u64>,
 
     // Message channel
-    recvd_message_write: Mutex<mpsc::Sender<RM>>,
-    recvd_message_read: Mutex<mpsc::Receiver<RM>>,
+    recvd_message_write: Mutex<mpsc::Sender<Result<RM, ConnectionError>>>,
+    recvd_message_read: Mutex<mpsc::Receiver<Result<RM, ConnectionError>>>,
 
     // Error channel
-    error_write: Mutex<mpsc::Sender<ConnectionError>>,
-    error_read: Mutex<mpsc::Receiver<ConnectionError>>,
+    //error_write: Mutex<mpsc::Sender<ConnectionError>>,
+    //error_read: Mutex<mpsc::Receiver<ConnectionError>>,
 }
 
 impl<RM: Message> Connection<RM> {
@@ -67,7 +67,7 @@ impl<RM: Message> Connection<RM> {
             packet_out.push(VecDeque::new());
         }
 
-        let (error_sender, error_receiver) = mpsc::channel();
+        //let (error_sender, error_receiver) = mpsc::channel();
         let (message_sender, message_receiver) = mpsc::channel();
 
         let m = Connection {
@@ -85,8 +85,8 @@ impl<RM: Message> Connection<RM> {
             next_id: Mutex::new(1),
             recvd_message_write: Mutex::new(message_sender),
             recvd_message_read: Mutex::new(message_receiver),
-            error_write: Mutex::new(error_sender),
-            error_read: Mutex::new(error_receiver),
+            //error_write: Mutex::new(error_sender),
+            //error_read: Mutex::new(error_receiver),
         };
 
         Ok(Arc::new(m))
@@ -129,6 +129,7 @@ impl<RM: Message> Connection<RM> {
     pub fn stop<'b>(manager: &'b Arc<Connection<RM>>) {
         let m = manager.clone();
         m.running.store(false, Ordering::Relaxed);
+        m.recvd_message_write.lock().unwrap().send(Err(ConnectionError::Disconnected));
         // non blocking stop for now
     }
 
@@ -161,7 +162,8 @@ impl<RM: Message> Connection<RM> {
         return Err(RecvError);
     }
 
-    pub fn try_recv(&self) -> Result<RM, TryRecvError> {
+    pub fn try_recv(&self) -> Result<RM, ()> {
+        /*
         if let Ok(error_read) = self.error_read.lock() {
             match error_read.try_recv() {
                 Ok(ConnectionError::Disconnected) => return Err(TryRecvError::Disconnected),
@@ -169,18 +171,21 @@ impl<RM: Message> Connection<RM> {
                 _ => {},
             }
         }
+        */
 
         if let Ok(recvd_message_read) = self.recvd_message_read.lock() {
             match recvd_message_read.try_recv() {
-                Ok(msg) => return Ok(msg),
-                Err(e) => return Err(e),
+                Ok(Ok(msg)) => return Ok(msg),
+                Ok(Err(_)) => return Err(()),
+                Err(_) => return Err(()),
             }
         }
 
-        return Err(TryRecvError::Disconnected);
+        return Err(());
     }
 
-    pub fn recv(&self) -> Result<RM, RecvError> {
+    pub fn recv(&self) -> Result<RM, ()> {
+        /*
         if let Ok(error_read) = self.error_read.lock() {
             match error_read.try_recv() {
                 Ok(ConnectionError::Disconnected) => return Err(RecvError),
@@ -188,15 +193,17 @@ impl<RM: Message> Connection<RM> {
                 _ => {},
             }
         }
+        */
 
         if let Ok(recvd_message_read) = self.recvd_message_read.lock() {
             match recvd_message_read.recv() {
-                Ok(msg) => return Ok(msg),
-                Err(e) => return Err(e),
+                Ok(Ok(msg)) => return Ok(msg),
+                Ok(Err(_)) => return Err(()),
+                Err(_) => return Err(()),
             }
         }
 
-        return Err(RecvError);
+        return Err(());
     }
 
     fn send_worker(&self) {
@@ -256,7 +263,7 @@ impl<RM: Message> Connection<RM> {
                                 debug!("received packet: {:?}", &data);
 
                                 let recvd_message_write = self.recvd_message_write.lock().unwrap();
-                                recvd_message_write.send(RM::from_bytes(data).unwrap()).unwrap();
+                                recvd_message_write.send(Ok(RM::from_bytes(data).unwrap())).unwrap();
                             }
                         },
                     }
@@ -267,9 +274,8 @@ impl<RM: Message> Connection<RM> {
                     // TODO: Handle errors that can be resolved locally
                     match e {
                         _ => {
-                            if let Ok(error_write) = self.error_write.lock() {
-                                error_write.send(ConnectionError::Disconnected).unwrap();
-                            }
+                            let recvd_message_write = self.recvd_message_write.lock().unwrap();
+                            recvd_message_write.send(Err(ConnectionError::Disconnected)).unwrap();
                         },
                     }
                 },
@@ -336,7 +342,7 @@ impl<RM: Message> Connection<RM> {
                                 debug!("received packet: {:?}", &data);
 
                                 let recvd_message_write = self.recvd_message_write.lock().unwrap();
-                                recvd_message_write.send(RM::from_bytes(data).unwrap()).unwrap();
+                                recvd_message_write.send(Ok(RM::from_bytes(data).unwrap())).unwrap();
                             }
                         },
                     }
@@ -347,9 +353,8 @@ impl<RM: Message> Connection<RM> {
                     // TODO: Handle errors that can be resolved locally
                     match e {
                         _ => {
-                            if let Ok(error_write) = self.error_write.lock() {
-                                error_write.send(ConnectionError::Disconnected).unwrap();
-                            }
+                            let recvd_message_write = self.recvd_message_write.lock().unwrap();
+                            recvd_message_write.send(Err(ConnectionError::Disconnected)).unwrap();
                         },
                     }
                 },

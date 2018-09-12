@@ -13,7 +13,7 @@ use std::{
 };
 
 // Library
-use coord::prelude::*;
+use vek::*;
 use dot_vox;
 use fnv::FnvBuildHasher;
 use glutin::ElementState;
@@ -25,7 +25,8 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
 use client::{self, Client, ClientMode, CHUNK_SIZE};
-use region::{Chunk, Container};
+use region::{Chunk, Container, VolState};
+use common::manager::Manager;
 
 // Local
 use camera::Camera;
@@ -56,7 +57,7 @@ impl client::Payloads for Payloads {
 pub struct Game {
     running: AtomicBool,
 
-    client: Arc<Client<Payloads>>,
+    client: Manager<Client<Payloads>>,
     window: RenderWindow,
 
     global_consts: ConstHandle<GlobalConsts>,
@@ -86,7 +87,6 @@ impl Game {
 
         let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, view_distance)
             .expect("Could not create new client");
-        client.start();
 
         // Contruct the UI
         let window_dims = window.get_size();
@@ -120,7 +120,7 @@ impl Game {
             .expect("cannot find model 3.vox. Make sure to start voxygen from its folder");
         let voxmodel = voxel::vox_to_figure(vox);
 
-        let player_meshes = voxel::Mesh::from_with_offset(&voxmodel, vec3!(-10.0, -4.0, 0.0));
+        let player_meshes = voxel::Mesh::from_with_offset(&voxmodel, Vec3::new(-10.0, -4.0, 0.0));
 
         let player_model = voxel::Model::new(&mut window.renderer_mut(), &player_meshes);
 
@@ -279,12 +279,12 @@ impl Game {
                 / (LOOKING_VEL_FAC + LOOKING_CTRL_ACC_FAC);
 
             // Apply rotating
-            if looking.length() > MIN_LOOKING {
+            if looking.magnitude() > MIN_LOOKING {
                 player_entity.look_dir_mut().x = looking.x.atan2(looking.y);
             }
 
             // Apply leaning
-            player_entity.look_dir_mut().y = vec2!(looking.x, looking.y).length() * LEANING_FAC;
+            player_entity.look_dir_mut().y = Vec2::new(looking.x, looking.y).magnitude() * LEANING_FAC;
         }
 
         self.running.load(Ordering::Relaxed)
@@ -333,7 +333,7 @@ impl Game {
         if let Some(player_entity) = self.client.player_entity() {
             let player_entity = player_entity.read();
             self.camera.lock().set_focus(Vector3::<f32>::from(
-                (*player_entity.pos() + vec3!(0.0, 0.0, 1.75)).elements(),
+                (*player_entity.pos() + Vec3::new(0.0, 0.0, 1.75)).into_array(),
             ));
         }
 
@@ -344,7 +344,7 @@ impl Game {
             let mut entity = entity.write();
 
             // Calculate entity model matrix
-            let model_mat = &Translation3::from_vector(Vector3::from(entity.pos().elements())).to_homogeneous()
+            let model_mat = &Translation3::from_vector(Vector3::from(entity.pos().into_array())).to_homogeneous()
                 * Rotation3::new(Vector3::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous()
                 * Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
 
@@ -370,7 +370,7 @@ impl Game {
             .client
             .player_entity()
             .map(|p| *p.read().pos())
-            .unwrap_or(vec3!(0.0, 0.0, 0.0));
+            .unwrap_or(Vec3::new(0.0, 0.0, 0.0));
         let play_origin = [play_origin.x, play_origin.y, play_origin.z, 1.0];
         let time = self.client.time() as f32;
 
@@ -432,7 +432,7 @@ impl Game {
         // Draw ui
         self.ui
             .borrow_mut()
-            .render(&mut renderer, &self.client.clone(), &self.window.get_size());
+            .render(&mut renderer, &self.client, &self.window.get_size());
 
         self.window.swap_buffers();
         renderer.end_frame();
@@ -444,7 +444,5 @@ impl Game {
             self.update_entities();
             self.render_frame();
         }
-
-        self.client.shutdown();
     }
 }

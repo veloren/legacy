@@ -30,20 +30,63 @@ impl Player {
 }
 */
 
+// Standard
+use std::sync::Arc;
+
 // Project
 use common::{
     manager::{Manager, Managed},
-    msg::{SessionKind, ClientMsg, ServerMsg, ServerPostOffice, ServerPostBox},
+    msg::{ServerPostOffice, ClientMode},
+    Uid,
 };
 
-pub struct Player {
+// Local
+use Payloads;
+use Server;
+
+pub struct Player<P: Send + Sync + 'static> {
+    uid: Uid,
+
     postoffice: Manager<ServerPostOffice>,
+
+    alias: String,
+    mode: ClientMode,
+    payload: Option<P>,
 }
 
-impl From<Manager<ServerPostOffice>> for Player {
-    fn from(po: Manager<ServerPostOffice>) -> Player {
-        Player {
-            postoffice: po,
+impl<P: Send + Sync + 'static> Player<P> {
+    pub fn new(uid: Uid, postoffice: Manager<ServerPostOffice>, alias: String, mode: ClientMode) -> Self {
+        Self {
+            uid,
+
+            postoffice,
+
+            alias,
+            mode,
+            payload: None,
         }
+    }
+
+    pub fn get_uid(&self) -> Uid { self.uid }
+    pub fn get_mode(&self) -> ClientMode { self.mode }
+
+    pub fn postoffice(&self) -> &Manager<ServerPostOffice> { &self.postoffice }
+    pub fn alias(&self) -> &String { &self.alias }
+    pub fn payload(&self) -> &Option<P> { &self.payload }
+    pub fn payload_mut(&mut self) -> &mut Option<P> { &mut self.payload }
+}
+
+impl<P: Payloads> Server<P> {
+    pub(crate) fn kick_player(&self, player_uid: Uid, reason: &str) {
+        if let Some(player) = self.players.read().unwrap().get(&player_uid).map(|p| p.clone()) {
+            if self.payload.on_player_kick(&player, reason) {
+                self.broadcast_msg(&format!("[{} was kicked: {}]", player.alias(), reason));
+                self.remove_player(player_uid);
+            }
+        }
+    }
+
+    pub(crate) fn remove_player(&self, player_uid: Uid) -> Option<Arc<Player<<P as Payloads>::Player>>> {
+        self.players.write().unwrap().remove(&player_uid)
     }
 }

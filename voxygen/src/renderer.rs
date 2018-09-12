@@ -1,4 +1,5 @@
-use coord::prelude::*;
+// Library
+use vek::*;
 use gfx::{
     self,
     format::Formatted,

@@ -9,8 +9,7 @@ extern crate gfx_window_glutin;
 extern crate glutin;
 
 // Mathematics
-#[macro_use]
-extern crate coord;
+extern crate vek;
 extern crate alga;
 extern crate nalgebra;
 

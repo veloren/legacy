@@ -24,6 +24,7 @@ pub mod names;
 //pub mod network;
 pub mod jobs;
 pub mod net;
+pub mod vfs;
 
 pub use jobs::{JobHandle, JobMultiHandle, Jobs};
 

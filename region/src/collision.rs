@@ -94,6 +94,7 @@ impl Primitive {
         }
     }
 
+    #[allow(dead_code)]
     pub fn center_of_mass(&self) -> Vec3<f32> {
         match self {
             Primitive::Cuboid { cuboid: a } => a.middle,

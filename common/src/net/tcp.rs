@@ -9,7 +9,11 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use parking_lot::Mutex;
 
 // Parent
-use super::{packet::Frame, protocol::Protocol, Error};
+use super::{
+    packet::Frame,
+    protocol::{Protocol, PROTOCOL_FRAME_DATA, PROTOCOL_FRAME_HEADER},
+    Error,
+};
 
 pub struct Tcp {
     stream_in: Mutex<TcpStream>,
@@ -36,13 +40,13 @@ impl Protocol for Tcp {
         let mut stream = self.stream_out.lock();
         match frame {
             Frame::Header { id, length } => {
-                stream.write_u8(1)?; // 1 is const for Header
+                stream.write_u8(PROTOCOL_FRAME_HEADER)?;
                 stream.write_u64::<LittleEndian>(id)?;
                 stream.write_u64::<LittleEndian>(length)?;
                 Ok(())
             },
             Frame::Data { id, frame_no, data } => {
-                stream.write_u8(2)?; // 2 is const for Data
+                stream.write_u8(PROTOCOL_FRAME_DATA)?;
                 stream.write_u64::<LittleEndian>(id)?;
                 stream.write_u64::<LittleEndian>(frame_no)?;
                 stream.write_u64::<LittleEndian>(data.len() as u64)?;

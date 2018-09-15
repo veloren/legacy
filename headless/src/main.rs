@@ -8,7 +8,7 @@ extern crate syrup;
 #[macro_use]
 extern crate log;
 
-use std::{io, sync::mpsc};
+use std::{io, process::exit, sync::mpsc};
 
 use syrup::Window;
 
@@ -27,7 +27,7 @@ fn main() {
 
     let mut remote_addr = String::new();
     println!("Remote server address [127.0.0.1:59003]:");
-    io::stdin().read_line(&mut remote_addr).unwrap();
+    let _ = io::stdin().read_line(&mut remote_addr);
     let mut remote_addr = remote_addr.trim();
     if remote_addr.len() == 0 {
         remote_addr = "127.0.0.1:59003";
@@ -38,7 +38,7 @@ fn main() {
     let default_alias = common::names::generate();
     println!("Alias: [{}]", default_alias);
     let mut alias = String::new();
-    io::stdin().read_line(&mut alias).unwrap();
+    let _ = io::stdin().read_line(&mut alias);
     let mut alias = alias.trim().to_string();
     if alias.len() == 0 {
         alias = default_alias.to_string();
@@ -49,7 +49,10 @@ fn main() {
 
     let client = match Client::<Payloads>::new(ClientMode::Headless, alias, &remote_addr.trim(), gen_payload, 0) {
         Ok(c) => c,
-        Err(e) => panic!("An error occured when attempting to initiate the client: {:?}", e),
+        Err(e) => {
+            println!("An error occured when attempting to initiate the client: {}", e);
+            exit(0);
+        },
     };
 
     client.start();

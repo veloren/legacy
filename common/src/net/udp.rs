@@ -11,7 +11,11 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use parking_lot::{Mutex, RwLock};
 
 // Parent
-use super::{packet::Frame, protocol::Protocol, Error};
+use super::{
+    packet::Frame,
+    protocol::{Protocol, PROTOCOL_FRAME_DATA, PROTOCOL_FRAME_HEADER},
+    Error,
+};
 
 pub struct Udp {
     socket: RwLock<UdpSocket>,
@@ -59,7 +63,7 @@ impl Protocol for Udp {
         match frame {
             Frame::Header { id, length } => {
                 let mut buff = Vec::with_capacity(17);
-                buff.write_u8(1)?; // 1 is const for Header
+                buff.write_u8(PROTOCOL_FRAME_HEADER)?;
                 buff.write_u64::<LittleEndian>(id)?;
                 buff.write_u64::<LittleEndian>(length)?;
                 socket.send_to(&buff, &self.remote)?;
@@ -67,7 +71,7 @@ impl Protocol for Udp {
             },
             Frame::Data { id, frame_no, data } => {
                 let mut buff = Vec::with_capacity(25 + data.len());
-                buff.write_u8(2)?; // 2 is const for Data
+                buff.write_u8(PROTOCOL_FRAME_DATA)?;
                 buff.write_u64::<LittleEndian>(id)?;
                 buff.write_u64::<LittleEndian>(frame_no)?;
                 buff.write_u64::<LittleEndian>(data.len() as u64)?;

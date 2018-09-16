@@ -3,12 +3,8 @@ use ui::Ui;
 
 // Standard
 use std::{
-    cell::RefCell,
-    f32::consts::PI,
-    net::ToSocketAddrs,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
+    cell::RefCell, f32::consts::PI, net::ToSocketAddrs, sync::{
+        atomic::{AtomicBool, Ordering}, Arc,
     },
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -28,8 +24,7 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 // Project
 use client::{self, Client, ClientMode, CHUNK_SIZE};
 use region::{
-    chunk::{Chunk, ChunkContainer, ChunkConverter},
-    Container, PersState, VolContainer, VolConverter, VolState,
+    chunk::{Chunk, ChunkContainer, ChunkConverter}, Container, PersState, VolContainer, VolConverter, VolState,
 };
 
 // Local
@@ -320,39 +315,45 @@ impl Game {
                 continue;
             }
             con.set_access();
-            if con.payload().is_none() && con.vols().contains(PersState::Raw) {
-                //payload got dropped by persistence, lets regenerate it
-                gen_payload(*pos, con);
-            }
-            let mut trylock = &mut con.payload_try_mut(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
-            if let Some(ref mut lock) = trylock {
-                if let Some(ref mut payload) = **lock {
-                    if let ChunkPayload::Meshes(ref mut mesh) = payload {
-                        // Calculate chunk mode matrix
-                        let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
-                            (pos.x * CHUNK_SIZE[0]) as f32,
-                            (pos.y * CHUNK_SIZE[1]) as f32,
-                            (pos.z * CHUNK_SIZE[2]) as f32,
-                        )).to_homogeneous();
+            let mut regen_payload = false;
+            {
+                let mut trylock = &mut con.payload_try_mut(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
+                if let Some(ref mut lock) = trylock {
+                    if let Some(ref mut payload) = **lock {
+                        if let ChunkPayload::Meshes(ref mut mesh) = payload {
+                            // Calculate chunk mode matrix
+                            let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
+                                (pos.x * CHUNK_SIZE[0]) as f32,
+                                (pos.y * CHUNK_SIZE[1]) as f32,
+                                (pos.z * CHUNK_SIZE[2]) as f32,
+                            )).to_homogeneous();
 
-                        // Create set new model constants
-                        let model_consts = ConstHandle::new(&mut renderer);
+                            // Create set new model constants
+                            let model_consts = ConstHandle::new(&mut renderer);
 
-                        // Update chunk model constants
-                        model_consts.update(
-                            &mut renderer,
-                            voxel::ModelConsts {
-                                model_mat: *model_mat.as_ref(),
-                            },
-                        );
+                            // Update chunk model constants
+                            model_consts.update(
+                                &mut renderer,
+                                voxel::ModelConsts {
+                                    model_mat: *model_mat.as_ref(),
+                                },
+                            );
 
-                        // Update the chunk payload
-                        *payload = ChunkPayload::Model {
-                            model: voxel::Model::new(&mut renderer, mesh),
-                            model_consts,
-                        };
+                            // Update the chunk payload
+                            *payload = ChunkPayload::Model {
+                                model: voxel::Model::new(&mut renderer, mesh),
+                                model_consts,
+                            };
+                        }
+                    } else {
+                        //payload got dropped by persistence, lets regenerate it
+                        regen_payload = true;
                     }
                 }
+            } //trylock must be out of scope before gen_payload is called
+            if regen_payload && con.vols().contains(PersState::Raw) {
+                //payload got dropped by persistence, lets regenerate it
+                gen_payload(*pos, con);
             }
         }
     }

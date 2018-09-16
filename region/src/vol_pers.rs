@@ -82,17 +82,15 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
         let now = SystemTime::now();
         let mut offload_queue = vec![]; //we allocate in a container here, to reduce lock phase
         for (key, container) in self.hot.read().iter() {
-            let diff;
-            let contains;
-            {
-                diff = now.duration_since(*container.last_access());
-                let lock = container.vols();
-                contains = lock.contains(PersState::Raw) || lock.contains(PersState::Rle);
-            }
+            let diff = now.duration_since(*container.last_access());
             if let Ok(diff) = diff {
-                if diff.as_secs() > 5 && contains {
-                    info!("drop persistence to File: {:?} after {}", key, diff.as_secs());
-                    offload_queue.push(((*key).clone(), container.clone()));
+                if diff.as_secs() > 5 {
+                    let lock = container.vols();
+                    let contains = lock.contains(PersState::Raw) || lock.contains(PersState::Rle);
+                    if contains {
+                        //info!("drop persistence to File: {:?} after {}", key, diff.as_secs());
+                        offload_queue.push(((*key).clone(), container.clone()));
+                    }
                 }
             }
         }
@@ -107,7 +105,6 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
             c.insert(*key, container.clone());
             h.remove(key);
         }
-        info!("DONE DONE");
     }
 
     pub fn debug(&self) {

@@ -177,7 +177,7 @@ pub fn tick<
                 }
             }
             if normal.z != 0.0 {
-                debug!("full stop z");
+                //debug!("full stop z");
                 velocity.z = 0.0;
                 entity.vel_mut().z = 0.0;
             }
@@ -196,7 +196,10 @@ pub fn tick<
             }
         }
 
-        let chunk = entity_prim.col_center().map(|e| e as i64).div_euc(chunk_size);
+        let cd = entity_prim.col_center();
+        let cs = chunk_size.map(|e| e as f32);
+        let chunk = vec3!(cd.x.div_euc(cs.x), cd.y.div_euc(cs.y), cd.z.div_euc(cs.z)); //Vec3<f32> has no div_euc!
+        let chunk = chunk.map(|e| e as i64);
         let chunk_exists = chunk_mgr.loaded(chunk);
         if !chunk_exists {
             *entity.vel_mut() = vec3![0.0; 3];

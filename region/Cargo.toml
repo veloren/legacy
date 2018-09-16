@@ -3,11 +3,6 @@ name = "region"
 version = "0.1.0"
 authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
 
-[profile.dev]
-
-[profile.release]
-debug = true
-
 [dependencies]
 common = { path = "../common" }
 enum-map = "0.2.31"

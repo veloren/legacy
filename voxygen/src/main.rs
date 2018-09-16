@@ -3,11 +3,10 @@
 // Graphics
 #[macro_use]
 extern crate gfx;
+extern crate conrod;
 extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate glutin;
-#[macro_use]
-extern crate conrod;
 
 // Mathematics
 #[macro_use]
@@ -16,10 +15,9 @@ extern crate alga;
 extern crate nalgebra;
 
 // File loading
-#[macro_use]
-extern crate toml;
 extern crate dot_vox;
 extern crate glsl_include;
+extern crate toml;
 
 // I/O
 #[macro_use]

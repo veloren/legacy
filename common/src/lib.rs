@@ -9,10 +9,9 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate byteorder;
+extern crate coord;
 extern crate rand;
 extern crate time;
-#[macro_use]
-extern crate coord;
 #[macro_use]
 extern crate lazy_static;
 extern crate parking_lot;

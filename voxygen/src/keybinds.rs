@@ -1,10 +1,8 @@
-use toml::{self, Value};
-#[macro_use]
-use serde_derive;
+use toml;
 
 use std::{
-    fs::{self, File},
-    io::{self, Read, Seek, SeekFrom, Write},
+    fs::File,
+    io::{self, Read, Write},
     path::Path,
 };
 

@@ -40,6 +40,7 @@ pub trait Collider<'a> {
 pub const PLANCK_LENGTH: f32 = 0.001; // smallest unit of meassurement in collision, no guarantees behind this point
 
 impl ResolutionCol {
+    #[allow(dead_code)]
     pub fn is_touch(&self) -> bool {
         self.correction.x < PLANCK_LENGTH && self.correction.y < PLANCK_LENGTH && self.correction.z < PLANCK_LENGTH
     }
@@ -101,6 +102,7 @@ impl Primitive {
 
     // when using the collision center, the outer_approximation_sphere can be minimal
     // implement it fast!
+    #[allow(dead_code)]
     pub fn col_center(&self) -> Vec3<f32> {
         match self {
             Primitive::Cuboid { cuboid: a } => a.middle,
@@ -110,6 +112,7 @@ impl Primitive {
     // returns the 3 radii of a spheroid where the object fits exactly in
     // implement it fast!
     //TODO: evaluate if this is a so fast method for checking somewhere actually
+    #[allow(dead_code)]
     pub fn col_approx_rad(&self) -> Vec3<f32> {
         match self {
             Primitive::Cuboid { cuboid: a } => a.radius * SQRT_2, // SQRT(2) is correct for sphere, havent it checked for an spheroid tbh

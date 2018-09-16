@@ -1,8 +1,5 @@
-// Library
-use coord::prelude::*;
-
 // Project
-use region::{physics, VolState};
+use region::physics;
 
 // Local
 use Client;

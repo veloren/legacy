@@ -63,7 +63,6 @@ pub fn render(ui: &mut Ui) {
     let build_hash_id = ui.get_widget_id("build_hash_id");
     let build_time_id = ui.get_widget_id("build_time_id");
 
-    let width = ui.get_width();
     let height = ui.get_height();
 
     let state = ui.get_state();
@@ -71,7 +70,7 @@ pub fn render(ui: &mut Ui) {
 
     let event_tx = ui.get_event_tx();
 
-    let event_focus = conrod::event::Event::Ui(conrod::event::Ui::WidgetCapturesInputSource(
+    let _event_focus = conrod::event::Event::Ui(conrod::event::Ui::WidgetCapturesInputSource(
         text_id,
         conrod::input::Source::Keyboard,
     ));

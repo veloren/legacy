@@ -33,7 +33,7 @@ impl Chunk {
 
         let mountain_noise = OpenSimplex::new().set_seed(8);
 
-        let color_noise = OpenSimplex::new().set_seed(9);
+        let _color_noise = OpenSimplex::new().set_seed(9);
 
         let temp_noise = OpenSimplex::new().set_seed(10);
 

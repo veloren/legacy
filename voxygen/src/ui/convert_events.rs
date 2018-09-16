@@ -6,7 +6,7 @@ use conrod::{
 
 use glutin::{
     dpi::{LogicalPosition, LogicalSize},
-    ElementState, Event, KeyboardInput, MouseButton, MouseScrollDelta, Touch, TouchPhase, VirtualKeyCode, WindowEvent,
+    ElementState, Event, MouseButton, MouseScrollDelta, Touch, TouchPhase, VirtualKeyCode, WindowEvent,
 };
 
 pub fn convert(event: Event, win_w: f64, win_h: f64) -> Option<Input> {

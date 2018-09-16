@@ -45,7 +45,7 @@ impl Message for ConnectionMessage {
 }
 
 pub struct Connection<RM: Message> {
-    // sorted by prio and then cronically
+    // sorted by prio and then chronically
     tcp: Tcp,
     udpmgr: Arc<UdpMgr>,
     udp: Mutex<Option<Udp>>,
@@ -320,6 +320,7 @@ impl<'a, RM: Message + 'static> Connection<RM> {
         }
     }
 
+    #[allow(dead_code)]
     fn bind_udp<T: ToSocketAddrs>(bind_addr: &T) -> Result<UdpSocket, Error> {
         let sock = UdpSocket::bind(&bind_addr);
         match sock {

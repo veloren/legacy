@@ -1,5 +1,5 @@
 // Standard
-use std::{collections::HashMap, f32::INFINITY, sync::Arc, thread, time};
+use std::{collections::HashMap, sync::Arc, thread, time};
 
 //Library
 use coord::prelude::*;
@@ -8,8 +8,8 @@ use rand::prelude::*;
 
 // Parent
 use super::{
-    collision::{Cuboid, Primitive, ResolutionCol, ResolutionTti},
-    physics, Block, BlockMaterial, Chunk, Entity, VolGen, VolMgr, VolState, Volume, Voxel,
+    collision::{Primitive, ResolutionCol, ResolutionTti},
+    physics, Block, BlockMaterial, Chunk, Entity, VolGen, VolMgr, Volume, Voxel,
 };
 use common::Uid;
 
@@ -19,27 +19,36 @@ fn collide_simple() {
     let m1 = Primitive::new_cuboid(vec3!(0.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
     let m2 = Primitive::new_cuboid(vec3!(1.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(1.0, 0.5, 0.5),
-    //    correction: vec3!(1.0, 0.0, 0.0),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(1.0, 0.5, 0.5),
+            correction: vec3!(1.0, 0.0, 0.0),
+        }
+    );
 
     let m1 = Primitive::new_cuboid(vec3!(0.5, 1.0, 0.5), vec3!(1.0, 1.0, 1.0));
     let m2 = Primitive::new_cuboid(vec3!(1.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(1.0, 0.75, 0.5),
-    //    correction: vec3!(1.0, -0.5, 0.0),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(1.0, 0.75, 0.5),
+            correction: vec3!(1.0, -0.5, 0.0),
+        }
+    );
 
     // exactly on each other
     let m1 = Primitive::new_cuboid(vec3!(0.5, 1.0, 0.5), vec3!(1.0, 1.0, 1.0));
     let m2 = Primitive::new_cuboid(vec3!(0.5, 1.0, 0.5), vec3!(1.0, 1.0, 1.0));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(0.5, 1.0, 0.5),
-    //    correction: vec3!(0.0, 0.0, 2.0),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(0.5, 1.0, 0.5),
+            correction: vec3!(0.0, 0.0, 2.0),
+        }
+    );
 
     let m1 = Primitive::new_cuboid(vec3!(0.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
     let m2 = Primitive::new_cuboid(vec3!(3.5, 0.5, 0.5), vec3!(1.0, 1.0, 1.0));
@@ -53,10 +62,13 @@ fn touch_simple() {
     let m1 = Primitive::new_cuboid(vec3!(0.5, 0.5, 0.5), vec3!(0.5, 0.5, 0.5));
     let m2 = Primitive::new_cuboid(vec3!(1.5, 0.5, 0.5), vec3!(0.5, 0.5, 0.5));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(1.0, 0.5, 0.5),
-    //    correction: vec3!(0.0, 0.0, 0.0),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(1.0, 0.5, 0.5),
+            correction: vec3!(0.0, 0.0, 0.0),
+        }
+    );
 }
 
 #[test]
@@ -65,104 +77,134 @@ fn collide_complex() {
     let m1 = Primitive::new_cuboid(vec3!(0.0, 0.0, 0.0), vec3!(1.0, 1.0, 1.0));
     let m2 = Primitive::new_cuboid(vec3!(1.0, 0.5, 0.0), vec3!(1.0, 1.0, 1.0));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(0.5, 0.25, 0.0),
-    //    correction: vec3!(1.0, 0.5, 0.0),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(0.5, 0.25, 0.0),
+            correction: vec3!(1.0, 0.5, 0.0),
+        }
+    );
 
     let m1 = Primitive::new_cuboid(vec3!(0.0, 0.0, 0.0), vec3!(10.0, 10.0, 10.0));
     let m2 = Primitive::new_cuboid(vec3!(1.0, 0.5, 0.0), vec3!(1.0, 1.0, 1.0));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(0.5, 0.25, 0.0),
-    //    correction: vec3!(10.0, 5.0, 0.0),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(0.5, 0.25, 0.0),
+            correction: vec3!(10.0, 5.0, 0.0),
+        }
+    );
 
     let m1 = Primitive::new_cuboid(vec3!(0.0, 0.0, 0.0), vec3!(10.0, 10.0, 10.0));
     let m2 = Primitive::new_cuboid(vec3!(-1.0, 0.5, 0.0), vec3!(1.0, 1.0, 1.0));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(-0.5, 0.25, 0.0),
-    //    correction: vec3!(-10.0, 5.0, 0.0),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(-0.5, 0.25, 0.0),
+            correction: vec3!(-10.0, 5.0, 0.0),
+        }
+    );
 
     //negative
     let m1 = Primitive::new_cuboid(vec3!(0.0, 0.0, 0.0), vec3!(10.0, 10.0, 10.0));
     let m2 = Primitive::new_cuboid(vec3!(-0.7, -2.0, 0.0), vec3!(1.0, 1.0, 1.0));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res.center, vec3!(-0.35, -1.0, 0.0));
+    assert_eq!(res.center, vec3!(-0.35, -1.0, 0.0));
     let rounded = res.correction.map(|e| (e * 100.0).round() / 100.0);
-    //assert_eq!(rounded, vec3!(-3.15, -9.0, 0.0));
+    assert_eq!(rounded, vec3!(-3.15, -9.0, 0.0));
 
     //share a same wall but is inside so overlap
     let m1 = Primitive::new_cuboid(vec3!(10.0, 10.0, 10.0), vec3!(10.0, 10.0, 10.0));
     let m2 = Primitive::new_cuboid(vec3!(2.0, 6.0, 5.0), vec3!(2.0, 2.0, 2.0));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(6.0, 8.0, 7.5),
-    //    correction: vec3!(-4.0, -2.0, -2.5),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(6.0, 8.0, 7.5),
+            correction: vec3!(-4.0, -2.0, -2.5),
+        }
+    );
 
     // z lies on the surface
     let m1 = Primitive::new_cuboid(vec3!(10.0, 10.0, 10.0), vec3!(10.0, 10.0, 10.0));
     let m2 = Primitive::new_cuboid(vec3!(8.0, 6.0, 0.0), vec3!(2.0, 2.0, 2.0));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(9.0, 8.0, 5.0),
-    //    correction: vec3!(-0.4, -0.8, -2.0),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(9.0, 8.0, 5.0),
+            correction: vec3!(-0.4, -0.8, -2.0),
+        }
+    );
 
     // same but other y
     let m1 = Primitive::new_cuboid(vec3!(10.0, 10.0, 10.0), vec3!(10.0, 10.0, 10.0));
     let m2 = Primitive::new_cuboid(vec3!(8.0, 7.0, 5.0), vec3!(2.0, 2.0, 2.0));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(9.0, 8.5, 7.5),
-    //    correction: vec3!(-2.8, -4.2, -7.0),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(9.0, 8.5, 7.5),
+            correction: vec3!(-2.8, -4.2, -7.0),
+        }
+    );
 
     //outside
     let m1 = Primitive::new_cuboid(vec3!(10.0, 10.0, 10.0), vec3!(10.0, 10.0, 10.0));
     let m2 = Primitive::new_cuboid(vec3!(22.0, 10.0, 8.0), vec3!(2.0, 2.0, 2.0));
     let res = m1.resolve_col(&m2).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(16.0, 10.0, 9.0),
-    //    correction: vec3!(0.0, 0.0, 0.0),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(16.0, 10.0, 9.0),
+            correction: vec3!(0.0, 0.0, 0.0),
+        }
+    );
 }
 
 #[test]
 fn touch_wall() {
-    //timulate a wall touch
+    // stimulate a wall touch
     let w1 = Primitive::new_cuboid(vec3!(0.5, 0.5, 0.5), vec3!(0.5, 0.5, 0.5));
     let w2 = Primitive::new_cuboid(vec3!(0.5, 0.5, 1.5), vec3!(0.5, 0.5, 0.5));
     let w3 = Primitive::new_cuboid(vec3!(0.5, 0.5, 2.5), vec3!(0.5, 0.5, 0.5));
     let w4 = Primitive::new_cuboid(vec3!(0.5, 0.5, 3.5), vec3!(0.5, 0.5, 0.5));
     let m1 = Primitive::new_cuboid(vec3!(1.45, 0.51234, 1.2), vec3!(0.45, 0.45, 0.9));
     let res = w1.resolve_col(&m1).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(0.975, 0.50617003, 0.85),
-    //    correction: vec3!(0.0, 0.0, 0.0),
-    //});
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(0.975, 0.50617003, 0.85),
+            correction: vec3!(0.0, 0.0, 0.0),
+        }
+    );
 
-    ////assert_eq!(res.center, vec3!(1.0, 0.51234, 1.2));
+    //assert_eq!(res.center, vec3!(1.0, 0.51234, 1.2));
     assert!(res.is_touch());
     let res = w2.resolve_col(&m1).unwrap();
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(0.975, 0.50617003, 1.35),
-    //    correction: vec3!(0.0, 0.0, 0.0),
-    //});
-    ////assert_eq!(res.center, vec3!(1.0, 0.51234, 1.2));
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(0.975, 0.50617003, 1.35),
+            correction: vec3!(0.0, 0.0, 0.0),
+        }
+    );
+    //assert_eq!(res.center, vec3!(1.0, 0.51234, 1.2));
     assert!(res.is_touch());
     let res = w3.resolve_col(&m1).unwrap();
-    ////assert_eq!(res.center, vec3!(1.0, 0.51234, 1.2));
-    //assert_eq!(res, Resolution{
-    //    center: vec3!(0.975, 0.50617003, 1.85),
-    //    correction: vec3!(0.0, 0.0, 0.0),
-    //});
+    //assert_eq!(res.center, vec3!(1.0, 0.51234, 1.2));
+    assert_eq!(
+        res,
+        ResolutionCol {
+            center: vec3!(0.975, 0.50617003, 1.85),
+            correction: vec3!(0.0, 0.0, 0.0),
+        }
+    );
     assert!(res.is_touch());
     let res = w4.resolve_col(&m1);
-    //assert_eq!(res, None);
+    assert_eq!(res, None);
 }
 
 fn random_vec(scale: f32) -> Vec3<f32> {
@@ -387,7 +429,6 @@ fn tti_horizontal_positions_const_vel_negative() {
 #[test]
 fn tti_horizontal_positions_const_vel_beneath() {
     let vel = vec3!(0.0, 0.0, -1.0);
-    let normal = vec3!(0.0, 0.0, 1.0);
     let m1 = Primitive::new_cuboid(vec3!(0.5, 0.5, 0.5), vec3!(0.5, 0.5, 0.5));
     let m2 = Primitive::new_cuboid(vec3!(5.5, 0.5, 1000.5), vec3!(0.5, 0.5, 0.5));
     checkNone!(m1.time_to_impact(&m2, &vel));
@@ -670,7 +711,7 @@ fn gen_chunk_flat_border(pos: Vec2<i64>) -> Chunk {
     return c;
 }
 
-fn gen_payload(chunk: &Chunk) -> i64 { 42 }
+fn gen_payload(_chunk: &Chunk) -> i64 { 42 }
 
 #[test]
 fn physics_fall() {

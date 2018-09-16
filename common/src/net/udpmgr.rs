@@ -64,7 +64,7 @@ impl UdpMgr {
                 socket: socketclone,
                 recv_thread,
             });
-            let sockets = mgr.sockets.write().push(si.clone());
+            mgr.sockets.write().push(si.clone());
             socket_info = Some(si.clone());
             debug!("listen on new udp socket, started a new thread {}", listen);
         }

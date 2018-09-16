@@ -5,10 +5,7 @@ use Volume;
 use Voxel;
 
 // Standard
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::{collections::HashSet, sync::Arc};
 
 // Library
 use coord::prelude::*;
@@ -117,7 +114,7 @@ impl<
         });
     }
 
-    pub fn set(&self, pos: Vec2<i64>, mut vol: V, payload: P) {
+    pub fn set(&self, pos: Vec2<i64>, vol: V, payload: P) {
         let mut con = C::new();
         *con.payload_mut() = Some(payload);
         con.insert(vol, PersState::Raw);

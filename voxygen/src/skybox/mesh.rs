@@ -1,9 +1,3 @@
-// Library
-use coord::prelude::*;
-
-// Local
-use voxel::{RenderVolume, RenderVoxel};
-
 gfx_defines! {
     vertex Vertex {
         pos: [f32; 3] = "vert_pos",
@@ -11,6 +5,7 @@ gfx_defines! {
 }
 
 impl Vertex {
+    #[allow(dead_code)]
     pub fn new(pos: [f32; 3]) -> Vertex { Vertex { pos } }
 }
 
@@ -20,6 +15,7 @@ pub struct Quad {
 }
 
 impl Quad {
+    #[allow(dead_code)]
     pub fn new(v0: Vertex, v1: Vertex, v2: Vertex, v3: Vertex) -> Quad {
         Quad {
             verts: [v0, v1, v2, v3],

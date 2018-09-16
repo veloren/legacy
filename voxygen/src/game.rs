@@ -11,7 +11,6 @@ use std::{
         Arc,
     },
 };
-//use std::f32::{sin, cos};
 
 // Library
 use coord::prelude::*;
@@ -26,7 +25,7 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
 use client::{self, Client, ClientMode, CHUNK_SIZE};
-use region::{Chunk, Container, VolState};
+use region::{Chunk, Container};
 
 // Local
 use camera::Camera;
@@ -341,7 +340,7 @@ impl Game {
         let mut renderer = self.window.renderer_mut();
 
         // Update each entity constbuffer
-        for (uid, entity) in self.client.entities().iter() {
+        for (_uid, entity) in self.client.entities().iter() {
             let mut entity = entity.write();
 
             // Calculate entity model matrix
@@ -397,7 +396,7 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Render each chunk
-        for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
+        for (_pos, con) in self.client.chunk_mgr().persistence().data().iter() {
             let con = con.write();
             if let Some(payload) = con.payload() {
                 if let ChunkPayload::Model {
@@ -412,7 +411,7 @@ impl Game {
         }
 
         // Render each entity
-        for (uid, entity) in self.client.entities().iter() {
+        for (_uid, entity) in self.client.entities().iter() {
             // Choose the correct model for the entity
             let model = match self.client.player().entity_uid {
                 Some(uid) if uid == uid => &self.player_model,

@@ -1,6 +1,3 @@
-// Standard
-use std::sync::Arc;
-
 // Library
 use coord::prelude::*;
 

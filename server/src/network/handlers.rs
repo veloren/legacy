@@ -118,8 +118,8 @@ pub fn handle_packet(relay: &Relay<ServerContext>, ctx: &mut ServerContext, sess
                         let dist = (*e.pos() - pos).length();
                         if dist > 80.0 {
                             // 80 effectivly makes this never apear
-                            info!("player: {} moved to fast, resetting him", player_name);
-                            let (pos, vel, ctrl_vel, look_dir) = (*e.pos(), *e.vel(), *e.ctrl_acc(), *e.look_dir());
+                            info!("player: {} moved too fast, resetting him", player_name);
+                            let (pos, vel, _ctrl_vel, look_dir) = (*e.pos(), *e.vel(), *e.ctrl_acc(), *e.look_dir());
                             ctx.send_message(
                                 session_id,
                                 ServerMessage::EntityUpdate {

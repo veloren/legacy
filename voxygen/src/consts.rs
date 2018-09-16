@@ -4,8 +4,7 @@ use gfx::{
 };
 use gfx_device_gl;
 
-use renderer::{ColorFormat, DepthFormat, Renderer};
-use voxel::{Mesh, Vertex};
+use renderer::Renderer;
 
 gfx_defines! {
     constant GlobalConsts {

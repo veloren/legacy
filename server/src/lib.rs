@@ -10,9 +10,8 @@ extern crate toml;
 extern crate serde_derive;
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate pretty_env_logger;
 extern crate common;
+extern crate pretty_env_logger;
 extern crate region;
 extern crate world;
 

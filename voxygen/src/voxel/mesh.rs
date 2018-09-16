@@ -85,6 +85,7 @@ pub struct Poly {
 }
 
 impl Poly {
+    #[allow(dead_code)]
     pub fn new(v0: Vertex, v1: Vertex, v2: Vertex) -> Poly { Poly { verts: [v0, v1, v2] } }
 }
 
@@ -111,6 +112,7 @@ impl Quad {
         }
     }
 
+    #[allow(dead_code)]
     pub fn flat_with_color(
         p0: [f32; 3],
         p1: [f32; 3],
@@ -386,6 +388,7 @@ impl Mesh {
 
     pub fn add(&mut self, verts: &[Vertex]) { self.verts.extend_from_slice(verts); }
 
+    #[allow(dead_code)]
     pub fn add_polys(&mut self, polys: &[Poly]) {
         for p in polys {
             self.verts.extend_from_slice(&p.verts);

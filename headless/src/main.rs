@@ -27,7 +27,7 @@ fn main() {
 
     let mut remote_addr = String::new();
     println!("Remote server address [127.0.0.1:59003]:");
-    let _ = io::stdin().read_line(&mut remote_addr);
+    io::stdin().read_line(&mut remote_addr).unwrap();
     let mut remote_addr = remote_addr.trim();
     if remote_addr.len() == 0 {
         remote_addr = "127.0.0.1:59003";
@@ -38,7 +38,7 @@ fn main() {
     let default_alias = common::names::generate();
     println!("Alias: [{}]", default_alias);
     let mut alias = String::new();
-    let _ = io::stdin().read_line(&mut alias);
+    io::stdin().read_line(&mut alias).unwrap();
     let mut alias = alias.trim().to_string();
     if alias.len() == 0 {
         alias = default_alias.to_string();

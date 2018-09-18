@@ -21,7 +21,7 @@ conrod = { git = "https://gitlab.com/veloren/conrod", branch = "master", version
 
 # Mathematics
 coord = "0.11.0"
-nalgebra = "0.15.1"
+nalgebra = "0.16.1"
 alga = "0.7.1"
 
 # File loading

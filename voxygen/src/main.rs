@@ -60,7 +60,11 @@ mod skybox;
 mod tonemapper;
 mod voxel;
 
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    thread::sleep,
+    time::Duration,
+};
 
 use chrono::{DateTime, TimeZone, Utc};
 
@@ -143,6 +147,9 @@ fn main() {
     println!("using a view distance of {}.", view_distance);
 
     println!("Connecting to {}", remote_addr);
+
+    // wait 100ms to give the user time to lift their finger up from the enter key so the chat isn't opened immediately after start
+    sleep(Duration::from_millis(100));
 
     Game::new(ClientMode::Character, name_choice, remote_addr, view_distance).run();
 }

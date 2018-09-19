@@ -4,7 +4,6 @@
 extern crate log;
 #[macro_use]
 extern crate enum_map;
-extern crate nalgebra;
 extern crate noise;
 extern crate rand;
 #[macro_use]

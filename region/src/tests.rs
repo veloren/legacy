@@ -171,7 +171,7 @@ fn collide_complex() {
 
 #[test]
 fn touch_wall() {
-    // stimulate a wall touch
+    // Simulate a wall touch
     let w1 = Primitive::new_cuboid(Vec3::new(0.5, 0.5, 0.5), Vec3::new(0.5, 0.5, 0.5));
     let w2 = Primitive::new_cuboid(Vec3::new(0.5, 0.5, 1.5), Vec3::new(0.5, 0.5, 0.5));
     let w3 = Primitive::new_cuboid(Vec3::new(0.5, 0.5, 2.5), Vec3::new(0.5, 0.5, 0.5));

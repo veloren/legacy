@@ -27,6 +27,7 @@ pub mod net;
 pub mod post;
 pub mod manager;
 pub mod msg;
+pub mod tub;
 
 //pub use jobs::{JobHandle, JobMultiHandle, Jobs};
 

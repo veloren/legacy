@@ -24,7 +24,7 @@ use parking_lot::Mutex;
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
-use client::{self, Client, ClientMode, CHUNK_SIZE};
+use client::{self, Client, PlayMode, CHUNK_SIZE};
 use region::{Chunk, Container, VolState};
 use common::manager::Manager;
 
@@ -82,7 +82,7 @@ fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk {
 }
 
 impl Game {
-    pub fn new<R: ToSocketAddrs>(mode: ClientMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
+    pub fn new<R: ToSocketAddrs>(mode: PlayMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
         let window = RenderWindow::new();
 
         let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, view_distance)

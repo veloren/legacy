@@ -24,10 +24,12 @@ use super::{
     ConnectionMessage, Error, Message,
 };
 
+#[derive(Debug)]
 enum ConnectionError {
     Disconnected,
 }
 
+#[derive(Debug)]
 pub struct Connection<RM: Message> {
     // sorted by prio and then chronically
     tcp: Tcp,

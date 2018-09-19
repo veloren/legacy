@@ -40,6 +40,7 @@ extern crate client;
 extern crate common;
 extern crate region;
 
+// Modules
 mod camera;
 mod game;
 mod key_state;
@@ -48,27 +49,32 @@ mod tests;
 mod ui;
 mod window;
 
-// Rendering
+// > Rendering
 mod consts;
 mod pipeline;
 mod renderer;
 mod shader;
 
-// Pipelines
+// > Pipelines
 mod skybox;
 mod tonemapper;
 mod voxel;
 
+// Standard
 use std::{
     io::{self, Write},
-    thread::sleep,
+    thread,
     time::Duration,
 };
 
+// Library
 use chrono::{DateTime, TimeZone, Utc};
 
-use client::ClientMode;
+// Project
+use client::PlayMode;
 use common::get_version;
+
+// Local
 use game::Game;
 
 // START Environment variables
@@ -148,7 +154,8 @@ fn main() {
     println!("Connecting to {}", remote_addr);
 
     // wait 100ms to give the user time to lift their finger up from the enter key so the chat isn't opened immediately after start
-    sleep(Duration::from_millis(100));
+    thread::sleep(Duration::from_millis(100));
 
     Game::new(ClientMode::Character, name_choice, remote_addr, view_distance).run();
+    Game::new(PlayMode::Character, name_choice, remote_addr, view_distance).run();
 }

@@ -38,7 +38,7 @@ impl Message for ServerMsg {}
 // ClientMsg
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub enum ClientMode {
+pub enum PlayMode {
     Headless,
     Character,
 }
@@ -46,7 +46,7 @@ pub enum ClientMode {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ClientMsg {
     // SessionKind::Connect
-    Connect { alias: String, mode: ClientMode },
+    Connect { alias: String, mode: PlayMode },
 
     // SessionKind::Disconnect
     Disconnect { reason: String },

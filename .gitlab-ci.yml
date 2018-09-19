@@ -30,11 +30,21 @@ before_script:
         git pull "https://gitlab.com/${SOURCE_PROJECT}/game.git" "${SOURCE_BRANCH}";
     fi;
   - git submodule update --init --recursive
+  - if cargo install --list | grep -i "sccache"; then
+      echo "sccache already installed";
+    else
+      cargo install sccache;
+    fi
+  - export SCCACHE_CACHE_SIZE=9G
+  - export RUSTC_WRAPPER=sccache
+  - sccache -z
+  - sccache --start-server || true
+  - sccache --stop-server || true
+  - sccache --show-stats
   - git status
   - if [ -d target ]; then
        ls -la target;
     fi;
-#  - git submodule update --init --recursive
 
 clean-code:
   stage: build

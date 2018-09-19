@@ -12,7 +12,7 @@ use std::{io, sync::mpsc};
 
 use syrup::Window;
 
-use client::{Chunk, Client, ClientMode};
+use client::{Chunk, Client, PlayMode};
 
 struct Payloads {}
 impl client::Payloads for Payloads {
@@ -44,7 +44,7 @@ fn main() {
         alias = default_alias.to_string();
     }
 
-    let client = Client::<Payloads>::new(ClientMode::Headless, alias, &remote_addr.trim(), gen_payload, 0)
+    let client = Client::<Payloads>::new(PlayMode::Headless, alias, &remote_addr.trim(), gen_payload, 0)
         .unwrap_or_else(|e| panic!("An error occured when attempting to initiate the client: {:?}", e));
 
     let (tx, rx) = mpsc::channel();

@@ -10,11 +10,13 @@ pub enum FrameError {
 }
 
 //TODO: enhance this PacketData / OutgoingPacket structure, so that only one byte stream is keept for broadcast
+#[derive(Debug)]
 pub struct PacketData {
     bytes: Vec<u8>,
     id: u64,
 }
 
+#[derive(Debug)]
 pub struct OutgoingPacket {
     data: PacketData,
     pos: u64,
@@ -23,6 +25,7 @@ pub struct OutgoingPacket {
     prio: u8,
 }
 
+#[derive(Debug)]
 pub struct IncomingPacket {
     data: PacketData,
     pos: u64,

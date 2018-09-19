@@ -41,12 +41,14 @@ pub enum Letter<SK, M> {
     CloseBox(u64),
     Message { uid: u64, payload: M },
     OneShot(M),
+    Shutdown,
 }
 
 impl<SK: Message, M: Message> Message for Letter<SK, M> {}
 
 // PostBoxSession
 
+#[derive(Debug)]
 pub struct PostBoxSession<SK: Message, SM: Message, RM: Message> {
     pub postbox: PostBox<SK, SM, RM>,
     pub kind: SK,
@@ -54,6 +56,7 @@ pub struct PostBoxSession<SK: Message, SM: Message, RM: Message> {
 
 // PostBox
 
+#[derive(Debug)]
 pub struct PostBox<SK: Message, SM: Message, RM: Message> {
     uid: u64,
     // The recv end for the incoming mpsc
@@ -87,6 +90,7 @@ impl<SK: Message, SM: Message, RM: Message> Drop for PostBox<SK, SM, RM> {
 
 // PostOffice
 
+#[derive(Debug)]
 pub struct PostOffice<SK: Message, SM: Message, RM: Message> {
     uid_counter: AtomicU64,
 
@@ -192,6 +196,14 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
     pub fn send_one(&self, msg: SM) -> Result<(), SendError<Result<Letter<SK, SM>, ()>>> {
         self.outgoing_send.lock().unwrap().send(Ok(Letter::OneShot(msg)))
     }
+
+    // Stop the PostOffice
+    pub fn stop(&self) {
+        // Send shutdown message
+        self.outgoing_send.lock().unwrap().send(Ok(Letter::Shutdown));
+        // Close the connection
+        self.outgoing_send.lock().unwrap().send(Err(()));
+    }
 }
 
 impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
@@ -206,6 +218,9 @@ impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
                     Ok(Err(_)) | Err(_) => break,
                 };
             }
+
+            // Stop the connection, terminating communication
+            Connection::stop(&po.conn);
         });
 
         // Create a worker to relay incoming messages from the connection
@@ -229,7 +244,7 @@ impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
                     Ok(Letter::OneShot(m)) => {
                         incoming_send.send(Incoming::Msg(m));
                     },
-                    Err(_) => break,
+                    Ok(Letter::Shutdown) | Err(_) => break,
                 }
             }
 
@@ -239,7 +254,6 @@ impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
     }
 
     fn on_drop(&self, mgr: &mut Manager<Self>) {
-        Manager::internal(mgr).outgoing_send.lock().unwrap().send(Err(()));
-        Connection::stop(&Manager::internal(mgr).conn);
+        Manager::internal(mgr).stop();
     }
 }

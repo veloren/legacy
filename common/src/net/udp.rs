@@ -13,6 +13,7 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 // Parent
 use super::{packet::Frame, protocol::Protocol, Error};
 
+#[derive(Debug)]
 pub struct Udp {
     socket: RwLock<UdpSocket>,
     remote: SocketAddr,

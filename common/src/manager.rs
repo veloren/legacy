@@ -16,6 +16,7 @@ pub trait Managed: Send + Sync + Sized + 'static {
     fn on_drop(&self, manager: &mut Manager<Self>) {}
 }
 
+#[derive(Debug)]
 pub struct Manager<T: Managed> {
     internal: Arc<T>,
 
@@ -94,12 +95,12 @@ mod tests {
     impl Managed for Server {
         fn init_workers(&self, manager: &mut Manager<Self>) {
             Manager::add_worker(manager, |_, running, _| while running.load(Ordering::Relaxed) {
-                println!("Hello, world!")
+                //println!("Hello, world!")
             });
             Manager::add_worker(manager, |_, running, mut mgr| while running.load(Ordering::Relaxed) {
-                println!("Hi, planet!");
+                //println!("Hi, planet!");
 
-                Manager::add_worker(&mut mgr, |_, _, _| println!("Greetings, Earth!"))
+                Manager::add_worker(&mut mgr, |_, _, _| {})
             });
         }
     }

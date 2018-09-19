@@ -3,6 +3,9 @@ use std::io;
 
 #[derive(Debug)]
 pub enum Error {
+    NoConnectSession,
+    InvalidConnectSession,
+    NoConnectMsg,
     IoErr(io::Error),
 }
 

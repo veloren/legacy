@@ -17,9 +17,7 @@ mod tick;
 mod world;
 
 // Reexport
-pub use common::{
-    msg::ClientMode,
-};
+pub use common::msg::PlayMode;
 pub use region::{Block, Chunk, ChunkContainer, ChunkConverter, FnPayloadFunc, Volume, Voxel};
 
 // Standard
@@ -79,7 +77,7 @@ pub struct Client<P: Payloads> {
 
 impl<P: Payloads> Client<P> {
     pub fn new<S: ToSocketAddrs, GF: FnPayloadFunc<Chunk, P::Chunk, Output = P::Chunk>>(
-        mode: ClientMode,
+        mode: PlayMode,
         alias: String,
         remote_addr: S,
         gen_payload: GF,

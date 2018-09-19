@@ -13,3 +13,4 @@ nalgebra = "0.15.1"
 vek = "0.9.4"
 threadpool = "1.7.1"
 lazy_static = "1.0.1"
+specs = { version = "0.12.2", features = ["nightly"] }

@@ -13,6 +13,8 @@ extern crate threadpool;
 extern crate lazy_static;
 extern crate common;
 
+extern crate specs;
+
 mod block;
 mod cell;
 mod chunk;
@@ -27,6 +29,8 @@ pub mod physics;
 mod tests;
 mod vol_mgr;
 mod vol_per;
+
+pub mod ecs;
 
 // Reexports
 pub use block::{Block, BlockMaterial};

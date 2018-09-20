@@ -18,6 +18,7 @@ mod tick;
 
 // Reexports
 pub use error::Error;
+pub use common::manager::Manager;
 
 // Standard
 use std::{
@@ -34,7 +35,7 @@ use parking_lot::RwLock;
 
 // Project
 use common::{
-    manager::{Manager, Managed},
+    manager::Managed,
     msg::ServerPostOffice,
     Uid,
 };
@@ -116,6 +117,15 @@ impl<P: Payloads> Managed for Wrapper<Server<P>> {
                         }
                     });
                 }
+            }
+        });
+
+        // Tick workers
+        Manager::add_worker(mgr, |srv, running, mut mgr| {
+            while running.load(Ordering::Relaxed) {
+                let dt = Duration::from_millis(50);
+                thread::sleep(dt);
+                srv.do_for_mut(|srv| srv.tick_once(dt));
             }
         });
     }

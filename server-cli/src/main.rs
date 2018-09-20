@@ -14,6 +14,7 @@ use server::{
     api::Api,
     net::DisconnectReason,
     player::Player,
+    Manager,
 };
 
 struct Payloads;
@@ -43,12 +44,7 @@ impl server::Payloads for Payloads {
 fn main() {
     let addr = "0.0.0.0:59003";
     println!("[INFO] Starting server on {}", addr);
-    let srv = Server::<Payloads>::new(Payloads, addr).expect("Could not start server");
-
-    // Run the tick loop
-    loop {
-        let dt = Duration::from_millis(50);
-        thread::sleep(dt);
-        srv.do_for_mut(|srv| srv.tick_once(dt));
-    }
+    Manager::await_shutdown(
+        Server::<Payloads>::new(Payloads, addr).expect("Could not start server")
+    );
 }

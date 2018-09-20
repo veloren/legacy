@@ -14,6 +14,9 @@ extern crate lazy_static;
 extern crate common;
 
 extern crate specs;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 mod block;
 mod cell;

@@ -91,8 +91,8 @@ impl<P: Payloads> Client<P> {
         pb.send(ClientMsg::Connect { alias: alias.clone(), mode });
 
         // Was the handshake successful?
-        if let ServerMsg::Connected = pb.recv_timeout(CONNECT_TIMEOUT)? {
-            Ok(Manager::init(Client {
+        if let ServerMsg::Connected { player_uid } = pb.recv_timeout(CONNECT_TIMEOUT)? {
+            let client = Manager::init(Client {
                 status: RwLock::new(ClientStatus::Connected),
                 postoffice,
 
@@ -106,7 +106,11 @@ impl<P: Payloads> Client<P> {
                 callbacks: RwLock::new(Callbacks::new()),
 
                 view_distance: view_distance.max(1).min(10),
-            }))
+            });
+
+            client.player.write().unwrap().entity_uid = player_uid;
+
+            Ok(client)
         } else {
             Err(Error::InvalidResponse)
         }

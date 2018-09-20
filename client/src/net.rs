@@ -48,6 +48,18 @@ impl<P: Payloads> Client<P> {
                 Incoming::Msg(ServerMsg::ChatMsg { text }) => {
                     self.callbacks().call_recv_chat_msg(&text)
                 },
+                Incoming::Msg(ServerMsg::EntityUpdate { uid, pos, vel, ori }) => match self.entity(uid) {
+                    Some(entity) => {
+                        let mut entity = entity.write().unwrap();
+                        *entity.pos_mut() = pos;
+                        *entity.vel_mut() = vel;
+                        *entity.ctrl_acc_mut() = Vec3::zero();
+                        *entity.look_dir_mut() = Vec2::unit_y();
+                    },
+                    None => {
+                        self.add_entity(uid, Entity::new(pos, vel, Vec3::zero(), Vec2::unit_y()));
+                    },
+                },
                 Incoming::Msg(_) => {},
 
                 // End
@@ -77,8 +89,7 @@ impl<P: Payloads> Client<P> {
             self.postoffice.send_one(ClientMsg::PlayerEntityUpdate {
                 pos: *player_entity.pos(),
                 vel: *player_entity.vel(),
-                ctrl_acc: *player_entity.ctrl_acc(),
-                look_dir: *player_entity.look_dir(),
+                ori: Quaternion::identity(),
             });
         }
     }

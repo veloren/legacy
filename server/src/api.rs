@@ -17,32 +17,49 @@ use player::Player;
 
 pub trait Api {
     fn disconnect_player(&mut self, player: Entity, reason: DisconnectReason);
-    fn broadcast_msg(&self, text: &str);
+    fn send_chat_msg(&self, player: Entity, text: &str);
+    fn send_net_msg(&self, player: Entity, msg: ServerMsg);
+    fn broadcast_chat_msg(&self, text: &str);
+    fn broadcast_net_msg(&self, msg: ServerMsg);
 
     fn world(&self) -> &World;
     fn world_mut(&mut self) -> &mut World;
 }
 
 impl<P: Payloads> Api for Server<P> {
-    fn disconnect_player(&mut self, client: Entity, reason: DisconnectReason) {
+    fn disconnect_player(&mut self, player: Entity, reason: DisconnectReason) {
         // Stop the postoffice
-        if let Some(client) = self.world.read_storage::<Client>().get(client) {
+        if let Some(client) = self.world.read_storage::<Client>().get(player) {
             client.postoffice.stop();
         }
 
-        if let Some(player) = self.world.read_storage::<Player>().get(client) {
-            self.broadcast_msg(&format!("[{} disconnected: {}]", player.alias, reason));
-            self.payload.on_client_disconnect(self, client, reason);
+        if let Some(player_comp) = self.world.read_storage::<Player>().get(player) {
+            self.broadcast_chat_msg(&format!("[{} disconnected: {}]", player_comp.alias, reason));
+            self.payload.on_player_disconnect(self, player, reason);
         }
 
-        self.world.delete_entity(client);
+        self.world.delete_entity(player);
     }
 
-    fn broadcast_msg(&self, text: &str) {
+    fn send_chat_msg(&self, player: Entity, text: &str) {
+        self.send_net_msg(player, ServerMsg::ChatMsg { text: text.to_string() });
+    }
+
+    fn send_net_msg(&self, player: Entity, msg: ServerMsg) {
+        if let Some(client) = self.world.read_storage::<Client>().get(player) {
+            client.postoffice.send_one(msg.clone());
+        }
+    }
+
+    fn broadcast_chat_msg(&self, text: &str) {
+        self.broadcast_net_msg(ServerMsg::ChatMsg { text: text.to_string() });
+    }
+
+    fn broadcast_net_msg(&self, msg: ServerMsg) {
         let clients = self.world.read_storage::<Client>();
         for entity in self.world.entities().join() {
             if let Some(client) = clients.get(entity) {
-                client.postoffice.send_one(ServerMsg::ChatMsg { text: text.to_string() });
+                client.postoffice.send_one(msg.clone());
             }
         }
     }

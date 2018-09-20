@@ -56,6 +56,15 @@ impl<T: Managed> Manager<T> {
         }));
     }
 
+    pub fn shutdown(this: &mut Self) {
+        this.internal.clone().on_drop(this);
+        this.running.store(false, Ordering::Relaxed);
+    }
+
+    pub fn await_shutdown(mut this: Self) {
+        let _ = this.workers.drain(..).for_each(|w| w.join().unwrap());
+    }
+
     pub fn internal(this: &Self) -> &Arc<T> { &this.internal }
 }
 
@@ -69,10 +78,7 @@ impl<T: Managed> Deref for Manager<T> {
 
 impl<T: Managed> Drop for Manager<T> {
     fn drop(&mut self) {
-        let internal = self.internal.clone();
-        internal.on_drop(self);
-
-        self.running.store(false, Ordering::Relaxed);
+        Manager::shutdown(self);
         let _ = self.workers.drain(..).for_each(|w| w.join().unwrap());
     }
 }

@@ -34,6 +34,7 @@ mod vol_mgr;
 mod vol_per;
 
 pub mod ecs;
+pub mod item;
 
 // Reexports
 pub use block::{Block, BlockMaterial};

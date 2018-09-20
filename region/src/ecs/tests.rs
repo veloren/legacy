@@ -10,7 +10,6 @@ fn test_create_raw_ecs() {
     use self::{
         phys::{Pos, Vel, Ori},
         character::{Character, Health},
-        player::{Player, PlayerMode},
     };
 
     let mut world = World::new();

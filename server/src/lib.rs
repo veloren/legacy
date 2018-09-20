@@ -1,5 +1,6 @@
 #![feature(integer_atomics)]
-#![feature(nll)]
+#![feature(duration_as_u128)]
+#![feature(iterator_find_map)]
 
 // Crates
 pub extern crate specs;
@@ -10,10 +11,11 @@ extern crate pretty_env_logger;
 extern crate region;
 
 // Modules
-pub mod player;
-mod error;
-pub mod net;
 pub mod api;
+pub mod player;
+pub mod net;
+mod error;
+mod tick;
 
 // Reexports
 pub use error::Error;
@@ -23,6 +25,8 @@ use std::{
     sync::{Arc, atomic::{AtomicU64, Ordering}},
     net::{TcpListener, ToSocketAddrs},
     collections::HashMap,
+    thread,
+    time::Duration,
 };
 
 // Library
@@ -49,8 +53,8 @@ pub trait Payloads: Send + Sync + 'static {
     type Entity: Send + Sync + 'static;
     type Client: Send + Sync + 'static;
 
-    fn on_client_connect(&self, api: &dyn Api, player: Entity) {}
-    fn on_client_disconnect(&self, api: &dyn Api, player: Entity, reason: DisconnectReason) {}
+    fn on_player_connect(&self, api: &dyn Api, player: Entity) {}
+    fn on_player_disconnect(&self, api: &dyn Api, player: Entity, reason: DisconnectReason) {}
     fn on_chat_msg(&self, api: &dyn Api, player: Entity, text: &str) -> Option<String> {
         Some(format!("[{}] {}", api.world().read_storage::<Player>().get(player).map(|p| p.alias.as_str()).unwrap_or("<none"), text))
     }
@@ -58,13 +62,9 @@ pub trait Payloads: Send + Sync + 'static {
 
 pub struct Server<P: Payloads> {
     listener: Option<TcpListener>,
-
-    payload: P,
-
-    uid_counter: AtomicU64,
-    time: RwLock<f64>,
-
+    time_ms: u64,
     world: World,
+    payload: P,
 }
 
 // Wrapper
@@ -91,18 +91,11 @@ impl<P: Payloads> Server<P> {
 
         Ok(Manager::init(Wrapper(RwLock::new(Server {
             listener: Some(TcpListener::bind(bind_addr)?),
-
-            payload,
-
-            uid_counter: AtomicU64::new(0),
-            time: RwLock::new(0.0),
-
+            time_ms: 0,
             world,
+            payload,
         }))))
     }
-
-    // Utility to generate a new unique UID
-    fn gen_uid(&self) -> Uid { self.uid_counter.fetch_add(1, Ordering::Relaxed) as Uid }
 }
 
 impl<P: Payloads> Managed for Wrapper<Server<P>> {

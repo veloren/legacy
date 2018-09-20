@@ -21,7 +21,7 @@ impl Message for SessionKind {}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ServerMsg {
     // SessionKind::Connect
-    Connected,
+    Connected { player_uid: Option<u64> },
 
     // SessionKind::Disconnect
     Disconnect { reason: String },
@@ -31,6 +31,12 @@ pub enum ServerMsg {
 
     // One-shot
     ChatMsg { text: String },
+    EntityUpdate {
+        uid: u64,
+        pos: Vec3<f32>,
+        vel: Vec3<f32>,
+        ori: Quaternion<f32>,
+    },
 }
 
 impl Message for ServerMsg {}
@@ -60,8 +66,7 @@ pub enum ClientMsg {
     PlayerEntityUpdate {
         pos: Vec3<f32>,
         vel: Vec3<f32>,
-        ctrl_acc: Vec3<f32>,
-        look_dir: Vec2<f32>,
+        ori: Quaternion<f32>,
     },
 }
 

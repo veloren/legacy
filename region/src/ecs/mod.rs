@@ -1,15 +1,23 @@
 // Modules
-mod phys;
-mod character;
+pub mod phys;
+pub mod net;
+pub mod character;
 #[cfg(test)]
 mod tests;
 
+// Std
+use std::collections::HashMap;
+
 // Library
-use specs::{World, Entity, Builder, EntityBuilder};
+use specs::{
+    World, Entity, Builder, EntityBuilder,
+    saveload::MarkedBuilder,
+};
 use vek::*;
 
 // Local
 use self::phys::{Pos, Vel, Ori};
+use self::net::{SyncMarker, SyncNode};
 use self::character::{Character, Health};
 
 pub trait CreateUtil {
@@ -26,12 +34,19 @@ impl CreateUtil for World {
                 name,
             })
             .with(Health(100))
+            .marked::<SyncMarker>()
     }
 }
 
 pub fn create_world() -> World {
     let mut world = World::new();
 
+    // Net
+    world.register::<SyncMarker>();
+    world.add_resource(SyncNode {
+        range: 0..1000000,
+        mapping: HashMap::new(),
+    });
     // Phys
     world.register::<Pos>();
     world.register::<Vel>();

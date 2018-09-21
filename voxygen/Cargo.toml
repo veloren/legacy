@@ -16,8 +16,12 @@ gfx = "0.17.1"
 gfx_device_gl = "0.15.0"
 gfx_window_glutin = "0.25.0"
 glutin = "0.17.0"
+
+# Ui
 conrod = { git = "https://gitlab.com/veloren/conrod", branch = "master", version = "0.60.1", features = ["gfx_rs"]}
 #conrod = { path = "../../conrod", features = ["gfx_rs"] } // For local testing
+lyon = "0.11"
+gfx_glyph = "0.13"
 
 # Mathematics
 vek = "0.9.4"

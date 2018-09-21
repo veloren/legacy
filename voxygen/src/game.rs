@@ -41,6 +41,9 @@ use tonemapper;
 use voxel;
 use window::{Event, RenderWindow};
 
+// TODO: This is experimental
+use new_ui;
+
 pub enum ChunkPayload {
     Meshes(FnvIndexMap<voxel::MaterialKind, voxel::Mesh>),
     Model {
@@ -72,6 +75,8 @@ pub struct Game {
     skybox_pipeline: Pipeline<skybox::pipeline::Init<'static>>,
     volume_pipeline: voxel::VolumePipeline,
     tonemapper_pipeline: Pipeline<tonemapper::pipeline::Init<'static>>,
+
+    new_ui_rescache: new_ui::ResCache,
 
     skybox_model: skybox::Model,
     player_model: voxel::Model,
@@ -150,6 +155,8 @@ impl Game {
             skybox_pipeline,
             volume_pipeline,
             tonemapper_pipeline,
+
+            new_ui_rescache: new_ui::ResCache::new(),
 
             skybox_model,
             player_model,
@@ -438,6 +445,14 @@ impl Game {
         self.ui
             .borrow_mut()
             .render(&mut renderer, &self.client, &self.window.get_size());
+
+        // TODO: This is experimental
+        {
+            new_ui::Ui::new(
+                new_ui::WinBox::new()
+                    .with_background(Rgba::new(1.0, 1.0, 1.0, 0.5))
+            ).render(&mut renderer, &mut self.new_ui_rescache);
+        }
 
         self.window.swap_buffers();
         renderer.end_frame();

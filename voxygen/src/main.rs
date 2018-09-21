@@ -6,8 +6,11 @@ extern crate gfx;
 extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate glutin;
-#[macro_use]
+
+// Ui
 extern crate conrod;
+extern crate lyon;
+extern crate gfx_glyph;
 
 // Mathematics
 extern crate vek;
@@ -50,6 +53,7 @@ mod keybinds;
 mod tests;
 mod ui;
 mod window;
+mod new_ui;
 
 // > Rendering
 mod consts;

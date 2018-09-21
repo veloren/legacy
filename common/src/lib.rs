@@ -15,6 +15,7 @@ extern crate time;
 extern crate lazy_static;
 extern crate parking_lot;
 extern crate vek;
+extern crate parking_lot;
 
 // Reexports
 pub use clock::Clock;
@@ -27,7 +28,6 @@ pub mod net;
 pub mod post;
 pub mod manager;
 pub mod msg;
-pub mod tub;
 
 //pub use jobs::{JobHandle, JobMultiHandle, Jobs};
 

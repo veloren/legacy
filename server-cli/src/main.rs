@@ -1,12 +1,6 @@
 // Crates
 extern crate server;
 
-// Standard
-use std::{
-    thread,
-    time::Duration,
-};
-
 // Project
 use server::{
     specs::Entity,

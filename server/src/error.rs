@@ -3,6 +3,7 @@ use std::io;
 
 #[derive(Debug)]
 pub enum Error {
+    ConnectionDropped,
     NoConnectSession,
     InvalidConnectSession,
     NoConnectMsg,

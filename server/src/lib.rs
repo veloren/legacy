@@ -23,9 +23,8 @@ pub use common::manager::Manager;
 
 // Standard
 use std::{
-    sync::{Arc, atomic::{AtomicU64, Ordering}},
+    sync::atomic::Ordering,
     net::{TcpListener, ToSocketAddrs},
-    collections::HashMap,
     thread,
     time::Duration,
 };
@@ -38,11 +37,8 @@ use parking_lot::RwLock;
 use common::{
     manager::Managed,
     msg::ServerPostOffice,
-    Uid,
 };
-use region::{
-    ecs, ecs::CreateUtil,
-};
+use region::ecs;
 
 // Local
 use net::{Client, DisconnectReason};
@@ -54,15 +50,15 @@ pub trait Payloads: Send + Sync + 'static {
     type Entity: Send + Sync + 'static;
     type Client: Send + Sync + 'static;
 
-    fn on_player_connect(&self, api: &dyn Api, player: Entity) {}
-    fn on_player_disconnect(&self, api: &dyn Api, player: Entity, reason: DisconnectReason) {}
+    fn on_player_connect(&self, _api: &dyn Api, _player: Entity) {}
+    fn on_player_disconnect(&self, _api: &dyn Api, _player: Entity, _reason: DisconnectReason) {}
     fn on_chat_msg(&self, api: &dyn Api, player: Entity, text: &str) -> Option<String> {
         Some(format!("[{}] {}", api.world().read_storage::<Player>().get(player).map(|p| p.alias.as_str()).unwrap_or("<none"), text))
     }
 }
 
 pub struct Server<P: Payloads> {
-    listener: Option<TcpListener>,
+    listener: TcpListener,
     time_ms: u64,
     world: World,
     payload: P,
@@ -91,7 +87,7 @@ impl<P: Payloads> Server<P> {
         world.register::<Player>();
 
         Ok(Manager::init(Wrapper(RwLock::new(Server {
-            listener: Some(TcpListener::bind(bind_addr)?),
+            listener: TcpListener::bind(bind_addr)?,
             time_ms: 0,
             world,
             payload,
@@ -105,16 +101,16 @@ impl<P: Payloads> Managed for Wrapper<Server<P>> {
         Manager::add_worker(mgr, |srv, running, mut mgr| {
             let listener = srv.do_for_mut(|srv| srv
                 .listener
-                .take()
-                .expect("Attempted to listen for clients on server without a listener")
+                .try_clone()
+                .expect("Failed to clone server TcpListener")
             );
 
-            while let Ok((stream, addr)) = listener.accept() {
+            while let (Ok((stream, _addr)), true) = (listener.accept(), running.load(Ordering::Relaxed)) {
                 // Convert the incoming stream to a postoffice ready to begin the connection handshake
                 if let Ok(po) = ServerPostOffice::to_client(stream) {
-                    Manager::add_worker(&mut mgr, move |srv, running, mgr| {
+                    Manager::add_worker(&mut mgr, move |srv, _, mgr| {
                         if let Ok(client) = net::auth_client(srv, po) {
-                            net::handle_player_post(srv, client, running, mgr);
+                            net::handle_player_post(srv, client, mgr);
                         }
                     });
                 }
@@ -122,12 +118,17 @@ impl<P: Payloads> Managed for Wrapper<Server<P>> {
         });
 
         // Tick workers
-        Manager::add_worker(mgr, |srv, running, mut mgr| {
+        Manager::add_worker(mgr, |srv, running, _| {
             while running.load(Ordering::Relaxed) {
                 let dt = Duration::from_millis(50);
                 thread::sleep(dt);
                 srv.do_for_mut(|srv| srv.tick_once(dt));
             }
         });
+    }
+
+    fn on_drop(&self, _: &mut Manager<Self>) {
+        self.do_for(|srv| srv.listener.set_nonblocking(true))
+            .expect("Failed to set nonblocking = true on server TcpListener");
     }
 }

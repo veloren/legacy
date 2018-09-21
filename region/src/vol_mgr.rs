@@ -1,10 +1,14 @@
 // Standard
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::HashSet,
+    sync::Arc,
+};
 
 // Library
 use vek::*;
 use parking_lot::{Mutex, RwLock};
 use threadpool::ThreadPool;
+use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 // Local
 use collision::{Collider, Primitive};

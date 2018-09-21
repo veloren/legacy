@@ -7,8 +7,8 @@ use std::{
     f32::consts::PI,
     net::ToSocketAddrs,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
@@ -340,7 +340,7 @@ impl Game {
         let mut renderer = self.window.renderer_mut();
 
         // Update each entity constbuffer
-        for (_uid, entity) in self.client.entities().iter() {
+        for (_, entity) in self.client.entities().iter() {
             let mut entity = entity.write();
 
             // Calculate entity model matrix
@@ -396,7 +396,7 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Render each chunk
-        for (_pos, con) in self.client.chunk_mgr().persistence().data().iter() {
+        for (_, con) in self.client.chunk_mgr().persistence().data().iter() {
             let con = con.write();
             if let Some(payload) = con.payload() {
                 if let ChunkPayload::Model {

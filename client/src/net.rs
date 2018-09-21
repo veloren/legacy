@@ -51,7 +51,7 @@ impl<P: Payloads> Client<P> {
                 },
                 Incoming::Msg(ServerMsg::EntityUpdate { uid, pos, vel, ori }) => match self.entity(uid) {
                     Some(entity) => {
-                        let mut entity = entity.write().unwrap();
+                        let mut entity = entity.write();
                         *entity.pos_mut() = pos;
                         *entity.vel_mut() = vel;
                         *entity.ctrl_acc_mut() = Vec3::zero();
@@ -68,7 +68,7 @@ impl<P: Payloads> Client<P> {
             }
         }
 
-        *self.status.write().unwrap() = ClientStatus::Disconnected;
+        *self.status.write() = ClientStatus::Disconnected;
     }
 
     fn handle_ping_session(&self, pb: ClientPostBox, running: &AtomicBool) {

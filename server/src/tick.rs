@@ -1,36 +1,9 @@
 // Standard
-use std::{
-    sync::Arc,
-    time::Duration,
-};
-
-// Library
-use specs::{Component, VecStorage, EntityBuilder, Builder};
-use vek::*;
-
-// Project
-use region::ecs::CreateUtil;
-use common::{
-    manager::Manager,
-    msg::{PlayMode, ServerPostOffice},
-};
+use std::time::Duration;
 
 // Local
 use Payloads;
 use Server;
-use net::Client;
-
-// Player
-
-#[derive(Debug)]
-pub struct Player {
-    pub alias: String,
-    pub mode: PlayMode,
-}
-
-impl Component for Player {
-    type Storage = VecStorage<Self>;
-}
 
 // Server
 

@@ -1,18 +1,18 @@
 // Standard
 use std::{
     collections::HashMap,
-    net::{TcpStream, ToSocketAddrs, Shutdown},
+    net::{TcpStream, ToSocketAddrs},
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc::{self, RecvError, RecvTimeoutError, SendError},
-        Arc, Mutex,
+        Arc,
     },
-    thread,
-    fmt::Debug,
     io,
-    io::{Write, Read},
     time::Duration,
 };
+
+// Library
+use parking_lot::Mutex;
 
 // Local
 use net::{Connection, Error, Message, UdpMgr};
@@ -149,9 +149,6 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
         let (incoming_send, incoming_recv) = mpsc::channel();
         let (incoming_send, incoming_recv) = (Mutex::new(incoming_send), Mutex::new(incoming_recv));
 
-        // Create shared running flag
-        let running = Arc::new(AtomicBool::new(true));
-
         Ok(PostOffice {
             uid_counter: AtomicU64::new(start_uid),
             outgoing_send,
@@ -169,19 +166,19 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
     // Utility to create a new postbox with a predetermined UID (not visible to the user)
     fn create_postbox_with_uid(&self, uid: u64) -> PostBox<SK, SM, RM> {
         let (pb_send, pb_recv) = mpsc::channel();
-        self.pb_sends.lock().unwrap().insert(uid, pb_send);
+        self.pb_sends.lock().insert(uid, pb_send);
 
         PostBox {
             uid,
             recv: pb_recv,
-            po_send: self.outgoing_send.lock().unwrap().clone(),
+            po_send: self.outgoing_send.lock().clone(),
         }
     }
 
     // Create a new master postbox, triggering the creation of a slave postbox on the other end
     pub fn create_postbox(&self, kind: SK) -> PostBox<SK, SM, RM> {
         let uid = self.gen_uid();
-        let _ = self.outgoing_send.lock().unwrap().send(Ok(Letter::OpenBox::<SK, SM> { uid, kind }));
+        let _ = self.outgoing_send.lock().send(Ok(Letter::OpenBox::<SK, SM> { uid, kind }));
         self.create_postbox_with_uid(uid)
     }
 
@@ -189,20 +186,20 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
     pub fn await_incoming(&self) -> Result<Incoming<SK, SM, RM>, RecvError> {
         // Keep receiving messages, relaying the messages to their corresponding target postbox.
         // If Letter::OpenBox or Letter::Message are received, handle them appropriately
-        self.incoming_recv.lock().unwrap().recv()
+        self.incoming_recv.lock().recv()
     }
 
     // Send a single one-off message to the remote postoffice
     pub fn send_one(&self, msg: SM) -> Result<(), SendError<Result<Letter<SK, SM>, ()>>> {
-        self.outgoing_send.lock().unwrap().send(Ok(Letter::OneShot(msg)))
+        self.outgoing_send.lock().send(Ok(Letter::OneShot(msg)))
     }
 
     // Stop the PostOffice
-    pub fn stop(&self) {
-        // Send shutdown message
-        self.outgoing_send.lock().unwrap().send(Ok(Letter::Shutdown));
+    pub fn stop(&self) -> Result<(), SendError<Result<Letter<SK, SM>, ()>>> {
+        // Send shutdown message to the remote (we don't care if this fails)
+        let _ = self.outgoing_send.lock().send(Ok(Letter::Shutdown));
         // Close the connection
-        self.outgoing_send.lock().unwrap().send(Err(()));
+        self.outgoing_send.lock().send(Err(()))
     }
 }
 
@@ -211,7 +208,7 @@ impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
         // Create a worker to relay outgoing messages to the connection
         Manager::add_worker(mgr, |po, running, _| {
             // Hold the outgoing receiver permanently
-            let outgoing_recv = po.outgoing_recv.lock().unwrap();
+            let outgoing_recv = po.outgoing_recv.lock();
             while running.load(Ordering::Relaxed) {
                 match outgoing_recv.recv() {
                     Ok(Ok(letter)) => po.conn.send(letter),
@@ -226,7 +223,7 @@ impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
         // Create a worker to relay incoming messages from the connection
         Manager::add_worker(mgr, |po, running, _| {
             // Hold the incoming sender permanently
-            let incoming_send = po.incoming_send.lock().unwrap();
+            let incoming_send = po.incoming_send.lock();
             while running.load(Ordering::Relaxed) {
                 match po.conn.recv() {
                     Ok(Letter::OpenBox { uid, kind }) => {
@@ -236,10 +233,10 @@ impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
                         }));
                     },
                     Ok(Letter::CloseBox(uid)) => {
-                        po.pb_sends.lock().unwrap().remove(&uid);
+                        po.pb_sends.lock().remove(&uid);
                     },
                     Ok(Letter::Message { uid, payload }) => {
-                        po.pb_sends.lock().unwrap().get(&uid).map(|s| s.send(payload));
+                        po.pb_sends.lock().get(&uid).map(|s| s.send(payload));
                     },
                     Ok(Letter::OneShot(m)) => {
                         incoming_send.send(Incoming::Msg(m));

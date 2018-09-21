@@ -3,8 +3,8 @@
 // Crates
 #[macro_use]
 extern crate log;
-#[macro_use]
 extern crate vek;
+extern crate parking_lot;
 extern crate common;
 extern crate parking_lot;
 extern crate region;
@@ -112,7 +112,7 @@ impl<P: Payloads> Client<P> {
                 view_distance: view_distance.max(1).min(10),
             });
 
-            client.player.write().unwrap().entity_uid = player_uid;
+            client.player.write().entity_uid = player_uid;
 
             Ok(client)
         } else {

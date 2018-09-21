@@ -2,7 +2,7 @@
 use std::{
     collections::HashMap,
     f32::INFINITY,
-    sync::{Arc, RwLock},
+    sync::Arc,
     thread, time,
 };
 
@@ -10,6 +10,7 @@ use std::{
 use rand::prelude::*;
 use parking_lot::RwLock;
 use vek::*;
+use parking_lot::RwLock;
 
 // Parent
 use super::{

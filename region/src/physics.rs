@@ -1,6 +1,6 @@
 // Standard
 use chunk_conv::{ChunkContainer, ChunkConverter};
-use std::{clone::Clone, sync::Arc};
+use std::sync::Arc;
 
 // Library
 use vek::*;

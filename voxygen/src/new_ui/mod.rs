@@ -1,12 +1,12 @@
 // Modules
-mod rescache;
+pub mod elements;
+pub mod rescache;
+mod primitive;
 mod render;
 #[cfg(test)]
 mod tests;
-mod winbox;
 
 // Reexports
-pub use self::winbox::WinBox;
 pub use self::rescache::ResCache;
 
 // Library
@@ -17,7 +17,7 @@ use renderer::Renderer;
 
 pub trait Element: 'static {
     fn deep_clone(&self) -> Box<dyn Element>;
-    fn render(&self, renderer: &mut Renderer, res_cache: &mut ResCache, trans: Mat2<f32>);
+    fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: (Vec2<f32>, Vec2<f32>));
 }
 
 pub struct Ui {
@@ -30,7 +30,7 @@ impl Ui {
     }
 
     pub fn render(self, renderer: &mut Renderer, res_cache: &mut ResCache) {
-        self.base.render(renderer, res_cache, Mat2::identity());
+        self.base.render(renderer, res_cache, (Vec2::zero(), Vec2::one()));
     }
 }
 

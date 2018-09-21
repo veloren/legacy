@@ -36,5 +36,11 @@ impl Shader {
         })
     }
 
+    pub fn from_str(code: &str) -> Shader {
+        Shader {
+            data: code.as_bytes().to_vec(),
+        }
+    }
+
     pub fn bytes(&self) -> &[u8] { &self.data }
 }

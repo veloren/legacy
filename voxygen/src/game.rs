@@ -449,8 +449,11 @@ impl Game {
         // TODO: This is experimental
         {
             new_ui::Ui::new(
-                new_ui::WinBox::new()
-                    .with_background(Rgba::new(1.0, 1.0, 1.0, 0.5))
+                new_ui::elements::WinBox::new()
+                    .with_color(Rgba::new(1.0, 1.0, 1.0, 0.0))
+                    .with_child_at(Vec2::zero(), Vec2::zero(), Vec2::new(0.2, 0.2), new_ui::elements::Rect::new()
+                        .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
+                    )
             ).render(&mut renderer, &mut self.new_ui_rescache);
         }
 

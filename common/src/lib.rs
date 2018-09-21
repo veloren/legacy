@@ -4,7 +4,6 @@ extern crate bincode;
 extern crate get_if_addrs;
 #[macro_use]
 extern crate log;
-extern crate nalgebra;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -14,6 +13,7 @@ extern crate time;
 #[macro_use]
 extern crate lazy_static;
 extern crate vek;
+extern crate parking_lot;
 
 // Reexports
 pub use clock::Clock;
@@ -26,7 +26,6 @@ pub mod net;
 pub mod post;
 pub mod manager;
 pub mod msg;
-pub mod tub;
 
 //pub use jobs::{JobHandle, JobMultiHandle, Jobs};
 

@@ -1,13 +1,8 @@
 // Library
 use specs::prelude::*;
-use parking_lot::RwLock;
 
 // Project
-use common::{
-    manager::Manager,
-    msg::{SessionKind, ServerMsg},
-    Uid,
-};
+use common::msg::ServerMsg;
 
 // Local
 use Payloads;
@@ -38,7 +33,7 @@ impl<P: Payloads> Api for Server<P> {
             self.payload.on_player_disconnect(self, player, reason);
         }
 
-        self.world.delete_entity(player);
+        let _ = self.world.delete_entity(player);
     }
 
     fn send_chat_msg(&self, player: Entity, text: &str) {
@@ -47,7 +42,7 @@ impl<P: Payloads> Api for Server<P> {
 
     fn send_net_msg(&self, player: Entity, msg: ServerMsg) {
         if let Some(client) = self.world.read_storage::<Client>().get(player) {
-            client.postoffice.send_one(msg.clone());
+            let _ = client.postoffice.send_one(msg.clone()); // We don't care if this fails
         }
     }
 
@@ -59,7 +54,7 @@ impl<P: Payloads> Api for Server<P> {
         let clients = self.world.read_storage::<Client>();
         for entity in self.world.entities().join() {
             if let Some(client) = clients.get(entity) {
-                client.postoffice.send_one(msg.clone());
+                let _ = client.postoffice.send_one(msg.clone()); // We don't care if this fails
             }
         }
     }

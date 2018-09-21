@@ -4,11 +4,12 @@ use chunk_conv::{ChunkContainer, ChunkConverter};
 use std::{
     clone::Clone,
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::Arc,
 };
 
 // Library
 use vek::*;
+use parking_lot::RwLock;
 
 // Project
 use collision::{Collider, Primitive, ResolutionTti, PLANCK_LENGTH};
@@ -45,7 +46,7 @@ pub fn tick<
     const BLOCK_HOP_MAX: f32 = 0.34;
 
     for (.., entity) in entities {
-        let mut entity = entity.write().unwrap();
+        let mut entity = entity.write();
 
         // Gravity
         let gravity_acc = Vec3::new(0.0, 0.0, GROUND_GRAVITY / LENGTH_OF_BLOCK);

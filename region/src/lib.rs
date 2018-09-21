@@ -4,7 +4,6 @@
 extern crate log;
 #[macro_use]
 extern crate enum_map;
-extern crate nalgebra;
 extern crate noise;
 extern crate rand;
 extern crate vek;
@@ -14,6 +13,7 @@ extern crate lazy_static;
 extern crate common;
 
 extern crate specs;
+extern crate parking_lot;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;

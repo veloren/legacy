@@ -7,8 +7,8 @@ use std::{
     f32::consts::PI,
     net::ToSocketAddrs,
     sync::{
+        Arc,
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
     },
 };
 //use std::f32::{sin, cos};
@@ -20,6 +20,7 @@ use fnv::FnvBuildHasher;
 use glutin::ElementState;
 use indexmap::IndexMap;
 use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
+use parking_lot::Mutex;
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
@@ -164,12 +165,11 @@ impl Game {
                     if self.window.cursor_trapped().load(Ordering::Relaxed) {
                         self.camera
                             .lock()
-                            .unwrap()
                             .rotate_by(Vector2::new(dx as f32 * 0.002, dy as f32 * 0.002));
                     }
                 },
                 Event::MouseWheel { dy, .. } => {
-                    self.camera.lock().unwrap().zoom_by((-dy / 4.0) as f32);
+                    self.camera.lock().zoom_by((-dy / 4.0) as f32);
                 },
                 Event::KeyboardInput { i, .. } => {
                     // Helper function to determine scancode equality
@@ -196,31 +196,31 @@ impl Game {
 
                     if !show_chat {
                         if keypress_eq(&general.forward, i.scancode) {
-                            self.key_state.lock().unwrap().up = match i.state {
+                            self.key_state.lock().up = match i.state {
                                 // Default: W (up)
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
                             }
                         } else if keypress_eq(&general.left, i.scancode) {
-                            self.key_state.lock().unwrap().left = match i.state {
+                            self.key_state.lock().left = match i.state {
                                 // Default: A (left)
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
                             }
                         } else if keypress_eq(&general.back, i.scancode) {
-                            self.key_state.lock().unwrap().down = match i.state {
+                            self.key_state.lock().down = match i.state {
                                 // Default: S (down)
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
                             }
                         } else if keypress_eq(&general.right, i.scancode) {
-                            self.key_state.lock().unwrap().right = match i.state {
+                            self.key_state.lock().right = match i.state {
                                 // Default: D (right)
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
                             }
                         } else if keypress_eq(&general.jump, i.scancode) {
-                            self.key_state.lock().unwrap().jump = match i.state {
+                            self.key_state.lock().jump = match i.state {
                                 // Default: Space (fly)
                                 ElementState::Pressed => true,
                                 ElementState::Released => false,
@@ -245,7 +245,6 @@ impl Game {
                 Event::Resized { w, h } => {
                     self.camera
                         .lock()
-                        .unwrap()
                         .set_aspect_ratio((w.max(1) as f32) / (h.max(1) as f32));
                 },
                 _ => {},
@@ -253,12 +252,12 @@ impl Game {
         });
 
         // Calculate movement player movement vector
-        let ori = *self.camera.lock().unwrap().ori();
+        let ori = *self.camera.lock().ori();
         let unit_vecs = (
             Vector2::new(ori.x.cos(), -ori.x.sin()),
             Vector2::new(ori.x.sin(), ori.x.cos()),
         );
-        let dir_vec = self.key_state.lock().unwrap().dir_vec();
+        let dir_vec = self.key_state.lock().dir_vec();
         let mov_vec = unit_vecs.0 * dir_vec.x + unit_vecs.1 * dir_vec.y;
 
         // Why do we do this in Voxygen?!
@@ -267,14 +266,14 @@ impl Game {
         const MIN_LOOKING: f32 = 0.5;
         const LEANING_FAC: f32 = 0.05;
         if let Some(player_entity) = self.client.player_entity() {
-            let mut player_entity = player_entity.write().unwrap();
+            let mut player_entity = player_entity.write();
 
             // Apply acceleration
             player_entity.ctrl_acc_mut().x = mov_vec.x;
             player_entity.ctrl_acc_mut().y = mov_vec.y;
 
             // Apply jumping
-            player_entity.ctrl_acc_mut().z = if self.key_state.lock().unwrap().jump() {
+            player_entity.ctrl_acc_mut().z = if self.key_state.lock().jump() {
                 1.0
             } else {
                 0.0
@@ -300,7 +299,7 @@ impl Game {
         let renderer = &mut self.window.renderer_mut();
 
         for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
-            let mut con = con.write().unwrap();
+            let mut con = con.write();
             if let Some(payload) = con.payload_mut() {
                 if let ChunkPayload::Meshes(ref mut meshes) = payload {
                     // Calculate chunk mode matrix
@@ -337,8 +336,8 @@ impl Game {
 
         // Set camera focus to the player's head
         if let Some(player_entity) = self.client.player_entity() {
-            let player_entity = player_entity.read().unwrap();
-            self.camera.lock().unwrap().set_focus(Vector3::<f32>::from(
+            let player_entity = player_entity.read();
+            self.camera.lock().set_focus(Vector3::<f32>::from(
                 (*player_entity.pos() + Vec3::new(0.0, 0.0, 1.75)).into_array(),
             ));
         }
@@ -347,7 +346,7 @@ impl Game {
 
         // Update each entity constbuffer
         for (uid, entity) in self.client.entities().iter() {
-            let mut entity = entity.write().unwrap();
+            let mut entity = entity.write();
 
             // Calculate entity model matrix
             let model_mat = &Translation3::from_vector(Vector3::from(entity.pos().into_array())).to_homogeneous()
@@ -370,12 +369,12 @@ impl Game {
 
     pub fn render_frame(&mut self) {
         // Calculate frame constants
-        let camera_mats = self.camera.lock().unwrap().get_mats();
-        let cam_origin = *self.camera.lock().unwrap().get_pos();
+        let camera_mats = self.camera.lock().get_mats();
+        let cam_origin = *self.camera.lock().get_pos();
         let play_origin = self
             .client
             .player_entity()
-            .map(|p| *p.read().unwrap().pos())
+            .map(|p| *p.read().pos())
             .unwrap_or(Vec3::new(0.0, 0.0, 0.0));
         let play_origin = [play_origin.x, play_origin.y, play_origin.z, 1.0];
         let time = self.client.time() as f32;
@@ -403,7 +402,7 @@ impl Game {
 
         // Render each chunk
         for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
-            let con = con.write().unwrap();
+            let con = con.write();
             if let Some(payload) = con.payload() {
                 if let ChunkPayload::Model {
                     ref model,
@@ -424,7 +423,7 @@ impl Game {
                 _ => &self.other_player_model,
             };
 
-            if let Some(ref model_consts) = entity.read().unwrap().payload() {
+            if let Some(ref model_consts) = entity.read().payload() {
                 self.volume_pipeline
                     .draw_model(&model, model_consts, &self.global_consts);
             }

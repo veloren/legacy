@@ -1,8 +1,8 @@
 // Standard
 use std::{
     sync::{
-        Arc, Mutex,
-        atomic::{AtomicBool, Ordering},
+        Arc,
+        atomic::Ordering,
     },
     time::Duration,
     thread,
@@ -18,13 +18,11 @@ use specs::{
 // Project
 use common::{
     manager::Manager,
-    msg::{SessionKind, ClientMsg, ServerMsg, ServerPostOffice, ServerPostBox, PlayMode},
+    msg::{SessionKind, ClientMsg, ServerMsg, ServerPostOffice},
     post::Incoming,
-    Uid,
 };
 use region::{
-    ecs, ecs::{
-        CreateUtil,
+    ecs::{
         phys::{Pos, Vel, Ori},
         net::SyncMarker,
     },
@@ -97,11 +95,11 @@ pub(crate) fn auth_client<P: Payloads>(srv: &Wrapper<Server<P>>, po: Manager<Ser
                 });
 
                 // Inform the client that they've successfully connected
-                session.postbox.send(ServerMsg::Connected {
-                    player_uid,
-                });
-
-                Ok(player)
+                if let Err(_) = session.postbox.send(ServerMsg::Connected { player_uid }) {
+                    Err(Error::ConnectionDropped)
+                } else {
+                    Ok(player)
+                }
             } else {
                 Err(Error::NoConnectMsg)
             }
@@ -113,7 +111,7 @@ pub(crate) fn auth_client<P: Payloads>(srv: &Wrapper<Server<P>>, po: Manager<Ser
     }
 }
 
-pub(crate) fn handle_player_post<P: Payloads>(srv: &Wrapper<Server<P>>, player: Entity, running: &AtomicBool, mut mgr: Manager<Wrapper<Server<P>>>) {
+pub(crate) fn handle_player_post<P: Payloads>(srv: &Wrapper<Server<P>>, player: Entity, mut mgr: Manager<Wrapper<Server<P>>>) {
     // Ping worker
     Manager::add_worker(&mut mgr, move |srv, running, _| {
         if let Some(pb) = srv.do_for(|srv| srv
@@ -125,7 +123,13 @@ pub(crate) fn handle_player_post<P: Payloads>(srv: &Wrapper<Server<P>>, player: 
             // Wait for pings, respond with another ping
             while running.load(Ordering::Relaxed) {
                 thread::sleep(PING_FREQ);
-                pb.send(ServerMsg::Ping);
+
+                // Send a ping response
+                if let Err(_) = pb.send(ServerMsg::Ping) {
+                    break;
+                }
+
+                // Await a ping response from the client
                 match pb.recv_timeout(PING_TIMEOUT) {
                     Ok(ClientMsg::Ping) => {},
                     _ => break, // Anything other than a ping over this session is invalid
@@ -141,7 +145,7 @@ pub(crate) fn handle_player_post<P: Payloads>(srv: &Wrapper<Server<P>>, player: 
     if let Some(po) = srv.do_for(|srv| srv.world.read_storage::<Client>().get(player).map(|p| p.postoffice.clone())) {
         while let Ok(msg) = po.await_incoming() {
             match msg {
-                Incoming::Session(session) => {}, // TODO: Something here
+                Incoming::Session(_session) => {}, // TODO: Something here
                 Incoming::Msg(msg) => handle_oneshot(srv, msg, player, &mgr),
                 Incoming::End => break,
             }
@@ -163,7 +167,7 @@ pub(crate) fn handle_oneshot<P: Payloads>(srv: &Wrapper<Server<P>>, msg: ClientM
     }
 }
 
-pub(crate) fn process_chat_msg<P: Payloads>(srv: &Wrapper<Server<P>>, text: String, player: Entity, mgr: &Manager<Wrapper<Server<P>>>) {
+pub(crate) fn process_chat_msg<P: Payloads>(srv: &Wrapper<Server<P>>, text: String, player: Entity, _mgr: &Manager<Wrapper<Server<P>>>) {
     if text.starts_with('/') {
         match text.split(' ').next().map(|s| s.get(1..)) {
             Some(Some("help")) => srv.do_for(|srv| {

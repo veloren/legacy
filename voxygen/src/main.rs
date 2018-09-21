@@ -32,6 +32,7 @@ extern crate serde_derive;
 extern crate enum_map;
 extern crate fnv;
 extern crate indexmap;
+extern crate parking_lot;
 
 // Time
 extern crate chrono;

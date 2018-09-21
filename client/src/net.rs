@@ -1,7 +1,7 @@
 // Standard
 use std::{
     sync::{
-        Arc, RwLock, Mutex,
+        Arc,
         atomic::{AtomicBool, Ordering},
     },
     time::Duration,
@@ -10,6 +10,7 @@ use std::{
 
 // Library
 use vek::*;
+use parking_lot::Mutex;
 
 // Project
 use common::{
@@ -38,7 +39,7 @@ impl<P: Payloads> Client<P> {
                     SessionKind::Ping => {
                         let pb = Mutex::new(session.postbox);
                         Manager::add_worker(mgr, |client, running, _| {
-                            client.handle_ping_session(pb.into_inner().unwrap(), running);
+                            client.handle_ping_session(pb.into_inner(), running);
                         })
                     },
                     _ => {},
@@ -50,7 +51,7 @@ impl<P: Payloads> Client<P> {
                 },
                 Incoming::Msg(ServerMsg::EntityUpdate { uid, pos, vel, ori }) => match self.entity(uid) {
                     Some(entity) => {
-                        let mut entity = entity.write().unwrap();
+                        let mut entity = entity.write();
                         *entity.pos_mut() = pos;
                         *entity.vel_mut() = vel;
                         *entity.ctrl_acc_mut() = Vec3::zero();
@@ -67,7 +68,7 @@ impl<P: Payloads> Client<P> {
             }
         }
 
-        *self.status.write().unwrap() = ClientStatus::Disconnected;
+        *self.status.write() = ClientStatus::Disconnected;
     }
 
     fn handle_ping_session(&self, pb: ClientPostBox, running: &AtomicBool) {
@@ -85,7 +86,7 @@ impl<P: Payloads> Client<P> {
     pub(crate) fn update_server(&self) {
         // Update the server with information about the player
         if let Some(player_entity) = self.player_entity() {
-            let player_entity = player_entity.read().unwrap();
+            let player_entity = player_entity.read();
             self.postoffice.send_one(ClientMsg::PlayerEntityUpdate {
                 pos: *player_entity.pos(),
                 vel: *player_entity.vel(),

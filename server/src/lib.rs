@@ -1,6 +1,5 @@
 #![feature(integer_atomics)]
 #![feature(duration_as_u128)]
-#![feature(iterator_find_map)]
 
 // Crates
 pub extern crate specs;
@@ -16,6 +15,7 @@ pub mod player;
 pub mod net;
 mod error;
 mod tick;
+mod msg;
 
 // Reexports
 pub use error::Error;

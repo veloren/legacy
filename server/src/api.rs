@@ -25,7 +25,7 @@ impl<P: Payloads> Api for Server<P> {
     fn disconnect_player(&mut self, player: Entity, reason: DisconnectReason) {
         // Stop the postoffice
         if let Some(client) = self.world.read_storage::<Client>().get(player) {
-            client.postoffice.stop();
+            let _ = client.postoffice.stop(); // We don't care if this fails
         }
 
         if let Some(player_comp) = self.world.read_storage::<Player>().get(player) {

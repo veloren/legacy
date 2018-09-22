@@ -2,6 +2,7 @@
 use std::{
     rc::Rc,
     cell::{Cell, RefCell},
+    collections::VecDeque,
 };
 
 // Library
@@ -19,7 +20,7 @@ use super::primitive::draw_rectangle;
 pub struct VBox {
     col: Cell<Rgba<f32>>,
     margin: Cell<Vec2<Span>>,
-    children: RefCell<Vec<Rc<dyn Element>>>,
+    children: RefCell<VecDeque<Rc<dyn Element>>>,
 }
 
 impl VBox {
@@ -27,7 +28,7 @@ impl VBox {
         Rc::new(Self {
             col: Cell::new(Rgba::zero()),
             margin: Cell::new(Span::zero()),
-            children: RefCell::new(Vec::new()),
+            children: RefCell::new(VecDeque::new()),
         })
     }
 
@@ -41,9 +42,13 @@ impl VBox {
         self
     }
 
-    pub fn push_child<E: Element>(&self, child: Rc<E>) -> Rc<E> {
-        self.children.borrow_mut().push(child.clone());
+    pub fn push_back<E: Element>(&self, child: Rc<E>) -> Rc<E> {
+        self.children.borrow_mut().push_back(child.clone());
         child
+    }
+
+    pub fn pop_front(&self) -> Option<Rc<dyn Element>> {
+        self.children.borrow_mut().pop_front()
     }
 
     pub fn get_color(&self) -> Rgba<f32> { self.col.get() }

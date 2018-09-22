@@ -47,7 +47,8 @@ impl<P: Payloads> Client<P> {
 
                 // One-shot messages
                 Incoming::Msg(ServerMsg::ChatMsg { text }) => {
-                    self.callbacks().call_recv_chat_msg(&text)
+                    self.callbacks().call_recv_chat_msg(&text);
+                    self.events.lock().incoming_chat_msgs.push(text);
                 },
                 Incoming::Msg(ServerMsg::EntityUpdate { uid, pos, vel, ori }) => match self.entity(uid) {
                     Some(entity) => {

@@ -26,7 +26,9 @@ use std::{
     net::ToSocketAddrs,
     sync::{Arc, atomic::Ordering},
     time::Duration,
-    thread, time,
+    thread,
+    time,
+    mem,
 };
 
 // Library
@@ -62,6 +64,18 @@ pub trait Payloads: 'static {
     type Entity: Send + Sync + 'static;
 }
 
+pub struct ClientEvents {
+    pub incoming_chat_msgs: Vec<String>,
+}
+
+impl ClientEvents {
+    pub fn empty() -> ClientEvents {
+        Self {
+            incoming_chat_msgs: Vec::new(),
+        }
+    }
+}
+
 pub struct Client<P: Payloads> {
     status: RwLock<ClientStatus>,
     postoffice: Manager<ClientPostOffice>,
@@ -74,6 +88,7 @@ pub struct Client<P: Payloads> {
     chunk_mgr: VolMgr<Chunk, ChunkContainer<<P as Payloads>::Chunk>, ChunkConverter, <P as Payloads>::Chunk>,
 
     callbacks: RwLock<Callbacks>,
+    events: Mutex<ClientEvents>,
 
     view_distance: i64,
 }
@@ -107,6 +122,7 @@ impl<P: Payloads> Client<P> {
                 chunk_mgr: VolMgr::new(CHUNK_SIZE, VolGen::new(world::gen_chunk, gen_payload)),
 
                 callbacks: RwLock::new(Callbacks::new()),
+                events: Mutex::new(ClientEvents::empty()),
 
                 view_distance: view_distance.max(1).min(10),
             });
@@ -133,6 +149,12 @@ impl<P: Payloads> Client<P> {
         &self,
     ) -> &VolMgr<Chunk, ChunkContainer<<P as Payloads>::Chunk>, ChunkConverter, <P as Payloads>::Chunk> {
         &self.chunk_mgr
+    }
+
+    pub fn get_events(&self) -> ClientEvents {
+        let mut events = ClientEvents::empty();
+        mem::swap(&mut events, &mut self.events.lock());
+        events
     }
 
     pub fn status<'a>(&'a self) -> RwLockReadGuard<'a, ClientStatus> { self.status.read() }

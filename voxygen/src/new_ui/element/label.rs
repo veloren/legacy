@@ -55,11 +55,15 @@ impl Label {
 
     pub fn get_size(&self) -> Vec2<Span> { self.size.get() }
     pub fn set_size(&self, size: Vec2<Span>) { self.size.set(size); }
+
+    pub fn clone_all(&self) -> Rc<Self> {
+        Rc::new(self.clone())
+    }
 }
 
 impl Element for Label {
     fn deep_clone(&self) -> Rc<dyn Element> {
-        Rc::new(self.clone())
+        self.clone_all()
     }
 
     fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: (Vec2<f32>, Vec2<f32>)) {

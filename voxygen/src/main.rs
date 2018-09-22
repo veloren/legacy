@@ -62,6 +62,7 @@ mod consts;
 mod pipeline;
 mod renderer;
 mod shader;
+mod hud;
 
 // > Pipelines
 mod skybox;

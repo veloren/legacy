@@ -45,11 +45,15 @@ impl Rect {
 
     pub fn get_padding(&self) -> Vec2<Span> { self.padding.get() }
     pub fn set_padding(&self, padding: Vec2<Span>) { self.padding.set(padding); }
+
+    pub fn clone_all(&self) -> Rc<Self> {
+        Rc::new(self.clone())
+    }
 }
 
 impl Element for Rect {
     fn deep_clone(&self) -> Rc<dyn Element> {
-        Rc::new(self.clone())
+        self.clone_all()
     }
 
     fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: (Vec2<f32>, Vec2<f32>)) {

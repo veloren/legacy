@@ -41,6 +41,7 @@ use skybox;
 use tonemapper;
 use voxel;
 use window::{Event, RenderWindow};
+use hud::Hud;
 
 // TODO: This is experimental
 use new_ui;
@@ -77,7 +78,7 @@ pub struct Game {
     volume_pipeline: voxel::VolumePipeline,
     tonemapper_pipeline: Pipeline<tonemapper::pipeline::Init<'static>>,
 
-    new_ui_rescache: new_ui::ResCache,
+    hud: Hud,
 
     fps: FPSCounter,
     last_fps: usize,
@@ -160,7 +161,7 @@ impl Game {
             volume_pipeline,
             tonemapper_pipeline,
 
-            new_ui_rescache: new_ui::ResCache::new(),
+            hud: Hud::new(),
 
             fps: FPSCounter::new(),
             last_fps: 60,
@@ -309,6 +310,14 @@ impl Game {
         self.running.load(Ordering::Relaxed)
     }
 
+    pub fn handle_client_events(&mut self) {
+        let mut events = self.client.get_events();
+
+        events.incoming_chat_msgs.drain(..).for_each(|text| {
+            self.hud.chat_box().add_chat_msg(text);
+        });
+    }
+
     pub fn update_chunks(&mut self) {
         let renderer = &mut self.window.renderer_mut();
 
@@ -453,77 +462,23 @@ impl Game {
             .borrow_mut()
             .render(&mut renderer, &self.client, &self.window.get_size());
 
-        // TODO: This is experimental
+        // TODO: Experimental
         {
-            use new_ui::*;
             use get_build_time;
             use get_git_hash;
 
-            let mut debugbox = element::VBox::new()
-                .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
-                .with_margin(Span::px(8, 8));
-            debugbox.push_child(element::Label::new()
-                .with_text("Debug".to_string())
-                .with_size(Span::px(16, 16))
-                .with_color(Rgba::new(1.0, 1.0, 1.0, 1.0))
-            );
-            debugbox.push_child(element::Label::new()
-                .with_text(format!("Version: {}", env!("CARGO_PKG_VERSION")))
-                .with_size(Span::px(16, 16))
-                .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
-            );
-            debugbox.push_child(element::Label::new()
-                .with_text(format!("Git hash: {}", &get_git_hash()[..8]))
-                .with_size(Span::px(16, 16))
-                .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
-            );
-            debugbox.push_child(element::Label::new()
-                .with_text(format!("Build time: {}", get_build_time()))
-                .with_size(Span::px(16, 16))
-                .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
-            );
-            debugbox.push_child(element::Label::new()
-                .with_text(format!("FPS: {}", self.last_fps))
-                .with_size(Span::px(16, 16))
-                .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
-            );
+            self.hud.debug_box().version_label.set_text(format!("Version: {}", env!("CARGO_PKG_VERSION")));
+            self.hud.debug_box().githash_label.set_text(format!("Git hash: {}", &get_git_hash()[..8]));
+            self.hud.debug_box().buildtime_label.set_text(format!("Build time: {}", get_build_time()));
+            self.hud.debug_box().fps_label.set_text(format!("FPS: {}", self.last_fps));
+
             let pos_text = self.client
                 .player_entity()
                 .map(|p| format!("Pos: {}", p.read().pos().map(|e| e as i64)))
                 .unwrap_or("Unknown position".to_string());
-            debugbox.push_child(element::Label::new()
-                .with_text(pos_text)
-                .with_size(Span::px(16, 16))
-                .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
-            );
+            self.hud.debug_box().pos_label.set_text(pos_text);
 
-            let mut chatbox = element::VBox::new()
-                .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
-                .with_margin(Span::px(8, 8));
-            for _ in 0..10 {
-                chatbox.push_child(element::Label::new()
-                    .with_text("Hello, world!".to_string())
-                    .with_size(Span::px(16, 16))
-                    .with_color(Rgba::new(1.0, 1.0, 1.0, 0.7))
-                );
-            }
-
-            let mut hotbar = element::HBox::new()
-                .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
-                .with_margin(Span::px(8, 8));
-            for _ in 0..5 {
-                hotbar.push_child(element::Rect::new()
-                    .with_color(Rgba::new(1.0, 0.8, 0.3, 1.0))
-                    .with_padding(Span::px(8, 8))
-                );
-            }
-
-            let mut winbox = element::WinBox::new();
-            winbox.add_child_at(Span::top_left(), Span::top_left() + Span::px(-16, -16), Span::px(366, 112), debugbox);
-            winbox.add_child_at(Span::bottom_left(), Span::bottom_left() + Span::px(-16, 16), Span::px(316, 176), chatbox);
-            winbox.add_child_at(Span::bottom(), Span::bottom() + Span::px(0, 16), Span::px(296, 72), hotbar);
-
-            Ui::new(winbox).render(&mut renderer, &mut self.new_ui_rescache);
+            self.hud.render(&mut renderer);
         }
 
         self.window.swap_buffers();
@@ -534,8 +489,11 @@ impl Game {
 
     pub fn run(&mut self) {
         while self.handle_window_events() {
+            self.handle_client_events();
+
             self.update_chunks();
             self.update_entities();
+
             self.render_frame();
         }
     }

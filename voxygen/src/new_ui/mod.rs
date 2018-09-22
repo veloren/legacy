@@ -1,5 +1,5 @@
 // Modules
-pub mod elements;
+pub mod element;
 pub mod rescache;
 mod primitive;
 mod render;
@@ -14,11 +14,7 @@ use vek::*;
 
 // Local
 use renderer::Renderer;
-
-pub trait Element: 'static {
-    fn deep_clone(&self) -> Box<dyn Element>;
-    fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: (Vec2<f32>, Vec2<f32>));
-}
+use self::element::Element;
 
 pub struct Ui {
     base: Box<Element>,
@@ -32,6 +28,92 @@ impl Ui {
     pub fn render(self, renderer: &mut Renderer, res_cache: &mut ResCache) {
         self.base.render(renderer, res_cache, (Vec2::zero(), Vec2::one()));
     }
+}
+
+// Utility types
+
+#[derive(Copy, Clone, Debug)]
+pub struct Pos {
+    pub rel: Vec2<f32>,
+    pub px: Vec2<i16>,
+}
+
+impl Pos {
+    pub fn rel_and_px(rx: f32, ry: f32, px: i16, py: i16) -> Self {
+        Self { rel: Vec2::new(rx, ry), px: Vec2::new(px, py), }
+    }
+
+    pub fn rel(x: f32, y: f32) -> Self {
+        Self { rel: Vec2::new(x, y), px: Vec2::zero(), }
+    }
+
+    pub fn px(x: i16, y: i16) -> Self {
+        Self { rel: Vec2::zero(), px: Vec2::new(x, y), }
+    }
+
+    pub fn zero() -> Self {
+        Self { rel: Vec2::zero(), px: Vec2::zero() }
+    }
+
+    fn get_rel(&self) -> Self {
+        Self { rel: self.rel, px: Vec2::zero() }
+    }
+
+    fn get_px(&self) -> Self {
+        Self { rel: Vec2::zero(), px: self.px }
+    }
+}
+
+impl From<Vec2<f32>> for Pos {
+    fn from(v: Vec2<f32>) -> Self { Self::rel(v.x, v.y) }
+}
+
+impl From<Vec2<i16>> for Pos {
+    fn from(v: Vec2<i16>) -> Self { Self::px(v.x, v.y) }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct Size {
+    pub rel: Vec2<f32>,
+    pub px: Vec2<i16>,
+}
+
+impl Size {
+    pub fn rel_and_px(rx: f32, ry: f32, px: i16, py: i16) -> Self {
+        Self { rel: Vec2::new(rx, ry), px: Vec2::new(px, py), }
+    }
+
+    pub fn rel(x: f32, y: f32) -> Self {
+        Self { rel: Vec2::new(x, y), px: Vec2::zero(), }
+    }
+
+    pub fn px(x: i16, y: i16) -> Self {
+        Self { rel: Vec2::zero(), px: Vec2::new(x, y), }
+    }
+
+    pub fn zero() -> Self {
+        Self { rel: Vec2::zero(), px: Vec2::zero() }
+    }
+
+    pub fn max() -> Self {
+        Self { rel: Vec2::one(), px: Vec2::zero(), }
+    }
+
+    fn get_rel(&self) -> Self {
+        Self { rel: self.rel, px: Vec2::zero() }
+    }
+
+    fn get_px(&self) -> Self {
+        Self { rel: Vec2::zero(), px: self.px }
+    }
+}
+
+impl From<Vec2<f32>> for Size {
+    fn from(v: Vec2<f32>) -> Self { Self::rel(v.x, v.y) }
+}
+
+impl From<Vec2<i16>> for Size {
+    fn from(v: Vec2<i16>) -> Self { Self::px(v.x, v.y) }
 }
 
 /*

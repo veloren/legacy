@@ -1,13 +1,20 @@
 // Standard
 use std::{
     rc::Rc,
+    cell::RefCell,
     hash::{Hash, Hasher},
     collections::hash_map::{HashMap, DefaultHasher},
 };
 
 // Library
 use vek::*;
+use gfx::{
+    Slice,
+    handle::Buffer
+};
+use gfx_device_gl;
 use lyon::tessellation::geometry_builder::VertexBuffers;
+use gfx_glyph::GlyphBrush;
 
 // Local
 use shader::Shader;
@@ -22,18 +29,25 @@ use super::render::{FillPso, FillVertex};
 // doesn't. Don't bother yourself with caring about this code. It's pretty boring run-of-the-mill
 // stuff that would just 'exist' if we didn't decide to write this engine ourselves.
 
+// Useful type alias
+pub type RectVboRes = (Buffer<gfx_device_gl::Resources, FillVertex>, Slice<gfx_device_gl::Resources>);
+pub type GlyphBrushRes = GlyphBrush<'static, gfx_device_gl::Resources, gfx_device_gl::Factory>;
+
 pub struct ResCache {
     // PSOs
     fill_pso: Option<Rc<FillPso>>,
     // Meshes
-    rect_meshes: HashMap<u64, Rc<VertexBuffers<FillVertex, u16>>>,
+    rect_vbos: HashMap<u64, Rc<RectVboRes>>,
+    // Glyph brushes
+    glyph_brushes: HashMap<u64, Rc<RefCell<GlyphBrushRes>>>,
 }
 
 impl ResCache {
     pub fn new() -> ResCache {
         ResCache {
             fill_pso: None,
-            rect_meshes: HashMap::new(),
+            rect_vbos: HashMap::new(),
+            glyph_brushes: HashMap::new(),
         }
     }
 
@@ -47,7 +61,7 @@ impl ResCache {
         self.fill_pso.as_ref().map(|f| f.clone()).expect("This panic shouldn't be possible.")
     }
 
-    pub(crate) fn get_or_create_rect_mesh<F: FnOnce() -> VertexBuffers<FillVertex, u16>>(&mut self, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>, f: F) -> Rc<VertexBuffers<FillVertex, u16>> {
+    pub(crate) fn get_or_create_rect_vbo<F: FnOnce() -> RectVboRes>(&mut self, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>, f: F) -> Rc<RectVboRes> {
         // Eurgh. Awful hashing logic here.
         let mut hasher = DefaultHasher::new();
         (
@@ -57,9 +71,26 @@ impl ResCache {
         ).hash(&mut hasher);
         let hash = hasher.finish();
 
-        if let None = self.rect_meshes.get(&hash) {
-            self.rect_meshes.insert(hash, Rc::new(f()));
+        if let None = self.rect_vbos.get(&hash) {
+            self.rect_vbos.insert(hash, Rc::new(f()));
         }
-        self.rect_meshes.get(&hash).map(|r| r.clone()).expect("This panic shouldn't be possible.")
+        self.rect_vbos.get(&hash).map(|r| r.clone()).expect("This panic shouldn't be possible.")
+    }
+
+    pub(crate) fn get_or_create_glyph_brush<F: FnOnce() -> GlyphBrushRes>(&mut self, text: &str, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>, f: F) -> Rc<RefCell<GlyphBrushRes>> {
+        // Eurgh. Awful hashing logic here.
+        let mut hasher = DefaultHasher::new();
+        (
+            text,
+            pos.map(|e| e.to_bits()),
+            sz.map(|e| e.to_bits()),
+            col.map(|e| e.to_bits()),
+        ).hash(&mut hasher);
+        let hash = hasher.finish();
+
+        if let None = self.glyph_brushes.get(&hash) {
+            self.glyph_brushes.insert(hash, Rc::new(RefCell::new(f())));
+        }
+        self.glyph_brushes.get(&hash).map(|r| r.clone()).expect("This panic shouldn't be possible.")
     }
 }

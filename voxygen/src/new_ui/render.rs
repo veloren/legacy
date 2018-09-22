@@ -82,7 +82,7 @@ pub fn create_fill_pso(renderer: &mut Renderer) -> FillPso {
         out vec4 f_col;
 
         void main() {
-            gl_Position = vec4(2.0 * v_pos - 1.0, 0.0, 1.0);
+            gl_Position = vec4(vec2(2.0, -2.0) * v_pos + vec2(-1.0, 1.0), 0.0, 1.0);
             f_col = v_col;
         }
     ");

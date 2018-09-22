@@ -448,13 +448,23 @@ impl Game {
 
         // TODO: This is experimental
         {
-            new_ui::Ui::new(
-                new_ui::elements::WinBox::new()
-                    .with_color(Rgba::new(1.0, 1.0, 1.0, 0.0))
-                    .with_child_at(Vec2::zero(), Vec2::zero(), Vec2::new(0.2, 0.2), new_ui::elements::Rect::new()
-                        .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
-                    )
-            ).render(&mut renderer, &mut self.new_ui_rescache);
+            use new_ui::*;
+
+            let mut chatbox = element::VBox::new()
+                .with_color(Rgba::new(0.0, 0.0, 0.0, 0.3))
+                .with_margin(Size::px(8, 8));
+            for _ in 0..10 {
+                chatbox.push_child(element::Label::new()
+                    .with_text("Hello, world!".to_string())
+                    .with_size(Size::px(16, 16))
+                    .with_color(Rgba::new(1.0, 1.0, 1.0, 0.7))
+                );
+            }
+
+            let mut winbox = element::WinBox::new();
+            winbox.add_child_at(Pos::rel(0.0, 1.0), Pos::rel_and_px(0.0, 1.0, -16, 16), Size::px(316, 176), chatbox);
+
+            Ui::new(winbox).render(&mut renderer, &mut self.new_ui_rescache);
         }
 
         self.window.swap_buffers();

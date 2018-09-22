@@ -88,11 +88,19 @@ impl Renderer {
     }
 
     #[allow(dead_code)]
+    pub fn encoder(&self) -> &Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer> {
+        &self.encoder
+    }
+    #[allow(dead_code)]
     pub fn encoder_mut(&mut self) -> &mut Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer> {
         &mut self.encoder
     }
+
+    #[allow(dead_code)]
+    pub fn factory(&self) -> &gfx_device_gl::Factory { &self.factory }
     #[allow(dead_code)]
     pub fn factory_mut(&mut self) -> &mut gfx_device_gl::Factory { &mut self.factory }
+
     #[allow(dead_code)]
     pub fn color_view(&self) -> &ColorView { &self.color_view }
     #[allow(dead_code)]
@@ -102,6 +110,13 @@ impl Renderer {
     pub fn hdr_render_view(&self) -> &HdrRenderView { &self.hdr_render_view }
     pub fn hdr_depth_view(&self) -> &HdrDepthView { &self.hdr_depth_view }
     pub fn hdr_sampler(&self) -> &Sampler<gfx_device_gl::Resources> { &self.hdr_sampler }
+
+    pub fn get_view_resolution(&self) -> Vec2<u16> {
+        Vec2::new(
+            self.color_view.get_dimensions().0,
+            self.color_view.get_dimensions().1,
+        )
+    }
 
     #[allow(dead_code)]
     pub fn set_views(&mut self, color_view: ColorView, depth_view: DepthView, size: (u16, u16)) {

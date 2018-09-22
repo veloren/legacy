@@ -105,14 +105,16 @@ impl<P: Payloads> Managed for Wrapper<Server<P>> {
                 .expect("Failed to clone server TcpListener")
             );
 
-            while let (Ok((stream, _addr)), true) = (listener.accept(), running.load(Ordering::Relaxed)) {
-                // Convert the incoming stream to a postoffice ready to begin the connection handshake
-                if let Ok(po) = ServerPostOffice::to_client(stream) {
-                    Manager::add_worker(&mut mgr, move |srv, _, mgr| {
-                        if let Ok(client) = net::auth_client(srv, po) {
-                            net::handle_player_post(srv, client, mgr);
-                        }
-                    });
+            loop {
+                if let (Ok((stream, _addr)), true) = (listener.accept(), running.load(Ordering::Relaxed)) {
+                    // Convert the incoming stream to a postoffice ready to begin the connection handshake
+                    if let Ok(po) = ServerPostOffice::to_client(stream) {
+                        Manager::add_worker(&mut mgr, move |srv, _, mgr| {
+                            if let Ok(client) = net::auth_client(srv, po) {
+                                net::handle_player_post(srv, client, mgr);
+                            }
+                        });
+                    }
                 }
             }
         });

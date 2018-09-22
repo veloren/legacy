@@ -21,6 +21,7 @@ use glutin::ElementState;
 use indexmap::IndexMap;
 use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
 use parking_lot::Mutex;
+use fps_counter::FPSCounter;
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
@@ -77,6 +78,9 @@ pub struct Game {
     tonemapper_pipeline: Pipeline<tonemapper::pipeline::Init<'static>>,
 
     new_ui_rescache: new_ui::ResCache,
+
+    fps: FPSCounter,
+    last_fps: usize,
 
     skybox_model: skybox::Model,
     player_model: voxel::Model,
@@ -157,6 +161,9 @@ impl Game {
             tonemapper_pipeline,
 
             new_ui_rescache: new_ui::ResCache::new(),
+
+            fps: FPSCounter::new(),
+            last_fps: 60,
 
             skybox_model,
             player_model,
@@ -449,6 +456,46 @@ impl Game {
         // TODO: This is experimental
         {
             use new_ui::*;
+            use get_build_time;
+            use get_git_hash;
+
+            let mut debugbox = element::VBox::new()
+                .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
+                .with_margin(Size::px(8, 8));
+            debugbox.push_child(element::Label::new()
+                .with_text("Debug".to_string())
+                .with_size(Size::px(16, 16))
+                .with_color(Rgba::new(1.0, 1.0, 1.0, 1.0))
+            );
+            debugbox.push_child(element::Label::new()
+                .with_text(format!("Version: {}", env!("CARGO_PKG_VERSION")))
+                .with_size(Size::px(16, 16))
+                .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
+            );
+            debugbox.push_child(element::Label::new()
+                .with_text(format!("Git hash: {}", &get_git_hash()[..8]))
+                .with_size(Size::px(16, 16))
+                .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
+            );
+            debugbox.push_child(element::Label::new()
+                .with_text(format!("Build time: {}", get_build_time()))
+                .with_size(Size::px(16, 16))
+                .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
+            );
+            debugbox.push_child(element::Label::new()
+                .with_text(format!("FPS: {}", self.last_fps))
+                .with_size(Size::px(16, 16))
+                .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
+            );
+            let pos_text = self.client
+                .player_entity()
+                .map(|p| format!("Pos: {}", p.read().pos()))
+                .unwrap_or("Unknown position".to_string());
+            debugbox.push_child(element::Label::new()
+                .with_text(pos_text)
+                .with_size(Size::px(16, 16))
+                .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
+            );
 
             let mut chatbox = element::VBox::new()
                 .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
@@ -471,6 +518,7 @@ impl Game {
             }
 
             let mut winbox = element::WinBox::new();
+            winbox.add_child_at(Pos::rel(0.0, 0.0), Pos::rel_and_px(0.0, 0.0, -16, -16), Size::px(316, 112), debugbox);
             winbox.add_child_at(Pos::rel(0.0, 1.0), Pos::rel_and_px(0.0, 1.0, -16, 16), Size::px(316, 176), chatbox);
             winbox.add_child_at(Pos::rel(0.5, 1.0), Pos::rel_and_px(0.5, 1.0, 0, 16), Size::px(280, 56), hotbar);
 
@@ -479,6 +527,8 @@ impl Game {
 
         self.window.swap_buffers();
         renderer.end_frame();
+
+        self.last_fps = self.fps.tick();
     }
 
     pub fn run(&mut self) {

@@ -11,6 +11,7 @@ extern crate glutin;
 extern crate conrod;
 extern crate lyon;
 extern crate gfx_glyph;
+extern crate fps_counter;
 
 // Mathematics
 extern crate vek;

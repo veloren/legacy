@@ -77,17 +77,7 @@ impl ResCache {
         self.rect_vbos.get(&hash).map(|r| r.clone()).expect("This panic shouldn't be possible.")
     }
 
-    pub(crate) fn get_or_create_glyph_brush<F: FnOnce() -> GlyphBrushRes>(&mut self, text: &str, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>, f: F) -> Rc<RefCell<GlyphBrushRes>> {
-        // Eurgh. Awful hashing logic here.
-        let mut hasher = DefaultHasher::new();
-        (
-            text,
-            pos.map(|e| e.to_bits()),
-            sz.map(|e| e.to_bits()),
-            col.map(|e| e.to_bits()),
-        ).hash(&mut hasher);
-        let hash = hasher.finish();
-
+    pub(crate) fn get_or_create_glyph_brush<F: FnOnce() -> GlyphBrushRes>(&mut self, hash: u64, f: F) -> Rc<RefCell<GlyphBrushRes>> {
         if let None = self.glyph_brushes.get(&hash) {
             self.glyph_brushes.insert(hash, Rc::new(RefCell::new(f())));
         }

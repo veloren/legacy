@@ -1,5 +1,8 @@
 // Standard
-use std::hash::Hash;
+use std::{
+    cell::Cell,
+    hash::Hash,
+};
 
 // Library
 use vek::*;
@@ -36,13 +39,6 @@ fn create_rect_vbo(renderer: &mut Renderer, pos: Vec2<f32>, sz: Vec2<f32>, col: 
     renderer.factory_mut().create_vertex_buffer_with_slice(&mesh.vertices[..], &mesh.indices[..])
 }
 
-// TODO: Don't hard-code this
-static UI_FONT: &[u8] = include_bytes!("../../../assets/voxygen/fonts/NotoSans-Regular.ttf");
-
-fn create_glyph_brush(renderer: &mut Renderer, text: &str, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>) -> GlyphBrushRes {
-    GlyphBrushBuilder::using_font_bytes(UI_FONT).build(renderer.factory().clone())
-}
-
 pub(crate) fn draw_rectangle(renderer: &mut Renderer, rescache: &mut ResCache, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>) {
     let pso = rescache.get_or_create_fill_pso(|| create_fill_pso(renderer));
     let rect_vbo = rescache.get_or_create_rect_vbo(pos, sz, col, || create_rect_vbo(renderer, pos, sz, col));
@@ -59,8 +55,16 @@ pub(crate) fn draw_rectangle(renderer: &mut Renderer, rescache: &mut ResCache, p
     );
 }
 
+// TODO: Don't hard-code this
+static UI_FONT: &[u8] = include_bytes!("../../../assets/voxygen/fonts/NotoSans-Regular.ttf");
+
+fn create_glyph_brush(renderer: &mut Renderer, font: &'static [u8]) -> GlyphBrushRes {
+    GlyphBrushBuilder::using_font_bytes(font).build(renderer.factory().clone())
+}
+
 pub(crate) fn draw_text(renderer: &mut Renderer, rescache: &mut ResCache, text: &str, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>) {
-    let brush = rescache.get_or_create_glyph_brush(text, pos, sz, col, || create_glyph_brush(renderer, text, pos, sz, col));
+    // TODO: Properly hash all unique details of this glyph brush
+    let brush = rescache.get_or_create_glyph_brush(0, || create_glyph_brush(renderer, UI_FONT));
 
     let color_view = renderer.color_view().clone();
     let depth_view = renderer.depth_view().clone();

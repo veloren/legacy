@@ -451,7 +451,7 @@ impl Game {
             use new_ui::*;
 
             let mut chatbox = element::VBox::new()
-                .with_color(Rgba::new(0.0, 0.0, 0.0, 0.3))
+                .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
                 .with_margin(Size::px(8, 8));
             for _ in 0..10 {
                 chatbox.push_child(element::Label::new()
@@ -461,8 +461,18 @@ impl Game {
                 );
             }
 
+            let mut hotbar = element::HBox::new()
+                .with_color(Rgba::new(0.5, 0.3, 0.0, 0.5));
+            for _ in 0..5 {
+                hotbar.push_child(element::Rect::new()
+                    .with_color(Rgba::new(0.0, 1.0, 0.0, 1.0))
+                    .with_padding(Size::px(8, 8))
+                );
+            }
+
             let mut winbox = element::WinBox::new();
             winbox.add_child_at(Pos::rel(0.0, 1.0), Pos::rel_and_px(0.0, 1.0, -16, 16), Size::px(316, 176), chatbox);
+            winbox.add_child_at(Pos::rel(0.5, 1.0), Pos::rel_and_px(0.5, 1.0, 0, 16), Size::px(280, 56), hotbar);
 
             Ui::new(winbox).render(&mut renderer, &mut self.new_ui_rescache);
         }

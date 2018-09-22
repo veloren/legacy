@@ -56,7 +56,7 @@ pub(crate) fn draw_rectangle(renderer: &mut Renderer, rescache: &mut ResCache, p
 }
 
 // TODO: Don't hard-code this
-static UI_FONT: &[u8] = include_bytes!("../../../assets/voxygen/fonts/NotoSans-Regular.ttf");
+static UI_FONT: &[u8] = include_bytes!("../../../fonts/fantasque-sans-mono-regular.ttf");
 
 fn create_glyph_brush(renderer: &mut Renderer, font: &'static [u8]) -> GlyphBrushRes {
     GlyphBrushBuilder::using_font_bytes(font).build(renderer.factory().clone())

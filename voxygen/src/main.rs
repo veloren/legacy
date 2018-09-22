@@ -1,4 +1,5 @@
 #![feature(nll)]
+#![feature(arbitrary_self_types)]
 
 // Graphics
 #[macro_use]

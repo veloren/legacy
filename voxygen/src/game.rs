@@ -461,66 +461,67 @@ impl Game {
 
             let mut debugbox = element::VBox::new()
                 .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
-                .with_margin(Size::px(8, 8));
+                .with_margin(Span::px(8, 8));
             debugbox.push_child(element::Label::new()
                 .with_text("Debug".to_string())
-                .with_size(Size::px(16, 16))
+                .with_size(Span::px(16, 16))
                 .with_color(Rgba::new(1.0, 1.0, 1.0, 1.0))
             );
             debugbox.push_child(element::Label::new()
                 .with_text(format!("Version: {}", env!("CARGO_PKG_VERSION")))
-                .with_size(Size::px(16, 16))
+                .with_size(Span::px(16, 16))
                 .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
             );
             debugbox.push_child(element::Label::new()
                 .with_text(format!("Git hash: {}", &get_git_hash()[..8]))
-                .with_size(Size::px(16, 16))
+                .with_size(Span::px(16, 16))
                 .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
             );
             debugbox.push_child(element::Label::new()
                 .with_text(format!("Build time: {}", get_build_time()))
-                .with_size(Size::px(16, 16))
+                .with_size(Span::px(16, 16))
                 .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
             );
             debugbox.push_child(element::Label::new()
                 .with_text(format!("FPS: {}", self.last_fps))
-                .with_size(Size::px(16, 16))
+                .with_size(Span::px(16, 16))
                 .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
             );
             let pos_text = self.client
                 .player_entity()
-                .map(|p| format!("Pos: {}", p.read().pos()))
+                .map(|p| format!("Pos: {}", p.read().pos().map(|e| e as i64)))
                 .unwrap_or("Unknown position".to_string());
             debugbox.push_child(element::Label::new()
                 .with_text(pos_text)
-                .with_size(Size::px(16, 16))
+                .with_size(Span::px(16, 16))
                 .with_color(Rgba::new(1.0, 1.0, 1.0, 0.5))
             );
 
             let mut chatbox = element::VBox::new()
                 .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
-                .with_margin(Size::px(8, 8));
+                .with_margin(Span::px(8, 8));
             for _ in 0..10 {
                 chatbox.push_child(element::Label::new()
                     .with_text("Hello, world!".to_string())
-                    .with_size(Size::px(16, 16))
+                    .with_size(Span::px(16, 16))
                     .with_color(Rgba::new(1.0, 1.0, 1.0, 0.7))
                 );
             }
 
             let mut hotbar = element::HBox::new()
-                .with_color(Rgba::new(0.5, 0.3, 0.0, 0.5));
+                .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
+                .with_margin(Span::px(8, 8));
             for _ in 0..5 {
                 hotbar.push_child(element::Rect::new()
-                    .with_color(Rgba::new(0.0, 1.0, 0.0, 1.0))
-                    .with_padding(Size::px(8, 8))
+                    .with_color(Rgba::new(1.0, 0.8, 0.3, 1.0))
+                    .with_padding(Span::px(8, 8))
                 );
             }
 
             let mut winbox = element::WinBox::new();
-            winbox.add_child_at(Pos::rel(0.0, 0.0), Pos::rel_and_px(0.0, 0.0, -16, -16), Size::px(316, 112), debugbox);
-            winbox.add_child_at(Pos::rel(0.0, 1.0), Pos::rel_and_px(0.0, 1.0, -16, 16), Size::px(316, 176), chatbox);
-            winbox.add_child_at(Pos::rel(0.5, 1.0), Pos::rel_and_px(0.5, 1.0, 0, 16), Size::px(280, 56), hotbar);
+            winbox.add_child_at(Span::top_left(), Span::top_left() + Span::px(-16, -16), Span::px(366, 112), debugbox);
+            winbox.add_child_at(Span::bottom_left(), Span::bottom_left() + Span::px(-16, 16), Span::px(316, 176), chatbox);
+            winbox.add_child_at(Span::bottom(), Span::bottom() + Span::px(0, 16), Span::px(296, 72), hotbar);
 
             Ui::new(winbox).render(&mut renderer, &mut self.new_ui_rescache);
         }

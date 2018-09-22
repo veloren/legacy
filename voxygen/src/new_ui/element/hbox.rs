@@ -1,7 +1,7 @@
 // Standard
 use std::{
     rc::Rc,
-    cell::RefCell
+    cell::{Cell, RefCell},
 };
 
 // Library
@@ -12,58 +12,64 @@ use renderer::Renderer;
 use super::{
     Element,
     ResCache,
-    Pos,
-    Size,
+    Span,
 };
 use super::primitive::draw_rectangle;
 
 pub struct HBox {
-    col: Rgba<f32>,
-    margin: Size,
-    children: Vec<Rc<RefCell<dyn Element>>>,
+    col: Cell<Rgba<f32>>,
+    margin: Cell<Vec2<Span>>,
+    children: RefCell<Vec<Rc<dyn Element>>>,
 }
 
 impl HBox {
-    pub fn new() -> Self {
-        Self {
-            col: Rgba::zero(),
-            margin: Size::zero(),
-            children: Vec::new(),
-        }
+    pub fn new() -> Rc<Self> {
+        Rc::new(Self {
+            col: Cell::new(Rgba::zero()),
+            margin: Cell::new(Span::zero()),
+            children: RefCell::new(Vec::new()),
+        })
     }
 
-    pub fn with_color(mut self, col: Rgba<f32>) -> Self {
-        self.col = col;
+    pub fn with_color(self: Rc<Self>, col: Rgba<f32>) -> Rc<Self> {
+        self.col.set(col);
         self
     }
 
-    pub fn with_margin(mut self, margin: Size) -> Self {
-        self.margin = margin;
+    pub fn with_margin(self: Rc<Self>, margin: Vec2<Span>) -> Rc<Self> {
+        self.margin.set(margin);
         self
     }
 
-    pub fn push_child<E: Element>(&mut self, element: E) -> Rc<RefCell<E>> {
-        let rc = Rc::new(RefCell::new(element));
-        self.children.push(rc.clone());
-        rc
+    pub fn push_child<E: Element>(&self, child: Rc<E>) -> Rc<E> {
+        self.children.borrow_mut().push(child.clone());
+        child
     }
+
+    pub fn get_color(&self) -> Rgba<f32> { self.col.get() }
+    pub fn set_color(&self, col: Rgba<f32>) { self.col.set(col); }
+
+    pub fn get_margin(&self) -> Vec2<Span> { self.margin.get() }
+    pub fn set_margin(&self, margin: Vec2<Span>) { self.margin.set(margin); }
 }
 
 impl Element for HBox {
-    fn deep_clone(&self) -> Rc<RefCell<dyn Element>> {
-        Rc::new(RefCell::new(self.clone()))
+    fn deep_clone(&self) -> Rc<dyn Element> {
+        Rc::new(self.clone())
     }
 
     fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: (Vec2<f32>, Vec2<f32>)) {
-        draw_rectangle(renderer, rescache, bounds.0, bounds.1, self.col);
+        draw_rectangle(renderer, rescache, bounds.0, bounds.1, self.col.get());
 
-        let res = renderer.get_view_resolution().map(|e| e as f32);
-        let margin_rel = self.margin.rel * bounds.1 + self.margin.px.map(|e| e as f32) / res;
+        let view_res = renderer.get_view_resolution().map(|e| e as f32);
+        let margin_rel = self.margin.get().map(|e| e.rel) * bounds.1 + self.margin.get().map(|e| e.px as f32) / view_res;
         let child_bounds = (bounds.0 + margin_rel, bounds.1 - margin_rel * 2.0);
-        for (i, child) in self.children.iter().enumerate() {
-            child.borrow_mut().render(renderer, rescache, (
-                child_bounds.0 + Vec2::new(i as f32 * child_bounds.1.x / self.children.len() as f32, 0.0),
-                child_bounds.1 / Vec2::new(self.children.len() as f32, 1.0),
+
+        let children = self.children.borrow();
+        for (i, child) in children.iter().enumerate() {
+            child.render(renderer, rescache, (
+                child_bounds.0 + Vec2::new(i as f32 * child_bounds.1.x / children.len() as f32, 0.0),
+                child_bounds.1 / Vec2::new(children.len() as f32, 1.0),
             ));
         }
     }
@@ -72,9 +78,9 @@ impl Element for HBox {
 impl Clone for HBox {
     fn clone(&self) -> Self {
         Self {
-            col: self.col,
-            margin: self.margin,
-            children: self.children.iter().map(|c| c.borrow_mut().deep_clone()).collect()
+            col: self.col.clone(),
+            margin: self.margin.clone(),
+            children: RefCell::new(self.children.borrow().iter().map(|c| c.deep_clone()).collect())
         }
     }
 }

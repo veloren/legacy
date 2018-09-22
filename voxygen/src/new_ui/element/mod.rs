@@ -22,6 +22,6 @@ use std::{
 use super::*;
 
 pub trait Element: 'static {
-    fn deep_clone(&self) -> Rc<RefCell<dyn Element>>;
+    fn deep_clone(&self) -> Rc<dyn Element>;
     fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: (Vec2<f32>, Vec2<f32>));
 }

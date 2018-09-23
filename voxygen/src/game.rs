@@ -156,7 +156,7 @@ impl Game {
         }
     }
 
-    pub fn handle_window_events(&self) -> bool {
+    pub fn handle_window_events(&self) {
         self.window.handle_events(|event| {
             match event {
                 Event::CloseRequest => self.running.store(false, Ordering::Relaxed),
@@ -286,8 +286,6 @@ impl Game {
             // Apply leaning
             player_entity.look_dir_mut().y = Vec2::new(looking.x, looking.y).magnitude() * LEANING_FAC;
         }
-
-        self.running.load(Ordering::Relaxed)
     }
 
     pub fn update_chunks(&mut self) {
@@ -439,7 +437,8 @@ impl Game {
     }
 
     pub fn run(&mut self) {
-        while self.handle_window_events() {
+        while self.running.load(Ordering::Relaxed) {
+            self.handle_window_events();
             self.update_chunks();
             self.update_entities();
             self.render_frame();

@@ -33,13 +33,13 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
     player: Entity,
     _mgr: &Manager<Wrapper<Server<P>>>,
 ) {
-    match cmd.next().map(|s| s.get(1..)) {
-        Some(Some("help")) => srv.do_for(|srv| {
+    match cmd.next() {
+        Some("help") => srv.do_for(|srv| {
             srv.send_chat_msg(player, "Available commands:");
             srv.send_chat_msg(player, "/players - View all online players");
             srv.send_chat_msg(player, "/tp <alias> - Teleport to a player");
         }),
-        Some(Some("players")) => srv.do_for(|srv| {
+        Some("players") => srv.do_for(|srv| {
             // Find a list of player names
             let player_names = srv
                 .world
@@ -50,7 +50,7 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
                 .join(", ");
             srv.send_chat_msg(player, &format!("Online Players: {}", player_names));
         }),
-        Some(Some("tp")) => {
+        Some("tp") => {
             // TODO: Simplify this? Put it somewhere else?
             // Find the name the player typed (i.e: '/tp zesterer')
             if let Some(tgt_player) = cmd.nth(1) {

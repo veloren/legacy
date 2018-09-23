@@ -100,16 +100,14 @@ impl<P: Payloads> Managed for Wrapper<Server<P>> {
         Manager::add_worker(mgr, |srv, running, mut mgr| {
             let listener = srv.do_for_mut(|srv| srv.listener.try_clone().expect("Failed to clone server TcpListener"));
 
-            loop {
-                if let (Ok((stream, _addr)), true) = (listener.accept(), running.load(Ordering::Relaxed)) {
-                    // Convert the incoming stream to a postoffice ready to begin the connection handshake
-                    if let Ok(po) = ServerPostOffice::to_client(stream) {
-                        Manager::add_worker(&mut mgr, move |srv, _, mgr| {
-                            if let Ok(client) = net::auth_client(srv, po) {
-                                net::handle_player_post(srv, client, mgr);
-                            }
-                        });
-                    }
+            while let (Ok((stream, _addr)), true) = (listener.accept(), running.load(Ordering::Relaxed)) {
+                // Convert the incoming stream to a postoffice ready to begin the connection handshake
+                if let Ok(po) = ServerPostOffice::to_client(stream) {
+                    Manager::add_worker(&mut mgr, move |srv, _, mgr| {
+                        if let Ok(client) = net::auth_client(srv, po) {
+                            net::handle_player_post(srv, client, mgr);
+                        }
+                    });
                 }
             }
         });

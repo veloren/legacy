@@ -195,4 +195,9 @@ impl<P: Payloads> Managed for Client<P> {
             }
         });
     }
+
+    fn on_drop(&self, _: &mut Manager<Self>) {
+        *self.status.write() = ClientStatus::Disconnected;
+        self.postoffice.stop();
+    }
 }

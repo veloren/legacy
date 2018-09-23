@@ -25,10 +25,33 @@ pub mod names;
 pub mod net;
 pub mod post;
 
-//pub use jobs::{JobHandle, JobMultiHandle, Jobs};
+// Standard
+use parking_lot::Mutex;
 
 pub type Uid = u64;
 
 const CARGO_VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
 pub fn get_version() -> String { CARGO_VERSION.unwrap_or("UNKNOWN VERSION").to_string() }
+
+pub struct TestPorts {
+    next: Mutex<u32>,
+}
+
+impl TestPorts {
+    pub fn new() -> TestPorts {
+        TestPorts {
+            next: Mutex::new(50000),
+        }
+    }
+
+    pub fn next(&self) -> String {
+        let mut n = self.next.lock();
+        *n += 1;
+        format!("127.0.0.1:{}", *n)
+    }
+}
+
+lazy_static! {
+    pub static ref PORTS: TestPorts = TestPorts::new();
+}

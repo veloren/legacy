@@ -23,6 +23,7 @@ pub trait Managed: Send + Sync + Sized + 'static {
 #[derive(Debug)]
 pub struct Manager<T: Managed> {
     internal: Arc<T>,
+    root: bool,
 
     running: Arc<AtomicBool>,
     workers: Vec<JoinHandle<()>>,
@@ -32,6 +33,7 @@ impl<T: Managed> Manager<T> {
     pub fn init(internal: T) -> Manager<T> {
         let mut manager = Manager {
             internal: Arc::new(internal),
+            root: true,
             running: Arc::new(AtomicBool::new(true)),
             workers: vec![],
         };
@@ -45,6 +47,7 @@ impl<T: Managed> Manager<T> {
     fn new_child(&self) -> Manager<T> {
         Manager {
             internal: self.internal.clone(),
+            root: false,
             running: Arc::new(AtomicBool::new(true)),
             workers: vec![],
         }
@@ -60,8 +63,10 @@ impl<T: Managed> Manager<T> {
     }
 
     pub fn shutdown(this: &mut Self) {
-        this.internal.clone().on_drop(this);
-        this.running.store(false, Ordering::Relaxed);
+        if this.root {
+            this.internal.clone().on_drop(this);
+            this.running.store(false, Ordering::Relaxed);
+        }
     }
 
     pub fn await_shutdown(mut this: Self) { let _ = this.workers.drain(..).for_each(|w| w.join().unwrap()); }

@@ -59,12 +59,20 @@ impl<P: Payloads> Client<P> {
 
                 // One-shot messages
                 Incoming::Msg(ServerMsg::ChatMsg { text }) => self.callbacks().call_recv_chat_msg(&text),
-                Incoming::Msg(ServerMsg::EntityUpdate { uid, pos, vel, ctrl_dir }) => {
+                Incoming::Msg(ServerMsg::EntityUpdate {
+                    uid,
+                    pos,
+                    vel,
+                    ctrl_dir,
+                }) => {
                     match self.entity(uid) {
                         Some(entity) => {
                             // Ignore the update if it's for the player's own entity, unless it's a big jump
-                            if self.player.read().entity_uid().map(|u| u != uid).unwrap_or(true) ||
-                                self.player_entity().map(|e| e.read().pos().distance(pos) > 5.0).unwrap_or(true) {
+                            if self.player.read().entity_uid().map(|u| u != uid).unwrap_or(true) || self
+                                .player_entity()
+                                .map(|e| e.read().pos().distance(pos) > 5.0)
+                                .unwrap_or(true)
+                            {
                                 let mut entity = entity.write();
                                 *entity.pos_mut() = pos;
                                 *entity.vel_mut() = vel;

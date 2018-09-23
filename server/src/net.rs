@@ -1,40 +1,32 @@
 // Standard
 use std::{
-    sync::{
-        Arc,
-        atomic::Ordering,
-    },
-    time::Duration,
-    thread,
     fmt,
+    sync::{atomic::Ordering, Arc},
+    thread,
+    time::Duration,
 };
 
 // Library
-use specs::{
-    Component, VecStorage, Entity, Builder, Join,
-    saveload::Marker,
-};
+use specs::{saveload::Marker, Builder, Component, Entity, Join, VecStorage};
 
 // Project
 use common::{
     manager::Manager,
-    msg::{SessionKind, ClientMsg, ServerMsg, ServerPostOffice},
+    msg::{ClientMsg, ServerMsg, ServerPostOffice, SessionKind},
     post::Incoming,
 };
-use region::{
-    ecs::{
-        phys::{Pos, Vel, Ori},
-        net::SyncMarker,
-    },
+use region::ecs::{
+    net::SyncMarker,
+    phys::{Ori, Pos, Vel},
 };
 
 // Local
+use api::Api;
+use msg::process_chat_msg;
+use Error;
 use Payloads;
 use Server;
 use Wrapper;
-use api::Api;
-use Error;
-use msg::process_chat_msg;
 
 // Constants
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -62,16 +54,23 @@ pub enum DisconnectReason {
 
 impl fmt::Display for DisconnectReason {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self {
-            DisconnectReason::Logout => format!("Logout"),
-            DisconnectReason::Timeout => format!("Timedout"),
-            DisconnectReason::Kicked(msg) => format!("Kicked ({})", msg),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                DisconnectReason::Logout => format!("Logout"),
+                DisconnectReason::Timeout => format!("Timedout"),
+                DisconnectReason::Kicked(msg) => format!("Kicked ({})", msg),
+            }
+        )
     }
 }
 
 // Authenticate a client. If authentication is successful,
-pub(crate) fn auth_client<P: Payloads>(srv: &Wrapper<Server<P>>, po: Manager<ServerPostOffice>) -> Result<Entity, Error> {
+pub(crate) fn auth_client<P: Payloads>(
+    srv: &Wrapper<Server<P>>,
+    po: Manager<ServerPostOffice>,
+) -> Result<Entity, Error> {
     // Perform a connection handshake. If everything works out, create the player
     // First, wait for the correct `Connect` session
     if let Ok(Incoming::Session(session)) = po.await_incoming() {
@@ -111,15 +110,19 @@ pub(crate) fn auth_client<P: Payloads>(srv: &Wrapper<Server<P>>, po: Manager<Ser
     }
 }
 
-pub(crate) fn handle_player_post<P: Payloads>(srv: &Wrapper<Server<P>>, player: Entity, mut mgr: Manager<Wrapper<Server<P>>>) {
+pub(crate) fn handle_player_post<P: Payloads>(
+    srv: &Wrapper<Server<P>>,
+    player: Entity,
+    mut mgr: Manager<Wrapper<Server<P>>>,
+) {
     // Ping worker
     Manager::add_worker(&mut mgr, move |srv, running, _| {
-        if let Some(pb) = srv.do_for(|srv| srv
-            .world
-            .read_storage::<Client>()
-            .get(player)
-            .map(|p| p.postoffice.create_postbox(SessionKind::Ping))
-        ) {
+        if let Some(pb) = srv.do_for(|srv| {
+            srv.world
+                .read_storage::<Client>()
+                .get(player)
+                .map(|p| p.postoffice.create_postbox(SessionKind::Ping))
+        }) {
             // Wait for pings, respond with another ping
             while running.load(Ordering::Relaxed) {
                 thread::sleep(PING_FREQ);
@@ -142,7 +145,12 @@ pub(crate) fn handle_player_post<P: Payloads>(srv: &Wrapper<Server<P>>, player: 
     });
 
     // Await incoming sessions and one-shot messages
-    if let Some(po) = srv.do_for(|srv| srv.world.read_storage::<Client>().get(player).map(|p| p.postoffice.clone())) {
+    if let Some(po) = srv.do_for(|srv| {
+        srv.world
+            .read_storage::<Client>()
+            .get(player)
+            .map(|p| p.postoffice.clone())
+    }) {
         while let Ok(msg) = po.await_incoming() {
             match msg {
                 Incoming::Session(_session) => {}, // TODO: Something here
@@ -156,13 +164,18 @@ pub(crate) fn handle_player_post<P: Payloads>(srv: &Wrapper<Server<P>>, player: 
     srv.do_for_mut(|srv| srv.disconnect_player(player, DisconnectReason::Logout));
 }
 
-pub(crate) fn handle_oneshot<P: Payloads>(srv: &Wrapper<Server<P>>, msg: ClientMsg, player: Entity, mgr: &Manager<Wrapper<Server<P>>>) {
+pub(crate) fn handle_oneshot<P: Payloads>(
+    srv: &Wrapper<Server<P>>,
+    msg: ClientMsg,
+    player: Entity,
+    mgr: &Manager<Wrapper<Server<P>>>,
+) {
     match msg {
         ClientMsg::ChatMsg { text } => process_chat_msg(srv, text, player, mgr),
         ClientMsg::PlayerEntityUpdate { pos, vel, ori } => {
             // Update the player's entity
             srv.do_for_mut(|srv| srv.update_player_entity(player, pos, vel, ori));
-        }
+        },
         _ => {},
     }
 }

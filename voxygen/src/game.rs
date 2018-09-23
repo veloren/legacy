@@ -7,26 +7,26 @@ use std::{
     f32::consts::PI,
     net::ToSocketAddrs,
     sync::{
-        Arc,
         atomic::{AtomicBool, Ordering},
+        Arc,
     },
 };
 
 // Library
-use vek::*;
 use dot_vox;
 use fnv::FnvBuildHasher;
 use glutin::ElementState;
 use indexmap::IndexMap;
 use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
 use parking_lot::Mutex;
+use vek::*;
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
 use client::{self, Client, PlayMode, CHUNK_SIZE};
-use region::{Chunk, Container, VolState};
 use common::manager::Manager;
+use region::{Chunk, Container, VolState};
 
 // Local
 use camera::Camera;

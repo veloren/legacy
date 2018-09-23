@@ -5,10 +5,10 @@ use specs::prelude::*;
 use common::msg::ServerMsg;
 
 // Local
-use Payloads;
-use Server;
 use net::{Client, DisconnectReason};
 use player::Player;
+use Payloads;
+use Server;
 
 pub trait Api {
     fn disconnect_player(&mut self, player: Entity, reason: DisconnectReason);
@@ -46,9 +46,7 @@ impl<P: Payloads> Api for Server<P> {
         }
     }
 
-    fn broadcast_chat_msg(&self, text: &str) {
-        self.broadcast_net_msg(ServerMsg::ChatMsg { text: text.to_string() });
-    }
+    fn broadcast_chat_msg(&self, text: &str) { self.broadcast_net_msg(ServerMsg::ChatMsg { text: text.to_string() }); }
 
     fn broadcast_net_msg(&self, msg: ServerMsg) {
         let clients = self.world.read_storage::<Client>();
@@ -59,11 +57,7 @@ impl<P: Payloads> Api for Server<P> {
         }
     }
 
-    fn world(&self) -> &World {
-        &self.world
-    }
+    fn world(&self) -> &World { &self.world }
 
-    fn world_mut(&mut self) -> &mut World {
-        &mut self.world
-    }
+    fn world_mut(&mut self) -> &mut World { &mut self.world }
 }

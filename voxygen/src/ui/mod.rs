@@ -17,10 +17,10 @@ use std::{
 use common::manager::Manager;
 
 // Local
+use self::ui_components::{UiState, MAX_CHAT_LINES};
 use client::Client;
 use game::Payloads;
 use renderer::Renderer;
-use self::ui_components::{UiState, MAX_CHAT_LINES};
 
 use conrod::{backend::gfx::Renderer as ConrodRenderer, image::Map, widget, Ui as conrod_ui, UiBuilder, UiCell};
 
@@ -56,10 +56,7 @@ impl Ui {
 
         let tx2 = tx.clone();
         client.callbacks().set_recv_chat_msg(move |text| {
-            if tx2
-                .send(UiInternalEvent::NewChatMessage(text.to_string()))
-                .is_err()
-            {
+            if tx2.send(UiInternalEvent::NewChatMessage(text.to_string())).is_err() {
                 panic!("Could not send event to ui");
             }
         });

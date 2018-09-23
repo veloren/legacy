@@ -9,9 +9,9 @@ extern crate gfx_window_glutin;
 extern crate glutin;
 
 // Mathematics
-extern crate vek;
 extern crate alga;
 extern crate nalgebra;
+extern crate vek;
 
 // File loading
 extern crate dot_vox;
@@ -156,6 +156,5 @@ fn main() {
     // wait 100ms to give the user time to lift their finger up from the enter key so the chat isn't opened immediately after start
     thread::sleep(Duration::from_millis(100));
 
-    Game::new(ClientMode::Character, name_choice, remote_addr, view_distance).run();
     Game::new(PlayMode::Character, name_choice, remote_addr, view_distance).run();
 }

@@ -1,5 +1,5 @@
 // Library
-use specs::{World, Builder};
+use specs::{Builder, World};
 use vek::*;
 
 // Local
@@ -8,8 +8,8 @@ use super::*;
 #[test]
 fn test_create_raw_ecs() {
     use self::{
-        phys::{Pos, Vel, Ori},
         character::{Character, Health},
+        phys::{Ori, Pos, Vel},
     };
 
     let mut world = World::new();
@@ -18,14 +18,14 @@ fn test_create_raw_ecs() {
     world.register::<Ori>();
     world.register::<Character>();
     world.register::<Health>();
-    let e0 = world.create_entity()
+    let e0 = world
+        .create_entity()
         .with(Pos(Vec3::zero()))
         .with(Vel(Vec3::zero()))
         .with(Ori(Quaternion::identity()))
         .with(Character {
             name: "test".to_string(),
-        })
-        .with(Health(100))
+        }).with(Health(100))
         .build();
 }
 

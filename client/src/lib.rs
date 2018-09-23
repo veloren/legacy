@@ -3,11 +3,10 @@
 // Crates
 #[macro_use]
 extern crate log;
-extern crate vek;
-extern crate parking_lot;
 extern crate common;
 extern crate parking_lot;
 extern crate region;
+extern crate vek;
 
 // Modules
 mod callbacks;
@@ -25,9 +24,9 @@ pub use region::{Block, Chunk, ChunkContainer, ChunkConverter, FnPayloadFunc, Vo
 use std::{
     collections::HashMap,
     net::ToSocketAddrs,
-    sync::{Arc, atomic::Ordering},
-    time::Duration,
-    thread, time,
+    sync::{atomic::Ordering, Arc},
+    thread,
+    time::{self, Duration},
 };
 
 // Library
@@ -36,8 +35,8 @@ use parking_lot::{Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 // Project
 use common::{
     get_version,
-    manager::{Manager, Managed},
-    msg::{SessionKind, ClientMsg, ServerMsg, ClientPostOffice, ClientPostBox},
+    manager::{Managed, Manager},
+    msg::{ClientMsg, ClientPostBox, ClientPostOffice, ServerMsg, SessionKind},
     Uid,
 };
 use region::{Entity, VolGen, VolMgr};
@@ -92,7 +91,10 @@ impl<P: Payloads> Client<P> {
 
         // Initiate a connection handshake
         let pb = postoffice.create_postbox(SessionKind::Connect);
-        pb.send(ClientMsg::Connect { alias: alias.clone(), mode });
+        pb.send(ClientMsg::Connect {
+            alias: alias.clone(),
+            mode,
+        });
 
         // Was the handshake successful?
         if let ServerMsg::Connected { player_uid } = pb.recv_timeout(CONNECT_TIMEOUT)? {
@@ -120,13 +122,9 @@ impl<P: Payloads> Client<P> {
         }
     }
 
-    pub fn send_chat_msg(&self, text: String) {
-        self.postoffice.send_one(ClientMsg::ChatMsg { text });
-    }
+    pub fn send_chat_msg(&self, text: String) { self.postoffice.send_one(ClientMsg::ChatMsg { text }); }
 
-    pub fn send_cmd(&self, args: Vec<String>) {
-        self.postoffice.send_one(ClientMsg::Cmd { args });
-    }
+    pub fn send_cmd(&self, args: Vec<String>) { self.postoffice.send_one(ClientMsg::Cmd { args }); }
 
     pub fn view_distance(&self) -> f32 { (self.view_distance * CHUNK_SIZE) as f32 }
 
@@ -175,7 +173,6 @@ impl<P: Payloads> Client<P> {
 
 impl<P: Payloads> Managed for Client<P> {
     fn init_workers(&self, manager: &mut Manager<Self>) {
-
         // Incoming messages worker
         Manager::add_worker(manager, |client, running, mut mgr| {
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
@@ -183,9 +180,12 @@ impl<P: Payloads> Managed for Client<P> {
             }
 
             // Send a disconnect message to the server
-            client.postoffice
+            client
+                .postoffice
                 .create_postbox(SessionKind::Disconnect)
-                .send(ClientMsg::Disconnect { reason: "Logging out".into() });
+                .send(ClientMsg::Disconnect {
+                    reason: "Logging out".into(),
+                });
         });
 
         // Tick worker

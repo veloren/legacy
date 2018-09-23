@@ -6,22 +6,33 @@ use common::manager::Manager;
 use region::ecs::phys::Pos;
 
 // Local
-use Payloads;
-use Wrapper;
-use Server;
 use api::Api;
 use player::Player;
+use Payloads;
+use Server;
+use Wrapper;
 
-pub(crate) fn process_chat_msg<P: Payloads>(srv: &Wrapper<Server<P>>, text: String, player: Entity, mgr: &Manager<Wrapper<Server<P>>>) {
+pub(crate) fn process_chat_msg<P: Payloads>(
+    srv: &Wrapper<Server<P>>,
+    text: String,
+    player: Entity,
+    mgr: &Manager<Wrapper<Server<P>>>,
+) {
     if text.starts_with('/') {
         let cmd = text[1..].split(' ');
         process_cmd(srv, cmd, player, mgr);
-    } else if let Some(text) = srv.do_for(|srv| srv.payload.on_chat_msg(srv, player, &text)) { // Run the message past the payload interface
+    } else if let Some(text) = srv.do_for(|srv| srv.payload.on_chat_msg(srv, player, &text)) {
+        // Run the message past the payload interface
         srv.do_for(|srv| srv.broadcast_chat_msg(&text));
     }
 }
 
-pub(crate) fn process_cmd<'a, P: Payloads>(srv: &Wrapper<Server<P>>, mut cmd: impl Iterator<Item=&'a str> + 'a, player: Entity, _mgr: &Manager<Wrapper<Server<P>>>) {
+pub(crate) fn process_cmd<'a, P: Payloads>(
+    srv: &Wrapper<Server<P>>,
+    mut cmd: impl Iterator<Item = &'a str> + 'a,
+    player: Entity,
+    _mgr: &Manager<Wrapper<Server<P>>>,
+) {
     match cmd.next().map(|s| s.get(1..)) {
         Some(Some("help")) => srv.do_for(|srv| {
             srv.send_chat_msg(player, "Available commands:");
@@ -30,10 +41,17 @@ pub(crate) fn process_cmd<'a, P: Payloads>(srv: &Wrapper<Server<P>>, mut cmd: im
         }),
         Some(Some("players")) => srv.do_for(|srv| {
             // Find a list of player names
-            let player_names = srv.world.read_storage::<Player>().join().map(|p| p.alias.clone()).collect::<Vec<_>>().join(", ");
+            let player_names = srv
+                .world
+                .read_storage::<Player>()
+                .join()
+                .map(|p| p.alias.clone())
+                .collect::<Vec<_>>()
+                .join(", ");
             srv.send_chat_msg(player, &format!("Online Players: {}", player_names));
         }),
-        Some(Some("tp")) => { // TODO: Simplify this? Put it somewhere else?
+        Some(Some("tp")) => {
+            // TODO: Simplify this? Put it somewhere else?
             // Find the name the player typed (i.e: '/tp zesterer')
             if let Some(tgt_player) = cmd.nth(1) {
                 let tgt_pos = srv.do_for(|srv| {
@@ -51,7 +69,9 @@ pub(crate) fn process_cmd<'a, P: Payloads>(srv: &Wrapper<Server<P>>, mut cmd: im
 
                 // If a position was found, teleport to it
                 if let Some(pos) = tgt_pos {
-                    if let Some(()) = srv.do_for_mut(|srv| srv.world.write_storage::<Pos>().get_mut(player).map(|p| p.0 = pos)) {
+                    if let Some(()) =
+                        srv.do_for_mut(|srv| srv.world.write_storage::<Pos>().get_mut(player).map(|p| p.0 = pos))
+                    {
                         srv.do_for(|srv| srv.send_chat_msg(player, &format!("Teleported to {}!", tgt_player)));
                     } else {
                         srv.do_for(|srv| srv.send_chat_msg(player, "You don't have a position!"));

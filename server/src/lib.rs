@@ -2,47 +2,43 @@
 #![feature(duration_as_u128)]
 
 // Crates
+extern crate common;
+extern crate parking_lot;
+extern crate region;
 pub extern crate specs;
 extern crate vek;
-extern crate parking_lot;
-extern crate common;
-extern crate pretty_env_logger;
-extern crate region;
 
 // Modules
 pub mod api;
-pub mod player;
-pub mod net;
 mod error;
-mod tick;
 mod msg;
+pub mod net;
+pub mod player;
+mod tick;
 
 // Reexports
-pub use error::Error;
 pub use common::manager::Manager;
+pub use error::Error;
 
 // Standard
 use std::{
-    sync::atomic::Ordering,
     net::{TcpListener, ToSocketAddrs},
+    sync::atomic::Ordering,
     thread,
     time::Duration,
 };
 
 // Library
-use specs::{World, Entity};
 use parking_lot::RwLock;
+use specs::{Entity, World};
 
 // Project
-use common::{
-    manager::Managed,
-    msg::ServerPostOffice,
-};
+use common::{manager::Managed, msg::ServerPostOffice};
 use region::ecs;
 
 // Local
-use net::{Client, DisconnectReason};
 use api::Api;
+use net::{Client, DisconnectReason};
 use player::Player;
 
 pub trait Payloads: Send + Sync + 'static {
@@ -53,7 +49,15 @@ pub trait Payloads: Send + Sync + 'static {
     fn on_player_connect(&self, _api: &dyn Api, _player: Entity) {}
     fn on_player_disconnect(&self, _api: &dyn Api, _player: Entity, _reason: DisconnectReason) {}
     fn on_chat_msg(&self, api: &dyn Api, player: Entity, text: &str) -> Option<String> {
-        Some(format!("[{}] {}", api.world().read_storage::<Player>().get(player).map(|p| p.alias.as_str()).unwrap_or("<none"), text))
+        Some(format!(
+            "[{}] {}",
+            api.world()
+                .read_storage::<Player>()
+                .get(player)
+                .map(|p| p.alias.as_str())
+                .unwrap_or("<none"),
+            text
+        ))
     }
 }
 
@@ -70,18 +74,13 @@ pub struct Server<P: Payloads> {
 pub struct Wrapper<S>(RwLock<S>);
 
 impl<S> Wrapper<S> {
-    pub fn do_for<R, F: FnOnce(&S) -> R>(&self, f: F) -> R {
-        f(&self.0.read())
-    }
+    pub fn do_for<R, F: FnOnce(&S) -> R>(&self, f: F) -> R { f(&self.0.read()) }
 
-    pub fn do_for_mut<R, F: FnOnce(&mut S) -> R>(&self, f: F) -> R {
-        f(&mut self.0.write())
-    }
+    pub fn do_for_mut<R, F: FnOnce(&mut S) -> R>(&self, f: F) -> R { f(&mut self.0.write()) }
 }
 
 impl<P: Payloads> Server<P> {
     pub fn new<S: ToSocketAddrs>(payload: P, bind_addr: S) -> Result<Manager<Wrapper<Self>>, Error> {
-
         let mut world = ecs::create_world();
         world.register::<Client>();
         world.register::<Player>();
@@ -99,11 +98,7 @@ impl<P: Payloads> Managed for Wrapper<Server<P>> {
     fn init_workers(&self, mgr: &mut Manager<Self>) {
         // Incoming clients worker
         Manager::add_worker(mgr, |srv, running, mut mgr| {
-            let listener = srv.do_for_mut(|srv| srv
-                .listener
-                .try_clone()
-                .expect("Failed to clone server TcpListener")
-            );
+            let listener = srv.do_for_mut(|srv| srv.listener.try_clone().expect("Failed to clone server TcpListener"));
 
             loop {
                 if let (Ok((stream, _addr)), true) = (listener.accept(), running.load(Ordering::Relaxed)) {

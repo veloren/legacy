@@ -1,16 +1,10 @@
 // Standard
-use std::{
-    collections::HashMap,
-    f32::INFINITY,
-    sync::Arc,
-    thread, time,
-};
+use std::{collections::HashMap, f32::INFINITY, sync::Arc, thread, time};
 
 //Library
+use parking_lot::RwLock;
 use rand::prelude::*;
-use parking_lot::RwLock;
 use vek::*;
-use parking_lot::RwLock;
 
 // Parent
 use super::{

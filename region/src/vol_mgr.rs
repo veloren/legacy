@@ -1,14 +1,10 @@
 // Standard
-use std::{
-    collections::HashSet,
-    sync::Arc,
-};
+use std::{collections::HashSet, sync::Arc};
 
 // Library
-use vek::*;
 use parking_lot::{Mutex, RwLock};
 use threadpool::ThreadPool;
-use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use vek::*;
 
 // Local
 use collision::{Collider, Primitive};
@@ -172,7 +168,7 @@ impl<
                             Vec3::new(
                                 self.cur.x as f32 + 0.5,
                                 self.cur.y as f32 + 0.5,
-                                self.cur.z as f32 + 0.5
+                                self.cur.z as f32 + 0.5,
                             ),
                             Vec3::new(0.5, 0.5, 0.5),
                         );

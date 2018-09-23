@@ -1,6 +1,6 @@
 // Library
-use vek::*;
 use dot_vox::DotVoxData;
+use vek::*;
 
 // Project
 use client::Volume;

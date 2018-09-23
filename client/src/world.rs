@@ -2,8 +2,8 @@
 use vek::*;
 
 // Project
-use region::Chunk;
 use common::manager::Manager;
+use region::Chunk;
 
 // Local
 use Client;
@@ -41,7 +41,11 @@ impl<P: Payloads> Client<P> {
             let chunk_pos = pers.data().keys().map(|p| *p).collect::<Vec<_>>();
             for pos in chunk_pos {
                 // What?! Don't use snake_length
-                if (pos - Vec2::new(player_chunk.x, player_chunk.y)).map(|e| e as f32).magnitude() > self.view_distance as f32 * 2.0 {
+                if (pos - Vec2::new(player_chunk.x, player_chunk.y))
+                    .map(|e| e as f32)
+                    .magnitude()
+                    > self.view_distance as f32 * 2.0
+                {
                     Manager::add_worker(mgr, move |client, _, _| {
                         client.chunk_mgr().remove(pos);
                     });

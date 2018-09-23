@@ -8,26 +8,22 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate byteorder;
-extern crate coord;
 extern crate rand;
 extern crate time;
 #[macro_use]
 extern crate lazy_static;
 extern crate parking_lot;
 extern crate vek;
-extern crate parking_lot;
 
 // Reexports
 pub use clock::Clock;
 
 pub mod clock;
-pub mod names;
-//pub mod network;
-//pub mod jobs;
-pub mod net;
-pub mod post;
 pub mod manager;
 pub mod msg;
+pub mod names;
+pub mod net;
+pub mod post;
 
 //pub use jobs::{JobHandle, JobMultiHandle, Jobs};
 

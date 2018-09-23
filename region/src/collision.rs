@@ -231,13 +231,13 @@ impl Cuboid {
                     normals[i] = Vec3::new(
                         if i == 0 { 1.0 } else { 0.0 },
                         if i == 1 { 1.0 } else { 0.0 },
-                        if i == 2 { 1.0 } else { 0.0 }
+                        if i == 2 { 1.0 } else { 0.0 },
                     );
                 } else if a_middle_elem[i] > b_middle_elem[i] {
                     normals[i] = Vec3::new(
                         if i == 0 { -1.0 } else { 0.0 },
                         if i == 1 { -1.0 } else { 0.0 },
-                        if i == 2 { -1.0 } else { 0.0 }
+                        if i == 2 { -1.0 } else { 0.0 },
                     );
                 }
             } else {
@@ -247,7 +247,7 @@ impl Cuboid {
                     normals[i] = Vec3::new(
                         if i == 0 { 1.0 } else { 0.0 },
                         if i == 1 { 1.0 } else { 0.0 },
-                        if i == 2 { 1.0 } else { 0.0 }
+                        if i == 2 { 1.0 } else { 0.0 },
                     );
                 } else if dire[i] > 0.0 {
                     a_area[i] = a_middle_elem[i] - a_radius_elem[i];
@@ -255,7 +255,7 @@ impl Cuboid {
                     normals[i] = Vec3::new(
                         if i == 0 { -1.0 } else { 0.0 },
                         if i == 1 { -1.0 } else { 0.0 },
-                        if i == 2 { -1.0 } else { 0.0 }
+                        if i == 2 { -1.0 } else { 0.0 },
                     );
                 } else {
                     panic!("we checked above that dire[i] must not be 0.0");

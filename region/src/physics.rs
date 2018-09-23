@@ -1,17 +1,19 @@
 // Standard
-use chunk_conv::{ChunkContainer, ChunkConverter};
 use std::sync::Arc;
 
 // Library
-use vek::*;
 use parking_lot::RwLock;
+use vek::*;
 
 // Project
 use collision::{Collider, Primitive, ResolutionTti, PLANCK_LENGTH};
 use common::Uid;
 
 // Local
-use super::{Chunk, Entity, VolMgr};
+use chunk_conv::{ChunkContainer, ChunkConverter};
+use Chunk;
+use Entity;
+use VolMgr;
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 

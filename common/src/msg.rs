@@ -3,7 +3,7 @@ use vek::*;
 
 // Project
 use net::Message;
-use post::{PostOffice, PostBox};
+use post::{PostBox, PostOffice};
 
 // SessionKind
 
@@ -21,16 +21,22 @@ impl Message for SessionKind {}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ServerMsg {
     // SessionKind::Connect
-    Connected { player_uid: Option<u64> },
+    Connected {
+        player_uid: Option<u64>,
+    },
 
     // SessionKind::Disconnect
-    Disconnect { reason: String },
+    Disconnect {
+        reason: String,
+    },
 
     // SessionKind::Ping
     Ping,
 
     // One-shot
-    ChatMsg { text: String },
+    ChatMsg {
+        text: String,
+    },
     EntityUpdate {
         uid: u64,
         pos: Vec3<f32>,
@@ -52,17 +58,26 @@ pub enum PlayMode {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ClientMsg {
     // SessionKind::Connect
-    Connect { alias: String, mode: PlayMode },
+    Connect {
+        alias: String,
+        mode: PlayMode,
+    },
 
     // SessionKind::Disconnect
-    Disconnect { reason: String },
+    Disconnect {
+        reason: String,
+    },
 
     // SessionKind::Ping
     Ping,
 
     // One-shot
-    ChatMsg { text: String },
-    Cmd { args: Vec<String> },
+    ChatMsg {
+        text: String,
+    },
+    Cmd {
+        args: Vec<String>,
+    },
     PlayerEntityUpdate {
         pos: Vec3<f32>,
         vel: Vec3<f32>,

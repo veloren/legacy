@@ -1,13 +1,13 @@
 // Standard
 use std::{
     collections::HashMap,
+    io,
     net::{TcpStream, ToSocketAddrs},
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc::{self, RecvError, RecvTimeoutError, SendError},
         Arc,
     },
-    io,
     time::Duration,
 };
 
@@ -15,8 +15,8 @@ use std::{
 use parking_lot::Mutex;
 
 // Local
-use net::{Connection, Error, Message, UdpMgr};
 use manager::{Managed, Manager};
+use net::{Connection, Error, Message, UdpMgr};
 
 // Information
 // -----------
@@ -75,9 +75,7 @@ impl<SK: Message, SM: Message, RM: Message> PostBox<SK, SM, RM> {
 
     pub fn recv(&self) -> Result<RM, RecvError> { self.recv.recv() }
 
-    pub fn recv_timeout(&self, duration: Duration) -> Result<RM, RecvTimeoutError> {
-        self.recv.recv_timeout(duration)
-    }
+    pub fn recv_timeout(&self, duration: Duration) -> Result<RM, RecvTimeoutError> { self.recv.recv_timeout(duration) }
 
     pub fn close(self) -> Result<(), SendError<Result<Letter<SK, SM>, ()>>> {
         self.po_send.send(Ok(Letter::CloseBox(self.uid)))
@@ -137,7 +135,10 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
     }
 
     // Create a postoffice with a few characteristics
-    pub fn new_internal(start_uid: u64, conn: Arc<Connection<Letter<SK, RM>>>) -> Result<PostOffice<SK, SM, RM>, io::Error> {
+    pub fn new_internal(
+        start_uid: u64,
+        conn: Arc<Connection<Letter<SK, RM>>>,
+    ) -> Result<PostOffice<SK, SM, RM>, io::Error> {
         // Start the internal connection
         Connection::start(&conn);
 
@@ -178,7 +179,10 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
     // Create a new master postbox, triggering the creation of a slave postbox on the other end
     pub fn create_postbox(&self, kind: SK) -> PostBox<SK, SM, RM> {
         let uid = self.gen_uid();
-        let _ = self.outgoing_send.lock().send(Ok(Letter::OpenBox::<SK, SM> { uid, kind }));
+        let _ = self
+            .outgoing_send
+            .lock()
+            .send(Ok(Letter::OpenBox::<SK, SM> { uid, kind }));
         self.create_postbox_with_uid(uid)
     }
 
@@ -250,7 +254,5 @@ impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
         });
     }
 
-    fn on_drop(&self, mgr: &mut Manager<Self>) {
-        Manager::internal(mgr).stop();
-    }
+    fn on_drop(&self, mgr: &mut Manager<Self>) { Manager::internal(mgr).stop(); }
 }

@@ -6,16 +6,14 @@ extern crate log;
 extern crate enum_map;
 extern crate noise;
 extern crate rand;
-extern crate vek;
 extern crate threadpool;
+extern crate vek;
 #[macro_use]
 extern crate lazy_static;
 extern crate common;
 extern crate parking_lot;
-
-extern crate specs;
-extern crate parking_lot;
 extern crate serde;
+extern crate specs;
 #[macro_use]
 extern crate serde_derive;
 
@@ -47,8 +45,8 @@ pub use figure::Figure;
 pub use vol_mgr::{FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolState};
 pub use vol_per::{Container, PersState, VolPers, VolumeConverter};
 
-use vek::*;
 use std::any::Any;
+use vek::*;
 
 pub trait Voxel: Copy + Clone + Any {
     type Material: Copy + Clone;

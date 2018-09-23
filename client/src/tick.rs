@@ -5,8 +5,8 @@ use std::{thread, time::Duration};
 use vek::*;
 
 // Project
-use region::{physics, VolState};
 use common::manager::Manager;
+use region::{physics, VolState};
 
 // Local
 use Client;

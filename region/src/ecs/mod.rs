@@ -16,7 +16,7 @@ use vek::*;
 use self::{
     character::{Character, Health},
     net::{SyncMarker, SyncNode},
-    phys::{Ori, Pos, Vel},
+    phys::{CtrlDir, Pos, Vel},
 };
 
 pub trait CreateUtil {
@@ -28,7 +28,7 @@ impl CreateUtil for World {
         self.create_entity()
             .with(Pos(Vec3::zero()))
             .with(Vel(Vec3::zero()))
-            .with(Ori(Quaternion::identity()))
+            .with(CtrlDir(Vec2::zero()))
             .with(Character { name })
             .with(Health(100))
             .marked::<SyncMarker>()
@@ -47,7 +47,7 @@ pub fn create_world() -> World {
     // Phys
     world.register::<Pos>();
     world.register::<Vel>();
-    world.register::<Ori>();
+    world.register::<CtrlDir>();
     // Character
     world.register::<Character>();
     world.register::<Health>();

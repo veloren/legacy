@@ -39,7 +39,19 @@ impl<P: Payloads> Client<P> {
                     SessionKind::Ping => {
                         let pb = Mutex::new(session.postbox);
                         Manager::add_worker(mgr, |client, running, _| {
-                            client.handle_ping_session(pb.into_inner(), running);
+                            thread::spawn(move || {
+                                let pb = pb.into_inner();
+
+                                loop {
+                                    thread::sleep(PING_FREQ);
+                                    pb.send(ClientMsg::Ping);
+
+                                    match pb.recv_timeout(PING_TIMEOUT) {
+                                        Ok(ServerMsg::Ping) => {},
+                                        _ => break, // Anything other than a ping over this session is invalid
+                                    }
+                                }
+                            });
                         })
                     },
                     _ => {},
@@ -47,17 +59,22 @@ impl<P: Payloads> Client<P> {
 
                 // One-shot messages
                 Incoming::Msg(ServerMsg::ChatMsg { text }) => self.callbacks().call_recv_chat_msg(&text),
-                Incoming::Msg(ServerMsg::EntityUpdate { uid, pos, vel, ori }) => match self.entity(uid) {
-                    Some(entity) => {
-                        let mut entity = entity.write();
-                        *entity.pos_mut() = pos;
-                        *entity.vel_mut() = vel;
-                        *entity.ctrl_acc_mut() = Vec3::zero();
-                        *entity.look_dir_mut() = Vec2::unit_y();
-                    },
-                    None => {
-                        self.add_entity(uid, Entity::new(pos, vel, Vec3::zero(), Vec2::unit_y()));
-                    },
+                Incoming::Msg(ServerMsg::EntityUpdate { uid, pos, vel, ctrl_dir }) => {
+                    match self.entity(uid) {
+                        Some(entity) => {
+                            // Ignore the update if it's for the player's own entity, unless it's a big jump
+                            if self.player.read().entity_uid().map(|u| u != uid).unwrap_or(true) ||
+                                self.player_entity().map(|e| e.read().pos().distance(pos) > 5.0).unwrap_or(true) {
+                                let mut entity = entity.write();
+                                *entity.pos_mut() = pos;
+                                *entity.vel_mut() = vel;
+                                *entity.look_dir_mut() = ctrl_dir;
+                            }
+                        },
+                        None => {
+                            self.add_entity(uid, Entity::new(pos, vel, Vec3::zero(), Vec2::unit_y()));
+                        },
+                    }
                 },
                 Incoming::Msg(_) => {},
 
@@ -69,18 +86,6 @@ impl<P: Payloads> Client<P> {
         *self.status.write() = ClientStatus::Disconnected;
     }
 
-    fn handle_ping_session(&self, pb: ClientPostBox, running: &AtomicBool) {
-        while running.load(Ordering::Relaxed) {
-            thread::sleep(PING_FREQ);
-            pb.send(ClientMsg::Ping);
-
-            match pb.recv_timeout(PING_TIMEOUT) {
-                Ok(ServerMsg::Ping) => {},
-                _ => break, // Anything other than a ping     over this session is invalid
-            }
-        }
-    }
-
     pub(crate) fn update_server(&self) {
         // Update the server with information about the player
         if let Some(player_entity) = self.player_entity() {
@@ -88,7 +93,7 @@ impl<P: Payloads> Client<P> {
             self.postoffice.send_one(ClientMsg::PlayerEntityUpdate {
                 pos: *player_entity.pos(),
                 vel: *player_entity.vel(),
-                ori: Quaternion::identity(),
+                ctrl_dir: *player_entity.look_dir(),
             });
         }
     }

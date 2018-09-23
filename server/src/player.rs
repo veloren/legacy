@@ -11,7 +11,7 @@ use common::{
     msg::{PlayMode, ServerPostOffice},
 };
 use region::ecs::{
-    phys::{Ori, Pos, Vel},
+    phys::{CtrlDir, Pos, Vel},
     CreateUtil,
 };
 
@@ -55,7 +55,7 @@ impl<P: Payloads> Server<P> {
         player: Entity,
         pos: Vec3<f32>,
         vel: Vec3<f32>,
-        ori: Quaternion<f32>,
+        ctrl_dir: Vec2<f32>,
     ) {
         self.world.write_storage::<Pos>().get_mut(player).map(|p| {
             if Vec2::<f32>::from(p.0).distance(pos.into()) < 3.0 {
@@ -63,6 +63,6 @@ impl<P: Payloads> Server<P> {
             }
         }); // Basic sanity check
         self.world.write_storage::<Vel>().get_mut(player).map(|v| v.0 = vel);
-        self.world.write_storage::<Ori>().get_mut(player).map(|o| o.0 = ori);
+        self.world.write_storage::<CtrlDir>().get_mut(player).map(|c| c.0 = ctrl_dir);
     }
 }

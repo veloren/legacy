@@ -41,7 +41,7 @@ pub enum ServerMsg {
         uid: u64,
         pos: Vec3<f32>,
         vel: Vec3<f32>,
-        ori: Quaternion<f32>,
+        ctrl_dir: Vec2<f32>,
     },
 }
 
@@ -81,7 +81,7 @@ pub enum ClientMsg {
     PlayerEntityUpdate {
         pos: Vec3<f32>,
         vel: Vec3<f32>,
-        ori: Quaternion<f32>,
+        ctrl_dir: Vec2<f32>,
     },
 }
 

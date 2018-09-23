@@ -17,7 +17,7 @@ use common::{
 };
 use region::ecs::{
     net::SyncMarker,
-    phys::{Ori, Pos, Vel},
+    phys::{CtrlDir, Pos, Vel},
 };
 
 // Local
@@ -172,9 +172,9 @@ pub(crate) fn handle_oneshot<P: Payloads>(
 ) {
     match msg {
         ClientMsg::ChatMsg { text } => process_chat_msg(srv, text, player, mgr),
-        ClientMsg::PlayerEntityUpdate { pos, vel, ori } => {
+        ClientMsg::PlayerEntityUpdate { pos, vel, ctrl_dir } => {
             // Update the player's entity
-            srv.do_for_mut(|srv| srv.update_player_entity(player, pos, vel, ori));
+            srv.do_for_mut(|srv| srv.update_player_entity(player, pos, vel, ctrl_dir));
         },
         _ => {},
     }
@@ -184,14 +184,14 @@ impl<P: Payloads> Server<P> {
     pub(crate) fn sync_players(&self) {
         let pos_storage = self.world.read_storage::<Pos>();
         let vel_storage = self.world.read_storage::<Vel>();
-        let ori_storage = self.world.read_storage::<Ori>();
+        let ctrl_dir_storage = self.world.read_storage::<CtrlDir>();
         let sync_storage = self.world.read_storage::<SyncMarker>();
-        for (sync_storage, pos, vel, ori) in (&sync_storage, &pos_storage, &vel_storage, &ori_storage).join() {
+        for (sync_storage, pos, vel, ctrl_dir) in (&sync_storage, &pos_storage, &vel_storage, &ctrl_dir_storage).join() {
             self.broadcast_net_msg(ServerMsg::EntityUpdate {
                 uid: sync_storage.id(),
                 pos: pos.0,
                 vel: vel.0,
-                ori: ori.0,
+                ctrl_dir: ctrl_dir.0,
             });
         }
     }

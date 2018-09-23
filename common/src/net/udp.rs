@@ -13,6 +13,7 @@ use parking_lot::{Mutex, RwLock};
 // Parent
 use super::{packet::Frame, protocol::Protocol, Error};
 
+#[derive(Debug)]
 pub struct Udp {
     socket: RwLock<UdpSocket>,
     remote: SocketAddr,

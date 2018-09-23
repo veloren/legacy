@@ -1,17 +1,19 @@
 // Standard
-use chunk_conv::{ChunkContainer, ChunkConverter};
-use std::{clone::Clone, sync::Arc};
+use std::sync::Arc;
 
 // Library
-use coord::prelude::*;
 use parking_lot::RwLock;
+use vek::*;
 
 // Project
 use collision::{Collider, Primitive, ResolutionTti, PLANCK_LENGTH};
 use common::Uid;
 
 // Local
-use super::{Chunk, Entity, VolMgr};
+use chunk_conv::{ChunkContainer, ChunkConverter};
+use Chunk;
+use Entity;
+use VolMgr;
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 
@@ -44,7 +46,7 @@ pub fn tick<
         let mut entity = entity.write();
 
         // Gravity
-        let gravity_acc = vec3!(0.0, 0.0, GROUND_GRAVITY / LENGTH_OF_BLOCK);
+        let gravity_acc = Vec3::new(0.0, 0.0, GROUND_GRAVITY / LENGTH_OF_BLOCK);
         let middle = *entity.pos() + ENTITY_MIDDLE_OFFSET;
         let radius = ENTITY_RADIUS;
 
@@ -73,7 +75,7 @@ pub fn tick<
         }
 
         // TODO: move to client
-        let wanted_ctrl_acc_length = vec3!(wanted_ctrl_acc.x, wanted_ctrl_acc.y, 0.0).length();
+        let wanted_ctrl_acc_length = Vec3::new(wanted_ctrl_acc.x, wanted_ctrl_acc.y, 0.0).magnitude();
         if wanted_ctrl_acc_length > 1.0 {
             wanted_ctrl_acc.x /= wanted_ctrl_acc_length;
             wanted_ctrl_acc.y /= wanted_ctrl_acc_length;
@@ -101,14 +103,14 @@ pub fn tick<
 
         // movement can be executed in max 3 steps because we are using TTI
         for _ in 0..3 {
-            if velocity.length() < PLANCK_LENGTH {
+            if velocity.magnitude() < PLANCK_LENGTH {
                 break;
             }
 
             // collision with terrain
             let potential_collision_prims = chunk_mgr.get_nearby_dir(&entity_prim, velocity);
             let mut tti = 1.0; // 1.0 = full tick
-            let mut normal = vec3!(0.0, 0.0, 0.0);
+            let mut normal = Vec3::new(0.0, 0.0, 0.0);
 
             for prim in potential_collision_prims {
                 let r = prim.time_to_impact(&entity_prim, &velocity);
@@ -121,7 +123,7 @@ pub fn tick<
                     {
                         if ltti <= tti {
                             //debug!("colliding in tti: {}, normal {}", ltti, lnormal);
-                            if lnormal.length() < normal.length() || normal.length() < 0.1 || ltti < tti {
+                            if lnormal.magnitude() < normal.magnitude() || normal.magnitude() < 0.1 || ltti < tti {
                                 // when tti is same but we have less normal we switch
                                 //info!("set normal to: {}", lnormal);
                                 // if there is a collission with 2 and one with 1 block we first solve the single one
@@ -146,7 +148,7 @@ pub fn tick<
             if normal.x != 0.0 || normal.y != 0.0 {
                 // block hopping
                 let mut auto_jump_prim = entity_prim.clone();
-                auto_jump_prim.move_by(&vec3!(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
+                auto_jump_prim.move_by(&Vec3::new(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
                 let potential_collision_prims = chunk_mgr.get_nearby(&auto_jump_prim);
                 let mut collision_after_hop = false;
                 for prim in potential_collision_prims {
@@ -172,7 +174,7 @@ pub fn tick<
                     if smoothmove > BLOCK_HOP_MAX {
                         smoothmove = BLOCK_HOP_MAX;
                     };
-                    entity_prim.move_by(&vec3!(0.0, 0.0, smoothmove));
+                    entity_prim.move_by(&Vec3::new(0.0, 0.0, smoothmove));
                 }
             }
             if normal.z != 0.0 {
@@ -190,7 +192,7 @@ pub fn tick<
             let res = prim.resolve_col(&entity_prim_stuck);
             if let Some(..) = res {
                 warn!("entity is stuck!");
-                entity_prim.move_by(&vec3!(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
+                entity_prim.move_by(&Vec3::new(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
                 break;
             }
         }
@@ -198,10 +200,10 @@ pub fn tick<
         let chunk = entity_prim
             .col_center()
             .map(|e| e as i64)
-            .div_euc(vec3!([chunk_size; 3]));
-        let chunk_exists = chunk_mgr.loaded(vec2!(chunk.x, chunk.y));
+            .map(|e| e.div_euc(chunk_size));
+        let chunk_exists = chunk_mgr.loaded(Vec2::new(chunk.x, chunk.y));
         if !chunk_exists {
-            *entity.vel_mut() = vec3![0.0; 3];
+            *entity.vel_mut() = Vec3::broadcast(0.0);
             continue; //skip applying
         }
 

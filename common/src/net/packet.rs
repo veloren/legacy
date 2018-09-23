@@ -1,6 +1,3 @@
-// Parent
-use super::message::Message;
-
 #[derive(Debug)]
 pub enum Frame {
     Header { id: u64, length: u64 },
@@ -13,11 +10,13 @@ pub enum FrameError {
 }
 
 //TODO: enhance this PacketData / OutgoingPacket structure, so that only one byte stream is keept for broadcast
+#[derive(Debug)]
 pub struct PacketData {
     bytes: Vec<u8>,
     id: u64,
 }
 
+#[derive(Debug)]
 pub struct OutgoingPacket {
     data: PacketData,
     pos: u64,
@@ -26,19 +25,15 @@ pub struct OutgoingPacket {
     prio: u8,
 }
 
-pub struct IncommingPacket {
+#[derive(Debug)]
+pub struct IncomingPacket {
     data: PacketData,
     pos: u64,
     dataframesno: u64,
 }
 
 impl PacketData {
-    pub fn new<M: Message>(message: M, id: u64) -> PacketData {
-        PacketData {
-            bytes: message.to_bytes().unwrap(),
-            id,
-        }
-    }
+    pub fn new(bytes: Vec<u8>, id: u64) -> PacketData { PacketData { bytes, id } }
 
     pub fn new_size(size: u64, id: u64) -> PacketData {
         PacketData {
@@ -49,9 +44,9 @@ impl PacketData {
 }
 
 impl OutgoingPacket {
-    pub fn new<M: Message>(message: M, id: u64) -> OutgoingPacket {
+    pub fn new(bytes: Vec<u8>, id: u64) -> OutgoingPacket {
         OutgoingPacket {
-            data: PacketData::new(message, id),
+            data: PacketData::new(bytes, id),
             pos: 0,
             headersend: false,
             dataframesno: 0,
@@ -78,9 +73,7 @@ impl OutgoingPacket {
             } else {
                 to_send = size;
             }
-            //debug!("to_send {}" , to_send);
             let end_pos = self.pos + to_send;
-            //debug!("daaaaa {:?}", self.data.bytes[self.pos as usize..end_pos as usize].to_vec());
             let frame = Frame::Data {
                 id: self.data.id,
                 frame_no: self.dataframesno,
@@ -96,10 +89,10 @@ impl OutgoingPacket {
     pub fn prio(&self) -> &u8 { &self.prio }
 }
 
-impl IncommingPacket {
-    pub fn new(header: Frame) -> IncommingPacket {
+impl IncomingPacket {
+    pub fn new(header: Frame) -> IncomingPacket {
         match header {
-            Frame::Header { id, length } => IncommingPacket {
+            Frame::Header { id, length } => IncomingPacket {
                 data: PacketData::new_size(length, id),
                 pos: 0,
                 dataframesno: 0,
@@ -130,7 +123,6 @@ impl IncommingPacket {
                 }
                 self.pos += data.len() as u64;
                 self.dataframesno += 1;
-                //println!("pospos {} {} {}", self.pos , data.len(), self.data.bytes.len() as u64);
                 return self.pos == self.data.bytes.len() as u64;
             },
         }

@@ -1,9 +1,11 @@
+// Library
+use vek::*;
+
+// Local
 use chunk::Chunk;
 use chunk_file::ChunkFile;
 use chunk_rle::ChunkRle;
-use coord::prelude::*;
 use vol_per::{Container, PersState, VolPers, VolumeConverter};
-
 use Block;
 use Volume;
 use Voxel;

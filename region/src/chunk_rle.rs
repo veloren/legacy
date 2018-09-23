@@ -1,4 +1,4 @@
-use coord::prelude::*;
+use vek::*;
 
 use Block;
 use Volume;

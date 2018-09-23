@@ -11,6 +11,7 @@ use parking_lot::Mutex;
 // Parent
 use super::{packet::Frame, protocol::Protocol, Error};
 
+#[derive(Debug)]
 pub struct Tcp {
     stream_in: Mutex<TcpStream>,
     stream_out: Mutex<TcpStream>,

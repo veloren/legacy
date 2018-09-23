@@ -4,19 +4,13 @@ mod packet;
 mod protocol;
 mod tcp;
 #[cfg(test)]
-mod tests;
+pub mod tests;
 mod udp;
 pub mod udpmgr;
 
 // Reexports
 pub use self::{
-    connection::{Callback, Connection},
-    message::{ClientMessage, Error, Message, ServerMessage},
+    connection::Connection,
+    message::{ConnectionMessage, Error, Message},
     udpmgr::UdpMgr,
 };
-
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub enum ClientMode {
-    Headless,
-    Character,
-}

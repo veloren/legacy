@@ -1,4 +1,4 @@
-use coord::prelude::*;
+// Library
 use gfx::{
     self,
     format::Formatted,
@@ -7,6 +7,7 @@ use gfx::{
     Device, Encoder, Factory,
 };
 use gfx_device_gl;
+use vek::*;
 
 pub type HdrFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
 pub type ColorFormat = gfx::format::Srgba8;

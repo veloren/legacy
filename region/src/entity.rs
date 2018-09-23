@@ -1,18 +1,16 @@
-// Local
-
 // Library
-use coord::prelude::*;
+use vek::*;
 
 pub struct Entity<P: Send + Sync + 'static> {
-    pos: Vec3f, //middle x,y of the figure, z pos is on the ground
-    vel: Vec3f,
-    ctrl_acc: Vec3f,
-    look_dir: Vec2f,
+    pos: Vec3<f32>, //middle x,y of the figure, z pos is on the ground
+    vel: Vec3<f32>,
+    ctrl_acc: Vec3<f32>,
+    look_dir: Vec2<f32>,
     payload: Option<P>,
 }
 
 impl<P: Send + Sync + 'static> Entity<P> {
-    pub fn new(pos: Vec3f, vel: Vec3f, ctrl_acc: Vec3f, look_dir: Vec2f) -> Entity<P> {
+    pub fn new(pos: Vec3<f32>, vel: Vec3<f32>, ctrl_acc: Vec3<f32>, look_dir: Vec2<f32>) -> Entity<P> {
         Entity {
             pos,
             vel,
@@ -22,21 +20,21 @@ impl<P: Send + Sync + 'static> Entity<P> {
         }
     }
 
-    pub fn pos(&self) -> &Vec3f { &self.pos }
+    pub fn pos(&self) -> &Vec3<f32> { &self.pos }
 
-    pub fn vel(&self) -> &Vec3f { &self.vel }
+    pub fn vel(&self) -> &Vec3<f32> { &self.vel }
 
-    pub fn ctrl_acc(&self) -> &Vec3f { &self.ctrl_acc }
+    pub fn ctrl_acc(&self) -> &Vec3<f32> { &self.ctrl_acc }
 
-    pub fn look_dir(&self) -> &Vec2f { &self.look_dir }
+    pub fn look_dir(&self) -> &Vec2<f32> { &self.look_dir }
 
-    pub fn pos_mut(&mut self) -> &mut Vec3f { &mut self.pos }
+    pub fn pos_mut(&mut self) -> &mut Vec3<f32> { &mut self.pos }
 
-    pub fn vel_mut(&mut self) -> &mut Vec3f { &mut self.vel }
+    pub fn vel_mut(&mut self) -> &mut Vec3<f32> { &mut self.vel }
 
-    pub fn ctrl_acc_mut(&mut self) -> &mut Vec3f { &mut self.ctrl_acc }
+    pub fn ctrl_acc_mut(&mut self) -> &mut Vec3<f32> { &mut self.ctrl_acc }
 
-    pub fn look_dir_mut(&mut self) -> &mut Vec2f { &mut self.look_dir }
+    pub fn look_dir_mut(&mut self) -> &mut Vec2<f32> { &mut self.look_dir }
 
     pub fn payload(&self) -> &Option<P> { &self.payload }
     pub fn payload_mut(&mut self) -> &mut Option<P> { &mut self.payload }

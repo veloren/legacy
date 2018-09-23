@@ -20,11 +20,11 @@ impl Component for Vel {
     type Storage = VecStorage<Self>;
 }
 
-// Ori
+// CtrlDir
 
 #[derive(Debug)]
-pub struct Ori(pub Quaternion<f32>);
+pub struct CtrlDir(pub Vec2<f32>);
 
-impl Component for Ori {
+impl Component for CtrlDir {
     type Storage = VecStorage<Self>;
 }

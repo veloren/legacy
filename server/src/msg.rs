@@ -53,7 +53,7 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
         Some("tp") => {
             // TODO: Simplify this? Put it somewhere else?
             // Find the name the player typed (i.e: '/tp zesterer')
-            if let Some(tgt_player) = cmd.nth(1) {
+            if let Some(tgt_player) = cmd.nth(0) {
                 let tgt_pos = srv.do_for(|srv| {
                     // Find the position of that player
                     let pos_storage = srv.world.read_storage::<Pos>();

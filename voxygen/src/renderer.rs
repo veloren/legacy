@@ -21,6 +21,12 @@ pub type HdrDepthView = DepthStencilView<gfx_device_gl::Resources, HdrDepthForma
 pub type HdrShaderView = ShaderResourceView<gfx_device_gl::Resources, <HdrFormat as Formatted>::View>;
 pub type HdrRenderView = RenderTargetView<gfx_device_gl::Resources, HdrFormat>;
 
+pub struct RendererInfo {
+    pub vendor: String,
+    pub model: String,
+    pub gl_version: String,
+}
+
 pub struct Renderer {
     device: gfx_device_gl::Device,
     color_view: ColorView,
@@ -53,6 +59,15 @@ impl Renderer {
             hdr_sampler,
             encoder: factory.create_command_buffer().into(),
             factory,
+        }
+    }
+
+    pub fn get_info(&self) -> RendererInfo {
+        let info = self.device.get_info();
+        RendererInfo {
+            vendor: String::from(info.platform_name.vendor),
+            model: String::from(info.platform_name.renderer),
+            gl_version: format!("{}.{}", info.version.major, info.version.minor),
         }
     }
 

@@ -39,6 +39,7 @@ use skybox;
 use tonemapper;
 use voxel;
 use window::{Event, RenderWindow};
+use RENDERER_INFO;
 
 pub enum ChunkPayload {
     Meshes(FnvIndexMap<voxel::MaterialKind, voxel::Mesh>),
@@ -84,6 +85,12 @@ fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk {
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: PlayMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
         let window = RenderWindow::new();
+        let info = window.get_renderer_info();
+        println!(
+            "Graphics card info - vendor: {} model: {} OpenGL: {}",
+            info.vendor, info.model, info.gl_version
+        );
+        *RENDERER_INFO.lock() = Some(info);
 
         let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, view_distance)
             .expect("Could not create new client");

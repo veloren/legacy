@@ -15,6 +15,7 @@ use super::{
     Error,
 };
 
+#[derive(Debug)]
 pub struct Tcp {
     stream_in: Mutex<TcpStream>,
     stream_out: Mutex<TcpStream>,

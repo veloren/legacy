@@ -1,5 +1,12 @@
+// Standard
+use std::{thread, time::Duration};
+
+// Library
+use vek::*;
+
 // Project
-use region::physics;
+use common::manager::Manager;
+use region::{physics, VolState};
 
 // Local
 use Client;
@@ -8,8 +15,8 @@ use Payloads;
 use CHUNK_SIZE;
 
 impl<P: Payloads> Client<P> {
-    pub(crate) fn tick(&self, dt: f32) -> bool {
-        self.update_chunks();
+    pub(crate) fn tick(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
+        self.update_chunks(mgr);
         let entities = self.entities.read();
 
         // Physics tick
@@ -22,6 +29,8 @@ impl<P: Payloads> Client<P> {
         self.update_server();
 
         *self.time.write() += dt as f64;
+
+        thread::sleep(Duration::from_millis(40));
 
         *self.status() != ClientStatus::Disconnected
     }

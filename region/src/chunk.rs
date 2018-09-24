@@ -1,6 +1,6 @@
-use coord::prelude::*;
 use noise::{NoiseFn, OpenSimplex, Seedable};
 use rand::{prng::XorShiftRng, RngCore, SeedableRng};
+use vek::*;
 
 use Block;
 use BlockMaterial;
@@ -54,33 +54,33 @@ impl Chunk {
         for i in 0..size.x {
             for j in 0..size.y {
                 for k in 0..size.z {
-                    let pos = (vec3!(i, j, k) + offset).map(|e| e as f64);
+                    let pos = (Vec3::new(i, j, k) + offset).map(|e| e as f64);
 
-                    let chaos = chaos_noise.get((pos / 256.0).elements()).abs() * 3.0;
+                    let chaos = chaos_noise.get((pos / 256.0).into_array()).abs() * 3.0;
 
-                    let offs = vec3!(
-                        offs_x_noise.get((pos * turbulence_scatter).elements()),
-                        offs_y_noise.get((pos * turbulence_scatter).elements()),
-                        offs_z_noise.get((pos * turbulence_scatter).elements())
+                    let offs = Vec3::new(
+                        offs_x_noise.get((pos * turbulence_scatter).into_array()),
+                        offs_y_noise.get((pos * turbulence_scatter).into_array()),
+                        offs_z_noise.get((pos * turbulence_scatter).into_array()),
                     ) * terrain_turbulence;
 
-                    let ridge = 1.0 - 2.0 * ridge_noise.get((pos / terrain_scale).elements()).abs();
-                    let terrain = height_noise.get(((pos + offs) / terrain_scale).elements()) * (1.0 - ridge_factor)
+                    let ridge = 1.0 - 2.0 * ridge_noise.get((pos / terrain_scale).into_array()).abs();
+                    let terrain = height_noise.get(((pos + offs) / terrain_scale).into_array()) * (1.0 - ridge_factor)
                         + ridge * ridge_factor * chaos;
 
-                    let continent = continent_noise.get((pos / 1024.0).elements()) * 32.0;
+                    let continent = continent_noise.get((pos / 1024.0).into_array()) * 32.0;
                     let height = (terrain * mountain_height * chaos + terrain_height + continent) as i64;
 
                     voxels.push(Block::new(if k == 0 {
                         BlockMaterial::Stone
                     } else if k <= height {
-                        let cave0 = 1.0 - cave_noise_0.get((pos / cave_scale).elements()).abs();
-                        let cave1 = 1.0 - cave_noise_1.get((pos / cave_scale).elements()).abs();
+                        let cave0 = 1.0 - cave_noise_0.get((pos / cave_scale).into_array()).abs();
+                        let cave1 = 1.0 - cave_noise_1.get((pos / cave_scale).into_array()).abs();
 
                         if cave0 * cave1 + cave0 + cave1 > 2.85 {
                             BlockMaterial::Air
                         } else if k < height - 4 {
-                            if ore_noise.get((pos / ore_scarcity).elements()) > 0.4 {
+                            if ore_noise.get((pos / ore_scarcity).into_array()) > 0.4 {
                                 BlockMaterial::Gold
                             } else {
                                 BlockMaterial::Stone
@@ -110,32 +110,32 @@ impl Chunk {
 
         for i in 0..size.x {
             for j in 0..size.y {
-                let pos2d = (vec2!(i, j) + vec2!(offset.x, offset.y)).map(|e| e as f64);
+                let pos2d = (Vec2::new(i, j) + Vec2::new(offset.x, offset.y)).map(|e| e as f64);
 
-                let offs2d = vec2!(
-                    offs_x_noise.get((pos2d * 0.3).elements()),
-                    offs_y_noise.get((pos2d * 0.3).elements())
+                let offs2d = Vec2::new(
+                    offs_x_noise.get((pos2d * 0.3).into_array()),
+                    offs_y_noise.get((pos2d * 0.3).into_array()),
                 ) * 32.0;
 
                 let mountain_offs = (mountain_noise.get([pos2d.x * 0.05, pos2d.y * 0.05]) * 32.0) as i64;
 
-                let temp = temp_noise.get(((pos2d + offs2d) / biome_scale).elements());
+                let temp = temp_noise.get(((pos2d + offs2d) / biome_scale).into_array());
 
-                let forest = forest_noise.get(((pos2d + offs2d) / forest_scale).elements()) * 0.2;
+                let forest = forest_noise.get(((pos2d + offs2d) / forest_scale).into_array()) * 0.2;
 
                 for k in 0..size.z {
                     if chunk
-                        .at(vec3!(i, j, k))
+                        .at(Vec3::new(i, j, k))
                         .unwrap_or(Block::new(BlockMaterial::Air))
                         .material()
                         == BlockMaterial::Earth
                         && chunk
-                            .at(vec3!(i, j, k + 1))
+                            .at(Vec3::new(i, j, k + 1))
                             .unwrap_or(Block::new(BlockMaterial::Air))
                             .material()
                             == BlockMaterial::Air
                     {
-                        if boulder_noise.get((pos2d * 123.573).elements()) > 0.54 {
+                        if boulder_noise.get((pos2d * 123.573).into_array()) > 0.54 {
                             let mut rng = XorShiftRng::from_seed([
                                 i as u8, j as u8, k as u8, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             ]);
@@ -143,12 +143,15 @@ impl Chunk {
                                 for jj in -4..5 {
                                     for kk in -4..5 {
                                         if ii * ii + jj * jj + kk * kk < 25 + rng.next_u32() as i64 % 5 {
-                                            chunk.set(vec3!(i + ii, j + jj, k + kk), Block::new(BlockMaterial::Stone));
+                                            chunk.set(
+                                                Vec3::new(i + ii, j + jj, k + kk),
+                                                Block::new(BlockMaterial::Stone),
+                                            );
                                         }
                                     }
                                 }
                             }
-                        } else if tree_noise.get((pos2d * 10.0).elements()) < forest - 0.56 {
+                        } else if tree_noise.get((pos2d * 10.0).into_array()) < forest - 0.56 {
                             let mut rng = XorShiftRng::from_seed([
                                 i as u8, j as u8, k as u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             ]);
@@ -156,25 +159,25 @@ impl Chunk {
                             let big = rng.next_u32() as i64 % 4;
 
                             for branch in 6 + big..40 + big * 2 {
-                                let v = vec2!(
-                                    tree_noise.get((pos2d * 100.0 + branch as f64 + 0.0).elements()),
-                                    tree_noise.get((pos2d * 100.0 + branch as f64 + 100.0).elements())
-                                ).norm();
+                                let v = Vec2::new(
+                                    tree_noise.get((pos2d * 100.0 + branch as f64 + 0.0).into_array()),
+                                    tree_noise.get((pos2d * 100.0 + branch as f64 + 100.0).into_array()),
+                                ).normalized();
                                 for l in 0..25 + big * 4 {
                                     let inc = v.map(|e| (e * (1.0 - 0.025 * branch as f64) * 0.5 * l as f64) as i64);
                                     chunk.set(
-                                        vec3!(i + inc.x, j + inc.y, k + branch / 2),
+                                        Vec3::new(i + inc.x, j + inc.y, k + branch / 2),
                                         Block::new(BlockMaterial::Leaves),
                                     );
                                 }
                             }
 
                             for trunk in 0..6 + big {
-                                chunk.set(vec3!(i, j, k + trunk), Block::new(BlockMaterial::Log));
+                                chunk.set(Vec3::new(i, j, k + trunk), Block::new(BlockMaterial::Log));
                             }
                         } else {
                             chunk.set(
-                                vec3!(i, j, k),
+                                Vec3::new(i, j, k),
                                 Block::new(if k + mountain_offs > (size.z * 7) / 9 {
                                     BlockMaterial::Stone
                                 } else if k < size.z / 3 + 3 {

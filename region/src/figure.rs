@@ -1,6 +1,10 @@
-use coord::prelude::*;
+// Standard
 use std::any::Any;
 
+// Library
+use vek::*;
+
+// Local
 use Cell;
 use CellMaterial;
 use Volume;

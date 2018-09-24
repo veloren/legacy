@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 
 pub struct Callbacks {
-    recv_chat_msg: Mutex<Option<Box<Fn(&str, &str) + Send>>>,
+    recv_chat_msg: Mutex<Option<Box<Fn(&str) + Send>>>,
 }
 
 impl Callbacks {
@@ -11,14 +11,14 @@ impl Callbacks {
         }
     }
 
-    pub fn call_recv_chat_msg(&self, alias: &str, msg: &str) {
+    pub fn call_recv_chat_msg(&self, msg: &str) {
         match *self.recv_chat_msg.lock() {
-            Some(ref f) => f(alias, msg),
+            Some(ref f) => f(msg),
             None => {},
         }
     }
 
-    pub fn set_recv_chat_msg<F: 'static + Fn(&str, &str) + Send>(&self, f: F) {
+    pub fn set_recv_chat_msg<F: 'static + Fn(&str) + Send>(&self, f: F) {
         *self.recv_chat_msg.lock() = Some(Box::new(f));
     }
 }

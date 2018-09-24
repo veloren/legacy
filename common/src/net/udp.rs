@@ -17,6 +17,7 @@ use super::{
     Error,
 };
 
+#[derive(Debug)]
 pub struct Udp {
     socket: RwLock<UdpSocket>,
     remote: SocketAddr,

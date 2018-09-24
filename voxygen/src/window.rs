@@ -9,7 +9,7 @@ use glutin::{
 };
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use renderer::{ColorFormat, DepthFormat, Renderer};
+use renderer::{ColorFormat, DepthFormat, Renderer, RendererInfo};
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -89,6 +89,11 @@ impl RenderWindow {
             cursor_trapped: AtomicBool::new(false),
         };
         rw
+    }
+
+    pub fn get_renderer_info(&self) -> RendererInfo {
+        let renderer = self.renderer.read();
+        renderer.get_info()
     }
 
     pub fn handle_events<'a, F: FnMut(Event)>(&self, mut func: F) {

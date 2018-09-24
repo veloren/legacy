@@ -63,12 +63,14 @@ mod voxel;
 // Standard
 use std::{
     io::{self, Write},
-    thread,
+    panic,
+    thread::{self, sleep},
     time::Duration,
 };
 
 // Library
 use chrono::{DateTime, TimeZone, Utc};
+use parking_lot::Mutex;
 
 // Project
 use client::PlayMode;
@@ -76,6 +78,7 @@ use common::get_version;
 
 // Local
 use game::Game;
+use renderer::RendererInfo;
 
 // START Environment variables
 const GIT_HASH: Option<&'static str> = option_env!("GIT_HASH");
@@ -90,8 +93,24 @@ pub fn get_profile() -> &'static str { PROFILE.unwrap_or("UNKNOWN PROFILE") }
 pub fn get_build_time() -> DateTime<Utc> { Utc.timestamp(BUILD_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0) }
 // END Environment variables
 
+static RENDERER_INFO: Mutex<Option<RendererInfo>> = Mutex::new(None);
+
+fn set_panic_handler() {
+    let default_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |details| {
+        default_hook(details);
+        if let Some(info) = &*RENDERER_INFO.lock() {
+            println!(
+                "Graphics card info - vendor: {} model: {} OpenGL: {}",
+                info.vendor, info.model, info.gl_version
+            );
+        }
+    }));
+}
+
 fn main() {
     pretty_env_logger::init();
+    set_panic_handler();
 
     info!("Starting Voxygen... Version: {}", get_version());
 

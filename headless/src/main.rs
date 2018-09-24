@@ -43,14 +43,14 @@ fn main() {
     if alias.len() == 0 {
         alias = default_alias.to_string();
     }
-    
+
     let client = match Client::<Payloads>::new(PlayMode::Headless, alias, &remote_addr.trim(), gen_payload, 0) {
         Ok(c) => c,
         Err(e) => {
             println!("An error occured when attempting to initiate the client: {:?}", e);
             exit(0);
         },
-    };  
+    };
 
     let (tx, rx) = mpsc::channel();
     client.callbacks().set_recv_chat_msg(move |text| {

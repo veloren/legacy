@@ -282,8 +282,7 @@ impl Mesh {
                                     vec3!(1, 0, 0),
                                     col,
                                     mat,
-                                )
-                                .scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(vec3!(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x + scale.x, offset.y, offset.z])]);
                         }
                         // -x
@@ -300,8 +299,7 @@ impl Mesh {
                                     vec3!(-1, 0, 0),
                                     col,
                                     mat,
-                                )
-                                .scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(vec3!(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z])]);
                         }
                         // +y
@@ -318,8 +316,7 @@ impl Mesh {
                                     vec3!(0, 1, 0),
                                     col,
                                     mat,
-                                )
-                                .scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(vec3!(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y + scale.y, offset.z])]);
                         }
                         // -y
@@ -336,8 +333,7 @@ impl Mesh {
                                     vec3!(0, -1, 0),
                                     col,
                                     mat,
-                                )
-                                .scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(vec3!(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z])]);
                         }
                         // +z
@@ -354,8 +350,7 @@ impl Mesh {
                                     vec3!(0, 0, 1),
                                     col,
                                     mat,
-                                )
-                                .scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(vec3!(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z + scale.z])]);
                         }
                         // -z
@@ -372,8 +367,7 @@ impl Mesh {
                                     vec3!(0, 0, -1),
                                     col,
                                     mat,
-                                )
-                                .scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(vec3!(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z])]);
                         }
                     }

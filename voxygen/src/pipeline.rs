@@ -26,8 +26,7 @@ impl<P: PipelineInit> Pipeline<P> {
                     Primitive::TriangleList,
                     Rasterizer::new_fill().with_cull_back(),
                     pipe,
-                )
-                .expect("Failed to create rendering pipeline"),
+                ).expect("Failed to create rendering pipeline"),
             program,
         }
     }

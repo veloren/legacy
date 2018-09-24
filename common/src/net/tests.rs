@@ -326,8 +326,7 @@ fn tcp_pingpong() {
                 id: 777,
                 frame_no: 333,
                 data: vec![0, 10],
-            })
-            .unwrap(); //send pong
+            }).unwrap(); //send pong
     });
     let client = Tcp::new(&serverip).unwrap();
     client.send(Frame::Header { id: 123, length: 9876 }).unwrap(); //send ping
@@ -397,8 +396,7 @@ fn tcp_doublerecv() {
                 id: 777,
                 frame_no: 333,
                 data: vec![0, 10],
-            })
-            .unwrap(); //send pong
+            }).unwrap(); //send pong
     });
     let clientstream = TcpStream::connect(&serverip).unwrap();
     let client = Tcp::new_stream(clientstream.try_clone().unwrap()).unwrap();
@@ -461,8 +459,7 @@ fn udp_pingpong() {
             id: 777,
             frame_no: 333,
             data: vec![0, 10],
-        })
-        .unwrap(); //send pong
+        }).unwrap(); //send pong
     let frame = client.recv().unwrap(); //wait for pong
     match frame {
         Frame::Header { .. } => {
@@ -507,8 +504,7 @@ fn udp_pingpong_2clients() {
             id: 777,
             frame_no: 333,
             data: vec![0, 10],
-        })
-        .unwrap(); //send pong
+        }).unwrap(); //send pong
     let frame = client2.recv().unwrap(); //wait for pong
     match frame {
         Frame::Header { .. } => {

@@ -1,5 +1,7 @@
 // Local
-use super::{Container, Key, PersState, VolContainer, VolConverter, VolPers, Volume, Voxel};
+use super::{
+    Container, FnGenFunc, FnPayloadFunc, Key, PersState, VolContainer, VolConverter, VolGen, VolPers, Volume, Voxel,
+};
 use collision::{Collider, Primitive};
 
 // Standard
@@ -17,51 +19,6 @@ pub enum VolState<C: VolContainer, P: Send + Sync + 'static> {
 
 lazy_static! {
     static ref POOL: Mutex<ThreadPool> = Mutex::new(ThreadPool::new(2));
-}
-
-pub trait FnGenFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:
-    Fn(Vec3<i64>, &Container<C, P>) + Send + Sync + 'static
-{
-}
-impl<
-        V: Volume,
-        C: VolContainer<VoxelType = V::VoxelType>,
-        P: Send + Sync + 'static,
-        T: Fn(Vec3<i64>, &Container<C, P>),
-    > FnGenFunc<V, C, P> for T
-where
-    T: Send + Sync + 'static,
-{}
-
-pub trait FnPayloadFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:
-    Fn(Vec3<i64>, &Container<C, P>) + Send + Sync + 'static
-{
-}
-impl<
-        V: Volume,
-        C: VolContainer<VoxelType = V::VoxelType>,
-        P: Send + Sync + 'static,
-        T: Fn(Vec3<i64>, &Container<C, P>),
-    > FnPayloadFunc<V, C, P> for T
-where
-    T: Send + Sync + 'static,
-{}
-
-pub struct VolGen<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static> {
-    gen_func: Arc<FnGenFunc<V, C, P, Output = ()> + Send + Sync + 'static>,
-    payload_func: Arc<FnPayloadFunc<V, C, P, Output = ()>>,
-}
-
-impl<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static> VolGen<V, C, P> {
-    pub fn new<GF: FnGenFunc<V, C, P> + Send + Sync + 'static, PF: FnPayloadFunc<V, C, P>>(
-        gen_func: GF,
-        payload_func: PF,
-    ) -> VolGen<V, C, P> {
-        VolGen {
-            gen_func: Arc::new(gen_func),
-            payload_func: Arc::new(payload_func),
-        }
-    }
 }
 
 impl Key for Vec3<i64> {
@@ -128,6 +85,7 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
         self.pers.hot_mut().insert(pos, con.clone());
         // we copied the Arc above and added the blank container to the persistence because those operations are inexpensive
         // and we can now run the chunk generaton which is expensive in a new thread without locking the whole persistence
+
         POOL.lock().execute(move || {
             gen_func(pos, &con);
             payload_func(pos, &con);
@@ -138,7 +96,7 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
     pub fn gen_payload(&self, pos: Vec3<i64>) {
         // regenerate the payload if it got invalid
         let payload_func = self.gen.payload_func.clone();
-        let con = self.pers.hot().get(&pos).unwrap().clone();
+        let con = self.pers.get(&pos).unwrap().clone();
         POOL.lock().execute(move || {
             payload_func(pos, &con);
         });

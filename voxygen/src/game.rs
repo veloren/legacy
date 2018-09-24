@@ -3,8 +3,12 @@ use ui::Ui;
 
 // Standard
 use std::{
-    cell::RefCell, f32::consts::PI, net::ToSocketAddrs, sync::{
-        atomic::{AtomicBool, Ordering}, Arc,
+    cell::RefCell,
+    f32::consts::PI,
+    net::ToSocketAddrs,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
     },
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -24,7 +28,8 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 // Project
 use client::{self, Client, ClientMode, CHUNK_SIZE};
 use region::{
-    chunk::{Chunk, ChunkContainer, ChunkConverter}, Container, PersState, VolContainer, VolConverter, VolState,
+    chunk::{Chunk, ChunkContainer, ChunkConverter},
+    Container, PersState, VolContainer, VolConverter, VolState,
 };
 
 // Local
@@ -77,6 +82,7 @@ pub struct Game {
 }
 
 fn gen_payload(key: Vec3<i64>, con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>) {
+    con.set_access();
     if con.vols().get(PersState::Raw).is_none() {
         //only get mutable lock if no Raw exists
         ChunkConverter::convert(&key, &mut con.vols_mut(), PersState::Raw);
@@ -85,7 +91,13 @@ fn gen_payload(key: Vec3<i64>, con: &Container<ChunkContainer, <Payloads as clie
         let chunk: &Chunk = raw.as_any().downcast_ref::<Chunk>().expect("Should be Chunk");
         *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(chunk)));
     } else {
-        panic!("Raw does not exist");
+        let vols = con.vols();
+        panic!(
+            "Raw chunk {} does not exist, rle: {}, file: {}",
+            key,
+            vols.get(PersState::Rle).is_some(),
+            vols.get(PersState::File).is_some()
+        );
     }
 }
 
@@ -315,10 +327,10 @@ impl Game {
                 continue;
             }
             con.set_access();
-            let mut regen_payload = false;
             {
                 let mut trylock = &mut con.payload_try_mut(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
                 if let Some(ref mut lock) = trylock {
+                    //sometimes persistence does not exist, dont render then
                     if let Some(ref mut payload) = **lock {
                         if let ChunkPayload::Meshes(ref mut mesh) = payload {
                             // Calculate chunk mode matrix
@@ -345,15 +357,8 @@ impl Game {
                                 model_consts,
                             };
                         }
-                    } else {
-                        //payload got dropped by persistence, lets regenerate it
-                        regen_payload = true;
                     }
                 }
-            } //trylock must be out of scope before gen_payload is called
-            if regen_payload && con.vols().contains(PersState::Raw) {
-                //payload got dropped by persistence, lets regenerate it
-                gen_payload(*pos, con);
             }
         }
     }

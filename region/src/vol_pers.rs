@@ -37,29 +37,28 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
 
     pub fn hot(&self) -> RwLockReadGuard<HashMap<K, Arc<Container<C, P>>>> { self.hot.read() }
 
-    pub fn get(&self, key: &K) -> Option<Arc<Container<C, P>>> { self.hot.read().get(&key).map(|v| v.clone()) }
-
-    pub fn getCold(&self, key: &K) -> Option<Arc<Container<C, P>>> { self.cold.read().get(&key).map(|v| v.clone()) }
+    pub fn get(&self, key: &K) -> Option<Arc<Container<C, P>>> {
+        let mut x = self.hot.read().get(&key).map(|v| v.clone());
+        if x.is_none() {
+            x = self.cold.read().get(&key).map(|v| v.clone());
+        }
+        return x;
+    }
 
     pub fn exists(&self, key: &K, state: PersState) -> bool {
-        if state == PersState::File {
-            if let Some(entry) = self.cold.read().get(&key) {
-                return entry.vols().contains(state);
-            }
-        } else {
-            if let Some(entry) = self.hot.read().get(&key) {
-                return entry.vols().contains(state);
-            }
+        if let Some(entry) = self.cold.read().get(&key) {
+            return entry.vols().contains(state);
+        }
+        if let Some(entry) = self.hot.read().get(&key) {
+            return entry.vols().contains(state);
         }
         return false;
     }
 
     pub fn generate(&self, key: &K, state: PersState) {
-        let mut isCold = false;
         let mut x = self.hot.read().get(&key).map(|v| v.clone());
         if x.is_none() {
             x = self.cold.read().get(&key).map(|v| v.clone());
-            isCold = true;
         }
         if let Some(container) = x {
             container.set_access();
@@ -69,41 +68,45 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
                 info!("generate from persistence key: {:?} state: {:?}", key, state);
                 VC::convert(key, &mut lock, state);
             }
-            if isCold {
-                let mut h = self.hot.write();
-                let mut c = self.cold.write();
-                h.insert(*key, container.clone());
-                c.remove(key);
-            }
         }
     }
 
-    pub fn offload(&self) {
-        let now = SystemTime::now();
-        let mut offload_queue = vec![]; //we allocate in a container here, to reduce lock phase
-        for (key, container) in self.hot.read().iter() {
-            let diff = now.duration_since(*container.last_access());
-            if let Ok(diff) = diff {
-                if diff.as_secs() > 5 {
-                    let lock = container.vols();
-                    let contains = lock.contains(PersState::Raw) || lock.contains(PersState::Rle);
-                    if contains {
-                        //info!("drop persistence to File: {:?} after {}", key, diff.as_secs());
-                        offload_queue.push(((*key).clone(), container.clone()));
+    pub fn try_cold_offload(&self) {
+        let h = self.hot.try_write();
+        if let Some(mut h) = h {
+            let mut c = self.cold.try_write();
+            if let Some(ref mut c) = c {
+                let mut remove_from_c = vec![];
+                for (key, container) in c.iter() {
+                    let v = container.vols_try();
+                    if let Some(v) = v {
+                        if v.contains(PersState::Raw) || v.contains(PersState::Rle) {
+                            h.insert(*key, container.clone());
+                            remove_from_c.push(key.clone());
+                        }
+                    } else {
+                        println!("noooo {:?}", key);
                     }
                 }
+                for key in remove_from_c.iter() {
+                    c.remove(key);
+                }
+                let mut remove_from_h = vec![];
+                for (key, container) in h.iter() {
+                    let v = container.vols_try();
+                    if let Some(v) = v {
+                        if !v.contains(PersState::Raw) && !v.contains(PersState::Rle) {
+                            c.insert(*key, container.clone());
+                            remove_from_h.push(key.clone());
+                        }
+                    } else {
+                        println!("noooo {:?}", key);
+                    }
+                }
+                for key in remove_from_h.iter() {
+                    h.remove(key);
+                }
             }
-        }
-        for (key, container) in offload_queue.iter() {
-            let mut lock = container.vols_mut();
-            VC::convert(key, &mut lock, PersState::File);
-            lock.remove(PersState::Raw);
-            lock.remove(PersState::Rle);
-            *container.payload_mut() = None;
-            let mut h = self.hot.write();
-            let mut c = self.cold.write();
-            c.insert(*key, container.clone());
-            h.remove(key);
         }
     }
 

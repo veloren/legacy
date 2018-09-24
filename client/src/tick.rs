@@ -12,7 +12,6 @@ use CHUNK_SIZE;
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn tick(&self, dt: f32) -> bool {
-        self.update_chunks();
         let entities = self.entities.read();
 
         // Physics tick
@@ -30,15 +29,9 @@ impl<P: Payloads> Client<P> {
     }
 
     pub(crate) fn tick2(&self, dt: f32) -> bool {
-        // Remove chunks that are too far from the player
-        // TODO: Could be more efficient (maybe? careful: deadlocks)
-        let pers = self.chunk_mgr().persistence();
-        pers.offload();
-
-        //generate missing Payloads
-        self.lazy_recreate_payload();
+        self.load_unload_chunks();
+        self.chunk_mgr().persistence().try_cold_offload();
         self.chunk_mgr().persistence().debug();
-
         *self.status() != ClientStatus::Disconnected
     }
 }

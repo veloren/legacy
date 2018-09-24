@@ -147,8 +147,8 @@ impl<P: Payloads> Client<P> {
         let mut lock = self.run_job2.lock();
         if lock.is_none() {
             *lock = Some(self.jobs.do_loop(|c| {
-                thread::sleep(time::Duration::from_millis(1000));
-                c.tick2(1.0)
+                thread::sleep(time::Duration::from_millis(10000));
+                c.tick2(10.0)
             }));
         }
     }

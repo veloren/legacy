@@ -27,13 +27,15 @@ pub mod figure;
 pub mod physics;
 #[cfg(test)]
 mod tests;
+mod vol_gen;
 mod vol_mgr;
 mod vol_pers;
 
 // Reexports
 pub use container::{Container, VolContainer};
 pub use entity::Entity;
-pub use vol_mgr::{FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolState};
+pub use vol_gen::{FnGenFunc, FnPayloadFunc, VolGen};
+pub use vol_mgr::{VolMgr, VolState};
 pub use vol_pers::VolPers;
 
 // Project

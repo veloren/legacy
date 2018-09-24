@@ -44,7 +44,7 @@ serde_derive = "1.0"
 enum-map = "0.2.31"
 fnv = "1.0.3"
 indexmap = "1.0.1"
-parking_lot = {version = "0.6", features = ["nightly"]}
+parking_lot = {version = "0.6.4", features = ["nightly"]}
 
 # Time
 time = "0.1.40"

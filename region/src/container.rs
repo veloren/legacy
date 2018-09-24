@@ -41,6 +41,8 @@ impl<C: VolContainer, P: Send + Sync + 'static> Container<C, P> {
 
     pub fn vols_mut(&self) -> RwLockWriteGuard<C> { self.vols.write() }
 
+    pub fn vols_try(&self) -> Option<RwLockReadGuard<C>> { self.vols.try_read() }
+
     pub fn last_access(&self) -> RwLockReadGuard<SystemTime> { self.last_access.read() }
 
     pub fn set_access(&self) { *self.last_access.write() = SystemTime::now(); }

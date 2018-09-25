@@ -186,10 +186,9 @@ impl<P: Payloads> Server<P> {
         let vel_storage = self.world.read_storage::<Vel>();
         let ctrl_dir_storage = self.world.read_storage::<CtrlDir>();
         let sync_storage = self.world.read_storage::<SyncMarker>();
-        for (sync_storage, pos, vel, ctrl_dir) in (&sync_storage, &pos_storage, &vel_storage, &ctrl_dir_storage).join()
-        {
+        for (sync, pos, vel, ctrl_dir) in (&sync_storage, &pos_storage, &vel_storage, &ctrl_dir_storage).join() {
             self.broadcast_net_msg(ServerMsg::EntityUpdate {
-                uid: sync_storage.id(),
+                uid: sync.id(),
                 pos: pos.0,
                 vel: vel.0,
                 ctrl_dir: ctrl_dir.0,

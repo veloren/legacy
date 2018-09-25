@@ -3,11 +3,6 @@ name = "headless"
 version = "0.1.0"
 authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
 
-[profile.dev]
-
-[profile.release]
-debug = true
-
 [dependencies]
 client = { path = "../client" }
 region = { path = "../region" }
@@ -15,5 +10,6 @@ common = { path = "../common" }
 coord = "0.11.0"
 get_if_addrs = "0.5.2"
 syrup = "0.1"
+vek = "0.9"
 log = "0.4.1"
 pretty_env_logger = "0.2.3"

@@ -1,34 +1,36 @@
+// Crates
 extern crate conrod;
 extern crate fps_counter;
 extern crate glutin;
 
+// Modules
 mod convert_events;
 mod ui_components;
 
-use client::Client;
-use game::Payloads;
-use renderer::Renderer;
+// Standard
 use std::{
-    cell::RefCell,
     collections::HashMap,
     sync::mpsc::{self, Receiver, Sender},
 };
 
-use self::ui_components::{UiState, MAX_CHAT_LINES};
+// Project
+use common::manager::Manager;
 
-use conrod::{
-    backend::gfx::Renderer as ConrodRenderer, event::Input, image::Map, widget, Ui as conrod_ui, UiBuilder, UiCell,
-};
+// Local
+use self::ui_components::{UiState, MAX_CHAT_LINES};
+use client::Client;
+use game::Payloads;
+use renderer::Renderer;
+
+use conrod::{backend::gfx::Renderer as ConrodRenderer, image::Map, widget, Ui as conrod_ui, UiBuilder, UiCell};
 
 pub use conrod::gfx_core::handle::ShaderResourceView;
 pub use gfx_device_gl::Resources as ui_resources;
 pub type ImageMap = Map<(ShaderResourceView<ui_resources, [f32; 4]>, (u32, u32))>;
 
-use glutin::{ElementState, KeyboardInput, MouseButton};
-
 pub enum UiInternalEvent {
     UpdateChatText(String),
-    NewChatMessage(String, String),
+    NewChatMessage(String),
     SendChat,
 }
 
@@ -53,11 +55,8 @@ impl Ui {
         let (tx, rx) = mpsc::channel();
 
         let tx2 = tx.clone();
-        client.callbacks().set_recv_chat_msg(move |alias, msg| {
-            if tx2
-                .send(UiInternalEvent::NewChatMessage(alias.to_string(), msg.to_string()))
-                .is_err()
-            {
+        client.callbacks().set_recv_chat_msg(move |text| {
+            if tx2.send(UiInternalEvent::NewChatMessage(text.to_string())).is_err() {
                 panic!("Could not send event to ui");
             }
         });
@@ -80,7 +79,7 @@ impl Ui {
         }
     }
 
-    pub fn render(&mut self, renderer: &mut Renderer, client: &Client<Payloads>, window_size: &[f64; 2]) {
+    pub fn render(&mut self, renderer: &mut Renderer, client: &Manager<Client<Payloads>>, window_size: &[f64; 2]) {
         self.update_internal_event(&client);
         ui_components::render(self);
         self.conrod_renderer.on_resize(renderer.color_view().clone());
@@ -141,6 +140,7 @@ impl Ui {
 
     pub fn get_ui_cell(&mut self) -> UiCell { self.ui.set_widgets() }
 
+    #[allow(dead_code)]
     pub fn get_width(&self) -> f64 { self.ui.win_w }
 
     pub fn get_height(&self) -> f64 { self.ui.win_h }
@@ -168,12 +168,12 @@ impl Ui {
                 UiInternalEvent::UpdateChatText(edit) => {
                     self.state.chat_message = edit;
                 },
-                UiInternalEvent::NewChatMessage(alias, msg) => {
+                UiInternalEvent::NewChatMessage(text) => {
                     if self.state.chat_lines.len() >= MAX_CHAT_LINES {
                         self.state.chat_lines.pop_back();
                     }
 
-                    self.state.chat_lines.push_front((alias, msg));
+                    self.state.chat_lines.push_front(text);
                 },
                 UiInternalEvent::SendChat => {
                     if self.state.chat_message.len() != 0 {

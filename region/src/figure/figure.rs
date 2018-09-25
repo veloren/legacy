@@ -1,6 +1,10 @@
-use coord::prelude::*;
+// Standard
 use std::any::Any;
 
+// Library
+use vek::*;
+
+// Local
 use super::super::{Volume, Voxel};
 use figure::{Cell, CellMaterial};
 

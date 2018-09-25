@@ -4,11 +4,6 @@ version = "0.1.0"
 authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
 build = "build.rs"
 
-[profile.dev]
-
-[profile.release]
-debug = true
-
 [dependencies]
 
 # Local
@@ -25,8 +20,8 @@ conrod = { git = "https://gitlab.com/veloren/conrod", branch = "master", version
 #conrod = { path = "../../conrod", features = ["gfx_rs"] } // For local testing
 
 # Mathematics
-coord = "0.11.0"
-nalgebra = "0.15.1"
+nalgebra = "0.16"
+vek = "0.9"
 alga = "0.7.1"
 
 # File loading
@@ -44,7 +39,8 @@ serde_derive = "1.0"
 enum-map = "0.2.31"
 fnv = "1.0.3"
 indexmap = "1.0.1"
-parking_lot = {version = "0.6.4", features = ["nightly"]}
+parking_lot = { version = "0.6.4", features = ["nightly"] }
+tempfile = "3.0"
 
 # Time
 time = "0.1.40"

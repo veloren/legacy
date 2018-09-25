@@ -1,11 +1,5 @@
-// Standard
-use std::sync::Arc;
-
 // Project
 use common::Uid;
-
-// Local
-use Entity;
 
 pub struct Player {
     pub alias: String,

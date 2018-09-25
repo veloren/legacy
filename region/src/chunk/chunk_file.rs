@@ -1,4 +1,4 @@
-use coord::prelude::*;
+use vek::*;
 
 use super::super::Volume;
 use chunk::Block;

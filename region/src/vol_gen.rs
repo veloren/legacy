@@ -6,9 +6,9 @@ use collision::{Collider, Primitive};
 use std::{collections::HashSet, sync::Arc};
 
 // Library
-use coord::prelude::*;
 use parking_lot::{Mutex, RwLock};
 use threadpool::ThreadPool;
+use vek::*;
 
 pub trait FnGenFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:
     Fn(Vec3<i64>, &Container<C, P>) + Send + Sync + 'static

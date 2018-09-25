@@ -1,9 +1,9 @@
 // Library
-use coord::prelude::*;
 use fnv::FnvBuildHasher;
 use gfx;
 use gfx_device_gl;
 use indexmap::IndexMap;
+use vek::*;
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
@@ -25,7 +25,7 @@ pub enum NormalDirection {
 
 impl From<Vec3<i64>> for NormalDirection {
     fn from(vec: Vec3<i64>) -> Self {
-        let elements = vec.elements();
+        let elements = vec.into_array();
         let idx = elements.iter().position(|e| *e != 0).unwrap();
         let e = elements[idx];
         match (idx, e) {
@@ -85,6 +85,7 @@ pub struct Poly {
 }
 
 impl Poly {
+    #[allow(dead_code)]
     pub fn new(v0: Vertex, v1: Vertex, v2: Vertex) -> Poly { Poly { verts: [v0, v1, v2] } }
 }
 
@@ -111,6 +112,7 @@ impl Quad {
         }
     }
 
+    #[allow(dead_code)]
     pub fn flat_with_color(
         p0: [f32; 3],
         p1: [f32; 3],
@@ -176,12 +178,27 @@ where
     fn get_ao_at(&self, pos: Vec3<i64>, dir: Vec3<i64>) -> u8 {
         let vecs = if dir.x == 0 {
             if dir.y == 0 {
-                [vec3!(0, 0, 0), vec3!(-1, 0, 0), vec3!(0, -1, 0), vec3!(-1, -1, 0)]
+                [
+                    Vec3::new(0, 0, 0),
+                    Vec3::new(-1, 0, 0),
+                    Vec3::new(0, -1, 0),
+                    Vec3::new(-1, -1, 0),
+                ]
             } else {
-                [vec3!(0, 0, 0), vec3!(-1, 0, 0), vec3!(0, 0, -1), vec3!(-1, 0, -1)]
+                [
+                    Vec3::new(0, 0, 0),
+                    Vec3::new(-1, 0, 0),
+                    Vec3::new(0, 0, -1),
+                    Vec3::new(-1, 0, -1),
+                ]
             }
         } else {
-            [vec3!(0, 0, 0), vec3!(0, -1, 0), vec3!(0, 0, -1), vec3!(0, -1, -1)]
+            [
+                Vec3::new(0, 0, 0),
+                Vec3::new(0, -1, 0),
+                Vec3::new(0, 0, -1),
+                Vec3::new(0, -1, -1),
+            ]
         };
         vecs.iter().fold(0, |acc, v| {
             acc + if self.at(pos + *v).unwrap_or(V::VoxelType::empty()).is_opaque() {
@@ -201,7 +218,7 @@ where
         col: u8,
         mat: Material,
     ) -> Quad {
-        let units = [vec3!(0, 0, 0), x_unit, x_unit + y_unit, y_unit];
+        let units = [Vec3::new(0, 0, 0), x_unit, x_unit + y_unit, y_unit];
 
         let ao = [
             self.get_ao_at(pos + units[0], z_unit),
@@ -212,17 +229,17 @@ where
 
         if ao[0] + ao[2] > ao[1] + ao[3] {
             Quad::new(
-                Vertex::new(units[0].map(|e| e as f32).elements(), z_unit.into(), ao[0], col, mat),
-                Vertex::new(units[1].map(|e| e as f32).elements(), z_unit.into(), ao[1], col, mat),
-                Vertex::new(units[2].map(|e| e as f32).elements(), z_unit.into(), ao[2], col, mat),
-                Vertex::new(units[3].map(|e| e as f32).elements(), z_unit.into(), ao[3], col, mat),
+                Vertex::new(units[0].map(|e| e as f32).into_array(), z_unit.into(), ao[0], col, mat),
+                Vertex::new(units[1].map(|e| e as f32).into_array(), z_unit.into(), ao[1], col, mat),
+                Vertex::new(units[2].map(|e| e as f32).into_array(), z_unit.into(), ao[2], col, mat),
+                Vertex::new(units[3].map(|e| e as f32).into_array(), z_unit.into(), ao[3], col, mat),
             )
         } else {
             Quad::new(
-                Vertex::new(units[1].map(|e| e as f32).elements(), z_unit.into(), ao[1], col, mat),
-                Vertex::new(units[2].map(|e| e as f32).elements(), z_unit.into(), ao[2], col, mat),
-                Vertex::new(units[3].map(|e| e as f32).elements(), z_unit.into(), ao[3], col, mat),
-                Vertex::new(units[0].map(|e| e as f32).elements(), z_unit.into(), ao[0], col, mat),
+                Vertex::new(units[1].map(|e| e as f32).into_array(), z_unit.into(), ao[1], col, mat),
+                Vertex::new(units[2].map(|e| e as f32).into_array(), z_unit.into(), ao[2], col, mat),
+                Vertex::new(units[3].map(|e| e as f32).into_array(), z_unit.into(), ao[3], col, mat),
+                Vertex::new(units[0].map(|e| e as f32).into_array(), z_unit.into(), ao[0], col, mat),
             )
         }
     }
@@ -239,7 +256,7 @@ impl Mesh {
     where
         V::VoxelType: RenderVoxel,
     {
-        Mesh::from_with_offset(vol, vec3!(0.0, 0.0, 0.0))
+        Mesh::from_with_offset(vol, Vec3::new(0.0, 0.0, 0.0))
     }
 
     pub fn from_with_offset<V: RenderVolume>(vol: &V, offs: Vec3<f32>) -> FnvIndexMap<MaterialKind, Mesh>
@@ -253,7 +270,9 @@ impl Mesh {
         for x in 0..vol.size().x {
             for y in 0..vol.size().y {
                 for z in 0..vol.size().z {
-                    let vox = vol.at(vec3!(x, y, z)).expect("Attempted to mesh voxel outside volume");
+                    let vox = vol
+                        .at(Vec3::new(x, y, z))
+                        .expect("Attempted to mesh voxel outside volume");
                     let offset = Vec3::new(
                         (x as f32 + offs.x) * scale.x,
                         (y as f32 + offs.y) * scale.y,
@@ -270,104 +289,104 @@ impl Mesh {
                         let opaque = vox.is_opaque();
                         // +x
                         if vol
-                            .at(vec3!(x + 1, y, z))
+                            .at(Vec3::new(x + 1, y, z))
                             .unwrap_or(V::VoxelType::empty())
                             .should_add(opaque)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    vec3!(x + 1, y + 0, z + 0),
-                                    vec3!(0, 1, 0),
-                                    vec3!(0, 0, 1),
-                                    vec3!(1, 0, 0),
+                                    Vec3::new(x + 1, y + 0, z + 0),
+                                    Vec3::new(0, 1, 0),
+                                    Vec3::new(0, 0, 1),
+                                    Vec3::new(1, 0, 0),
                                     col,
                                     mat,
-                                ).scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x + scale.x, offset.y, offset.z])]);
                         }
                         // -x
                         if vol
-                            .at(vec3!(x - 1, y, z))
+                            .at(Vec3::new(x - 1, y, z))
                             .unwrap_or(V::VoxelType::empty())
                             .should_add(opaque)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    vec3!(x - 1, y + 0, z + 0),
-                                    vec3!(0, 0, 1),
-                                    vec3!(0, 1, 0),
-                                    vec3!(-1, 0, 0),
+                                    Vec3::new(x - 1, y + 0, z + 0),
+                                    Vec3::new(0, 0, 1),
+                                    Vec3::new(0, 1, 0),
+                                    Vec3::new(-1, 0, 0),
                                     col,
                                     mat,
-                                ).scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z])]);
                         }
                         // +y
                         if vol
-                            .at(vec3!(x, y + 1, z))
+                            .at(Vec3::new(x, y + 1, z))
                             .unwrap_or(V::VoxelType::empty())
                             .should_add(opaque)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    vec3!(x + 0, y + 1, z + 0),
-                                    vec3!(0, 0, 1),
-                                    vec3!(1, 0, 0),
-                                    vec3!(0, 1, 0),
+                                    Vec3::new(x + 0, y + 1, z + 0),
+                                    Vec3::new(0, 0, 1),
+                                    Vec3::new(1, 0, 0),
+                                    Vec3::new(0, 1, 0),
                                     col,
                                     mat,
-                                ).scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y + scale.y, offset.z])]);
                         }
                         // -y
                         if vol
-                            .at(vec3!(x, y - 1, z))
+                            .at(Vec3::new(x, y - 1, z))
                             .unwrap_or(V::VoxelType::empty())
                             .should_add(opaque)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    vec3!(x + 0, y - 1, z + 0),
-                                    vec3!(1, 0, 0),
-                                    vec3!(0, 0, 1),
-                                    vec3!(0, -1, 0),
+                                    Vec3::new(x + 0, y - 1, z + 0),
+                                    Vec3::new(1, 0, 0),
+                                    Vec3::new(0, 0, 1),
+                                    Vec3::new(0, -1, 0),
                                     col,
                                     mat,
-                                ).scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z])]);
                         }
                         // +z
                         if vol
-                            .at(vec3!(x, y, z + 1))
+                            .at(Vec3::new(x, y, z + 1))
                             .unwrap_or(V::VoxelType::empty())
                             .should_add(opaque)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    vec3!(x + 0, y + 0, z + 1),
-                                    vec3!(1, 0, 0),
-                                    vec3!(0, 1, 0),
-                                    vec3!(0, 0, 1),
+                                    Vec3::new(x + 0, y + 0, z + 1),
+                                    Vec3::new(1, 0, 0),
+                                    Vec3::new(0, 1, 0),
+                                    Vec3::new(0, 0, 1),
                                     col,
                                     mat,
-                                ).scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z + scale.z])]);
                         }
                         // -z
                         if vol
-                            .at(vec3!(x, y, z - 1))
+                            .at(Vec3::new(x, y, z - 1))
                             .unwrap_or(V::VoxelType::empty())
                             .should_add(opaque)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    vec3!(x + 0, y + 0, z - 1),
-                                    vec3!(0, 1, 0),
-                                    vec3!(1, 0, 0),
-                                    vec3!(0, 0, -1),
+                                    Vec3::new(x + 0, y + 0, z - 1),
+                                    Vec3::new(0, 1, 0),
+                                    Vec3::new(1, 0, 0),
+                                    Vec3::new(0, 0, -1),
                                     col,
                                     mat,
-                                ).scale(vec3!(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z])]);
                         }
                     }
@@ -386,6 +405,7 @@ impl Mesh {
 
     pub fn add(&mut self, verts: &[Vertex]) { self.verts.extend_from_slice(verts); }
 
+    #[allow(dead_code)]
     pub fn add_polys(&mut self, polys: &[Poly]) {
         for p in polys {
             self.verts.extend_from_slice(&p.verts);

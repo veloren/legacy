@@ -1,15 +1,12 @@
 // Standard
-use std::{fmt, io};
+use std::{io, net::SocketAddr};
 
 // Library
 use bincode;
-use coord::prelude::*;
+use serde::{de::DeserializeOwned, Serialize};
 
 // Local
 use Uid;
-
-// Parent
-use super::ClientMode;
 
 #[derive(Debug)]
 pub enum Error {
@@ -22,85 +19,21 @@ impl From<io::Error> for Error {
     fn from(e: io::Error) -> Error { Error::NetworkErr(e) }
 }
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::NetworkErr(e) => write!(f, "{}", e),
-            Error::CannotSerialize => write!(f, "failed to serialize message"),
-            Error::CannotDeserialize => write!(f, "failed to deserialize message"),
-        }
-    }
-}
+pub trait Message: Send + Sync + 'static + Serialize + DeserializeOwned {
+    fn to_bytes(&self) -> Result<Vec<u8>, Error> { bincode::serialize(&self).map_err(|_e| Error::CannotSerialize) }
 
-pub trait Message {
-    fn to_bytes(&self) -> Result<Vec<u8>, Error>;
     fn from_bytes(data: &[u8]) -> Result<Self, Error>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        bincode::deserialize(data).map_err(|_e| Error::CannotDeserialize)
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum ServerMessage {
-    Connected {
-        entity_uid: Option<Uid>,
-        version: String,
-    },
-    Kicked {
-        reason: String,
-    },
+pub enum ConnectionMessage {
+    OpenedUdp { host: SocketAddr },
     Shutdown,
     Ping,
-    Pong,
-    RecvChatMsg {
-        alias: String,
-        msg: String,
-    },
-    EntityUpdate {
-        uid: Uid,
-        pos: Vec3f,
-        vel: Vec3f,
-        ctrl_acc: Vec3f,
-        look_dir: Vec2f,
-    },
-    ChunkData {},
 }
-
-impl Message for ServerMessage {
-    fn from_bytes(data: &[u8]) -> Result<ServerMessage, Error> {
-        bincode::deserialize(data).map_err(|_e| Error::CannotDeserialize)
-    }
-
-    fn to_bytes(&self) -> Result<Vec<u8>, Error> { bincode::serialize(&self).map_err(|_e| Error::CannotSerialize) }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum ClientMessage {
-    Connect {
-        mode: ClientMode,
-        alias: String,
-        version: String,
-    },
-    Disconnect,
-    Ping,
-    Pong,
-    ChatMsg {
-        msg: String,
-    },
-    SendCmd {
-        cmd: String,
-    },
-    PlayerEntityUpdate {
-        pos: Vec3f,
-        vel: Vec3f,
-        ctrl_acc: Vec3f,
-        look_dir: Vec2f,
-    },
-}
-
-impl Message for ClientMessage {
-    fn from_bytes(data: &[u8]) -> Result<ClientMessage, Error> {
-        bincode::deserialize(data).map_err(|_e| Error::CannotDeserialize)
-    }
-
-    fn to_bytes(&self) -> Result<Vec<u8>, Error> { bincode::serialize(&self).map_err(|_e| Error::CannotSerialize) }
-}
+impl Message for ConnectionMessage {}

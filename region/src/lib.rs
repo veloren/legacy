@@ -5,19 +5,18 @@ extern crate log;
 #[macro_use]
 extern crate enum_map;
 extern crate bincode;
-extern crate nalgebra;
 extern crate noise;
 extern crate rand;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate coord;
 extern crate threadpool;
+extern crate vek;
 #[macro_use]
 extern crate lazy_static;
 extern crate common;
 extern crate parking_lot;
+extern crate specs;
 
 pub mod chunk;
 mod collision;
@@ -31,6 +30,9 @@ mod vol_gen;
 mod vol_mgr;
 mod vol_pers;
 
+pub mod ecs;
+pub mod item;
+
 // Reexports
 pub use container::{Container, VolContainer};
 pub use entity::Entity;
@@ -39,7 +41,7 @@ pub use vol_mgr::{VolMgr, VolState};
 pub use vol_pers::VolPers;
 
 // Project
-use coord::prelude::*;
+use vek::*;
 use std::{any::Any, cmp::Eq, fmt::Debug, hash::Hash};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]

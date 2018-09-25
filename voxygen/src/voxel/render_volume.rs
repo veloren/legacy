@@ -1,4 +1,3 @@
-use coord::prelude::*;
 use std::cmp::{Ord, Ordering, PartialOrd};
 
 use region::{

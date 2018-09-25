@@ -3,11 +3,10 @@
 // Crates
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate coord;
 extern crate common;
 extern crate parking_lot;
 extern crate region;
+extern crate vek;
 
 // Modules
 mod callbacks;
@@ -17,31 +16,28 @@ mod player;
 mod tick;
 mod world;
 
-// Library
-use coord::prelude::*;
-
 // Reexport
-pub use common::net::ClientMode;
-
-// Constants
-pub const CHUNK_SIZE: [i64; 3] = [32, 32, 32];
-pub const CHUNK_MID: [f32; 3] = [
-    CHUNK_SIZE[0] as f32 / 2.0,
-    CHUNK_SIZE[1] as f32 / 2.0,
-    CHUNK_SIZE[2] as f32 / 2.0,
-];
+pub use common::msg::PlayMode;
 
 // Standard
-use std::{collections::HashMap, net::ToSocketAddrs, sync::Arc, thread, time};
+use std::{
+    collections::HashMap,
+    net::ToSocketAddrs,
+    sync::{atomic::Ordering, Arc},
+    thread,
+    time::{self, Duration},
+};
 
 // Library
+use vek::*;
 use parking_lot::{Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 // Project
 use common::{
     get_version,
-    net::{Callback, ClientMessage, Connection, ServerMessage, UdpMgr},
-    JobHandle, Jobs, Uid,
+    manager::{Managed, Manager},
+    msg::{ClientMsg, ClientPostBox, ClientPostOffice, ServerMsg, SessionKind},
+    Uid,
 };
 use region::{
     chunk::{Block, Chunk, ChunkContainer, ChunkConverter},
@@ -53,9 +49,17 @@ use callbacks::Callbacks;
 use error::Error;
 use player::Player;
 
+// Constants
+pub const CHUNK_SIZE: [i64; 3] = [32, 32, 32];
+pub const CHUNK_MID: [f32; 3] = [
+    CHUNK_SIZE[0] as f32 / 2.0,
+    CHUNK_SIZE[1] as f32 / 2.0,
+    CHUNK_SIZE[2] as f32 / 2.0,
+];
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+
 #[derive(Copy, Clone, PartialEq)]
 pub enum ClientStatus {
-    Connecting,
     Connected,
     Timeout,
     Disconnected,
@@ -67,12 +71,8 @@ pub trait Payloads: 'static {
 }
 
 pub struct Client<P: Payloads> {
-    pub(crate) jobs: Jobs<Client<P>>,
-    run_job: Mutex<Option<JobHandle<()>>>,
-    run_job2: Mutex<Option<JobHandle<()>>>,
-
     status: RwLock<ClientStatus>,
-    conn: Arc<Connection<ServerMessage>>,
+    postoffice: Manager<ClientPostOffice>,
 
     time: RwLock<f64>,
     player: RwLock<Player>,
@@ -86,89 +86,55 @@ pub struct Client<P: Payloads> {
     view_distance: i64,
 }
 
-impl<P: Payloads> Callback<ServerMessage> for Client<P> {
-    fn recv(&self, msg: Result<ServerMessage, common::net::Error>) { self.handle_packet(msg.unwrap()); }
-}
-
 impl<P: Payloads> Client<P> {
-    pub fn new<U: ToSocketAddrs, GF: FnPayloadFunc<Chunk, ChunkContainer, P::Chunk>>(
-        mode: ClientMode,
+    pub fn new<S: ToSocketAddrs, GF: FnPayloadFunc<Chunk, ChunkContainer, P::Chunk>>(
+        mode: PlayMode,
         alias: String,
-        remote_addr: U,
+        remote_addr: S,
         gen_payload: GF,
         view_distance: i64,
-    ) -> Result<Arc<Client<P>>, Error> {
-        let conn = Connection::new::<U>(&remote_addr, Box::new(|_m| {}), None, UdpMgr::new())?;
-        conn.send(ClientMessage::Connect {
-            mode,
+    ) -> Result<Manager<Client<P>>, Error> {
+        // Attempt to connect to the server
+        let postoffice = ClientPostOffice::to_server(remote_addr)?;
+
+        // Initiate a connection handshake
+        let pb = postoffice.create_postbox(SessionKind::Connect);
+        pb.send(ClientMsg::Connect {
             alias: alias.clone(),
-            version: get_version(),
-        });
-        Connection::start(&conn);
-
-        let client = Arc::new(Client {
-            jobs: Jobs::new(),
-            run_job: Mutex::new(None),
-            run_job2: Mutex::new(None),
-
-            status: RwLock::new(ClientStatus::Connecting),
-            conn,
-
-            time: RwLock::new(0.0),
-            player: RwLock::new(Player::new(alias)),
-            entities: RwLock::new(HashMap::new()),
-            phys_lock: Mutex::new(()),
-
-            chunk_mgr: VolMgr::new(vec3!(CHUNK_SIZE), VolGen::new(world::gen_chunk, gen_payload)),
-
-            callbacks: RwLock::new(Callbacks::new()),
-
-            view_distance: view_distance.max(1).min(10),
+            mode,
         });
 
-        *client.conn.callbackobj() = Some(client.clone());
+        // Was the handshake successful?
+        if let ServerMsg::Connected { player_uid } = pb.recv_timeout(CONNECT_TIMEOUT)? {
+            let client = Manager::init(Client {
+                status: RwLock::new(ClientStatus::Connected),
+                postoffice,
 
-        let client_ref = client.clone();
-        client.jobs.set_root(client_ref);
+                time: RwLock::new(0.0),
+                player: RwLock::new(Player::new(alias)),
+                entities: RwLock::new(HashMap::new()),
+                phys_lock: Mutex::new(()),
 
-        Ok(client)
-    }
+                chunk_mgr: VolMgr::new(Vec3::from_slice(&CHUNK_SIZE), VolGen::new(world::gen_chunk, gen_payload)),
 
-    fn set_status(&self, status: ClientStatus) { *self.status.write() = status; }
+                callbacks: RwLock::new(Callbacks::new()),
 
-    pub fn start(&self) {
-        let mut lock = self.run_job.lock();
-        if lock.is_none() {
-            *lock = Some(self.jobs.do_loop(|c| {
-                thread::sleep(time::Duration::from_millis(40));
-                c.tick(40.0 / 1000.0)
-            }));
-        }
-        let mut lock = self.run_job2.lock();
-        if lock.is_none() {
-            *lock = Some(self.jobs.do_loop(|c| {
-                thread::sleep(time::Duration::from_millis(10000));
-                c.tick2(10.0)
-            }));
-        }
-    }
+                view_distance: view_distance.max(1).min(10),
+            });
 
-    pub fn shutdown(&self) {
-        self.conn.send(ClientMessage::Disconnect);
-        self.set_status(ClientStatus::Disconnected);
-        if let Some(jh) = self.run_job.lock().take() {
-            jh.await();
-        }
-        if let Some(jh) = self.run_job2.lock().take() {
-            jh.await();
+            client.player.write().entity_uid = player_uid;
+
+            Ok(client)
+        } else {
+            Err(Error::InvalidResponse)
         }
     }
 
-    pub fn send_chat_msg(&self, msg: String) { self.conn.send(ClientMessage::ChatMsg { msg }) }
+    pub fn send_chat_msg(&self, text: String) { self.postoffice.send_one(ClientMsg::ChatMsg { text }); }
 
-    pub fn send_cmd(&self, cmd: String) { self.conn.send(ClientMessage::SendCmd { cmd }) }
+    pub fn send_cmd(&self, args: Vec<String>) { self.postoffice.send_one(ClientMsg::Cmd { args }); }
 
-    pub fn view_distance(&self) -> f32 { (vec3!(CHUNK_SIZE).map(|e| e as f32) * (self.view_distance as f32)).length() }
+    pub fn view_distance(&self) -> f32 { (Vec3::from_slice(&CHUNK_SIZE).map(|e| e as f32) * (self.view_distance as f32)).magnitude() }
 
     pub fn chunk_mgr(&self) -> &VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk> {
         &self.chunk_mgr
@@ -208,5 +174,43 @@ impl<P: Payloads> Client<P> {
 
     pub fn player_entity(&self) -> Option<Arc<RwLock<Entity<<P as Payloads>::Entity>>>> {
         self.player().entity_uid.and_then(|uid| self.entity(uid))
+    }
+}
+
+impl<P: Payloads> Managed for Client<P> {
+    fn init_workers(&self, manager: &mut Manager<Self>) {
+        // Incoming messages worker
+        Manager::add_worker(manager, |client, running, mut mgr| {
+            while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
+                client.handle_incoming(&mut mgr);
+            }
+
+            // Send a disconnect message to the server
+            client
+                .postoffice
+                .create_postbox(SessionKind::Disconnect)
+                .send(ClientMsg::Disconnect {
+                    reason: "Logging out".into(),
+                });
+        });
+
+        // Tick worker
+        Manager::add_worker(manager, |client, running, mut mgr| {
+            while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
+                client.tick(40.0 / 1000.0, &mut mgr);
+            }
+        });
+
+        // Tick2 worker
+        Manager::add_worker(manager, |client, running, mut mgr| {
+            while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
+                client.tick2(10000.0 / 1000.0, &mut mgr);
+            }
+        });
+    }
+
+    fn on_drop(&self, _: &mut Manager<Self>) {
+        *self.status.write() = ClientStatus::Disconnected;
+        self.postoffice.stop();
     }
 }

@@ -1,8 +1,11 @@
-use coord::prelude::*;
+// Standard
 use std::{
     cmp::{Ord, Ordering},
     f32::{consts::SQRT_2, INFINITY},
 };
+
+// Library
+use vek::*;
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Cuboid {
@@ -40,6 +43,7 @@ pub trait Collider<'a> {
 pub const PLANCK_LENGTH: f32 = 0.001; // smallest unit of meassurement in collision, no guarantees behind this point
 
 impl ResolutionCol {
+    #[allow(dead_code)]
     pub fn is_touch(&self) -> bool {
         self.correction.x < PLANCK_LENGTH && self.correction.y < PLANCK_LENGTH && self.correction.z < PLANCK_LENGTH
     }
@@ -93,6 +97,7 @@ impl Primitive {
         }
     }
 
+    #[allow(dead_code)]
     pub fn center_of_mass(&self) -> Vec3<f32> {
         match self {
             Primitive::Cuboid { cuboid: a } => a.middle,
@@ -101,6 +106,7 @@ impl Primitive {
 
     // when using the collision center, the outer_approximation_sphere can be minimal
     // implement it fast!
+    #[allow(dead_code)]
     pub fn col_center(&self) -> Vec3<f32> {
         match self {
             Primitive::Cuboid { cuboid: a } => a.middle,
@@ -110,6 +116,7 @@ impl Primitive {
     // returns the 3 radii of a spheroid where the object fits exactly in
     // implement it fast!
     //TODO: evaluate if this is a so fast method for checking somewhere actually
+    #[allow(dead_code)]
     pub fn col_approx_rad(&self) -> Vec3<f32> {
         match self {
             Primitive::Cuboid { cuboid: a } => a.radius * SQRT_2, // SQRT(2) is correct for sphere, havent it checked for an spheroid tbh
@@ -159,12 +166,12 @@ impl Cuboid {
             //collide or touch
             let col_middle = (*a.middle() + *b.middle()) / 2.0;
             let col_radius = *a.middle() - *b.middle();
-            let col_radius = vec3!(col_radius.x.abs(), col_radius.y.abs(), col_radius.z.abs());
+            let col_radius = Vec3::new(col_radius.x.abs(), col_radius.y.abs(), col_radius.z.abs());
             let col_radius = col_radius - *a.radius() - *b.radius();
 
             let mut direction = *b.middle() - col_middle;
-            if direction == vec3!(0.0, 0.0, 0.0) {
-                direction = vec3!(0.0, 0.0, 1.0);
+            if direction == Vec3::new(0.0, 0.0, 0.0) {
+                direction = Vec3::new(0.0, 0.0, 1.0);
             }
             let force = Cuboid::vector_touch_border(col_radius, direction);
             let force = force.map(|e| if e.abs() < PLANCK_LENGTH { 0.0 } else { e }); // apply PLANCK_LENGTH to force
@@ -180,17 +187,17 @@ impl Cuboid {
         //calculate areas which collide based on dir
         // e.g. area.x is the x cordinate of the area
         let a = self;
-        let a_middle_elem = a.middle.elements();
-        let b_middle_elem = b.middle.elements();
-        let a_radius_elem = a.radius.elements();
-        let b_radius_elem = b.radius.elements();
+        let a_middle_elem = a.middle.into_array();
+        let b_middle_elem = b.middle.into_array();
+        let a_radius_elem = a.radius.into_array();
+        let b_radius_elem = b.radius.into_array();
         let mut a_area = [0.0; 3];
         let mut b_area = [0.0; 3];
-        let mut normals: [Vec3<f32>; 3] = [vec3!(0.0, 0.0, 0.0); 3];
+        let mut normals: [Vec3<f32>; 3] = [Vec3::new(0.0, 0.0, 0.0); 3];
         let mut tti_raw: [f32; 3] = [0.0; 3];
         let mut tti: [f32; 3] = [0.0; 3];
         let mut minimal_collision_tti: [f32; 3] = [0.0; 3]; //minimal tti value which equals a collision is already happening
-        let dire = dir.elements();
+        let dire = dir.into_array();
         //debug("a_middle_elem {:?}; b_middle_elem {:?}", a_middle_elem, b_middle_elem);
         //needs to be calculated for every area of the cuboid, happily it's not rotated, so its just the 3 axis
         for i in 0..3 {
@@ -222,34 +229,34 @@ impl Cuboid {
                     }
                 }
                 if a_middle_elem[i] < b_middle_elem[i] {
-                    normals[i] = vec3!(
+                    normals[i] = Vec3::new(
                         if i == 0 { 1.0 } else { 0.0 },
                         if i == 1 { 1.0 } else { 0.0 },
-                        if i == 2 { 1.0 } else { 0.0 }
+                        if i == 2 { 1.0 } else { 0.0 },
                     );
                 } else if a_middle_elem[i] > b_middle_elem[i] {
-                    normals[i] = vec3!(
+                    normals[i] = Vec3::new(
                         if i == 0 { -1.0 } else { 0.0 },
                         if i == 1 { -1.0 } else { 0.0 },
-                        if i == 2 { -1.0 } else { 0.0 }
+                        if i == 2 { -1.0 } else { 0.0 },
                     );
                 }
             } else {
                 if dire[i] < 0.0 {
                     a_area[i] = a_middle_elem[i] + a_radius_elem[i];
                     b_area[i] = b_middle_elem[i] - b_radius_elem[i];
-                    normals[i] = vec3!(
+                    normals[i] = Vec3::new(
                         if i == 0 { 1.0 } else { 0.0 },
                         if i == 1 { 1.0 } else { 0.0 },
-                        if i == 2 { 1.0 } else { 0.0 }
+                        if i == 2 { 1.0 } else { 0.0 },
                     );
                 } else if dire[i] > 0.0 {
                     a_area[i] = a_middle_elem[i] - a_radius_elem[i];
                     b_area[i] = b_middle_elem[i] + b_radius_elem[i];
-                    normals[i] = vec3!(
+                    normals[i] = Vec3::new(
                         if i == 0 { -1.0 } else { 0.0 },
                         if i == 1 { -1.0 } else { 0.0 },
-                        if i == 2 { -1.0 } else { 0.0 }
+                        if i == 2 { -1.0 } else { 0.0 },
                     );
                 } else {
                     panic!("we checked above that dire[i] must not be 0.0");

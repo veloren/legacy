@@ -1,11 +1,12 @@
 // Library
-use coord::prelude::*;
+use vek::*;
 
 // Project
 use region::{
     chunk::{Chunk, ChunkContainer, ChunkConverter, ChunkFile},
     Container, Key, PersState, VolContainer, VolConverter,
 };
+use common::manager::Manager;
 
 // Local
 use Client;
@@ -19,32 +20,38 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<i64>, con: &Containe
     let filepath = "./saves/".to_owned() + &(filename);
     let path = Path::new(&filepath);
     if path.exists() {
-        let mut vol = ChunkFile::new(vec3!(CHUNK_SIZE));
+        let mut vol = ChunkFile::new(Vec3::from_slice(&CHUNK_SIZE));
         *vol.file_mut() = filepath;
         con.vols_mut().insert(vol, PersState::File);
     } else {
         let mut vol = Chunk::test(
-            vec3!(pos.x * CHUNK_SIZE[0], pos.y * CHUNK_SIZE[1], pos.z * CHUNK_SIZE[2]),
-            vec3!(CHUNK_SIZE),
+            Vec3::new(pos.x * CHUNK_SIZE[0], pos.y * CHUNK_SIZE[1], pos.z * CHUNK_SIZE[2]),
+            Vec3::from_slice(&CHUNK_SIZE),
         );
         con.vols_mut().insert(vol, PersState::Raw);
     }
 }
 
 impl<P: Payloads> Client<P> {
-    pub(crate) fn load_unload_chunks(&self) {
+    pub(crate) fn load_unload_chunks(&self, mgr: &mut Manager<Self>) {
         // Only update chunks if the player exists
         if let Some(player_entity) = self.player_entity() {
             // Find the chunk the player is in
-            let player_chunk = player_entity.read().pos().map(|e| e as i64).div_euc(vec3!(CHUNK_SIZE));
+            let player_chunk = player_entity.read().pos().map(|e| e as i64);
+
+            let player_chunk = Vec3::new(
+                player_chunk.x.div_euc(CHUNK_SIZE[0]),
+                player_chunk.y.div_euc(CHUNK_SIZE[1]),
+                player_chunk.z.div_euc(CHUNK_SIZE[2]),
+            );
 
             // Generate chunks around the player
             let mut chunks = vec![];
             for i in player_chunk.x - self.view_distance..player_chunk.x + self.view_distance + 1 {
                 for j in player_chunk.y - self.view_distance..player_chunk.y + self.view_distance + 1 {
                     for k in player_chunk.z - self.view_distance..player_chunk.z + self.view_distance + 1 {
-                        let pos = vec3!(i, j, k);
-                        let diff = (player_chunk - pos).snake_length();
+                        let pos = Vec3::new(i, j, k);
+                        let diff = (player_chunk - pos).map(|e| e.abs()).sum();
                         chunks.push((diff, pos));
                     }
                 }
@@ -73,7 +80,7 @@ impl<P: Payloads> Client<P> {
             {
                 let chunks = self.chunk_mgr().persistence().hot();
                 for (pos, container) in chunks.iter() {
-                    let diff = (player_chunk - *pos).snake_length();
+                    let diff = (player_chunk - *pos).map(|e| e.abs()).sum();
                     if diff > unload_chunk_diff {
                         let mut lock = container.vols_mut();
                         ChunkConverter::convert(pos, &mut lock, PersState::File);

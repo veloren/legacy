@@ -1,29 +1,65 @@
-// Project
-use common::Uid;
+// Standard
+use std::sync::Arc;
 
+// Library
+use specs::{Builder, Component, Entity, EntityBuilder, VecStorage};
+use vek::*;
+
+// Project
+use common::{
+    manager::Manager,
+    msg::{PlayMode, ServerPostOffice},
+};
+use region::ecs::{
+    phys::{CtrlDir, Pos, Vel},
+    CreateUtil,
+};
+
+// Local
+use net::Client;
+use Payloads;
+use Server;
+
+// Player
+
+#[derive(Debug)]
 pub struct Player {
-    session_id: u32,
-    uid: Uid,
-    entity_uid: Option<Uid>,
-    alias: String,
+    pub alias: String,
+    pub mode: PlayMode,
 }
 
-impl Player {
-    pub fn new(session_id: u32, uid: Uid, entity_uid: Option<Uid>, alias: &str) -> Player {
-        Player {
-            session_id,
-            uid,
-            entity_uid,
-            alias: alias.to_string(),
-        }
+impl Component for Player {
+    type Storage = VecStorage<Self>;
+}
+
+// Server
+
+impl<P: Payloads> Server<P> {
+    pub(crate) fn create_player(
+        &mut self,
+        alias: String,
+        mode: PlayMode,
+        po: Manager<ServerPostOffice>,
+    ) -> EntityBuilder {
+        match mode {
+            PlayMode::Headless => self.world.create_entity(),
+            PlayMode::Character => self.world.create_character(alias.clone()),
+        }.with(Player { alias, mode })
+        .with(Client {
+            postoffice: Arc::new(po),
+        })
     }
 
-    pub fn alias<'a>(&'a self) -> &str { &self.alias }
-
-    #[allow(dead_code)]
-    pub fn get_uid(&self) -> Uid { self.uid }
-    #[allow(dead_code)]
-    pub fn get_session_id(&self) -> u32 { self.session_id }
-    #[allow(dead_code)]
-    pub fn get_entity_uid(&self) -> Option<Uid> { self.entity_uid }
+    pub(crate) fn update_player_entity(&mut self, player: Entity, pos: Vec3<f32>, vel: Vec3<f32>, ctrl_dir: Vec2<f32>) {
+        self.world.write_storage::<Pos>().get_mut(player).map(|p| {
+            if Vec2::<f32>::from(p.0).distance(pos.into()) < 3.0 {
+                p.0 = pos
+            }
+        }); // Basic sanity check
+        self.world.write_storage::<Vel>().get_mut(player).map(|v| v.0 = vel);
+        self.world
+            .write_storage::<CtrlDir>()
+            .get_mut(player)
+            .map(|c| c.0 = ctrl_dir);
+    }
 }

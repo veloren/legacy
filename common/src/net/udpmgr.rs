@@ -11,17 +11,20 @@ use parking_lot::RwLock;
 // Parent
 use super::udp::Udp;
 
+#[derive(Debug)]
 struct UdpInfo {
     socket_info: Arc<SocketInfo>,
     remote: SocketAddr,
     udp: Arc<Udp>,
 }
 
+#[derive(Debug)]
 struct SocketInfo {
     socket: UdpSocket,
     recv_thread: JoinHandle<()>,
 }
 
+#[derive(Debug)]
 pub struct UdpMgr {
     subscriber: RwLock<Vec<UdpInfo>>,
     sockets: RwLock<Vec<Arc<SocketInfo>>>,
@@ -64,7 +67,7 @@ impl UdpMgr {
                 socket: socketclone,
                 recv_thread,
             });
-            let sockets = mgr.sockets.write().push(si.clone());
+            mgr.sockets.write().push(si.clone());
             socket_info = Some(si.clone());
             debug!("listen on new udp socket, started a new thread {}", listen);
         }

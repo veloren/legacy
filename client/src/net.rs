@@ -84,6 +84,9 @@ impl<P: Payloads> Client<P> {
                         },
                     }
                 },
+                Incoming::Msg(ServerMsg::EntityDeleted { uid }) => {
+                    self.remove_entity(uid);
+                },
                 Incoming::Msg(_) => {},
 
                 // End

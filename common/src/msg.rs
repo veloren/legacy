@@ -43,6 +43,9 @@ pub enum ServerMsg {
         vel: Vec3<f32>,
         ctrl_dir: Vec2<f32>,
     },
+    EntityDeleted {
+        uid: u64,
+    },
 }
 
 impl Message for ServerMsg {}

@@ -53,13 +53,21 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
         Some("tp") => {
             // TODO: Simplify this? Put it somewhere else?
             // Find the name the player typed (i.e: '/tp zesterer')
-            if let Some(tgt_player) = cmd.nth(0) {
+
+            'tp: {
+                let tgt_alias = if let Some(s) = cmd.nth(0) {
+                    s
+                } else {
+                    srv.do_for(|srv| srv.send_chat_msg(player, "Usage: /tp <alias>"));
+                    break 'tp;
+                };
+
                 let tgt_pos = srv.do_for(|srv| {
                     // Find the position of that player
                     let pos_storage = srv.world.read_storage::<Pos>();
                     let player_storage = srv.world.read_storage::<Player>();
                     (&pos_storage, &player_storage).join().find_map(|(pos, player)| {
-                        if player.alias == tgt_player {
+                        if player.alias == tgt_alias {
                             Some(pos.0)
                         } else {
                             None
@@ -67,20 +75,21 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
                     })
                 });
 
-                // If a position was found, teleport to it
-                if let Some(pos) = tgt_pos {
-                    if let Some(()) =
-                        srv.do_for_mut(|srv| srv.world.write_storage::<Pos>().get_mut(player).map(|p| p.0 = pos))
-                    {
-                        srv.do_for(|srv| srv.send_chat_msg(player, &format!("Teleported to {}!", tgt_player)));
-                    } else {
-                        srv.do_for(|srv| srv.send_chat_msg(player, "You don't have a position!"));
-                    }
+                let tgt_pos = if let Some(p) = tgt_pos {
+                    p
                 } else {
-                    srv.do_for(|srv| srv.send_chat_msg(player, &format!("Could not locate {}!", tgt_player)));
-                }
-            } else {
-                srv.do_for(|srv| srv.send_chat_msg(player, "Usage: /tp <alias>"));
+                    srv.do_for(|srv| srv.send_chat_msg(player, &format!("Could not locate {}!", tgt_alias)));
+                    break 'tp;
+                };
+
+                srv.do_for_mut(|srv| {
+                    if let Some(pos) = srv.world.write_storage::<Pos>().get_mut(player) {
+                        pos.0 = tgt_pos;
+                        srv.send_chat_msg(player, &format!("Teleported to {}!", tgt_alias));
+                    } else {
+                        srv.send_chat_msg(player, "You don't have a position!");
+                    }
+                });
             }
         },
         _ => srv.do_for(|srv| srv.send_chat_msg(player, "Unrecognised command!")),

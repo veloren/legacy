@@ -238,7 +238,7 @@ coverage:
       else
         RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin;
       fi
-    - cargo tarpaulin --skip-clean --exclude headless
+    - cargo tarpaulin --skip-clean --all --exclude headless || echo "There is a problem in tarpaulin which sometimes fails"
 
 clippy:
   stage: post-run

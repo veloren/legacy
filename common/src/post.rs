@@ -4,7 +4,7 @@ use std::{
     io,
     net::{TcpStream, ToSocketAddrs},
     sync::{
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicU64, Ordering},
         mpsc::{self, RecvError, RecvTimeoutError, SendError},
         Arc,
     },

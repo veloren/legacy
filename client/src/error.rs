@@ -1,8 +1,5 @@
 // Standard
-use std::{
-    fmt::{self, Display},
-    sync::mpsc,
-};
+use std::sync::mpsc;
 
 // Project
 use common::net;
@@ -30,5 +27,5 @@ impl From<mpsc::RecvTimeoutError> for Error {
 }
 
 impl<T> From<mpsc::SendError<T>> for Error {
-    fn from(e: mpsc::SendError<T>) -> Error { Error::MpscSendErr }
+    fn from(_e: mpsc::SendError<T>) -> Error { Error::MpscSendErr }
 }

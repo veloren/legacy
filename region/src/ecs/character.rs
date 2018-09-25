@@ -1,6 +1,5 @@
 // Library
 use specs::{Component, VecStorage};
-use vek::*;
 
 // Project
 use common::msg::CompStore;

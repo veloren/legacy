@@ -31,6 +31,7 @@ extern crate enum_map;
 extern crate fnv;
 extern crate indexmap;
 extern crate parking_lot;
+extern crate tempfile;
 
 // Time
 extern crate chrono;

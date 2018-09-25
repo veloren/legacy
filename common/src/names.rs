@@ -27,4 +27,7 @@ const NAMES: [&'static str; 24] = [
     "Paramita",
 ];
 
-pub fn generate() -> &'static str { thread_rng().choose(&NAMES).unwrap() }
+pub fn generate() -> &'static str {
+    // unwrap is safe, choose would return None only if NAMES was empty.
+    thread_rng().choose(&NAMES).unwrap()
+}

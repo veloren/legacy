@@ -2,6 +2,7 @@ use euler::*;
 
 use gen::Generator;
 
+#[allow(dead_code)]
 const CHUNKS_PER_TRACT: i32 = 16;
 
 #[derive(Copy, Clone)]

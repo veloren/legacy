@@ -94,8 +94,8 @@ impl<P: Payloads> Client<P> {
         *self.status.write() = ClientStatus::Disconnected;
     }
 
+    /// Update the server with information about the player
     pub(crate) fn update_server(&self) {
-        // Update the server with information about the player
         if let Some(player_entity) = self.player_entity() {
             let player_entity = player_entity.read();
             self.postoffice.send_one(ClientMsg::PlayerEntityUpdate {

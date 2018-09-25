@@ -1,5 +1,8 @@
 // Standard
-use std::sync::mpsc;
+use std::{
+    fmt::{self, Display},
+    sync::mpsc,
+};
 
 // Project
 use common::net;

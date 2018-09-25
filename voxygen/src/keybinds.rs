@@ -1,12 +1,42 @@
 use toml;
 
 use std::{
+    fmt,
     fs::File,
     io::{self, Read, Write},
     path::Path,
 };
 
 const KEYS_PATH: &str = "keybinds.toml";
+
+#[derive(Debug)]
+enum Error {
+    Io(io::Error),
+    TomlDe(toml::de::Error),
+    TomlSer(toml::ser::Error),
+}
+
+impl From<io::Error> for Error {
+    fn from(err: io::Error) -> Error { Error::Io(err) }
+}
+
+impl From<toml::de::Error> for Error {
+    fn from(err: toml::de::Error) -> Error { Error::TomlDe(err) }
+}
+
+impl From<toml::ser::Error> for Error {
+    fn from(err: toml::ser::Error) -> Error { Error::TomlSer(err) }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Io(e) => write!(f, "{}", e),
+            Error::TomlDe(e) => write!(f, "{}", e),
+            Error::TomlSer(e) => write!(f, "{}", e),
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct Keybinds {
@@ -50,7 +80,9 @@ impl Keybinds {
     pub fn new() -> Keybinds {
         let path = Path::new(KEYS_PATH);
         let keys = Keybinds::load_from(path).unwrap_or_else(|_| Keybinds::default());
-        Keybinds::write_to(&keys);
+        if let Err(e) = keys.save_to_file() {
+            warn!("failed to save keybinds.toml: {} ", e);
+        }
         keys
     }
 
@@ -106,13 +138,12 @@ impl Keybinds {
         }
     }
 
-    fn write_to(keys: &Keybinds) -> Result<bool, Error> {
+    fn save_to_file(&self) -> Result<(), Error> {
         // Writes to file. Will create a new file if it exists, or overwrite any existing one.
-        // Returns Result<bool, Error> so that I can use the ? operator :)
         let mut file = File::create(KEYS_PATH)?;
-        let toml = toml::to_string(&keys)?;
+        let toml = toml::to_string(self)?;
         file.write_all(&toml.as_bytes())?;
-        Ok(true)
+        Ok(())
     }
 
     fn default() -> Keybinds {
@@ -144,23 +175,4 @@ impl Keybinds {
             mount: Mount { dismount: Some(20) },
         }
     }
-}
-
-#[derive(Debug)]
-enum Error {
-    Io(io::Error),
-    TomlDe(toml::de::Error),
-    TomlSer(toml::ser::Error),
-}
-
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Error { Error::Io(err) }
-}
-
-impl From<toml::de::Error> for Error {
-    fn from(err: toml::de::Error) -> Error { Error::TomlDe(err) }
-}
-
-impl From<toml::ser::Error> for Error {
-    fn from(err: toml::ser::Error) -> Error { Error::TomlSer(err) }
 }

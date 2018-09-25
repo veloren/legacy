@@ -16,7 +16,12 @@ use Entity;
 use VolMgr;
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
+const GROUND_GRAVITY: f32 = -9.81;
+const BLOCK_SIZE_PLUS_SMALL: f32 = 1.0 + PLANCK_LENGTH;
+const BLOCK_HOP_SPEED: f32 = 15.0;
+const BLOCK_HOP_MAX: f32 = 0.34;
 
+#[allow(non_snake_case)]
 pub fn tick<
     'a,
     CP: Send + Sync + 'static,
@@ -28,9 +33,7 @@ pub fn tick<
     chunk_size: i64,
     dt: f32,
 ) {
-    //consts
-    const GROUND_GRAVITY: f32 = -9.81;
-    // TODO: coord const support
+    // TODO: use const support once we use Vek
     let ENTITY_MIDDLE_OFFSET: Vec3<f32> = Vec3::new(0.0, 0.0, 0.9);
     let ENTITY_RADIUS: Vec3<f32> = Vec3::new(0.45, 0.45, 0.9);
     let SMALLER_THAN_BLOCK_GOING_DOWN: Vec3<f32> = Vec3::new(0.0, 0.0, -0.1);
@@ -38,9 +41,6 @@ pub fn tick<
     let ENTITY_ACC: Vec3<f32> = Vec3::new(32.0 / LENGTH_OF_BLOCK, 32.0 / LENGTH_OF_BLOCK, 200.0 / LENGTH_OF_BLOCK);
     let FRICTION_ON_GROUND: Vec3<f32> = Vec3::new(0.0015, 0.0015, 0.0015);
     let FRICTION_IN_AIR: Vec3<f32> = Vec3::new(0.2, 0.2, 0.78);
-    const BLOCK_SIZE_PLUS_SMALL: f32 = 1.0 + PLANCK_LENGTH;
-    const BLOCK_HOP_SPEED: f32 = 15.0;
-    const BLOCK_HOP_MAX: f32 = 0.34;
 
     for (.., entity) in entities {
         let mut entity = entity.write();

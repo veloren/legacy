@@ -8,6 +8,7 @@ use std::{
 
 // Library
 use specs::{saveload::Marker, Builder, Component, Entity, Join, VecStorage};
+use vek::*;
 
 // Project
 use common::{
@@ -16,8 +17,9 @@ use common::{
     post::Incoming,
 };
 use region::ecs::{
-    net::SyncMarker,
-    phys::{CtrlDir, Pos, Vel},
+    net::UidMarker,
+    phys::{Dir, Pos, Vel},
+    NetComp,
 };
 
 // Local
@@ -73,41 +75,48 @@ pub(crate) fn auth_client<P: Payloads>(
 ) -> Result<Entity, Error> {
     // Perform a connection handshake. If everything works out, create the player
     // First, wait for the correct `Connect` session
-    if let Ok(Incoming::Session(session)) = po.await_incoming() {
-        if let SessionKind::Connect = session.kind {
-            // Wait for the appropriate `Connect` message
-            if let Ok(ClientMsg::Connect { alias, mode }) = session.postbox.recv_timeout(CONNECT_TIMEOUT) {
-                // Create the player's entity and return it
-                let (player, player_uid) = srv.do_for_mut(|srv| {
-                    // Notify all other players
-                    srv.broadcast_chat_msg(&format!("[{} has joined the server]", alias));
-
-                    // Create a new player
-                    let player = srv.create_player(alias.clone(), mode, po).build();
-
-                    // Run the connecting player past the payload interface
-                    srv.payload.on_player_connect(srv, player);
-
-                    // Find the uid for the player's character entity (if the player has a character)
-                    let player_uid = srv.world.read_storage::<SyncMarker>().get(player).map(|sm| sm.id());
-                    (player, player_uid)
-                });
-
-                // Inform the client that they've successfully connected
-                if let Err(_) = session.postbox.send(ServerMsg::Connected { player_uid }) {
-                    Err(Error::ConnectionDropped)
-                } else {
-                    Ok(player)
-                }
-            } else {
-                Err(Error::NoConnectMsg)
-            }
-        } else {
-            Err(Error::InvalidConnectSession)
-        }
+    let session = if let Ok(Incoming::Session(s)) = po.await_incoming() {
+        s
     } else {
-        Err(Error::NoConnectSession)
+        return Err(Error::NoConnectSession);
+    };
+
+    // Verify that the first session is a SessionKind::Connect
+    if let SessionKind::Connect = session.kind {
+    } else {
+        return Err(Error::InvalidConnectSession);
     }
+
+    // Wait for a ClientMsg::Connect, thereby committing the client to connecting
+    let (alias, mode) = if let Ok(ClientMsg::Connect { alias, mode }) = session.postbox.recv_timeout(CONNECT_TIMEOUT) {
+        (alias, mode)
+    } else {
+        return Err(Error::NoConnectMsg);
+    };
+
+    // Create the player's entity and return it
+    let (player, player_uid) = srv.do_for_mut(|srv| {
+        // Notify all other players
+        srv.broadcast_chat_msg(&format!("[{} has joined the server]", alias));
+
+        // Create a new player
+        let player = srv.create_player(alias.clone(), mode, po).build();
+
+        // Force an update to the player position to inform them where they are
+        srv.force_comp::<Pos>(player);
+
+        // Run the connecting player past the payload interface
+        srv.payload.on_player_connect(srv, player);
+
+        // Find the uid for the player's character entity (if the player has a character)
+        let player_uid = srv.world.read_storage::<UidMarker>().get(player).map(|sm| sm.id());
+        (player, player_uid)
+    });
+
+    // Inform the client that they've successfully connected
+    let _ = session.postbox.send(ServerMsg::Connected { player_uid });
+
+    Ok(player)
 }
 
 pub(crate) fn handle_player_post<P: Payloads>(
@@ -172,27 +181,116 @@ pub(crate) fn handle_oneshot<P: Payloads>(
 ) {
     match msg {
         ClientMsg::ChatMsg { text } => process_chat_msg(srv, text, player, mgr),
-        ClientMsg::PlayerEntityUpdate { pos, vel, ctrl_dir } => {
+        ClientMsg::PlayerEntityUpdate { pos, vel, dir } => {
             // Update the player's entity
-            srv.do_for_mut(|srv| srv.update_player_entity(player, pos, vel, ctrl_dir));
+            srv.do_for_mut(|srv| {
+                srv.update_comp(player, Pos(pos));
+                srv.update_comp(player, Vel(vel));
+                srv.update_comp(player, Dir(dir));
+            });
         },
         _ => {},
     }
 }
 
 impl<P: Payloads> Server<P> {
+    pub(crate) fn update_comp<T: NetComp + Clone>(&mut self, entity: Entity, comp: T) -> bool {
+        self.world
+            .write_storage::<T>()
+            .get_mut(entity)
+            .map(|c| *c = comp)
+            .is_some()
+    }
+
+    pub(crate) fn do_for_comp_mut<T: NetComp + Clone, R, F: FnOnce(&mut T) -> R>(
+        &mut self,
+        entity: Entity,
+        f: F,
+    ) -> Option<R> {
+        self.world.write_storage::<T>().get_mut(entity).map(|c| f(c))
+    }
+
+    // Update clients of a component's value, excepting those clients for whom that component is attributed
+    // (e.g: a client won't get it's own player position sent back to it)
+    pub(crate) fn notify_comp<T: NetComp>(&mut self, entity: Entity) {
+        if let Some(Some(store)) = self.world.read_storage::<T>().get(entity).map(|c| c.to_store()) {
+            if let Some(entity_uid) = self.world.read_storage::<UidMarker>().get(entity) {
+                for (entity, client_uid, client) in (
+                    &self.world.entities(),
+                    &self.world.read_storage::<UidMarker>(),
+                    &self.world.read_storage::<Client>(),
+                )
+                    .join()
+                {
+                    let entity_uid = entity_uid.id();
+                    let client_uid = client_uid.id();
+
+                    // Don't notify a client of information concerning itself
+                    if client_uid != entity_uid {
+                        client.postoffice.send_one(ServerMsg::CompUpdate {
+                            uid: entity_uid,
+                            store: store.clone(),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // Update *all* clients of a component's value, overriding any other values a client may have had
+    pub(crate) fn force_comp<T: NetComp + Clone>(&mut self, entity: Entity) {
+        if let Some(Some(store)) = self.world.read_storage::<T>().get(entity).map(|c| c.to_store()) {
+            if let Some(entity_uid) = self.world.read_storage::<UidMarker>().get(entity) {
+                let entity_uid = entity_uid.id();
+
+                self.broadcast_net_msg(ServerMsg::CompUpdate {
+                    uid: entity_uid,
+                    store: store.clone(),
+                });
+            }
+        }
+    }
+
     pub(crate) fn sync_players(&self) {
-        let pos_storage = self.world.read_storage::<Pos>();
-        let vel_storage = self.world.read_storage::<Vel>();
-        let ctrl_dir_storage = self.world.read_storage::<CtrlDir>();
-        let sync_storage = self.world.read_storage::<SyncMarker>();
-        for (sync, pos, vel, ctrl_dir) in (&sync_storage, &pos_storage, &vel_storage, &ctrl_dir_storage).join() {
-            self.broadcast_net_msg(ServerMsg::EntityUpdate {
-                uid: sync.id(),
-                pos: pos.0,
-                vel: vel.0,
-                ctrl_dir: ctrl_dir.0,
-            });
+        for (uid, pos, vel, dir) in (
+            &self.world.read_storage::<UidMarker>(),
+            &self.world.read_storage::<Pos>(),
+            &self.world.read_storage::<Vel>(),
+            &self.world.read_storage::<Dir>(),
+        )
+            .join()
+        {
+            // Find the UID of the entity that is having its details sent to clients
+            let entity_uid = uid.id();
+
+            for (entity, uid, client) in (
+                &self.world.entities(),
+                &self.world.read_storage::<UidMarker>(),
+                &self.world.read_storage::<Client>(),
+            )
+                .join()
+            {
+                let client_uid = uid.id();
+                // Don't send a client information they already know about themselves
+                if client_uid != entity_uid {
+                    // These unwraps are verifably SAFE and will be elided at compile-time.
+                    // *Every one* of these types implements NetComp and produces a Some(CompStore)
+                    // We simply use .unwrap() here to avoid a heap of if-lets
+                    // TODO: Add tests to verify this
+                    let _ = client.postoffice.send_one(ServerMsg::CompUpdate {
+                        uid: entity_uid,
+                        store: pos.to_store().unwrap(),
+                    });
+                    let _ = client.postoffice.send_one(ServerMsg::CompUpdate {
+                        uid: entity_uid,
+                        store: vel.to_store().unwrap(),
+                    });
+                    let _ = client.postoffice.send_one(ServerMsg::CompUpdate {
+                        uid: entity_uid,
+                        store: dir.to_store().unwrap(),
+                    });
+                }
+            }
         }
     }
 }

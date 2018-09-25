@@ -1,3 +1,6 @@
+// Standard
+use std::mem;
+
 // Library
 use specs::prelude::*;
 use vek::*;
@@ -81,8 +84,8 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
 
             // Set the position of the current player accordingly
             srv.do_for_mut(|srv| {
-                if let Some(pos_comp) = srv.world.write_storage::<Pos>().get_mut(player) {
-                    pos_comp.0 = tgt_pos;
+                if srv.update_comp(player, Pos(tgt_pos)) {
+                    srv.force_comp::<Pos>(player); // Force clients to update
                     srv.send_chat_msg(player, &format!("Teleported to {}!", tgt_alias));
                 } else {
                     srv.send_chat_msg(player, "You don't have a position!");
@@ -104,9 +107,14 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
                 break 'nick;
             };
 
-            if let Some(player_comp) = srv.world.write_storage::<Player>().get_mut(player) {
-                srv.broadcast_chat_msg(&format!("[{} changed their alias to {}]", player_comp.alias, alias));
-                player_comp.alias = alias.to_string();
+            // Give the player their new alias, hold on to the old one temporarily
+            if let Some(old_alias) = srv.do_for_comp_mut::<Player, _, _>(player, |player_comp| {
+                let mut alias = alias.to_string();
+                mem::swap(&mut player_comp.alias, &mut alias);
+                alias
+            }) {
+                srv.force_comp::<Pos>(player); // Force clients to update
+                srv.broadcast_chat_msg(&format!("[{} changed their alias to {}]", old_alias, alias));
             } else {
                 srv.send_chat_msg(player, "Could not change alias");
                 break 'nick;
@@ -133,9 +141,12 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
                 }
             }
 
-            if let Some(pos_comp) = srv.world.write_storage::<Pos>().get_mut(player) {
+            if let Some(pos) = srv.do_for_comp_mut::<Pos, _, _>(player, |pos_comp| {
                 pos_comp.0 += Vec3::from(tensor);
-                srv.send_chat_msg(player, &format!("Warped to: {}!", pos_comp.0));
+                pos_comp.0
+            }) {
+                srv.force_comp::<Pos>(player); // Force clients to update
+                srv.send_chat_msg(player, &format!("Warped to: {}!", pos));
             } else {
                 srv.send_chat_msg(player, "You don't have a position!");
                 break 'warp;

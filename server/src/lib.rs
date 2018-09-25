@@ -1,6 +1,4 @@
-#![feature(integer_atomics)]
-#![feature(duration_as_u128)]
-#![feature(label_break_value)]
+#![feature(integer_atomics, duration_as_u128, label_break_value, specialization)]
 
 // Crates
 extern crate common;

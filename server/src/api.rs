@@ -3,7 +3,7 @@ use specs::{prelude::*, saveload::Marker};
 
 // Project
 use common::msg::ServerMsg;
-use region::ecs::net::SyncMarker;
+use region::ecs::net::UidMarker;
 
 // Local
 use net::{Client, DisconnectReason};
@@ -34,7 +34,7 @@ impl<P: Payloads> Api for Server<P> {
             self.payload.on_player_disconnect(self, player, reason);
         }
 
-        if let Some(uid) = self.world.read_storage::<SyncMarker>().get(player) {
+        if let Some(uid) = self.world.read_storage::<UidMarker>().get(player) {
             self.broadcast_net_msg(ServerMsg::EntityDeleted { uid: uid.id() });
         }
 

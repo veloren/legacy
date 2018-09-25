@@ -18,11 +18,11 @@ For active development and creating issues, please look at our [GitLab Repositor
 
 ## Useful Links
 
-### [Current Status](https://gitlab.com/veloren/game/wikis/Status)
+### [Current Status](https://gitlab.com/veloren/game/wikis/v0.1)
 
 See here for a list of Veloren's features and what we're working on right now.
 
-### [Future Plans](https://gitlab.com/veloren/game/wikis/Roadmap-1.0.0)
+### [Future Plans](https://gitlab.com/veloren/game/milestones/4)
 
 See here for information about Veloren's development roadmap.
 
@@ -37,13 +37,13 @@ See here for information about Veloren's development roadmap.
 ## Download it
 
 ### Stable
- - [Lastest Windows Stable](https://gitlab.com/veloren/game/-/jobs/artifacts/v0.1.0/download?job=stable-windows-optimized)
- - [Lastest Linux Stable](https://gitlab.com/veloren/game/-/jobs/artifacts/v0.1.0/download?job=stable-linux-optimized)
+ - [Latest Windows Stable](https://gitlab.com/veloren/game/-/jobs/artifacts/v0.1.0/download?job=stable-windows-optimized)
+ - [Latest Linux Stable](https://gitlab.com/veloren/game/-/jobs/artifacts/v0.1.0/download?job=stable-linux-optimized)
  - There is currently no MacOS Stable
 
 ### Nightly
- - [Lastest Windows Nightly](https://gitlab.com/veloren/game/-/jobs/artifacts/master/download?job=nightly-windows-debug)
- - [Lastest Linux Nightly](https://gitlab.com/veloren/game/-/jobs/artifacts/master/download?job=nightly-linux-debug)
+ - [Latest Windows Nightly](https://gitlab.com/veloren/game/-/jobs/artifacts/master/download?job=nightly-windows-debug)
+ - [Latest Linux Nightly](https://gitlab.com/veloren/game/-/jobs/artifacts/master/download?job=nightly-linux-debug)
  - There is currently no MacOS Nightly
 
 [List of all releases](https://gitlab.com/veloren/game/tags)

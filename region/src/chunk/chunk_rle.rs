@@ -21,7 +21,7 @@ impl BlockRle {
     pub fn new(block: Block, num_minus_one: u8) -> Self { BlockRle { block, num_minus_one } }
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ChunkRle {
     //per x and y coord store the z coord rle
     size: Vec3<i64>,

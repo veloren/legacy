@@ -1,3 +1,6 @@
+// Standard
+use std::path::Path;
+
 // Library
 use vek::*;
 
@@ -12,8 +15,6 @@ use region::{
 use Client;
 use Payloads;
 use CHUNK_SIZE;
-
-use std::path::Path;
 
 pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<i64>, con: &Container<ChunkContainer, P>) {
     let filename = pos.print() + ".dat";
@@ -46,10 +47,12 @@ impl<P: Payloads> Client<P> {
             );
 
             // Collect chunks around the player
+            const GENERATION_FACTOR: f32 = 1.4;
             let mut chunks = vec![];
-            for i in player_chunk.x - self.view_distance..player_chunk.x + self.view_distance + 1 {
-                for j in player_chunk.y - self.view_distance..player_chunk.y + self.view_distance + 1 {
-                    for k in player_chunk.z - self.view_distance..player_chunk.z + self.view_distance + 1 {
+            let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as i64;
+            for i in player_chunk.x - view_dist..player_chunk.x + view_dist + 1 {
+                for j in player_chunk.y - view_dist..player_chunk.y + view_dist + 1 {
+                    for k in player_chunk.z - view_dist..player_chunk.z + view_dist + 1 {
                         let pos = Vec3::new(i, j, k);
                         let diff = (player_chunk - pos).map(|e| e.abs()).sum();
                         chunks.push((diff, pos));
@@ -59,13 +62,15 @@ impl<P: Payloads> Client<P> {
             chunks.sort_by(|a, b| a.0.cmp(&b.0));
 
             // Generate chunks around the player
-            const MAX_CHUNKS_IN_QUEUE: u64 = 4; // to not overkill the vol_mgr
+            const MAX_CHUNKS_IN_QUEUE: u64 = 12; // to not overkill the vol_mgr
             for (_diff, pos) in chunks.iter() {
                 if !self.chunk_mgr().contains(*pos) {
+                    // generate up to MAX_CHUNKS_IN_QUEUE chunks around the player
                     if self.chunk_mgr().pending_cnt() < MAX_CHUNKS_IN_QUEUE as usize {
                         self.chunk_mgr().gen(*pos);
                     }
                 } else {
+                    // check if payloads does not exist, and then generate it because its dropped below
                     if self.chunk_mgr().loaded(*pos) {
                         self.chunk_mgr().persistence().generate(&pos, PersState::Raw);
                         if let Some(con) = self.chunk_mgr().persistence().get(&pos) {
@@ -78,6 +83,7 @@ impl<P: Payloads> Client<P> {
             }
 
             const DIFF_TILL_UNLOAD: i64 = 5;
+            //unload chunks that have a distance of 5 or greater that the last rendered chunk, so that we dont unload to fast, e.g. if we go back a chunk
             let unload_chunk_diff = chunks.last().unwrap().0 + DIFF_TILL_UNLOAD;
 
             //drop old chunks

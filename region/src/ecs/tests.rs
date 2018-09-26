@@ -9,20 +9,20 @@ use super::*;
 fn test_create_raw_ecs() {
     use self::{
         character::{Character, Health},
-        phys::{CtrlDir, Pos, Vel},
+        phys::{Dir, Pos, Vel},
     };
 
     let mut world = World::new();
     world.register::<Pos>();
     world.register::<Vel>();
-    world.register::<CtrlDir>();
+    world.register::<Dir>();
     world.register::<Character>();
     world.register::<Health>();
     let e0 = world
         .create_entity()
         .with(Pos(Vec3::zero()))
         .with(Vel(Vec3::zero()))
-        .with(CtrlDir(Vec2::zero()))
+        .with(Dir(Vec2::zero()))
         .with(Character {
             name: "test".to_string(),
         }).with(Health(100))

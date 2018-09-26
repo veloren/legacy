@@ -34,7 +34,7 @@ impl<P: Payloads> Client<P> {
         *self.status() != ClientStatus::Disconnected
     }
 
-    pub(crate) fn tick2(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
+    pub(crate) fn manage_chunks(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
         self.load_unload_chunks(mgr);
         self.chunk_mgr().persistence().try_cold_offload();
         self.chunk_mgr().persistence().debug();

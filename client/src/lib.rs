@@ -174,8 +174,10 @@ impl<P: Payloads> Client<P> {
             .entities
             .write()
             .insert(uid, Arc::new(RwLock::new(entity)))
-            .is_some()
+            .is_none()
     }
+
+    pub fn remove_entity(&self, uid: Uid) -> bool { !self.entities.write().remove(&uid).is_some() }
 
     pub fn player_entity(&self) -> Option<Arc<RwLock<Entity<<P as Payloads>::Entity>>>> {
         self.player().entity_uid.and_then(|uid| self.entity(uid))
@@ -209,7 +211,7 @@ impl<P: Payloads> Managed for Client<P> {
         // Tick2 worker
         Manager::add_worker(manager, |client, running, mut mgr| {
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
-                client.tick2(10000.0 / 1000.0, &mut mgr);
+                client.manage_chunks(500.0 / 1000.0, &mut mgr);
             }
         });
     }

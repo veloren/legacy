@@ -2,12 +2,13 @@ use noise::{NoiseFn, OpenSimplex, Seedable};
 use rand::{prng::XorShiftRng, RngCore, SeedableRng};
 use vek::*;
 
-use super::super::{Volume, Voxel};
 use chunk::{Block, BlockMaterial};
+use Volume;
+use Voxel;
 
 use std::any::Any;
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug)]
 pub struct Chunk {
     size: Vec3<i64>,
     offset: Vec3<i64>,

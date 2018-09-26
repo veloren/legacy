@@ -16,7 +16,7 @@ use vek::*;
 use common::{
     get_version,
     manager::Manager,
-    msg::{ClientMsg, ClientPostBox, ClientPostOffice, ServerMsg, SessionKind},
+    msg::{ClientMsg, ClientPostBox, ClientPostOffice, CompStore, ServerMsg, SessionKind},
     post::Incoming,
 };
 use region::Entity;
@@ -59,30 +59,27 @@ impl<P: Payloads> Client<P> {
 
                 // One-shot messages
                 Incoming::Msg(ServerMsg::ChatMsg { text }) => self.callbacks().call_recv_chat_msg(&text),
-                Incoming::Msg(ServerMsg::EntityUpdate {
-                    uid,
-                    pos,
-                    vel,
-                    ctrl_dir,
-                }) => {
-                    match self.entity(uid) {
-                        Some(entity) => {
-                            // Ignore the update if it's for the player's own entity, unless it's a big jump
-                            if self.player.read().entity_uid().map(|u| u != uid).unwrap_or(true) || self
-                                .player_entity()
-                                .map(|e| e.read().pos().distance(pos) > 5.0)
-                                .unwrap_or(true)
-                            {
-                                let mut entity = entity.write();
-                                *entity.pos_mut() = pos;
-                                *entity.vel_mut() = vel;
-                                *entity.look_dir_mut() = ctrl_dir;
-                            }
-                        },
-                        None => {
-                            self.add_entity(uid, Entity::new(pos, vel, Vec3::zero(), Vec2::unit_y()));
-                        },
+                Incoming::Msg(ServerMsg::CompUpdate { uid, store }) => {
+                    let entity = self.entity(uid).unwrap_or_else(|| {
+                        // Create an entity with default attributes if it doesn't already exist
+                        self.add_entity(
+                            uid,
+                            Entity::new(Vec3::zero(), Vec3::zero(), Vec3::zero(), Vec2::unit_y()),
+                        );
+                        // This shouldn't be able to fail since we just created the entity. If it
+                        // does (because this is *technically* a data race)... then damn. Unlucky.
+                        self.entity(uid).unwrap()
+                    });
+
+                    match store {
+                        CompStore::Pos(pos) => *entity.write().pos_mut() = pos,
+                        CompStore::Vel(vel) => *entity.write().vel_mut() = vel,
+                        CompStore::Dir(dir) => *entity.write().look_dir_mut() = dir,
+                        _ => {},
                     }
+                },
+                Incoming::Msg(ServerMsg::EntityDeleted { uid }) => {
+                    self.remove_entity(uid);
                 },
                 Incoming::Msg(_) => {},
 
@@ -101,7 +98,7 @@ impl<P: Payloads> Client<P> {
             self.postoffice.send_one(ClientMsg::PlayerEntityUpdate {
                 pos: *player_entity.pos(),
                 vel: *player_entity.vel(),
-                ctrl_dir: *player_entity.look_dir(),
+                dir: *player_entity.look_dir(),
             });
         }
     }

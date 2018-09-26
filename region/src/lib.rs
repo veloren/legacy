@@ -1,4 +1,4 @@
-#![feature(nll, euclidean_division)]
+#![feature(nll, euclidean_division, specialization)]
 
 #[macro_use]
 extern crate log;

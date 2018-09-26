@@ -205,7 +205,6 @@ pub fn tick<
             let chunk_exists = chunk_mgr.loaded(chunk) && c.vols().contains(PersState::Raw);
             if !chunk_exists {
                 *entity.vel_mut() = Vec3::broadcast(0.0);
-                println!("not exitsting");
                 continue; //skip applying
             }
         } else {

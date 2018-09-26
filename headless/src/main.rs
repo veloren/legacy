@@ -2,7 +2,6 @@
 
 extern crate client;
 extern crate common;
-extern crate coord;
 extern crate get_if_addrs;
 extern crate pretty_env_logger;
 extern crate region;
@@ -58,7 +57,7 @@ fn main() {
     }
 
     let client = Client::<Payloads>::new(PlayMode::Headless, alias, &remote_addr.trim(), gen_payload, 0)
-        .unwrap_or_else(|e| panic!("An error occured when attempting to initiate the client: {:?}", e));
+        .expect("error when attempting to initiate the client");
 
     let (tx, rx) = mpsc::channel();
     client.callbacks().set_recv_chat_msg(move |text| {

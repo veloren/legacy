@@ -13,15 +13,19 @@ impl VolConverter<ChunkContainer> for ChunkConverter {
         match state {
             PersState::Raw => {
                 if container.get_mut(PersState::Rle).is_none() && container.get_mut(PersState::File).is_some() {
+                    // In case we have File and want Raw, recursive call ourself to generate Rle first
                     Self::convert(key, container, PersState::Rle);
                 };
                 if let Some(rle) = container.get_mut(PersState::Rle) {
+                    //convert Rle to Raw
                     let from: &mut ChunkRle = rle.as_any_mut().downcast_mut::<ChunkRle>().expect("Should be ChunkRle");
                     let size = from.size();
                     let mut raw = Chunk::new();
+                    // copy properties from rle to raw
                     raw.set_size(size);
                     raw.set_offset(from.offset());
                     let ref voxels = from.voxels_mut();
+                    //unfold Rle into Raw format
                     for x in 0..size.x {
                         for y in 0..size.y {
                             let mut old_z: i64 = 0;

@@ -8,7 +8,6 @@ use std::{
 
 // Library
 use specs::{saveload::Marker, Builder, Component, Entity, Join, VecStorage};
-use vek::*;
 
 // Project
 use common::{
@@ -194,6 +193,8 @@ pub(crate) fn handle_oneshot<P: Payloads>(
 }
 
 impl<P: Payloads> Server<P> {
+    /// Update the value of a component. Returns `true` if the component exists, and `false` otherwise.
+    #[allow(dead_code)]
     pub(crate) fn update_comp<T: NetComp + Clone>(&mut self, entity: Entity, comp: T) -> bool {
         self.world
             .write_storage::<T>()
@@ -202,6 +203,8 @@ impl<P: Payloads> Server<P> {
             .is_some()
     }
 
+    /// Apply an operation to a component mutably. If the component does not exist, this operation will not occur.
+    #[allow(dead_code)]
     pub(crate) fn do_for_comp_mut<T: NetComp + Clone, R, F: FnOnce(&mut T) -> R>(
         &mut self,
         entity: Entity,
@@ -210,40 +213,36 @@ impl<P: Payloads> Server<P> {
         self.world.write_storage::<T>().get_mut(entity).map(|c| f(c))
     }
 
-    // Update clients of a component's value, excepting those clients for whom that component is attributed
-    // (e.g: a client won't get it's own player position sent back to it)
-    pub(crate) fn notify_comp<T: NetComp>(&mut self, entity: Entity) {
-        if let Some(Some(store)) = self.world.read_storage::<T>().get(entity).map(|c| c.to_store()) {
-            if let Some(entity_uid) = self.world.read_storage::<UidMarker>().get(entity) {
-                for (entity, client_uid, client) in (
-                    &self.world.entities(),
-                    &self.world.read_storage::<UidMarker>(),
-                    &self.world.read_storage::<Client>(),
-                )
-                    .join()
-                {
-                    let entity_uid = entity_uid.id();
-                    let client_uid = client_uid.id();
+    /// Update clients of a component's value, excepting those clients for whom that component is attributed
+    /// (e.g: a client won't get it's own player position sent back to it)
+    #[allow(dead_code)]
+    pub(crate) fn notify_comp<T: NetComp>(&self, entity: Entity) {
+        // Convert the component (if it exists and if it support it) to a CompStore
+        let store = if let Some(Some(s)) = self.world.read_storage::<T>().get(entity).map(|c| c.to_store()) {
+            s
+        } else {
+            return;
+        };
 
-                    // Don't notify a client of information concerning itself
-                    if client_uid != entity_uid {
-                        client.postoffice.send_one(ServerMsg::CompUpdate {
-                            uid: entity_uid,
-                            store: store.clone(),
-                        });
-                    }
-                }
-            }
-        }
-    }
+        // Find the UID of the entity we're notifying clients of
+        let entity_uid = if let Some(u) = self.world.read_storage::<UidMarker>().get(entity) {
+            u.id()
+        } else {
+            return;
+        };
 
-    // Update *all* clients of a component's value, overriding any other values a client may have had
-    pub(crate) fn force_comp<T: NetComp + Clone>(&mut self, entity: Entity) {
-        if let Some(Some(store)) = self.world.read_storage::<T>().get(entity).map(|c| c.to_store()) {
-            if let Some(entity_uid) = self.world.read_storage::<UidMarker>().get(entity) {
-                let entity_uid = entity_uid.id();
+        // Send the store to all clients that need it
+        for (client_uid, client) in (
+            &self.world.read_storage::<UidMarker>(),
+            &self.world.read_storage::<Client>(),
+        )
+            .join()
+        {
+            let client_uid = client_uid.id();
 
-                self.broadcast_net_msg(ServerMsg::CompUpdate {
+            // Don't notify a client of information concerning itself
+            if client_uid != entity_uid {
+                let _ = client.postoffice.send_one(ServerMsg::CompUpdate {
                     uid: entity_uid,
                     store: store.clone(),
                 });
@@ -251,46 +250,38 @@ impl<P: Payloads> Server<P> {
         }
     }
 
-    pub(crate) fn sync_players(&self) {
-        for (uid, pos, vel, dir) in (
-            &self.world.read_storage::<UidMarker>(),
-            &self.world.read_storage::<Pos>(),
-            &self.world.read_storage::<Vel>(),
-            &self.world.read_storage::<Dir>(),
-        )
-            .join()
-        {
-            // Find the UID of the entity that is having its details sent to clients
-            let entity_uid = uid.id();
+    /// Update *all* clients of a component's value, overriding any other values a client may have had
+    #[allow(dead_code)]
+    pub(crate) fn force_comp<T: NetComp + Clone>(&self, entity: Entity) {
+        // Convert the component (if it exists and if it support it) to a CompStore
+        let store = if let Some(Some(s)) = self.world.read_storage::<T>().get(entity).map(|c| c.to_store()) {
+            s
+        } else {
+            return;
+        };
 
-            for (entity, uid, client) in (
-                &self.world.entities(),
-                &self.world.read_storage::<UidMarker>(),
-                &self.world.read_storage::<Client>(),
-            )
-                .join()
-            {
-                let client_uid = uid.id();
-                // Don't send a client information they already know about themselves
-                if client_uid != entity_uid {
-                    // These unwraps are verifably SAFE and will be elided at compile-time.
-                    // *Every one* of these types implements NetComp and produces a Some(CompStore)
-                    // We simply use .unwrap() here to avoid a heap of if-lets
-                    // TODO: Add tests to verify this
-                    let _ = client.postoffice.send_one(ServerMsg::CompUpdate {
-                        uid: entity_uid,
-                        store: pos.to_store().unwrap(),
-                    });
-                    let _ = client.postoffice.send_one(ServerMsg::CompUpdate {
-                        uid: entity_uid,
-                        store: vel.to_store().unwrap(),
-                    });
-                    let _ = client.postoffice.send_one(ServerMsg::CompUpdate {
-                        uid: entity_uid,
-                        store: dir.to_store().unwrap(),
-                    });
-                }
-            }
+        // Find the UID of the entity we're notifying clients of
+        let entity_uid = if let Some(u) = self.world.read_storage::<UidMarker>().get(entity) {
+            u.id()
+        } else {
+            return;
+        };
+
+        // Send the store to all clients
+        self.broadcast_net_msg(ServerMsg::CompUpdate {
+            uid: entity_uid,
+            store: store.clone(),
+        });
+    }
+
+    pub(crate) fn sync_players(&self) {
+        // For each entity in the world...
+        // TODO: Add a notion of range? Don't update clients of entities that are nowhere near them
+        for entity in self.world.entities().join() {
+            // Notify clients of the following components...
+            self.notify_comp::<Pos>(entity);
+            self.notify_comp::<Vel>(entity);
+            self.notify_comp::<Dir>(entity);
         }
     }
 }

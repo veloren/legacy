@@ -22,6 +22,8 @@ use self::{
     phys::{Dir, Pos, Vel},
 };
 
+const MAX_UIDS: u64 = 1_000_000_000;
+
 pub trait CreateUtil {
     fn create_character(&mut self, name: String) -> EntityBuilder;
 }
@@ -44,7 +46,7 @@ pub fn create_world() -> World {
     // Net
     world.register::<UidMarker>();
     world.add_resource(UidNode {
-        range: 0..1_000_000, // Maximum number of entity UIDs
+        range: 0..MAX_UIDS,
         mapping: HashMap::new(),
     });
     // Phys

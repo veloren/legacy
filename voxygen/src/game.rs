@@ -6,10 +6,7 @@ use std::{
     cell::RefCell,
     f32::consts::PI,
     net::ToSocketAddrs,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 // Library
@@ -26,7 +23,7 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 // Project
 use client::{self, Client, PlayMode, CHUNK_SIZE};
 use common::manager::Manager;
-use region::{Chunk, Container, VolState};
+use region::{Chunk, Container};
 
 // Local
 use camera::Camera;

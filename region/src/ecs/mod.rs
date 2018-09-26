@@ -9,7 +9,7 @@ mod tests;
 use std::collections::HashMap;
 
 // Library
-use specs::{saveload::MarkedBuilder, Builder, Component, Entity, EntityBuilder, World};
+use specs::{saveload::MarkedBuilder, Builder, Component, EntityBuilder, World};
 use vek::*;
 
 // Project

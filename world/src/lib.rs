@@ -1,8 +1,7 @@
 #![feature(nll)]
 
-extern crate noise;
-#[macro_use]
 extern crate euler;
+extern crate noise;
 extern crate region;
 
 mod gen;

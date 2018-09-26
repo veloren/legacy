@@ -1,5 +1,5 @@
 // Standard
-use std::{collections::HashMap, f32::INFINITY, sync::Arc, thread, time};
+use std::{collections::HashMap, sync::Arc, thread, time};
 
 //Library
 use parking_lot::RwLock;

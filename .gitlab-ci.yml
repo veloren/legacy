@@ -57,6 +57,11 @@ build-server-cli:
   script:
     - (cd server-cli && cargo build)
 
+build-login-cli:
+  stage: build
+  script:
+    - (cd login-cli && cargo build)
+
 unittests:
   stage: test
   script:

@@ -1,5 +1,4 @@
-#![feature(integer_atomics)]
-#![feature(duration_as_u128)]
+#![feature(integer_atomics, duration_as_u128, label_break_value, specialization)]
 
 // Crates
 extern crate common;
@@ -75,7 +74,6 @@ pub struct Wrapper<S>(RwLock<S>);
 
 impl<S> Wrapper<S> {
     pub fn do_for<R, F: FnOnce(&S) -> R>(&self, f: F) -> R { f(&self.0.read()) }
-
     pub fn do_for_mut<R, F: FnOnce(&mut S) -> R>(&self, f: F) -> R { f(&mut self.0.write()) }
 }
 

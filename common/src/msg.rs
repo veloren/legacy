@@ -16,6 +16,18 @@ pub enum SessionKind {
 
 impl Message for SessionKind {}
 
+// CompStore
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum CompStore {
+    Pos(Vec3<f32>),
+    Vel(Vec3<f32>),
+    Dir(Vec2<f32>),
+    Player { alias: String, mode: PlayMode },
+    Character { name: String },
+    Health(u32),
+}
+
 // ServerMsg
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -37,11 +49,13 @@ pub enum ServerMsg {
     ChatMsg {
         text: String,
     },
-    EntityUpdate {
+    EntityDeleted {
         uid: u64,
-        pos: Vec3<f32>,
-        vel: Vec3<f32>,
-        ctrl_dir: Vec2<f32>,
+    },
+    CompUpdate {
+        // This also acts as an EntityCreated message
+        uid: u64,
+        store: CompStore,
     },
 }
 
@@ -81,7 +95,7 @@ pub enum ClientMsg {
     PlayerEntityUpdate {
         pos: Vec3<f32>,
         vel: Vec3<f32>,
-        ctrl_dir: Vec2<f32>,
+        dir: Vec2<f32>,
     },
 }
 

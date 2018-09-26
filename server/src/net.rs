@@ -16,8 +16,9 @@ use common::{
     post::Incoming,
 };
 use region::ecs::{
-    net::SyncMarker,
-    phys::{CtrlDir, Pos, Vel},
+    net::UidMarker,
+    phys::{Dir, Pos, Vel},
+    NetComp,
 };
 
 // Local
@@ -73,41 +74,48 @@ pub(crate) fn auth_client<P: Payloads>(
 ) -> Result<Entity, Error> {
     // Perform a connection handshake. If everything works out, create the player
     // First, wait for the correct `Connect` session
-    if let Ok(Incoming::Session(session)) = po.await_incoming() {
-        if let SessionKind::Connect = session.kind {
-            // Wait for the appropriate `Connect` message
-            if let Ok(ClientMsg::Connect { alias, mode }) = session.postbox.recv_timeout(CONNECT_TIMEOUT) {
-                // Create the player's entity and return it
-                let (player, player_uid) = srv.do_for_mut(|srv| {
-                    // Notify all other players
-                    srv.broadcast_chat_msg(&format!("[{} has joined the server]", alias));
-
-                    // Create a new player
-                    let player = srv.create_player(alias.clone(), mode, po).build();
-
-                    // Run the connecting player past the payload interface
-                    srv.payload.on_player_connect(srv, player);
-
-                    // Find the uid for the player's character entity (if the player has a character)
-                    let player_uid = srv.world.read_storage::<SyncMarker>().get(player).map(|sm| sm.id());
-                    (player, player_uid)
-                });
-
-                // Inform the client that they've successfully connected
-                if let Err(_) = session.postbox.send(ServerMsg::Connected { player_uid }) {
-                    Err(Error::ConnectionDropped)
-                } else {
-                    Ok(player)
-                }
-            } else {
-                Err(Error::NoConnectMsg)
-            }
-        } else {
-            Err(Error::InvalidConnectSession)
-        }
+    let session = if let Ok(Incoming::Session(s)) = po.await_incoming() {
+        s
     } else {
-        Err(Error::NoConnectSession)
+        return Err(Error::NoConnectSession);
+    };
+
+    // Verify that the first session is a SessionKind::Connect
+    if let SessionKind::Connect = session.kind {
+    } else {
+        return Err(Error::InvalidConnectSession);
     }
+
+    // Wait for a ClientMsg::Connect, thereby committing the client to connecting
+    let (alias, mode) = if let Ok(ClientMsg::Connect { alias, mode }) = session.postbox.recv_timeout(CONNECT_TIMEOUT) {
+        (alias, mode)
+    } else {
+        return Err(Error::NoConnectMsg);
+    };
+
+    // Create the player's entity and return it
+    let (player, player_uid) = srv.do_for_mut(|srv| {
+        // Notify all other players
+        srv.broadcast_chat_msg(&format!("[{} has joined the server]", alias));
+
+        // Create a new player
+        let player = srv.create_player(alias.clone(), mode, po).build();
+
+        // Force an update to the player position to inform them where they are
+        srv.force_comp::<Pos>(player);
+
+        // Run the connecting player past the payload interface
+        srv.payload.on_player_connect(srv, player);
+
+        // Find the uid for the player's character entity (if the player has a character)
+        let player_uid = srv.world.read_storage::<UidMarker>().get(player).map(|sm| sm.id());
+        (player, player_uid)
+    });
+
+    // Inform the client that they've successfully connected
+    let _ = session.postbox.send(ServerMsg::Connected { player_uid });
+
+    Ok(player)
 }
 
 pub(crate) fn handle_player_post<P: Payloads>(
@@ -172,28 +180,108 @@ pub(crate) fn handle_oneshot<P: Payloads>(
 ) {
     match msg {
         ClientMsg::ChatMsg { text } => process_chat_msg(srv, text, player, mgr),
-        ClientMsg::PlayerEntityUpdate { pos, vel, ctrl_dir } => {
+        ClientMsg::PlayerEntityUpdate { pos, vel, dir } => {
             // Update the player's entity
-            srv.do_for_mut(|srv| srv.update_player_entity(player, pos, vel, ctrl_dir));
+            srv.do_for_mut(|srv| {
+                srv.update_comp(player, Pos(pos));
+                srv.update_comp(player, Vel(vel));
+                srv.update_comp(player, Dir(dir));
+            });
         },
         _ => {},
     }
 }
 
 impl<P: Payloads> Server<P> {
-    pub(crate) fn sync_players(&self) {
-        let pos_storage = self.world.read_storage::<Pos>();
-        let vel_storage = self.world.read_storage::<Vel>();
-        let ctrl_dir_storage = self.world.read_storage::<CtrlDir>();
-        let sync_storage = self.world.read_storage::<SyncMarker>();
-        for (sync_storage, pos, vel, ctrl_dir) in (&sync_storage, &pos_storage, &vel_storage, &ctrl_dir_storage).join()
+    /// Update the value of a component. Returns `true` if the component exists, and `false` otherwise.
+    #[allow(dead_code)]
+    pub(crate) fn update_comp<T: NetComp + Clone>(&mut self, entity: Entity, comp: T) -> bool {
+        self.world
+            .write_storage::<T>()
+            .get_mut(entity)
+            .map(|c| *c = comp)
+            .is_some()
+    }
+
+    /// Apply an operation to a component mutably. If the component does not exist, this operation will not occur.
+    #[allow(dead_code)]
+    pub(crate) fn do_for_comp_mut<T: NetComp + Clone, R, F: FnOnce(&mut T) -> R>(
+        &mut self,
+        entity: Entity,
+        f: F,
+    ) -> Option<R> {
+        self.world.write_storage::<T>().get_mut(entity).map(|c| f(c))
+    }
+
+    /// Update clients of a component's value, excepting those clients for whom that component is attributed
+    /// (e.g: a client won't get it's own player position sent back to it)
+    #[allow(dead_code)]
+    pub(crate) fn notify_comp<T: NetComp>(&self, entity: Entity) {
+        // Convert the component (if it exists and if it support it) to a CompStore
+        let store = if let Some(Some(s)) = self.world.read_storage::<T>().get(entity).map(|c| c.to_store()) {
+            s
+        } else {
+            return;
+        };
+
+        // Find the UID of the entity we're notifying clients of
+        let entity_uid = if let Some(u) = self.world.read_storage::<UidMarker>().get(entity) {
+            u.id()
+        } else {
+            return;
+        };
+
+        // Send the store to all clients that need it
+        for (client_uid, client) in (
+            &self.world.read_storage::<UidMarker>(),
+            &self.world.read_storage::<Client>(),
+        )
+            .join()
         {
-            self.broadcast_net_msg(ServerMsg::EntityUpdate {
-                uid: sync_storage.id(),
-                pos: pos.0,
-                vel: vel.0,
-                ctrl_dir: ctrl_dir.0,
-            });
+            let client_uid = client_uid.id();
+
+            // Don't notify a client of information concerning itself
+            if client_uid != entity_uid {
+                let _ = client.postoffice.send_one(ServerMsg::CompUpdate {
+                    uid: entity_uid,
+                    store: store.clone(),
+                });
+            }
+        }
+    }
+
+    /// Update *all* clients of a component's value, overriding any other values a client may have had
+    #[allow(dead_code)]
+    pub(crate) fn force_comp<T: NetComp + Clone>(&self, entity: Entity) {
+        // Convert the component (if it exists and if it support it) to a CompStore
+        let store = if let Some(Some(s)) = self.world.read_storage::<T>().get(entity).map(|c| c.to_store()) {
+            s
+        } else {
+            return;
+        };
+
+        // Find the UID of the entity we're notifying clients of
+        let entity_uid = if let Some(u) = self.world.read_storage::<UidMarker>().get(entity) {
+            u.id()
+        } else {
+            return;
+        };
+
+        // Send the store to all clients
+        self.broadcast_net_msg(ServerMsg::CompUpdate {
+            uid: entity_uid,
+            store: store.clone(),
+        });
+    }
+
+    pub(crate) fn sync_players(&self) {
+        // For each entity in the world...
+        // TODO: Add a notion of range? Don't update clients of entities that are nowhere near them
+        for entity in self.world.entities().join() {
+            // Notify clients of the following components...
+            self.notify_comp::<Pos>(entity);
+            self.notify_comp::<Vel>(entity);
+            self.notify_comp::<Dir>(entity);
         }
     }
 }

@@ -163,8 +163,10 @@ impl<P: Payloads> Client<P> {
             .entities
             .write()
             .insert(uid, Arc::new(RwLock::new(entity)))
-            .is_some()
+            .is_none()
     }
+
+    pub fn remove_entity(&self, uid: Uid) -> bool { !self.entities.write().remove(&uid).is_some() }
 
     pub fn player_entity(&self) -> Option<Arc<RwLock<Entity<<P as Payloads>::Entity>>>> {
         self.player().entity_uid.and_then(|uid| self.entity(uid))

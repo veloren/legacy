@@ -1,5 +1,9 @@
+// Standard
+use std::mem;
+
 // Library
 use specs::prelude::*;
+use vek::*;
 
 // Project
 use common::manager::Manager;
@@ -35,12 +39,16 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
 ) {
     match cmd.next() {
         Some("help") => srv.do_for(|srv| {
+            // Send the help information to the player
             srv.send_chat_msg(player, "Available commands:");
             srv.send_chat_msg(player, "/players - View all online players");
             srv.send_chat_msg(player, "/tp <alias> - Teleport to a player");
+            srv.send_chat_msg(player, "/pos - Display your current position");
+            srv.send_chat_msg(player, "/alias <alias> - Change your alias");
+            srv.send_chat_msg(player, "/warp <dx> <dy> <dz> - Offset your position");
         }),
         Some("players") => srv.do_for(|srv| {
-            // Find a list of player names
+            // Find a list of player names and format them
             let player_names = srv
                 .world
                 .read_storage::<Player>()
@@ -48,41 +56,102 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
                 .map(|p| p.alias.clone())
                 .collect::<Vec<_>>()
                 .join(", ");
+
+            // Send them back to the player
             srv.send_chat_msg(player, &format!("Online Players: {}", player_names));
         }),
-        Some("tp") => {
-            // TODO: Simplify this? Put it somewhere else?
-            // Find the name the player typed (i.e: '/tp zesterer')
-            if let Some(tgt_player) = cmd.nth(0) {
-                let tgt_pos = srv.do_for(|srv| {
-                    // Find the position of that player
-                    let pos_storage = srv.world.read_storage::<Pos>();
-                    let player_storage = srv.world.read_storage::<Player>();
-                    (&pos_storage, &player_storage).join().find_map(|(pos, player)| {
-                        if player.alias == tgt_player {
-                            Some(pos.0)
-                        } else {
-                            None
-                        }
-                    })
-                });
-
-                // If a position was found, teleport to it
-                if let Some(pos) = tgt_pos {
-                    if let Some(()) =
-                        srv.do_for_mut(|srv| srv.world.write_storage::<Pos>().get_mut(player).map(|p| p.0 = pos))
-                    {
-                        srv.do_for(|srv| srv.send_chat_msg(player, &format!("Teleported to {}!", tgt_player)));
-                    } else {
-                        srv.do_for(|srv| srv.send_chat_msg(player, "You don't have a position!"));
-                    }
-                } else {
-                    srv.do_for(|srv| srv.send_chat_msg(player, &format!("Could not locate {}!", tgt_player)));
-                }
+        Some("tp") => 'tp: {
+            // Find the alias the player typed (i.e: '/tp zesterer')
+            let tgt_alias = if let Some(s) = cmd.nth(0) {
+                s
             } else {
-                srv.do_for(|srv| srv.send_chat_msg(player, "Usage: /tp <alias>"));
-            }
+                srv.do_for(|srv| srv.send_chat_msg(player, "A second argument is needed: /tp <alias>"));
+                break 'tp;
+            };
+
+            // Find the position of the player with the given alias, if possible
+            let tgt_pos = if let Some(p) = srv.do_for(|srv| {
+                (&srv.world.read_storage::<Pos>(), &srv.world.read_storage::<Player>())
+                    .join()
+                    .find(|(_, player)| player.alias == tgt_alias) // This is the important bit
+                    .map(|(pos, _)| pos.0)
+            }) {
+                p
+            } else {
+                srv.do_for(|srv| srv.send_chat_msg(player, &format!("Could not locate {}!", tgt_alias)));
+                break 'tp;
+            };
+
+            // Set the position of the current player accordingly
+            srv.do_for_mut(|srv| {
+                if srv.update_comp(player, Pos(tgt_pos)) {
+                    srv.force_comp::<Pos>(player); // Force clients to update
+                    srv.send_chat_msg(player, &format!("Teleported to {}!", tgt_alias));
+                } else {
+                    srv.send_chat_msg(player, "You don't have a position!");
+                }
+            });
         },
+        Some("pos") => srv.do_for(|srv| {
+            if let Some(pos_comp) = srv.world.read_storage::<Pos>().get(player) {
+                srv.send_chat_msg(player, &format!("Current position: {}", pos_comp.0));
+            } else {
+                srv.send_chat_msg(player, "You don't have a position!");
+            }
+        }),
+        Some("alias") => srv.do_for_mut(|srv| 'nick: {
+            let alias = if let Some(a) = cmd.nth(0) {
+                a
+            } else {
+                srv.send_chat_msg(player, "A second argument is needed: /alias <alias>");
+                break 'nick;
+            };
+
+            // Give the player their new alias, hold on to the old one temporarily
+            if let Some(old_alias) = srv.do_for_comp_mut::<Player, _, _>(player, |player_comp| {
+                let mut alias = alias.to_string();
+                mem::swap(&mut player_comp.alias, &mut alias);
+                alias
+            }) {
+                srv.force_comp::<Pos>(player); // Force clients to update
+                srv.broadcast_chat_msg(&format!("[{} changed their alias to {}]", old_alias, alias));
+            } else {
+                srv.send_chat_msg(player, "Could not change alias");
+                break 'nick;
+            }
+        }),
+        Some("warp") => srv.do_for_mut(|srv| 'warp: {
+            let mut tensor = [0.0; 3];
+            for i in 0..3 {
+                let arg = if let Some(a) = cmd.next() {
+                    a
+                } else {
+                    srv.send_chat_msg(player, "3 numbers are needed: /warp <dx> <dy> <dz>");
+                    break 'warp;
+                };
+
+                if let Ok(v) = arg.parse() {
+                    tensor[i] = v;
+                } else {
+                    srv.send_chat_msg(
+                        player,
+                        &format!("Invalid value for {}: /warp <x> <y> <z>", ['x', 'y', 'z'][i]),
+                    );
+                    break 'warp;
+                }
+            }
+
+            if let Some(pos) = srv.do_for_comp_mut::<Pos, _, _>(player, |pos_comp| {
+                pos_comp.0 += Vec3::from(tensor);
+                pos_comp.0
+            }) {
+                srv.force_comp::<Pos>(player); // Force clients to update
+                srv.send_chat_msg(player, &format!("Warped to: {}!", pos));
+            } else {
+                srv.send_chat_msg(player, "You don't have a position!");
+                break 'warp;
+            }
+        }),
         _ => srv.do_for(|srv| srv.send_chat_msg(player, "Unrecognised command!")),
     }
 }

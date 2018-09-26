@@ -7,10 +7,10 @@ use threadpool::ThreadPool;
 use vek::*;
 
 // Local
-use collision::{Collider, Primitive};
 use super::{
     Container, FnGenFunc, FnPayloadFunc, Key, PersState, VolContainer, VolConverter, VolGen, VolPers, Volume, Voxel,
 };
+use collision::{Collider, Primitive};
 
 pub enum VolState<C: VolContainer, P: Send + Sync + 'static> {
     Loading,
@@ -68,6 +68,8 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
         return self.pending.read().get(&pos).is_none() && self.pers.get(&pos).is_some();
     }
 
+    pub fn pending_cnt(&self) -> usize { return self.pending.read().len(); }
+
     pub fn remove(&self, pos: Vec3<i64>) -> bool { return self.pers.hot_mut().remove(&pos).is_some(); }
 
     pub fn gen(&self, pos: Vec3<i64>) {
@@ -106,12 +108,12 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
         let vol_pos = Vec3::new(
             pos.x.div_euc(self.vol_size.x),
             pos.y.div_euc(self.vol_size.y),
-            pos.z.div_euc(self.vol_size.z)
+            pos.z.div_euc(self.vol_size.z),
         );
         let vox_pos = Vec3::new(
             pos.x.mod_euc(self.vol_size.x),
             pos.y.mod_euc(self.vol_size.y),
-            pos.z.mod_euc(self.vol_size.z)
+            pos.z.mod_euc(self.vol_size.z),
         );
         let ref data_ref = self.pers.hot();
         if let Some(container) = data_ref.get(&vol_pos) {

@@ -38,7 +38,7 @@ impl<P: Payloads> Client<P> {
         self.load_unload_chunks(mgr);
         self.chunk_mgr().persistence().try_cold_offload();
         self.chunk_mgr().persistence().debug();
-        thread::sleep(Duration::from_millis(5000));
+        thread::sleep(Duration::from_millis(500));
         *self.status() != ClientStatus::Disconnected
     }
 }

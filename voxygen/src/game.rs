@@ -83,7 +83,6 @@ pub struct Game {
 }
 
 fn gen_payload(key: Vec3<i64>, con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>) {
-    con.set_access();
     if con.vols().get(PersState::Raw).is_none() {
         //only get mutable lock if no Raw exists
         ChunkConverter::convert(&key, &mut con.vols_mut(), PersState::Raw);
@@ -330,7 +329,6 @@ impl Game {
             if (*pos - cam_chunk).map(|e| e.abs()).sum() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE[0] {
                 continue;
             }
-            con.set_access();
             {
                 let mut trylock = &mut con.payload_try_mut(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
                 if let Some(ref mut lock) = trylock {

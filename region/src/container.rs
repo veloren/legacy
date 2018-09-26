@@ -15,7 +15,6 @@ pub trait VolContainer: Send + Sync + 'static {
 }
 
 pub struct Container<C: VolContainer, P: Send + Sync + 'static> {
-    last_access: RwLock<SystemTime>,
     payload: RwLock<Option<P>>,
     vols: RwLock<C>,
 }
@@ -23,7 +22,6 @@ pub struct Container<C: VolContainer, P: Send + Sync + 'static> {
 impl<C: VolContainer, P: Send + Sync + 'static> Container<C, P> {
     pub fn new() -> Container<C, P> {
         Container {
-            last_access: RwLock::new(SystemTime::now()),
             payload: RwLock::new(None),
             vols: RwLock::new(C::new()),
         }
@@ -42,8 +40,4 @@ impl<C: VolContainer, P: Send + Sync + 'static> Container<C, P> {
     pub fn vols_mut(&self) -> RwLockWriteGuard<C> { self.vols.write() }
 
     pub fn vols_try(&self) -> Option<RwLockReadGuard<C>> { self.vols.try_read() }
-
-    pub fn last_access(&self) -> RwLockReadGuard<SystemTime> { self.last_access.read() }
-
-    pub fn set_access(&self) { *self.last_access.write() = SystemTime::now(); }
 }

@@ -41,8 +41,8 @@ pub use vol_mgr::{VolMgr, VolState};
 pub use vol_pers::VolPers;
 
 // Project
-use vek::*;
 use std::{any::Any, cmp::Eq, fmt::Debug, hash::Hash};
+use vek::*;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum PersState {

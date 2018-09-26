@@ -16,11 +16,11 @@ use std::{io, sync::mpsc};
 use syrup::Window;
 
 use client::{Client, PlayMode};
-use vek::*;
 use region::{
     chunk::{Chunk, ChunkContainer},
     Container,
 };
+use vek::*;
 
 struct Payloads {}
 impl client::Payloads for Payloads {

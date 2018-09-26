@@ -1,5 +1,5 @@
 // Standard
-use super::VolMgr;
+use super::{PersState, VolContainer, VolMgr};
 use chunk::{Chunk, ChunkContainer, ChunkConverter};
 use std::{clone::Clone, sync::Arc};
 
@@ -200,10 +200,16 @@ pub fn tick<
         let cs = chunk_size.map(|e| e as f32);
         let chunk = Vec3::new(cd.x.div_euc(cs.x), cd.y.div_euc(cs.y), cd.z.div_euc(cs.z)); //Vec3<f32> has no div_euc!
         let chunk = chunk.map(|e| e as i64);
-        let chunk_exists = chunk_mgr.loaded(chunk);
-        if !chunk_exists {
-            *entity.vel_mut() = Vec3::broadcast(0.0);
-            continue; //skip applying
+        if let Some(c) = chunk_mgr.persistence().hot().get(&chunk) {
+            // this is a bit strict requiering it in hot, but currently the only working version
+            let chunk_exists = chunk_mgr.loaded(chunk) && c.vols().contains(PersState::Raw);
+            if !chunk_exists {
+                *entity.vel_mut() = Vec3::broadcast(0.0);
+                println!("not exitsting");
+                continue; //skip applying
+            }
+        } else {
+            return; //skip applying
         }
 
         // apply

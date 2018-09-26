@@ -2,11 +2,11 @@
 use vek::*;
 
 // Project
+use common::manager::Manager;
 use region::{
     chunk::{Chunk, ChunkContainer, ChunkConverter, ChunkFile},
     Container, Key, PersState, VolContainer, VolConverter,
 };
-use common::manager::Manager;
 
 // Local
 use Client;
@@ -45,7 +45,7 @@ impl<P: Payloads> Client<P> {
                 player_chunk.z.div_euc(CHUNK_SIZE[2]),
             );
 
-            // Generate chunks around the player
+            // Collect chunks around the player
             let mut chunks = vec![];
             for i in player_chunk.x - self.view_distance..player_chunk.x + self.view_distance + 1 {
                 for j in player_chunk.y - self.view_distance..player_chunk.y + self.view_distance + 1 {
@@ -56,11 +56,15 @@ impl<P: Payloads> Client<P> {
                     }
                 }
             }
-
             chunks.sort_by(|a, b| a.0.cmp(&b.0));
+
+            // Generate chunks around the player
+            const MAX_CHUNKS_IN_QUEUE: u64 = 4; // to not overkill the vol_mgr
             for (_diff, pos) in chunks.iter() {
                 if !self.chunk_mgr().contains(*pos) {
-                    self.chunk_mgr().gen(*pos);
+                    if self.chunk_mgr().pending_cnt() < MAX_CHUNKS_IN_QUEUE as usize {
+                        self.chunk_mgr().gen(*pos);
+                    }
                 } else {
                     if self.chunk_mgr().loaded(*pos) {
                         self.chunk_mgr().persistence().generate(&pos, PersState::Raw);

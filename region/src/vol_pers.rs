@@ -61,7 +61,6 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
             x = self.cold.read().get(&key).map(|v| v.clone());
         }
         if let Some(container) = x {
-            container.set_access();
             let mut lock = container.vols_mut();
             let contains = lock.contains(state.clone());
             if !contains {
@@ -84,8 +83,6 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
                             h.insert(*key, container.clone());
                             remove_from_c.push(key.clone());
                         }
-                    } else {
-                        println!("noooo {:?}", key);
                     }
                 }
                 for key in remove_from_c.iter() {
@@ -99,8 +96,6 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
                             c.insert(*key, container.clone());
                             remove_from_h.push(key.clone());
                         }
-                    } else {
-                        println!("noooo {:?}", key);
                     }
                 }
                 for key in remove_from_h.iter() {

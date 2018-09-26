@@ -29,8 +29,8 @@ use std::{
 };
 
 // Library
-use vek::*;
 use parking_lot::{Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use vek::*;
 
 // Project
 use common::{
@@ -115,7 +115,10 @@ impl<P: Payloads> Client<P> {
                 entities: RwLock::new(HashMap::new()),
                 phys_lock: Mutex::new(()),
 
-                chunk_mgr: VolMgr::new(Vec3::from_slice(&CHUNK_SIZE), VolGen::new(world::gen_chunk, gen_payload)),
+                chunk_mgr: VolMgr::new(
+                    Vec3::from_slice(&CHUNK_SIZE),
+                    VolGen::new(world::gen_chunk, gen_payload),
+                ),
 
                 callbacks: RwLock::new(Callbacks::new()),
 
@@ -134,7 +137,9 @@ impl<P: Payloads> Client<P> {
 
     pub fn send_cmd(&self, args: Vec<String>) { self.postoffice.send_one(ClientMsg::Cmd { args }); }
 
-    pub fn view_distance(&self) -> f32 { (Vec3::from_slice(&CHUNK_SIZE).map(|e| e as f32) * (self.view_distance as f32)).magnitude() }
+    pub fn view_distance(&self) -> f32 {
+        (Vec3::from_slice(&CHUNK_SIZE).map(|e| e as f32) * (self.view_distance as f32)).magnitude()
+    }
 
     pub fn chunk_mgr(&self) -> &VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk> {
         &self.chunk_mgr

@@ -6,10 +6,18 @@ use vek::*;
 
 // Local
 use new_ui::{
-    element::{Element, HBox, Label, Rect, VBox, WinBox},
+    element::{
+        HBox,
+        Label,
+        Rect,
+        VBox,
+        Button,
+        WinBox,
+    },
     Span, Ui,
 };
 use renderer::Renderer;
+use window::Event;
 
 pub struct Hud {
     ui: Ui,
@@ -19,9 +27,9 @@ pub struct Hud {
 
 impl Hud {
     pub fn new() -> Hud {
-        let mut winbox = WinBox::new();
+        let winbox = WinBox::new();
 
-        let mut hotbar = HBox::new()
+        let hotbar = HBox::new()
             .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
             .with_margin(Span::px(8, 8));
         for _ in 0..5 {
@@ -65,6 +73,9 @@ impl Hud {
     pub fn chat_box(&self) -> &ChatBox { &self.chat_box }
 
     pub fn render(&mut self, renderer: &mut Renderer) { self.ui.render(renderer); }
+    pub fn handle_event(&self, event: &Event, renderer: &mut Renderer) -> bool {
+        self.ui.handle_event(event, renderer)
+    }
 }
 
 pub struct DebugBox {
@@ -78,7 +89,7 @@ pub struct DebugBox {
 
 impl DebugBox {
     fn new() -> Self {
-        let mut vbox = VBox::new()
+        let vbox = VBox::new()
             .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
             .with_margin(Span::px(8, 8));
 
@@ -98,6 +109,7 @@ impl DebugBox {
         let buildtime_label = vbox.push_back(template_label.clone_all());
         let fps_label = vbox.push_back(template_label.clone_all());
         let pos_label = vbox.push_back(template_label.clone_all());
+        vbox.push_back(Button::new().with_click_fn(|_| println!("Clicked the button!")));
 
         Self {
             version_label,
@@ -113,7 +125,6 @@ impl DebugBox {
 }
 
 pub struct ChatBox {
-    max_msgs: usize,
     vbox: Rc<VBox>,
     template_label: Rc<Label>,
 }
@@ -122,7 +133,7 @@ impl ChatBox {
     fn new() -> Self {
         let max_msgs = 10;
 
-        let mut vbox = VBox::new()
+        let vbox = VBox::new()
             .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
             .with_margin(Span::px(8, 8));
 
@@ -135,7 +146,6 @@ impl ChatBox {
         }
 
         Self {
-            max_msgs,
             vbox,
             template_label,
         }

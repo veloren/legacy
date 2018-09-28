@@ -177,6 +177,11 @@ impl Game {
 
     pub fn handle_window_events(&self) {
         self.window.handle_events(|event| {
+            // TODO: Experimental
+            if false && self.hud.handle_event(&event, &mut self.window.renderer_mut()) {
+                return;
+            }
+
             match event {
                 Event::CloseRequest => self.running.store(false, Ordering::Relaxed),
                 Event::CursorMoved { dx, dy } => {

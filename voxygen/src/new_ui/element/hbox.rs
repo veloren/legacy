@@ -9,7 +9,7 @@ use std::{
 use vek::*;
 
 // Local
-use super::{primitive::draw_rectangle, Element, ResCache, Span};
+use super::{primitive::draw_rectangle, Element, ResCache, Span, Bounds};
 use renderer::Renderer;
 
 #[allow(dead_code)]
@@ -67,7 +67,7 @@ impl HBox {
 impl Element for HBox {
     fn deep_clone(&self) -> Rc<dyn Element> { self.clone_all() }
 
-    fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: (Vec2<f32>, Vec2<f32>)) {
+    fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: Bounds) {
         draw_rectangle(renderer, rescache, bounds.0, bounds.1, self.col.get());
 
         let view_res = renderer.get_view_resolution().map(|e| e as f32);

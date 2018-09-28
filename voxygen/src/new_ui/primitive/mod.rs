@@ -91,7 +91,8 @@ pub(crate) fn draw_text(
         ..Section::default()
     });
 
-    brush
+    // We don't care if this fails
+    let _ = brush
         .borrow_mut()
         .draw_queued(renderer.encoder_mut(), &color_view, &depth_view);
 }

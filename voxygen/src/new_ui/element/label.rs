@@ -8,7 +8,7 @@ use std::{
 use vek::*;
 
 // Local
-use super::{primitive::draw_text, Element, ResCache, Span};
+use super::{primitive::draw_text, Element, ResCache, Span, Bounds};
 use renderer::Renderer;
 
 #[allow(dead_code)]
@@ -69,7 +69,7 @@ impl Label {
 impl Element for Label {
     fn deep_clone(&self) -> Rc<dyn Element> { self.clone_all() }
 
-    fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: (Vec2<f32>, Vec2<f32>)) {
+    fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: Bounds) {
         if let Some(text) = self.text.borrow().as_ref() {
             let res = renderer.get_view_resolution().map(|e| e as f32);
             let sz = self.size.get().map(|e| e.rel) * res.map(|e| e as f32) + self.size.get().map(|e| e.px as f32);

@@ -42,7 +42,6 @@ use RENDERER_INFO;
 
 // TODO: This is experimental
 use new_ui;
-use RENDERER_INFO;
 
 pub enum ChunkPayload {
     Meshes(FnvIndexMap<voxel::MaterialKind, voxel::Mesh>),

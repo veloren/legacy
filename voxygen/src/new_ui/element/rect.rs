@@ -1,20 +1,12 @@
 // Standard
-use std::{
-    rc::Rc,
-    cell::Cell,
-};
+use std::{cell::Cell, rc::Rc};
 
 // Library
 use vek::*;
 
 // Local
+use super::{primitive::draw_rectangle, Element, ResCache, Span};
 use renderer::Renderer;
-use super::{
-    Element,
-    ResCache,
-    Span,
-};
-use super::primitive::draw_rectangle;
 
 #[derive(Clone)]
 pub struct Rect {
@@ -46,15 +38,11 @@ impl Rect {
     pub fn get_padding(&self) -> Vec2<Span> { self.padding.get() }
     pub fn set_padding(&self, padding: Vec2<Span>) { self.padding.set(padding); }
 
-    pub fn clone_all(&self) -> Rc<Self> {
-        Rc::new(self.clone())
-    }
+    pub fn clone_all(&self) -> Rc<Self> { Rc::new(self.clone()) }
 }
 
 impl Element for Rect {
-    fn deep_clone(&self) -> Rc<dyn Element> {
-        self.clone_all()
-    }
+    fn deep_clone(&self) -> Rc<dyn Element> { self.clone_all() }
 
     fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: (Vec2<f32>, Vec2<f32>)) {
         let res = renderer.get_view_resolution().map(|e| e as f32);

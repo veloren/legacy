@@ -8,9 +8,10 @@ use std::{net::TcpListener, sync::Arc, thread, time::Duration};
 
 // Project
 use common::{
-    net::Message,
-    post::{PostBox, PostOffice, Incoming},
     manager::Manager,
+    net::Message,
+    post::{Incoming, PostBox, PostOffice},
+    PORTS,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -35,7 +36,8 @@ impl Message for SessionKind {}
 #[test]
 fn post_office() {
     // Server
-    let listener = TcpListener::bind("0.0.0.0:8888").unwrap();
+    let server_addr = PORTS.next();
+    let listener = TcpListener::bind(&server_addr).unwrap();
     thread::spawn(move || match listener.incoming().next() {
         Some(Ok(stream)) => {
             thread::spawn(move || handle_client(PostOffice::to_client(stream).unwrap()));
@@ -45,7 +47,7 @@ fn post_office() {
     });
 
     // Client
-    handle_remote(PostOffice::to_server("127.0.0.1:8888").unwrap());
+    handle_remote(PostOffice::to_server(&server_addr).unwrap());
 }
 
 fn handle_client(postoffice: Manager<PostOffice<SessionKind, ServerMsg, ClientMsg>>) {

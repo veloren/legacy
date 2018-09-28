@@ -5,13 +5,14 @@ use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc::{self, RecvError, TryRecvError},
-        Arc, Mutex, RwLock,
+        Arc,
     },
     thread::{self, JoinHandle},
 };
 
 // Library
 use get_if_addrs::get_if_addrs;
+use parking_lot::{Mutex, MutexGuard, RwLock};
 
 // Parent
 use super::{
@@ -30,7 +31,7 @@ enum ConnectionError {
 
 #[derive(Debug)]
 pub struct Connection<RM: Message> {
-    // sorted by prio and then cronically
+    // sorted by prio and then chronically
     tcp: Tcp,
     udpmgr: Arc<UdpMgr>,
     udp: Mutex<Option<Udp>>,
@@ -47,10 +48,6 @@ pub struct Connection<RM: Message> {
     // Message channel
     recvd_message_write: Mutex<mpsc::Sender<Result<RM, ConnectionError>>>,
     recvd_message_read: Mutex<mpsc::Receiver<Result<RM, ConnectionError>>>,
-
-    // Error channel
-    //error_write: Mutex<mpsc::Sender<ConnectionError>>,
-    //error_read: Mutex<mpsc::Receiver<ConnectionError>>,
 }
 
 impl<RM: Message> Connection<RM> {
@@ -93,24 +90,21 @@ impl<RM: Message> Connection<RM> {
         Ok(Arc::new(m))
     }
 
-    pub fn open_udp<'b>(manager: &'b Arc<Connection<ConnectionMessage>>, listen: SocketAddr, sender: SocketAddr) {
-        if let Some(..) = *manager.udp.lock().unwrap() {
+    pub fn open_udp<'b>(manager: &'b Arc<Connection<RM>>, listen: SocketAddr, sender: SocketAddr) {
+        if let Some(..) = *manager.udp.lock() {
             panic!("not implemented");
         }
-
-        let msg = ConnectionMessage::OpenedUdp { host: listen };
-
-        *manager.udp.lock().unwrap() = Some(Udp::new(listen, sender).unwrap());
-        manager.send(msg);
+        *manager.udp.lock() = Some(Udp::new(listen, sender).unwrap());
+        manager.send(ConnectionMessage::OpenedUdp { host: listen });
 
         let m = manager.clone();
-        let mut rt = manager.recv_thread_udp.lock().unwrap();
+        let mut rt = manager.recv_thread_udp.lock();
         *rt = Some(thread::spawn(move || {
             m.recv_worker_udp();
         }));
 
         let m = manager.clone();
-        let mut st = manager.send_thread_udp.lock().unwrap();
+        let mut st = manager.send_thread_udp.lock();
         *st = Some(thread::spawn(move || {
             m.send_worker_udp();
         }));
@@ -118,13 +112,13 @@ impl<RM: Message> Connection<RM> {
 
     pub fn start<'b>(manager: &'b Arc<Connection<RM>>) {
         let m = manager.clone();
-        let mut rt = manager.recv_thread.lock().unwrap();
+        let mut rt = manager.recv_thread.lock();
         *rt = Some(thread::spawn(move || {
             m.recv_worker();
         }));
 
         let m = manager.clone();
-        let mut st = manager.send_thread.lock().unwrap();
+        let mut st = manager.send_thread.lock();
         *st = Some(thread::spawn(move || {
             m.send_worker();
         }));
@@ -133,62 +127,40 @@ impl<RM: Message> Connection<RM> {
     pub fn stop<'b>(manager: &'b Arc<Connection<RM>>) {
         let m = manager.clone();
         m.running.store(false, Ordering::Relaxed);
-        m.recvd_message_write.lock().unwrap().send(Err(ConnectionError::Disconnected));
+        m.recvd_message_write.lock().send(Err(ConnectionError::Disconnected));
         // non blocking stop for now
     }
 
     pub fn send<M: Message>(&self, message: M) {
-        let mut id = self.next_id.lock().unwrap();
-        self.packet_out.lock().unwrap()[16].push_back(OutgoingPacket::new(message.to_bytes().unwrap(), *id));
+        let mut id = self.next_id.lock();
+        self.packet_out.lock()[16].push_back(OutgoingPacket::new(message.to_bytes().unwrap(), *id));
         *id += 1;
-        let mut p = self.packet_out_count.write().unwrap();
+        let mut p = self.packet_out_count.write();
         *p += 1;
-        let rt = self.send_thread.lock();
-        if let Some(cb) = rt.unwrap().as_mut() {
+        let mut rt = self.send_thread.lock();
+        if let Some(cb) = rt.as_mut() {
             //trigger sending
             cb.thread().unpark();
         }
     }
 
     pub fn try_recv(&self) -> Result<RM, ()> {
-        /*
-        if let Ok(error_read) = self.error_read.lock() {
-            match error_read.try_recv() {
-                Ok(ConnectionError::Disconnected) => return Err(TryRecvError::Disconnected),
-                Err(TryRecvError::Disconnected) => return Err(TryRecvError::Disconnected),
-                _ => {},
-            }
+        match self.recvd_message_read.lock().try_recv() {
+            Ok(Ok(msg)) => return Ok(msg),
+            _ => Err(()),
         }
-        */
-
-        if let Ok(recvd_message_read) = self.recvd_message_read.lock() {
-            match recvd_message_read.try_recv() {
-                Ok(Ok(msg)) => return Ok(msg),
-                Ok(Err(_)) => return Err(()),
-                Err(_) => return Err(()),
-            }
-        }
-
-        return Err(());
     }
 
     pub fn recv(&self) -> Result<RM, ()> {
-        /*
-        if let Ok(error_read) = self.error_read.lock() {
-            match error_read.try_recv() {
-                Ok(ConnectionError::Disconnected) => return Err(RecvError),
-                Err(TryRecvError::Disconnected) => return Err(RecvError),
-                _ => {},
-            }
+        match self.recvd_message_read.lock().recv() {
+            Ok(Ok(msg)) => return Ok(msg),
+            _ => return Err(()),
         }
-        */
 
-        if let Ok(recvd_message_read) = self.recvd_message_read.lock() {
-            match recvd_message_read.recv() {
-                Ok(Ok(msg)) => return Ok(msg),
-                Ok(Err(_)) => return Err(()),
-                Err(_) => return Err(()),
-            }
+        match self.recvd_message_read.lock().recv() {
+            Ok(Ok(msg)) => return Ok(msg),
+            Ok(Err(_)) => return Err(()),
+            Err(_) => return Err(()),
         }
 
         return Err(());
@@ -199,12 +171,12 @@ impl<RM: Message> Connection<RM> {
             if !self.running.load(Ordering::Relaxed) {
                 break;
             }
-            if *self.packet_out_count.read().unwrap() == 0 {
+            if *self.packet_out_count.read() == 0 {
                 thread::park();
                 continue;
             }
             // find next package
-            let mut packets = self.packet_out.lock().unwrap();
+            let mut packets = self.packet_out.lock();
             for i in 0..255 {
                 if packets[i].len() != 0 {
                     // build part
@@ -216,7 +188,7 @@ impl<RM: Message> Connection<RM> {
                         },
                         Err(FrameError::SendDone) => {
                             packets[i].pop_front();
-                            let mut p = self.packet_out_count.write().unwrap();
+                            let mut p = self.packet_out_count.write();
                             *p -= 1;
                         },
                     }
@@ -238,11 +210,11 @@ impl<RM: Message> Connection<RM> {
                     match frame {
                         Frame::Header { id, .. } => {
                             let msg = IncomingPacket::new(frame);
-                            let mut packets = self.packet_in.lock().unwrap();
+                            let mut packets = self.packet_in.lock();
                             packets.insert(id, msg);
                         },
                         Frame::Data { id, .. } => {
-                            let mut packets = self.packet_in.lock().unwrap();
+                            let mut packets = self.packet_in.lock();
                             let packet = packets.get_mut(&id);
                             if packet.unwrap().load_data_frame(frame) {
                                 //convert
@@ -250,7 +222,7 @@ impl<RM: Message> Connection<RM> {
                                 let data = packet.unwrap().data();
                                 debug!("received packet: {:?}", &data);
 
-                                let recvd_message_write = self.recvd_message_write.lock().unwrap();
+                                let recvd_message_write = self.recvd_message_write.lock();
                                 recvd_message_write.send(Ok(RM::from_bytes(data).unwrap())).unwrap();
                             }
                         },
@@ -262,7 +234,7 @@ impl<RM: Message> Connection<RM> {
                     // TODO: Handle errors that can be resolved locally
                     match e {
                         _ => {
-                            let recvd_message_write = self.recvd_message_write.lock().unwrap();
+                            let recvd_message_write = self.recvd_message_write.lock();
                             recvd_message_write.send(Err(ConnectionError::Disconnected)).unwrap();
                         },
                     }
@@ -276,12 +248,12 @@ impl<RM: Message> Connection<RM> {
             if !self.running.load(Ordering::Relaxed) {
                 break;
             }
-            if *self.packet_out_count.read().unwrap() == 0 {
+            if *self.packet_out_count.read() == 0 {
                 thread::park();
                 continue;
             }
             // find next package
-            let mut packets = self.packet_out.lock().unwrap();
+            let mut packets = self.packet_out.lock();
             for i in 0..255 {
                 if packets[i].len() != 0 {
                     // build part
@@ -289,12 +261,12 @@ impl<RM: Message> Connection<RM> {
                     match packets[i][0].generate_frame(SPLIT_SIZE) {
                         Ok(frame) => {
                             // send it
-                            let mut udp = self.udp.lock().unwrap();
+                            let mut udp = self.udp.lock();
                             udp.as_mut().unwrap().send(frame).unwrap();
                         },
                         Err(FrameError::SendDone) => {
                             packets[i].pop_front();
-                            let mut p = self.packet_out_count.write().unwrap();
+                            let mut p = self.packet_out_count.write();
                             *p -= 1;
                         },
                     }
@@ -310,18 +282,18 @@ impl<RM: Message> Connection<RM> {
             if !self.running.load(Ordering::Relaxed) {
                 break;
             }
-            let mut udp = self.udp.lock().unwrap();
+            let mut udp = self.udp.lock();
             let frame = udp.as_mut().unwrap().recv();
             match frame {
                 Ok(frame) => {
                     match frame {
                         Frame::Header { id, .. } => {
                             let msg = IncomingPacket::new(frame);
-                            let mut packets = self.packet_in.lock().unwrap();
+                            let mut packets = self.packet_in.lock();
                             packets.insert(id, msg);
                         },
                         Frame::Data { id, .. } => {
-                            let mut packets = self.packet_in.lock().unwrap();
+                            let mut packets = self.packet_in.lock();
                             let packet = packets.get_mut(&id);
                             if packet.unwrap().load_data_frame(frame) {
                                 //convert
@@ -329,7 +301,7 @@ impl<RM: Message> Connection<RM> {
                                 let data = packet.unwrap().data();
                                 debug!("received packet: {:?}", &data);
 
-                                let recvd_message_write = self.recvd_message_write.lock().unwrap();
+                                let recvd_message_write = self.recvd_message_write.lock();
                                 recvd_message_write.send(Ok(RM::from_bytes(data).unwrap())).unwrap();
                             }
                         },
@@ -341,7 +313,7 @@ impl<RM: Message> Connection<RM> {
                     // TODO: Handle errors that can be resolved locally
                     match e {
                         _ => {
-                            let recvd_message_write = self.recvd_message_write.lock().unwrap();
+                            let recvd_message_write = self.recvd_message_write.lock();
                             recvd_message_write.send(Err(ConnectionError::Disconnected)).unwrap();
                         },
                     }
@@ -350,7 +322,8 @@ impl<RM: Message> Connection<RM> {
         }
     }
 
-    fn bind_udp<U: ToSocketAddrs>(bind_addr: &U) -> Result<UdpSocket, Error> {
+    #[allow(dead_code)]
+    fn bind_udp<T: ToSocketAddrs>(bind_addr: &T) -> Result<UdpSocket, Error> {
         let sock = UdpSocket::bind(&bind_addr);
         match sock {
             Ok(s) => Ok(s),

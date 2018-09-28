@@ -7,32 +7,32 @@ use std::{
     f32::consts::PI,
     net::ToSocketAddrs,
     sync::{
-        Arc,
         atomic::{AtomicBool, Ordering},
+        Arc,
     },
 };
-//use std::f32::{sin, cos};
 
 // Library
-use vek::*;
 use dot_vox;
 use fnv::FnvBuildHasher;
+use fps_counter::FPSCounter;
 use glutin::ElementState;
 use indexmap::IndexMap;
 use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
 use parking_lot::Mutex;
-use fps_counter::FPSCounter;
+use vek::*;
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
 use client::{self, Client, PlayMode, CHUNK_SIZE};
-use region::{Chunk, Container, VolState};
 use common::manager::Manager;
+use region::{Chunk, Container, VolState};
 
 // Local
 use camera::Camera;
 use consts::{ConstHandle, GlobalConsts};
+use hud::Hud;
 use key_state::KeyState;
 use keybinds::Keybinds;
 use pipeline::Pipeline;
@@ -41,10 +41,10 @@ use skybox;
 use tonemapper;
 use voxel;
 use window::{Event, RenderWindow};
-use hud::Hud;
 
 // TODO: This is experimental
 use new_ui;
+use RENDERER_INFO;
 
 pub enum ChunkPayload {
     Meshes(FnvIndexMap<voxel::MaterialKind, voxel::Mesh>),
@@ -95,6 +95,12 @@ fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk {
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: PlayMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
         let window = RenderWindow::new();
+        let info = window.get_renderer_info();
+        println!(
+            "Graphics card info - vendor: {} model: {} OpenGL: {}",
+            info.vendor, info.model, info.gl_version
+        );
+        *RENDERER_INFO.lock() = Some(info);
 
         let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, view_distance)
             .expect("Could not create new client");
@@ -172,7 +178,7 @@ impl Game {
         }
     }
 
-    pub fn handle_window_events(&self) -> bool {
+    pub fn handle_window_events(&self) {
         self.window.handle_events(|event| {
             match event {
                 Event::CloseRequest => self.running.store(false, Ordering::Relaxed),
@@ -241,7 +247,7 @@ impl Game {
                                 ElementState::Released => false,
                             }
                         } else if keypress_eq(&general.crouch, i.scancode) {
-                            // self.key_state.lock().unwrap().fall = match i.state { // Default: Shift (fall)
+                            // self.key_state.lock().fall = match i.state { // Default: Shift (fall)
                             //     ElementState::Pressed => true,
                             //     ElementState::Released => false,
                             // }
@@ -288,11 +294,7 @@ impl Game {
             player_entity.ctrl_acc_mut().y = mov_vec.y;
 
             // Apply jumping
-            player_entity.ctrl_acc_mut().z = if self.key_state.lock().jump() {
-                1.0
-            } else {
-                0.0
-            };
+            player_entity.ctrl_acc_mut().z = if self.key_state.lock().jump() { 1.0 } else { 0.0 };
 
             let looking = (*player_entity.vel() * LOOKING_VEL_FAC
                 + *player_entity.ctrl_acc_mut() * LOOKING_CTRL_ACC_FAC)
@@ -306,8 +308,6 @@ impl Game {
             // Apply leaning
             player_entity.look_dir_mut().y = Vec2::new(looking.x, looking.y).magnitude() * LEANING_FAC;
         }
-
-        self.running.load(Ordering::Relaxed)
     }
 
     pub fn handle_client_events(&mut self) {
@@ -368,7 +368,7 @@ impl Game {
         let mut renderer = self.window.renderer_mut();
 
         // Update each entity constbuffer
-        for (uid, entity) in self.client.entities().iter() {
+        for (_, entity) in self.client.entities().iter() {
             let mut entity = entity.write();
 
             // Calculate entity model matrix
@@ -424,7 +424,7 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Render each chunk
-        for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
+        for (_, con) in self.client.chunk_mgr().persistence().data().iter() {
             let con = con.write();
             if let Some(payload) = con.payload() {
                 if let ChunkPayload::Model {
@@ -439,7 +439,7 @@ impl Game {
         }
 
         // Render each entity
-        for (uid, entity) in self.client.entities().iter() {
+        for (_uid, entity) in self.client.entities().iter() {
             // Choose the correct model for the entity
             let model = match self.client.player().entity_uid {
                 Some(uid) if uid == uid => &self.player_model,
@@ -467,12 +467,25 @@ impl Game {
             use get_build_time;
             use get_git_hash;
 
-            self.hud.debug_box().version_label.set_text(format!("Version: {}", env!("CARGO_PKG_VERSION")));
-            self.hud.debug_box().githash_label.set_text(format!("Git hash: {}", &get_git_hash()[..8]));
-            self.hud.debug_box().buildtime_label.set_text(format!("Build time: {}", get_build_time()));
-            self.hud.debug_box().fps_label.set_text(format!("FPS: {}", self.last_fps));
+            self.hud
+                .debug_box()
+                .version_label
+                .set_text(format!("Version: {}", env!("CARGO_PKG_VERSION")));
+            self.hud
+                .debug_box()
+                .githash_label
+                .set_text(format!("Git hash: {}", &get_git_hash()[..8]));
+            self.hud
+                .debug_box()
+                .buildtime_label
+                .set_text(format!("Build time: {}", get_build_time()));
+            self.hud
+                .debug_box()
+                .fps_label
+                .set_text(format!("FPS: {}", self.last_fps));
 
-            let pos_text = self.client
+            let pos_text = self
+                .client
                 .player_entity()
                 .map(|p| format!("Pos: {}", p.read().pos().map(|e| e as i64)))
                 .unwrap_or("Unknown position".to_string());
@@ -488,9 +501,9 @@ impl Game {
     }
 
     pub fn run(&mut self) {
-        while self.handle_window_events() {
+        while self.running.load(Ordering::Relaxed) {
+            self.handle_window_events();
             self.handle_client_events();
-
             self.update_chunks();
             self.update_entities();
 

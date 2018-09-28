@@ -8,7 +8,7 @@ extern crate syrup;
 #[macro_use]
 extern crate log;
 
-use std::{io, sync::mpsc};
+use std::{io, process::exit, sync::mpsc};
 
 use syrup::Window;
 
@@ -44,8 +44,13 @@ fn main() {
         alias = default_alias.to_string();
     }
 
-    let client = Client::<Payloads>::new(PlayMode::Headless, alias, &remote_addr.trim(), gen_payload, 0)
-        .unwrap_or_else(|e| panic!("An error occured when attempting to initiate the client: {:?}", e));
+    let client = match Client::<Payloads>::new(PlayMode::Headless, alias, &remote_addr.trim(), gen_payload, 0) {
+        Ok(c) => c,
+        Err(e) => {
+            println!("An error occured when attempting to initiate the client: {:?}", e);
+            exit(0);
+        },
+    };
 
     let (tx, rx) = mpsc::channel();
     client.callbacks().set_recv_chat_msg(move |text| {

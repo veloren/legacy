@@ -1,8 +1,12 @@
+// Standard
 use std::{
     iter::IntoIterator,
-    sync::{Arc, RwLock, Weak},
+    sync::{Arc, Weak},
     thread::{self, JoinHandle},
 };
+
+// Library
+use parking_lot::RwLock;
 
 pub struct Jobs<T: 'static + Sync + Send> {
     root_ref: RwLock<Weak<T>>,
@@ -15,13 +19,13 @@ impl<T: 'static + Sync + Send> Jobs<T> {
         }
     }
 
-    pub fn set_root(&self, root: Arc<T>) { *self.root_ref.write().unwrap() = Arc::downgrade(&root); }
+    pub fn set_root(&self, root: Arc<T>) { *self.root_ref.write() = Arc::downgrade(&root); }
 
     pub fn do_once<F, U: 'static + Send>(&self, job_func: F) -> JobHandle<U>
     where
         F: FnOnce(&Arc<T>) -> U + Send + 'static,
     {
-        let root = self.root_ref.read().unwrap().upgrade().expect("Root no longer exists");
+        let root = self.root_ref.read().upgrade().expect("Root no longer exists");
 
         JobHandle::new(thread::spawn(move || {
             let root_ref = root;
@@ -33,7 +37,7 @@ impl<T: 'static + Sync + Send> Jobs<T> {
     where
         F: Fn(&Arc<T>) -> bool + Copy + Send + 'static,
     {
-        let root = self.root_ref.read().unwrap().upgrade().expect("Root no longer exists");
+        let root = self.root_ref.read().upgrade().expect("Root no longer exists");
 
         JobHandle::new(thread::spawn(move || {
             let root_ref = root;

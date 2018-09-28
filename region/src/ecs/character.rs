@@ -2,6 +2,12 @@
 use specs::{Component, VecStorage};
 use vek::*;
 
+// Project
+use common::msg::CompStore;
+
+// Local
+use super::NetComp;
+
 // Character
 
 #[derive(Debug)]
@@ -13,6 +19,14 @@ impl Component for Character {
     type Storage = VecStorage<Self>;
 }
 
+impl NetComp for Character {
+    fn to_store(&self) -> Option<CompStore> {
+        Some(CompStore::Character {
+            name: self.name.clone(),
+        })
+    }
+}
+
 // Health
 
 #[derive(Debug)]
@@ -20,4 +34,8 @@ pub struct Health(pub u32);
 
 impl Component for Health {
     type Storage = VecStorage<Self>;
+}
+
+impl NetComp for Health {
+    fn to_store(&self) -> Option<CompStore> { Some(CompStore::Health(self.0)) }
 }

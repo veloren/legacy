@@ -1,7 +1,7 @@
 // Modules
-pub mod phys;
-pub mod net;
 pub mod character;
+pub mod net;
+pub mod phys;
 #[cfg(test)]
 mod tests;
 
@@ -9,16 +9,20 @@ mod tests;
 use std::collections::HashMap;
 
 // Library
-use specs::{
-    World, Entity, Builder, EntityBuilder,
-    saveload::MarkedBuilder,
-};
+use specs::{saveload::MarkedBuilder, Builder, Component, Entity, EntityBuilder, World};
 use vek::*;
 
+// Project
+use common::msg::CompStore;
+
 // Local
-use self::phys::{Pos, Vel, Ori};
-use self::net::{SyncMarker, SyncNode};
-use self::character::{Character, Health};
+use self::{
+    character::{Character, Health},
+    net::{UidMarker, UidNode},
+    phys::{Dir, Pos, Vel},
+};
+
+const MAX_UIDS: u64 = 1_000_000_000;
 
 pub trait CreateUtil {
     fn create_character(&mut self, name: String) -> EntityBuilder;
@@ -29,12 +33,10 @@ impl CreateUtil for World {
         self.create_entity()
             .with(Pos(Vec3::zero()))
             .with(Vel(Vec3::zero()))
-            .with(Ori(Quaternion::identity()))
-            .with(Character {
-                name,
-            })
+            .with(Dir(Vec2::zero()))
+            .with(Character { name })
             .with(Health(100))
-            .marked::<SyncMarker>()
+            .marked::<UidMarker>()
     }
 }
 
@@ -42,18 +44,25 @@ pub fn create_world() -> World {
     let mut world = World::new();
 
     // Net
-    world.register::<SyncMarker>();
-    world.add_resource(SyncNode {
-        range: 0..1000000,
+    world.register::<UidMarker>();
+    world.add_resource(UidNode {
+        range: 0..MAX_UIDS,
         mapping: HashMap::new(),
     });
     // Phys
     world.register::<Pos>();
     world.register::<Vel>();
-    world.register::<Ori>();
+    world.register::<Dir>();
     // Character
     world.register::<Character>();
     world.register::<Health>();
 
     world
 }
+
+pub trait NetComp: Component {
+    fn to_store(&self) -> Option<CompStore> { None }
+}
+
+// Default impl
+impl<T> NetComp for T where T: Component {}

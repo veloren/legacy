@@ -1,13 +1,16 @@
-use vek::*;
+// Standard
+use std::any::Any;
+
+// Library
 use noise::{NoiseFn, OpenSimplex, Seedable};
 use rand::{prng::XorShiftRng, RngCore, SeedableRng};
+use vek::*;
 
+// Local
 use Block;
 use BlockMaterial;
 use Volume;
 use Voxel;
-
-use std::any::Any;
 
 #[derive(Clone)]
 pub struct Chunk {
@@ -33,7 +36,7 @@ impl Chunk {
 
         let mountain_noise = OpenSimplex::new().set_seed(8);
 
-        let color_noise = OpenSimplex::new().set_seed(9);
+        let _color_noise = OpenSimplex::new().set_seed(9);
 
         let temp_noise = OpenSimplex::new().set_seed(10);
 
@@ -61,7 +64,7 @@ impl Chunk {
                     let offs = Vec3::new(
                         offs_x_noise.get((pos * turbulence_scatter).into_array()),
                         offs_y_noise.get((pos * turbulence_scatter).into_array()),
-                        offs_z_noise.get((pos * turbulence_scatter).into_array())
+                        offs_z_noise.get((pos * turbulence_scatter).into_array()),
                     ) * terrain_turbulence;
 
                     let ridge = 1.0 - 2.0 * ridge_noise.get((pos / terrain_scale).into_array()).abs();
@@ -114,7 +117,7 @@ impl Chunk {
 
                 let offs2d = Vec2::new(
                     offs_x_noise.get((pos2d * 0.3).into_array()),
-                    offs_y_noise.get((pos2d * 0.3).into_array())
+                    offs_y_noise.get((pos2d * 0.3).into_array()),
                 ) * 32.0;
 
                 let mountain_offs = (mountain_noise.get([pos2d.x * 0.05, pos2d.y * 0.05]) * 32.0) as i64;
@@ -143,7 +146,10 @@ impl Chunk {
                                 for jj in -4..5 {
                                     for kk in -4..5 {
                                         if ii * ii + jj * jj + kk * kk < 25 + rng.next_u32() as i64 % 5 {
-                                            chunk.set(Vec3::new(i + ii, j + jj, k + kk), Block::new(BlockMaterial::Stone));
+                                            chunk.set(
+                                                Vec3::new(i + ii, j + jj, k + kk),
+                                                Block::new(BlockMaterial::Stone),
+                                            );
                                         }
                                     }
                                 }
@@ -158,7 +164,7 @@ impl Chunk {
                             for branch in 6 + big..40 + big * 2 {
                                 let v = Vec2::new(
                                     tree_noise.get((pos2d * 100.0 + branch as f64 + 0.0).into_array()),
-                                    tree_noise.get((pos2d * 100.0 + branch as f64 + 100.0).into_array())
+                                    tree_noise.get((pos2d * 100.0 + branch as f64 + 100.0).into_array()),
                                 ).normalized();
                                 for l in 0..25 + big * 4 {
                                     let inc = v.map(|e| (e * (1.0 - 0.025 * branch as f64) * 0.5 * l as f64) as i64);

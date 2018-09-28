@@ -8,4 +8,4 @@ common = { path = "../common" }
 region = { path = "../region" }
 log = "0.4"
 vek = "0.9"
-parking_lot = "0.6"
+parking_lot = { version = "0.6", features = ["nightly"] }

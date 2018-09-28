@@ -1,5 +1,4 @@
 // Library
-use vek::*;
 use gfx::{
     self,
     format::Formatted,
@@ -8,6 +7,7 @@ use gfx::{
     Device, Encoder, Factory,
 };
 use gfx_device_gl;
+use vek::*;
 
 pub type HdrFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
 pub type ColorFormat = gfx::format::Srgba8;
@@ -20,6 +20,12 @@ pub type HdrDepthView = DepthStencilView<gfx_device_gl::Resources, HdrDepthForma
 
 pub type HdrShaderView = ShaderResourceView<gfx_device_gl::Resources, <HdrFormat as Formatted>::View>;
 pub type HdrRenderView = RenderTargetView<gfx_device_gl::Resources, HdrFormat>;
+
+pub struct RendererInfo {
+    pub vendor: String,
+    pub model: String,
+    pub gl_version: String,
+}
 
 pub struct Renderer {
     device: gfx_device_gl::Device,
@@ -56,6 +62,15 @@ impl Renderer {
         }
     }
 
+    pub fn get_info(&self) -> RendererInfo {
+        let info = self.device.get_info();
+        RendererInfo {
+            vendor: String::from(info.platform_name.vendor),
+            model: String::from(info.platform_name.renderer),
+            gl_version: format!("{}.{}", info.version.major, info.version.minor),
+        }
+    }
+
     pub fn create_hdr_views(
         factory: &mut gfx_device_gl::Factory,
         size: (u16, u16),
@@ -88,9 +103,7 @@ impl Renderer {
     }
 
     #[allow(dead_code)]
-    pub fn encoder(&self) -> &Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer> {
-        &self.encoder
-    }
+    pub fn encoder(&self) -> &Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer> { &self.encoder }
     #[allow(dead_code)]
     pub fn encoder_mut(&mut self) -> &mut Encoder<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer> {
         &mut self.encoder
@@ -112,10 +125,7 @@ impl Renderer {
     pub fn hdr_sampler(&self) -> &Sampler<gfx_device_gl::Resources> { &self.hdr_sampler }
 
     pub fn get_view_resolution(&self) -> Vec2<u16> {
-        Vec2::new(
-            self.color_view.get_dimensions().0,
-            self.color_view.get_dimensions().1,
-        )
+        Vec2::new(self.color_view.get_dimensions().0, self.color_view.get_dimensions().1)
     }
 
     #[allow(dead_code)]

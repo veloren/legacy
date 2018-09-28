@@ -1,29 +1,23 @@
 // Library
-use vek::*;
-use gfx;
 use gfx::{
-    VertexBuffer,
-    BlendTarget,
+    self,
     preset::blend::ALPHA,
-    state::{ColorMask, Rasterizer},
-    Primitive::TriangleList,
     pso::PipelineInit,
-    PipelineState,
+    state::{ColorMask, Rasterizer},
     traits::FactoryExt,
+    BlendTarget, PipelineState,
+    Primitive::TriangleList,
+    VertexBuffer,
 };
 use gfx_device_gl;
-use lyon::{
-    tessellation,
-    tessellation::geometry_builder::{
-        BuffersBuilder,
-        VertexBuffers,
-        VertexConstructor,
-    },
+use lyon::tessellation::{
+    self,
+    geometry_builder::{BuffersBuilder, VertexBuffers, VertexConstructor},
 };
+use vek::*;
 
 // Local
-use renderer::ColorFormat;
-use renderer::Renderer;
+use renderer::{ColorFormat, Renderer};
 use shader::Shader;
 
 // Vertex
@@ -51,9 +45,7 @@ pub struct VertexFactory {
 }
 
 impl VertexFactory {
-    pub fn with_color(col: Rgba<f32>) -> VertexFactory {
-        VertexFactory { col }
-    }
+    pub fn with_color(col: Rgba<f32>) -> VertexFactory { VertexFactory { col } }
 }
 
 impl VertexConstructor<tessellation::FillVertex, FillVertex> for VertexFactory {
@@ -74,7 +66,8 @@ gfx_defines! {
 pub(crate) type FillPso = PipelineState<gfx_device_gl::Resources, <fill_pipeline::Init<'static> as PipelineInit>::Meta>;
 
 pub fn create_fill_pso(renderer: &mut Renderer) -> FillPso {
-    let vs = Shader::from_str("
+    let vs = Shader::from_str(
+        "
         #version 140
 
         in vec2 v_pos;
@@ -85,9 +78,11 @@ pub fn create_fill_pso(renderer: &mut Renderer) -> FillPso {
             gl_Position = vec4(vec2(2.0, -2.0) * v_pos + vec2(-1.0, 1.0), 0.0, 1.0);
             f_col = v_col;
         }
-    ");
+    ",
+    );
 
-    let fs = Shader::from_str("
+    let fs = Shader::from_str(
+        "
         #version 140
 
         in vec4 f_col;
@@ -96,18 +91,16 @@ pub fn create_fill_pso(renderer: &mut Renderer) -> FillPso {
         void main() {
             target = f_col;
         }
-    ");
+    ",
+    );
 
-    let program = renderer.factory_mut()
+    let program = renderer
+        .factory_mut()
         .link_program(vs.bytes(), fs.bytes())
         .expect("Failed to link fill PSO");
 
-    renderer.factory_mut()
-        .create_pipeline_from_program(
-            &program,
-            TriangleList,
-            Rasterizer::new_fill(),
-            fill_pipeline::new()
-        )
+    renderer
+        .factory_mut()
+        .create_pipeline_from_program(&program, TriangleList, Rasterizer::new_fill(), fill_pipeline::new())
         .expect("Failed to create fill PSO")
 }

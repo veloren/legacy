@@ -29,26 +29,9 @@ pub enum Weapon {
 }
 
 pub enum Item {
-    Stackable {
-        number: u8,
-        variant: Stackable,
-    },
-    Tool {
-        damage: u8,
-        quality: u8,
-        variant: Tool,
-    },
-    Food {
-        energy: u8,
-        variant: Food,
-    },
-    Potion {
-        effect: u8,
-        variant: Potion,
-    },
-    Weapon {
-        damage: u8,
-        strength: u8,
-        variant: Weapon,
-    },
+    Stackable { number: u8, variant: Stackable },
+    Tool { damage: u8, quality: u8, variant: Tool },
+    Food { energy: u8, variant: Food },
+    Potion { effect: u8, variant: Potion },
+    Weapon { damage: u8, strength: u8, variant: Weapon },
 }

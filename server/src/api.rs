@@ -1,14 +1,15 @@
 // Library
-use specs::prelude::*;
+use specs::{prelude::*, saveload::Marker};
 
 // Project
 use common::msg::ServerMsg;
+use region::ecs::net::UidMarker;
 
 // Local
-use Payloads;
-use Server;
 use net::{Client, DisconnectReason};
 use player::Player;
+use Payloads;
+use Server;
 
 pub trait Api {
     fn disconnect_player(&mut self, player: Entity, reason: DisconnectReason);
@@ -25,12 +26,16 @@ impl<P: Payloads> Api for Server<P> {
     fn disconnect_player(&mut self, player: Entity, reason: DisconnectReason) {
         // Stop the postoffice
         if let Some(client) = self.world.read_storage::<Client>().get(player) {
-            client.postoffice.stop();
+            let _ = client.postoffice.stop(); // We don't care if this fails
         }
 
         if let Some(player_comp) = self.world.read_storage::<Player>().get(player) {
             self.broadcast_chat_msg(&format!("[{} disconnected: {}]", player_comp.alias, reason));
             self.payload.on_player_disconnect(self, player, reason);
+        }
+
+        if let Some(uid) = self.world.read_storage::<UidMarker>().get(player) {
+            self.broadcast_net_msg(ServerMsg::EntityDeleted { uid: uid.id() });
         }
 
         let _ = self.world.delete_entity(player);
@@ -46,9 +51,7 @@ impl<P: Payloads> Api for Server<P> {
         }
     }
 
-    fn broadcast_chat_msg(&self, text: &str) {
-        self.broadcast_net_msg(ServerMsg::ChatMsg { text: text.to_string() });
-    }
+    fn broadcast_chat_msg(&self, text: &str) { self.broadcast_net_msg(ServerMsg::ChatMsg { text: text.to_string() }); }
 
     fn broadcast_net_msg(&self, msg: ServerMsg) {
         let clients = self.world.read_storage::<Client>();
@@ -59,11 +62,7 @@ impl<P: Payloads> Api for Server<P> {
         }
     }
 
-    fn world(&self) -> &World {
-        &self.world
-    }
+    fn world(&self) -> &World { &self.world }
 
-    fn world_mut(&mut self) -> &mut World {
-        &mut self.world
-    }
+    fn world_mut(&mut self) -> &mut World { &mut self.world }
 }

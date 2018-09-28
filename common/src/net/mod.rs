@@ -4,7 +4,7 @@ mod packet;
 mod protocol;
 mod tcp;
 #[cfg(test)]
-mod tests;
+pub mod tests;
 mod udp;
 pub mod udpmgr;
 

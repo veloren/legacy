@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use fnv::FnvBuildHasher;
 use gfx::{traits::FactoryExt, IndexBuffer, Slice};
 use gfx_device_gl;

@@ -7,13 +7,11 @@ use glutin::{
     ContextBuilder, DeviceEvent, Event as glutinEvent, EventsLoop, GlContext, GlRequest, GlWindow, WindowBuilder,
     WindowEvent,
 };
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use renderer::{ColorFormat, DepthFormat, Renderer};
+use renderer::{ColorFormat, DepthFormat, Renderer, RendererInfo};
 
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    RwLock, RwLockReadGuard, RwLockWriteGuard,
-};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 pub enum Event {
     CloseRequest,
@@ -70,7 +68,7 @@ impl RenderWindow {
             .with_vsync(true);
 
         let (gl_window, device, factory, color_view, depth_view) =
-            gfx_window_glutin::init::<ColorFormat, DepthFormat>(win_builder, ctx_builder, &events_loop.read().unwrap());
+            gfx_window_glutin::init::<ColorFormat, DepthFormat>(win_builder, ctx_builder, &events_loop.read());
 
         let size: (u32, u32) = gl_window
             .get_inner_size()
@@ -93,10 +91,15 @@ impl RenderWindow {
         rw
     }
 
+    pub fn get_renderer_info(&self) -> RendererInfo {
+        let renderer = self.renderer.read();
+        renderer.get_info()
+    }
+
     pub fn handle_events<'a, F: FnMut(Event)>(&self, mut func: F) {
         // We need to mutate these inside the closure, so we take a mutable reference
-        let gl_window = &mut self.gl_window.read().unwrap();
-        let events_loop = &mut self.events_loop.write().unwrap();
+        let gl_window = &mut self.gl_window.read();
+        let events_loop = &mut self.events_loop.write();
 
         events_loop.poll_events(|event| {
             let raw_event = event.clone();
@@ -112,8 +115,8 @@ impl RenderWindow {
                 },
                 glutin::Event::WindowEvent { event, .. } => match event {
                     WindowEvent::Resized(LogicalSize { width, height }) => {
-                        let mut color_view = self.renderer.read().unwrap().color_view().clone();
-                        let mut depth_view = self.renderer.read().unwrap().depth_view().clone();
+                        let mut color_view = self.renderer.read().color_view().clone();
+                        let mut depth_view = self.renderer.read().depth_view().clone();
                         gfx_window_glutin::update_views(&gl_window, &mut color_view, &mut depth_view);
                         let size: (u32, u32) = gl_window
                             .get_inner_size()
@@ -122,7 +125,6 @@ impl RenderWindow {
                             .into();
                         self.renderer
                             .write()
-                            .unwrap()
                             .set_views(color_view, depth_view, (size.0 as _, size.1 as _));
                         func(Event::Resized {
                             w: width as u32,
@@ -184,20 +186,15 @@ impl RenderWindow {
     }
 
     pub fn trap_cursor(&self) {
-        self.gl_window.read().unwrap().hide_cursor(true);
-        self.gl_window
-            .read()
-            .unwrap()
-            .grab_cursor(true)
-            .expect("Could not grab cursor!");
+        self.gl_window.read().hide_cursor(true);
+        self.gl_window.read().grab_cursor(true).expect("Could not grab cursor!");
         self.cursor_trapped.store(true, Ordering::Relaxed);
     }
 
     pub fn untrap_cursor(&self) {
-        self.gl_window.read().unwrap().hide_cursor(false);
+        self.gl_window.read().hide_cursor(false);
         self.gl_window
             .read()
-            .unwrap()
             .grab_cursor(false)
             .expect("Could not ungrab cursor!");
         self.cursor_trapped.store(false, Ordering::Relaxed);
@@ -206,13 +203,12 @@ impl RenderWindow {
     pub fn swap_buffers(&self) {
         self.gl_window
             .read()
-            .unwrap()
             .swap_buffers()
             .expect("Failed to swap window buffers");
     }
 
     pub fn get_size(&self) -> [f64; 2] {
-        let window = self.gl_window.read().unwrap();
+        let window = self.gl_window.read();
         match window.get_inner_size() {
             Some(LogicalSize { width: w, height: h }) => [w as f64, h as f64],
             None => [0.0, 0.0],
@@ -220,9 +216,9 @@ impl RenderWindow {
     }
 
     #[allow(dead_code)]
-    pub fn renderer(&self) -> RwLockReadGuard<Renderer> { self.renderer.read().unwrap() }
+    pub fn renderer(&self) -> RwLockReadGuard<Renderer> { self.renderer.read() }
     #[allow(dead_code)]
-    pub fn renderer_mut(&self) -> RwLockWriteGuard<Renderer> { self.renderer.write().unwrap() }
+    pub fn renderer_mut(&self) -> RwLockWriteGuard<Renderer> { self.renderer.write() }
 
     #[allow(dead_code)]
     pub fn cursor_trapped(&self) -> &AtomicBool { &self.cursor_trapped }

@@ -10,6 +10,7 @@ use gfx_device_gl;
 use shader::Shader;
 
 pub struct Pipeline<P: PipelineInit> {
+    #[allow(dead_code)]
     program: Program<gfx_device_gl::Resources>,
     pso: PipelineState<gfx_device_gl::Resources, P::Meta>,
 }

@@ -24,8 +24,8 @@ lyon = "0.11"
 gfx_glyph = "0.13"
 
 # Mathematics
-vek = "0.9.4"
-nalgebra = "0.15.1"
+nalgebra = "0.16"
+vek = "0.9"
 alga = "0.7.1"
 
 # File loading
@@ -43,7 +43,8 @@ serde_derive = "1.0"
 enum-map = "0.2.31"
 fnv = "1.0.3"
 indexmap = "1.0.1"
-parking_lot = "0.6"
+parking_lot = { version = "0.6", features = ["nightly"] }
+tempfile = "3.0"
 
 # Time
 time = "0.1.40"

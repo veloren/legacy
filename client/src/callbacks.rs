@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use parking_lot::Mutex;
 
 pub struct Callbacks {
     recv_chat_msg: Mutex<Option<Box<Fn(&str) + Send>>>,
@@ -12,13 +12,13 @@ impl Callbacks {
     }
 
     pub fn call_recv_chat_msg(&self, msg: &str) {
-        match *self.recv_chat_msg.lock().unwrap() {
+        match *self.recv_chat_msg.lock() {
             Some(ref f) => f(msg),
             None => {},
         }
     }
 
     pub fn set_recv_chat_msg<F: 'static + Fn(&str) + Send>(&self, f: F) {
-        *self.recv_chat_msg.lock().unwrap() = Some(Box::new(f));
+        *self.recv_chat_msg.lock() = Some(Box::new(f));
     }
 }

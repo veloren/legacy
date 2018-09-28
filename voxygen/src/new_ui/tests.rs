@@ -2,11 +2,9 @@
 use vek::*;
 
 // Local
-use super::{Ui, WinBox};
+use super::{element::WinBox, Ui};
 
 #[test]
 fn test_winbox() {
-    Ui::new(WinBox::new()
-        .with_background(Rgba::one())
-    ); // .render();
+    // TODO!
 }

@@ -11,7 +11,5 @@ pub enum Error {
 }
 
 impl From<io::Error> for Error {
-    fn from(e: io::Error) -> Self {
-        Error::IoErr(e)
-    }
+    fn from(e: io::Error) -> Self { Error::IoErr(e) }
 }

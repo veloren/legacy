@@ -1,13 +1,13 @@
 // Standard
 use std::{
     collections::HashMap,
+    io,
     net::{TcpStream, ToSocketAddrs},
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc::{self, RecvError, RecvTimeoutError, SendError},
         Arc,
     },
-    io,
     time::Duration,
 };
 
@@ -15,8 +15,8 @@ use std::{
 use parking_lot::Mutex;
 
 // Local
-use net::{Connection, Error, Message, UdpMgr};
 use manager::{Managed, Manager};
+use net::{Connection, Error, Message, UdpMgr};
 
 // Information
 // -----------
@@ -75,9 +75,7 @@ impl<SK: Message, SM: Message, RM: Message> PostBox<SK, SM, RM> {
 
     pub fn recv(&self) -> Result<RM, RecvError> { self.recv.recv() }
 
-    pub fn recv_timeout(&self, duration: Duration) -> Result<RM, RecvTimeoutError> {
-        self.recv.recv_timeout(duration)
-    }
+    pub fn recv_timeout(&self, duration: Duration) -> Result<RM, RecvTimeoutError> { self.recv.recv_timeout(duration) }
 
     pub fn close(self) -> Result<(), SendError<Result<Letter<SK, SM>, ()>>> {
         self.po_send.send(Ok(Letter::CloseBox(self.uid)))
@@ -99,8 +97,8 @@ pub struct PostOffice<SK: Message, SM: Message, RM: Message> {
     outgoing_recv: Mutex<mpsc::Receiver<Result<Letter<SK, SM>, ()>>>,
 
     // The send + recv ends of the incoming mpsc, used for cloning and passing to postboxes
-    incoming_send: Mutex<mpsc::Sender<Incoming<SK, SM, RM>>>,
-    incoming_recv: Mutex<mpsc::Receiver<Incoming<SK, SM, RM>>>,
+    incoming_send: Mutex<mpsc::Sender<Result<Incoming<SK, SM, RM>, ()>>>,
+    incoming_recv: Mutex<mpsc::Receiver<Result<Incoming<SK, SM, RM>, ()>>>,
 
     // The send ends for the PostBox incoming mpscs
     pb_sends: Mutex<HashMap<u64, mpsc::Sender<RM>>>,
@@ -137,7 +135,10 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
     }
 
     // Create a postoffice with a few characteristics
-    pub fn new_internal(start_uid: u64, conn: Arc<Connection<Letter<SK, RM>>>) -> Result<PostOffice<SK, SM, RM>, io::Error> {
+    pub fn new_internal(
+        start_uid: u64,
+        conn: Arc<Connection<Letter<SK, RM>>>,
+    ) -> Result<PostOffice<SK, SM, RM>, io::Error> {
         // Start the internal connection
         Connection::start(&conn);
 
@@ -178,15 +179,21 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
     // Create a new master postbox, triggering the creation of a slave postbox on the other end
     pub fn create_postbox(&self, kind: SK) -> PostBox<SK, SM, RM> {
         let uid = self.gen_uid();
-        let _ = self.outgoing_send.lock().send(Ok(Letter::OpenBox::<SK, SM> { uid, kind }));
+        let _ = self
+            .outgoing_send
+            .lock()
+            .send(Ok(Letter::OpenBox::<SK, SM> { uid, kind }));
         self.create_postbox_with_uid(uid)
     }
 
     // Handle incoming packets, returning any new incoming postboxes as they get created
-    pub fn await_incoming(&self) -> Result<Incoming<SK, SM, RM>, RecvError> {
+    pub fn await_incoming(&self) -> Result<Incoming<SK, SM, RM>, ()> {
         // Keep receiving messages, relaying the messages to their corresponding target postbox.
         // If Letter::OpenBox or Letter::Message are received, handle them appropriately
-        self.incoming_recv.lock().recv()
+        match self.incoming_recv.lock().recv() {
+            Ok(Ok(msg)) => Ok(msg),
+            _ => Err(()),
+        }
     }
 
     // Send a single one-off message to the remote postoffice
@@ -195,11 +202,12 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
     }
 
     // Stop the PostOffice
-    pub fn stop(&self) -> Result<(), SendError<Result<Letter<SK, SM>, ()>>> {
+    pub fn stop(&self) {
         // Send shutdown message to the remote (we don't care if this fails)
         let _ = self.outgoing_send.lock().send(Ok(Letter::Shutdown));
         // Close the connection
-        self.outgoing_send.lock().send(Err(()))
+        self.outgoing_send.lock().send(Err(()));
+        self.incoming_send.lock().send(Err(()));
     }
 }
 
@@ -223,14 +231,14 @@ impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
         // Create a worker to relay incoming messages from the connection
         Manager::add_worker(mgr, |po, running, _| {
             // Hold the incoming sender permanently
-            let incoming_send = po.incoming_send.lock();
+            let incoming_send = po.incoming_send.lock().clone();
             while running.load(Ordering::Relaxed) {
                 match po.conn.recv() {
                     Ok(Letter::OpenBox { uid, kind }) => {
-                        incoming_send.send(Incoming::Session(PostBoxSession {
+                        incoming_send.send(Ok(Incoming::Session(PostBoxSession {
                             postbox: po.create_postbox_with_uid(uid),
                             kind,
-                        }));
+                        })));
                     },
                     Ok(Letter::CloseBox(uid)) => {
                         po.pb_sends.lock().remove(&uid);
@@ -239,18 +247,16 @@ impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
                         po.pb_sends.lock().get(&uid).map(|s| s.send(payload));
                     },
                     Ok(Letter::OneShot(m)) => {
-                        incoming_send.send(Incoming::Msg(m));
+                        incoming_send.send(Ok(Incoming::Msg(m)));
                     },
                     Ok(Letter::Shutdown) | Err(_) => break,
                 }
             }
 
             // Send an end message to notify the user that the other end has disconnected
-            incoming_send.send(Incoming::End);
+            incoming_send.send(Ok(Incoming::End));
         });
     }
 
-    fn on_drop(&self, mgr: &mut Manager<Self>) {
-        Manager::internal(mgr).stop();
-    }
+    fn on_drop(&self, mgr: &mut Manager<Self>) { Manager::internal(mgr).stop(); }
 }

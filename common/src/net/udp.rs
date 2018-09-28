@@ -3,15 +3,19 @@ use std::{
     collections::vec_deque::VecDeque,
     io::{Cursor, Read, Write},
     net::{SocketAddr, ToSocketAddrs, UdpSocket},
-    sync::{Mutex, RwLock},
     thread::{self, Thread},
 };
 
 // Library
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use parking_lot::{Mutex, RwLock};
 
 // Parent
-use super::{packet::Frame, protocol::Protocol, Error};
+use super::{
+    packet::Frame,
+    protocol::{Protocol, PROTOCOL_FRAME_DATA, PROTOCOL_FRAME_HEADER},
+    Error,
+};
 
 #[derive(Debug)]
 pub struct Udp {
@@ -45,8 +49,8 @@ impl Udp {
     }
 
     pub fn received_raw_packet(&self, rawpacket: &Vec<u8>) {
-        self.in_buffer.write().unwrap().push_back(rawpacket.clone());
-        let mut lock = self.waiting_thread.lock().unwrap();
+        self.in_buffer.write().push_back(rawpacket.clone());
+        let mut lock = self.waiting_thread.lock();
         if let Some(ref t) = *lock {
             t.unpark();
         }
@@ -56,11 +60,11 @@ impl Udp {
 
 impl Protocol for Udp {
     fn send(&self, frame: Frame) -> Result<(), Error> {
-        let socket = self.socket.read().unwrap();
+        let socket = self.socket.read();
         match frame {
             Frame::Header { id, length } => {
                 let mut buff = Vec::with_capacity(17);
-                buff.write_u8(1)?; // 1 is const for Header
+                buff.write_u8(PROTOCOL_FRAME_HEADER)?;
                 buff.write_u64::<LittleEndian>(id)?;
                 buff.write_u64::<LittleEndian>(length)?;
                 socket.send_to(&buff, &self.remote)?;
@@ -68,7 +72,7 @@ impl Protocol for Udp {
             },
             Frame::Data { id, frame_no, data } => {
                 let mut buff = Vec::with_capacity(25 + data.len());
-                buff.write_u8(2)?; // 2 is const for Data
+                buff.write_u8(PROTOCOL_FRAME_DATA)?;
                 buff.write_u64::<LittleEndian>(id)?;
                 buff.write_u64::<LittleEndian>(frame_no)?;
                 buff.write_u64::<LittleEndian>(data.len() as u64)?;
@@ -83,9 +87,9 @@ impl Protocol for Udp {
     fn recv(&self) -> Result<Frame, Error> {
         println!("r1");
         {
-            if self.in_buffer.read().unwrap().is_empty() {
+            if self.in_buffer.read().is_empty() {
                 {
-                    let mut lock = self.waiting_thread.lock().unwrap();
+                    let mut lock = self.waiting_thread.lock();
                     match *lock {
                         Some(..) => panic!("Only one thread may wait for recv on udp"),
                         None => {
@@ -93,7 +97,7 @@ impl Protocol for Udp {
                         },
                     }
                 }
-                while self.in_buffer.read().unwrap().is_empty() {
+                while self.in_buffer.read().is_empty() {
                     // hope a unpark does never happen in between those two statements
                     println!("parked");
                     thread::park();
@@ -104,7 +108,7 @@ impl Protocol for Udp {
         println!("r2");
         let data;
         {
-            let mut lock = self.in_buffer.write().unwrap();
+            let mut lock = self.in_buffer.write();
             data = lock.pop_front().unwrap();
         }
         let mut cur = Cursor::new(data);

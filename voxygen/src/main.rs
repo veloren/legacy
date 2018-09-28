@@ -10,20 +10,19 @@ extern crate glutin;
 
 // Ui
 extern crate conrod;
-extern crate lyon;
-extern crate gfx_glyph;
 extern crate fps_counter;
+extern crate gfx_glyph;
+extern crate lyon;
 
 // Mathematics
-extern crate vek;
 extern crate alga;
 extern crate nalgebra;
+extern crate vek;
 
 // File loading
-#[macro_use]
-extern crate toml;
 extern crate dot_vox;
 extern crate glsl_include;
+extern crate toml;
 
 // I/O
 #[macro_use]
@@ -38,6 +37,7 @@ extern crate enum_map;
 extern crate fnv;
 extern crate indexmap;
 extern crate parking_lot;
+extern crate tempfile;
 
 // Time
 extern crate chrono;
@@ -52,17 +52,17 @@ mod camera;
 mod game;
 mod key_state;
 mod keybinds;
+mod new_ui;
 mod tests;
 mod ui;
 mod window;
-mod new_ui;
 
 // > Rendering
 mod consts;
+mod hud;
 mod pipeline;
 mod renderer;
 mod shader;
-mod hud;
 
 // > Pipelines
 mod skybox;
@@ -70,10 +70,16 @@ mod tonemapper;
 mod voxel;
 
 // Standard
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    panic,
+    thread::{self, sleep},
+    time::Duration,
+};
 
 // Library
 use chrono::{DateTime, TimeZone, Utc};
+use parking_lot::Mutex;
 
 // Project
 use client::PlayMode;
@@ -81,6 +87,7 @@ use common::get_version;
 
 // Local
 use game::Game;
+use renderer::RendererInfo;
 
 // START Environment variables
 const GIT_HASH: Option<&'static str> = option_env!("GIT_HASH");
@@ -88,15 +95,31 @@ const GIT_TIME: Option<&'static str> = option_env!("GIT_TIME");
 const PROFILE: Option<&'static str> = option_env!("PROFILE");
 const BUILD_TIME: Option<&'static str> = option_env!("BUILD_TIME");
 
-pub fn get_git_hash() -> String { GIT_HASH.unwrap_or("UNKNOWN GIT HASH").to_string() }
+pub fn get_git_hash() -> &'static str { GIT_HASH.unwrap_or("UNKNOWN GIT HASH") }
 pub fn get_git_time() -> DateTime<Utc> { Utc.timestamp(GIT_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0) }
-pub fn get_profile() -> String { PROFILE.unwrap_or("UNKNOWN PROFILE").to_string() }
+pub fn get_profile() -> &'static str { PROFILE.unwrap_or("UNKNOWN PROFILE") }
 
 pub fn get_build_time() -> DateTime<Utc> { Utc.timestamp(BUILD_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0) }
 // END Environment variables
 
+static RENDERER_INFO: Mutex<Option<RendererInfo>> = Mutex::new(None);
+
+fn set_panic_handler() {
+    let default_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |details| {
+        default_hook(details);
+        if let Some(info) = &*RENDERER_INFO.lock() {
+            println!(
+                "Graphics card info - vendor: {} model: {} OpenGL: {}",
+                info.vendor, info.model, info.gl_version
+            );
+        }
+    }));
+}
+
 fn main() {
     pretty_env_logger::init();
+    set_panic_handler();
 
     info!("Starting Voxygen... Version: {}", get_version());
 
@@ -157,6 +180,9 @@ fn main() {
     println!("using a view distance of {}.", view_distance);
 
     println!("Connecting to {}", remote_addr);
+
+    // wait 100ms to give the user time to lift their finger up from the enter key so the chat isn't opened immediately after start
+    thread::sleep(Duration::from_millis(100));
 
     Game::new(PlayMode::Character, name_choice, remote_addr, view_distance).run();
 }

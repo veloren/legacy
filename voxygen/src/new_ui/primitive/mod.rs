@@ -1,31 +1,28 @@
 // Standard
-use std::{
-    cell::Cell,
-    hash::Hash,
-};
+use std::{cell::Cell, hash::Hash};
 
 // Library
 use vek::*;
 
 // Library
+use gfx::traits::FactoryExt;
+use gfx_glyph::{GlyphBrush, GlyphBrushBuilder, Scale, Section};
 use lyon::{
     math::rect,
     tessellation::{
-        FillOptions,
         basic_shapes::fill_rectangle,
         geometry_builder::{BuffersBuilder, VertexBuffers},
+        FillOptions,
     },
 };
-use gfx::traits::FactoryExt;
-use gfx_glyph::{GlyphBrush, GlyphBrushBuilder, Section, Scale};
 
 // Local
+use super::{
+    render::{create_fill_pso, fill_pipeline, FillVertex, VertexFactory},
+    rescache::{GlyphBrushRes, RectVboRes, ResCache},
+};
 use renderer::Renderer;
 use shader::Shader;
-use super::{
-    rescache::{RectVboRes, GlyphBrushRes, ResCache},
-    render::{create_fill_pso, fill_pipeline, FillVertex, VertexFactory},
-};
 
 fn create_rect_vbo(renderer: &mut Renderer, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>) -> RectVboRes {
     let mut mesh: VertexBuffers<FillVertex, u16> = VertexBuffers::new();
@@ -36,10 +33,18 @@ fn create_rect_vbo(renderer: &mut Renderer, pos: Vec2<f32>, sz: Vec2<f32>, col: 
         &mut BuffersBuilder::new(&mut mesh, VertexFactory::with_color(col)),
     );
 
-    renderer.factory_mut().create_vertex_buffer_with_slice(&mesh.vertices[..], &mesh.indices[..])
+    renderer
+        .factory_mut()
+        .create_vertex_buffer_with_slice(&mesh.vertices[..], &mesh.indices[..])
 }
 
-pub(crate) fn draw_rectangle(renderer: &mut Renderer, rescache: &mut ResCache, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>) {
+pub(crate) fn draw_rectangle(
+    renderer: &mut Renderer,
+    rescache: &mut ResCache,
+    pos: Vec2<f32>,
+    sz: Vec2<f32>,
+    col: Rgba<f32>,
+) {
     let pso = rescache.get_or_create_fill_pso(|| create_fill_pso(renderer));
     let rect_vbo = rescache.get_or_create_rect_vbo(pos, sz, col, || create_rect_vbo(renderer, pos, sz, col));
 
@@ -62,7 +67,14 @@ fn create_glyph_brush(renderer: &mut Renderer, font: &'static [u8]) -> GlyphBrus
     GlyphBrushBuilder::using_font_bytes(font).build(renderer.factory().clone())
 }
 
-pub(crate) fn draw_text(renderer: &mut Renderer, rescache: &mut ResCache, text: &str, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>) {
+pub(crate) fn draw_text(
+    renderer: &mut Renderer,
+    rescache: &mut ResCache,
+    text: &str,
+    pos: Vec2<f32>,
+    sz: Vec2<f32>,
+    col: Rgba<f32>,
+) {
     // TODO: Properly hash all unique details of this glyph brush
     let brush = rescache.get_or_create_glyph_brush(0, || create_glyph_brush(renderer, UI_FONT));
 
@@ -79,5 +91,7 @@ pub(crate) fn draw_text(renderer: &mut Renderer, rescache: &mut ResCache, text: 
         ..Section::default()
     });
 
-    brush.borrow_mut().draw_queued(renderer.encoder_mut(), &color_view, &depth_view);
+    brush
+        .borrow_mut()
+        .draw_queued(renderer.encoder_mut(), &color_view, &depth_view);
 }

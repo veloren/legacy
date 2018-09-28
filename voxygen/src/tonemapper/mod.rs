@@ -1,8 +1,4 @@
-use gfx::{
-    self,
-    traits::{FactoryExt, Pod},
-    IndexBuffer, Slice,
-};
+use gfx::{self, IndexBuffer, Slice};
 use gfx_device_gl;
 
 use consts::{ConstHandle, GlobalConsts};

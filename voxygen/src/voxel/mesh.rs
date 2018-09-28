@@ -1,9 +1,9 @@
 // Library
-use vek::*;
 use fnv::FnvBuildHasher;
 use gfx;
 use gfx_device_gl;
 use indexmap::IndexMap;
+use vek::*;
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
@@ -85,6 +85,7 @@ pub struct Poly {
 }
 
 impl Poly {
+    #[allow(dead_code)]
     pub fn new(v0: Vertex, v1: Vertex, v2: Vertex) -> Poly { Poly { verts: [v0, v1, v2] } }
 }
 
@@ -111,6 +112,7 @@ impl Quad {
         }
     }
 
+    #[allow(dead_code)]
     pub fn flat_with_color(
         p0: [f32; 3],
         p1: [f32; 3],
@@ -176,12 +178,27 @@ where
     fn get_ao_at(&self, pos: Vec3<i64>, dir: Vec3<i64>) -> u8 {
         let vecs = if dir.x == 0 {
             if dir.y == 0 {
-                [Vec3::new(0, 0, 0), Vec3::new(-1, 0, 0), Vec3::new(0, -1, 0), Vec3::new(-1, -1, 0)]
+                [
+                    Vec3::new(0, 0, 0),
+                    Vec3::new(-1, 0, 0),
+                    Vec3::new(0, -1, 0),
+                    Vec3::new(-1, -1, 0),
+                ]
             } else {
-                [Vec3::new(0, 0, 0), Vec3::new(-1, 0, 0), Vec3::new(0, 0, -1), Vec3::new(-1, 0, -1)]
+                [
+                    Vec3::new(0, 0, 0),
+                    Vec3::new(-1, 0, 0),
+                    Vec3::new(0, 0, -1),
+                    Vec3::new(-1, 0, -1),
+                ]
             }
         } else {
-            [Vec3::new(0, 0, 0), Vec3::new(0, -1, 0), Vec3::new(0, 0, -1), Vec3::new(0, -1, -1)]
+            [
+                Vec3::new(0, 0, 0),
+                Vec3::new(0, -1, 0),
+                Vec3::new(0, 0, -1),
+                Vec3::new(0, -1, -1),
+            ]
         };
         vecs.iter().fold(0, |acc, v| {
             acc + if self.at(pos + *v).unwrap_or(V::VoxelType::empty()).is_opaque() {
@@ -253,7 +270,9 @@ impl Mesh {
         for x in 0..vol.size().x {
             for y in 0..vol.size().y {
                 for z in 0..vol.size().z {
-                    let vox = vol.at(Vec3::new(x, y, z)).expect("Attempted to mesh voxel outside volume");
+                    let vox = vol
+                        .at(Vec3::new(x, y, z))
+                        .expect("Attempted to mesh voxel outside volume");
                     let offset = Vec3::new(
                         (x as f32 + offs.x) * scale.x,
                         (y as f32 + offs.y) * scale.y,
@@ -386,6 +405,7 @@ impl Mesh {
 
     pub fn add(&mut self, verts: &[Vertex]) { self.verts.extend_from_slice(verts); }
 
+    #[allow(dead_code)]
     pub fn add_polys(&mut self, polys: &[Poly]) {
         for p in polys {
             self.verts.extend_from_slice(&p.verts);

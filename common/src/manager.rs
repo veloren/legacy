@@ -1,7 +1,12 @@
-use std::thread;
-use std::thread::JoinHandle;
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
-use std::ops::Deref;
+// Standard
+use std::{
+    ops::Deref,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    thread::{self, JoinHandle},
+};
 
 // Information
 // -----------
@@ -19,6 +24,7 @@ pub trait Managed: Send + Sync + Sized + 'static {
 #[derive(Debug)]
 pub struct Manager<T: Managed> {
     internal: Arc<T>,
+    root: bool,
 
     running: Arc<AtomicBool>,
     workers: Vec<JoinHandle<()>>,
@@ -28,8 +34,9 @@ impl<T: Managed> Manager<T> {
     pub fn init(internal: T) -> Manager<T> {
         let mut manager = Manager {
             internal: Arc::new(internal),
+            root: true,
             running: Arc::new(AtomicBool::new(true)),
-            workers: vec!(),
+            workers: vec![],
         };
 
         // Start workers
@@ -41,8 +48,9 @@ impl<T: Managed> Manager<T> {
     fn new_child(&self) -> Manager<T> {
         Manager {
             internal: self.internal.clone(),
+            root: false,
             running: Arc::new(AtomicBool::new(true)),
-            workers: vec!(),
+            workers: vec![],
         }
     }
 
@@ -51,19 +59,18 @@ impl<T: Managed> Manager<T> {
         let running = this.running.clone();
 
         let child_mgr = this.new_child();
-        this.workers.push(thread::spawn(move || {
-            f(&internal, &running, child_mgr)
-        }));
+        this.workers
+            .push(thread::spawn(move || f(&internal, &running, child_mgr)));
     }
 
     pub fn shutdown(this: &mut Self) {
-        this.internal.clone().on_drop(this);
-        this.running.store(false, Ordering::Relaxed);
+        if this.root {
+            this.internal.clone().on_drop(this);
+            this.running.store(false, Ordering::Relaxed);
+        }
     }
 
-    pub fn await_shutdown(mut this: Self) {
-        let _ = this.workers.drain(..).for_each(|w| w.join().unwrap());
-    }
+    pub fn await_shutdown(mut this: Self) { let _ = this.workers.drain(..).for_each(|w| w.join().unwrap()); }
 
     pub fn internal(this: &Self) -> &Arc<T> { &this.internal }
 }
@@ -71,9 +78,7 @@ impl<T: Managed> Manager<T> {
 impl<T: Managed> Deref for Manager<T> {
     type Target = T;
 
-    fn deref(&self) -> &T {
-        &self.internal
-    }
+    fn deref(&self) -> &T { &self.internal }
 }
 
 impl<T: Managed> Drop for Manager<T> {
@@ -85,28 +90,28 @@ impl<T: Managed> Drop for Manager<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::atomic::Ordering;
-    use std::thread;
-    use std::time::Duration;
     use super::{Managed, Manager};
+    use std::{sync::atomic::Ordering, thread, time::Duration};
 
     struct Server;
 
     impl Server {
-        fn new() -> Server {
-            Server
-        }
+        fn new() -> Server { Server }
     }
 
     impl Managed for Server {
         fn init_workers(&self, manager: &mut Manager<Self>) {
-            Manager::add_worker(manager, |_, running, _| while running.load(Ordering::Relaxed) {
-                //println!("Hello, world!")
+            Manager::add_worker(manager, |_, running, _| {
+                while running.load(Ordering::Relaxed) {
+                    //println!("Hello, world!")
+                }
             });
-            Manager::add_worker(manager, |_, running, mut mgr| while running.load(Ordering::Relaxed) {
-                //println!("Hi, planet!");
+            Manager::add_worker(manager, |_, running, mut mgr| {
+                while running.load(Ordering::Relaxed) {
+                    //println!("Hi, planet!");
 
-                Manager::add_worker(&mut mgr, |_, _, _| {})
+                    Manager::add_worker(&mut mgr, |_, _, _| {})
+                }
             });
         }
     }

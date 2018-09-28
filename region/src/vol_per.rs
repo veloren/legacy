@@ -1,11 +1,5 @@
 // Standard
-use std::{
-    cmp::Eq,
-    collections::HashMap,
-    hash::Hash,
-    marker::PhantomData,
-    sync::Arc,
-};
+use std::{cmp::Eq, collections::HashMap, hash::Hash, marker::PhantomData, sync::Arc};
 
 // Library
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};

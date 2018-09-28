@@ -1,20 +1,15 @@
 // Standard
 use std::{
+    cell::{Cell, Ref, RefCell},
     rc::Rc,
-    cell::{Cell, RefCell, Ref},
 };
 
 // Library
 use vek::*;
 
 // Local
+use super::{primitive::draw_text, Element, ResCache, Span};
 use renderer::Renderer;
-use super::{
-    Element,
-    ResCache,
-    Span,
-};
-use super::primitive::draw_text;
 
 #[derive(Clone)]
 pub struct Label {
@@ -56,15 +51,11 @@ impl Label {
     pub fn get_size(&self) -> Vec2<Span> { self.size.get() }
     pub fn set_size(&self, size: Vec2<Span>) { self.size.set(size); }
 
-    pub fn clone_all(&self) -> Rc<Self> {
-        Rc::new(self.clone())
-    }
+    pub fn clone_all(&self) -> Rc<Self> { Rc::new(self.clone()) }
 }
 
 impl Element for Label {
-    fn deep_clone(&self) -> Rc<dyn Element> {
-        self.clone_all()
-    }
+    fn deep_clone(&self) -> Rc<dyn Element> { self.clone_all() }
 
     fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache, bounds: (Vec2<f32>, Vec2<f32>)) {
         if let Some(text) = self.text.borrow().as_ref() {

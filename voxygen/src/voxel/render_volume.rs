@@ -1,5 +1,3 @@
-use std::cmp::{Ord, Ordering, PartialOrd};
-
 use region::{Block, BlockMaterial, Cell, CellMaterial, Chunk, Figure, Volume, Voxel};
 
 use voxel::{Material, MaterialKind, RenderMaterial};

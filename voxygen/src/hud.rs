@@ -6,17 +6,8 @@ use vek::*;
 
 // Local
 use new_ui::{
-    Ui,
-    ResCache,
-    Span,
-    element::{
-        Element,
-        WinBox,
-        HBox,
-        VBox,
-        Label,
-        Rect,
-    },
+    element::{Element, HBox, Label, Rect, VBox, WinBox},
+    ResCache, Span, Ui,
 };
 use renderer::Renderer;
 
@@ -35,12 +26,18 @@ impl Hud {
             .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
             .with_margin(Span::px(8, 8));
         for _ in 0..5 {
-            hotbar.push_back(Rect::new()
-                .with_color(Rgba::new(1.0, 0.8, 0.3, 1.0))
-                .with_padding(Span::px(8, 8))
+            hotbar.push_back(
+                Rect::new()
+                    .with_color(Rgba::new(1.0, 0.8, 0.3, 1.0))
+                    .with_padding(Span::px(8, 8)),
             );
         }
-        winbox.add_child_at(Span::bottom(), Span::bottom() + Span::px(0, 16), Span::px(296, 72), hotbar);
+        winbox.add_child_at(
+            Span::bottom(),
+            Span::bottom() + Span::px(0, 16),
+            Span::px(296, 72),
+            hotbar,
+        );
 
         let debug_box = DebugBox::new();
         winbox.add_child_at(
@@ -69,9 +66,7 @@ impl Hud {
     pub fn debug_box(&self) -> &DebugBox { &self.debug_box }
     pub fn chat_box(&self) -> &ChatBox { &self.chat_box }
 
-    pub fn render(&mut self, renderer: &mut Renderer) {
-        self.ui.render(renderer, &mut self.rescache);
-    }
+    pub fn render(&mut self, renderer: &mut Renderer) { self.ui.render(renderer, &mut self.rescache); }
 }
 
 pub struct DebugBox {
@@ -89,10 +84,11 @@ impl DebugBox {
             .with_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
             .with_margin(Span::px(8, 8));
 
-        vbox.push_back(Label::new()
-            .with_text("Debug".to_string())
-            .with_size(Span::px(16, 16))
-            .with_color(Rgba::new(1.0, 1.0, 1.0, 1.0))
+        vbox.push_back(
+            Label::new()
+                .with_text("Debug".to_string())
+                .with_size(Span::px(16, 16))
+                .with_color(Rgba::new(1.0, 1.0, 1.0, 1.0)),
         );
 
         let template_label = Label::new()
@@ -115,9 +111,7 @@ impl DebugBox {
         }
     }
 
-    fn root(&self) -> Rc<VBox> {
-        self.vbox.clone()
-    }
+    fn root(&self) -> Rc<VBox> { self.vbox.clone() }
 }
 
 pub struct ChatBox {
@@ -151,13 +145,8 @@ impl ChatBox {
 
     pub fn add_chat_msg(&self, text: String) {
         self.vbox.pop_front();
-        self.vbox.push_back(self.template_label
-            .clone_all()
-            .with_text(text)
-        );
+        self.vbox.push_back(self.template_label.clone_all().with_text(text));
     }
 
-    fn root(&self) -> Rc<VBox> {
-        self.vbox.clone()
-    }
+    fn root(&self) -> Rc<VBox> { self.vbox.clone() }
 }

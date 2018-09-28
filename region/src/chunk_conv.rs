@@ -5,14 +5,9 @@ use vek::*;
 use chunk::Chunk;
 use chunk_file::ChunkFile;
 use chunk_rle::ChunkRle;
-use vol_per::{Container, PersState, VolPers, VolumeConverter};
+use vol_per::{Container, PersState, VolumeConverter};
 use Block;
 use Volume;
-use Voxel;
-
-use std::{any::Any, cmp::Eq, collections::HashMap, hash::Hash, marker::PhantomData, sync::Arc, u8};
-
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 pub struct ChunkContainer<P> {
     payload: Option<P>,
@@ -113,8 +108,8 @@ impl<P: Send + Sync + 'static> VolumeConverter<ChunkContainer<P>> for ChunkConve
                 // File -> Rle -> Raw
             },
             PersState::Rle => {
-                let raw = container.get_mut(PersState::Raw);
-                let rle = container.get_mut(PersState::Rle);
+                let _raw = container.get_mut(PersState::Raw);
+                let _rle = container.get_mut(PersState::Rle);
                 // Raw -> Rle
                 // File -> Rle
             },

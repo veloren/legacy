@@ -1,7 +1,7 @@
 // Standard
-use std::{collections::HashMap, f32::INFINITY, sync::Arc, thread, time};
+use std::{collections::HashMap, sync::Arc, thread, time};
 
-// Library
+//Library
 use parking_lot::RwLock;
 use rand::prelude::*;
 use vek::*;

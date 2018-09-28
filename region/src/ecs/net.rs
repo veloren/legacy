@@ -3,11 +3,10 @@ use std::{collections::HashMap, ops::Range};
 
 // Library
 use specs::{
-    saveload::{MarkedBuilder, Marker, MarkerAllocator},
+    saveload::{Marker, MarkerAllocator},
     world::EntitiesRes,
     Component, DenseVecStorage, Entity, Join, ReadStorage,
 };
-use vek::*;
 
 // The marker components and marker allocator here are used
 // to map entities with a unique ID (UidMarker) that is consistent

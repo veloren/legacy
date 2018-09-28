@@ -72,8 +72,7 @@ mod voxel;
 // Standard
 use std::{
     io::{self, Write},
-    panic,
-    thread::{self, sleep},
+    panic, thread,
     time::Duration,
 };
 

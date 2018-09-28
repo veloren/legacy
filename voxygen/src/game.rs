@@ -6,10 +6,7 @@ use std::{
     cell::RefCell,
     f32::consts::PI,
     net::ToSocketAddrs,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 // Library
@@ -27,7 +24,7 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 // Project
 use client::{self, Client, PlayMode, CHUNK_SIZE};
 use common::manager::Manager;
-use region::{Chunk, Container, VolState};
+use region::{Chunk, Container};
 
 // Local
 use camera::Camera;
@@ -41,6 +38,7 @@ use skybox;
 use tonemapper;
 use voxel;
 use window::{Event, RenderWindow};
+use RENDERER_INFO;
 
 // TODO: This is experimental
 use new_ui;
@@ -463,7 +461,7 @@ impl Game {
             .render(&mut renderer, &self.client, &self.window.get_size());
 
         // TODO: Experimental
-        {
+        if false {
             use get_build_time;
             use get_git_hash;
 

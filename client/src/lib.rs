@@ -1,8 +1,6 @@
 #![feature(nll, euclidean_division)]
 
 // Crates
-#[macro_use]
-extern crate log;
 extern crate common;
 extern crate parking_lot;
 extern crate region;
@@ -26,8 +24,7 @@ use std::{
     mem,
     net::ToSocketAddrs,
     sync::{atomic::Ordering, Arc},
-    thread,
-    time::{self, Duration},
+    time::Duration,
 };
 
 // Library
@@ -35,9 +32,8 @@ use parking_lot::{Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 // Project
 use common::{
-    get_version,
     manager::{Managed, Manager},
-    msg::{ClientMsg, ClientPostBox, ClientPostOffice, ServerMsg, SessionKind},
+    msg::{ClientMsg, ClientPostOffice, ServerMsg, SessionKind},
     Uid,
 };
 use region::{Entity, VolGen, VolMgr};

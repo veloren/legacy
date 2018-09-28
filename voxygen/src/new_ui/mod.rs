@@ -17,8 +17,7 @@ use std::rc::Rc;
 use vek::*;
 
 // Local
-use self::element::Element;
-use self::rescache::ResCache;
+use self::{element::Element, rescache::ResCache};
 use renderer::Renderer;
 
 pub struct Ui {
@@ -35,6 +34,7 @@ impl Ui {
     }
 
     pub fn render(&mut self, renderer: &mut Renderer) {
-        self.base.render(renderer, &mut self.rescache, (Vec2::zero(), Vec2::one()));
+        self.base
+            .render(renderer, &mut self.rescache, (Vec2::zero(), Vec2::one()));
     }
 }

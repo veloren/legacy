@@ -179,7 +179,7 @@ impl Game {
         self.window.handle_events(|event| {
             // TODO: Experimental
             if false && self.hud.handle_event(&event, &mut self.window.renderer_mut()) {
-                return;
+                return true;
             }
 
             match event {
@@ -272,6 +272,7 @@ impl Game {
                 },
                 _ => {},
             }
+            false
         });
 
         // Calculate movement player movement vector

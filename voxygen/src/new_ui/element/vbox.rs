@@ -9,7 +9,7 @@ use std::{
 use vek::*;
 
 // Local
-use super::{primitive::draw_rectangle, Element, ResCache, Span, Event, Bounds};
+use super::{primitive::draw_rectangle, Bounds, Element, Event, ResCache, Span};
 use renderer::Renderer;
 
 #[allow(dead_code)]
@@ -61,8 +61,7 @@ impl VBox {
     pub fn set_margin(&self, margin: Vec2<Span>) { self.margin.set(margin); }
 
     fn bounds_for_child(&self, child_index: usize, scr_res: Vec2<f32>, bounds: Bounds) -> Bounds {
-        let margin_rel =
-            self.margin.get().map(|e| e.rel) * bounds.1 + self.margin.get().map(|e| e.px as f32) / scr_res;
+        let margin_rel = self.margin.get().map(|e| e.rel) * bounds.1 + self.margin.get().map(|e| e.px as f32) / scr_res;
         let child_bounds = (bounds.0 + margin_rel, bounds.1 - margin_rel * 2.0);
         let child_count = self.children.borrow().len();
         let offs = child_bounds.0 + Vec2::new(0.0, child_index as f32 * child_bounds.1.y / child_count as f32);
@@ -80,22 +79,18 @@ impl Element for VBox {
         let scr_res = renderer.get_view_resolution().map(|e| e as f32);
 
         for (i, child) in self.children.borrow().iter().enumerate() {
-            child.render(
-                renderer,
-                rescache,
-                self.bounds_for_child(i, scr_res, bounds),
-            );
+            child.render(renderer, rescache, self.bounds_for_child(i, scr_res, bounds));
         }
     }
 
     fn handle_event(&self, event: &Event, scr_res: Vec2<f32>, bounds: Bounds) -> bool {
-        self.children.borrow().iter().enumerate().fold(false, |used, (i, child)| {
-            used | child.handle_event(
-                event,
-                scr_res,
-                self.bounds_for_child(i, scr_res, bounds),
-            )
-        })
+        self.children
+            .borrow()
+            .iter()
+            .enumerate()
+            .fold(false, |used, (i, child)| {
+                used | child.handle_event(event, scr_res, self.bounds_for_child(i, scr_res, bounds))
+            })
     }
 }
 

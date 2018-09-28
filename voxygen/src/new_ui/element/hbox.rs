@@ -9,7 +9,7 @@ use std::{
 use vek::*;
 
 // Local
-use super::{primitive::draw_rectangle, Element, ResCache, Span, Bounds};
+use super::{primitive::draw_rectangle, Bounds, Element, ResCache, Span};
 use renderer::Renderer;
 
 #[allow(dead_code)]

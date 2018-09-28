@@ -8,7 +8,7 @@ use std::{
 use vek::*;
 
 // Local
-use super::{primitive::draw_rectangle, Element, ResCache, Span, Event, Bounds};
+use super::{primitive::draw_rectangle, Bounds, Element, Event, ResCache, Span};
 use renderer::Renderer;
 
 pub struct WinBoxChild {
@@ -61,8 +61,8 @@ impl WinBox {
 
     fn bounds_for_child(&self, child: &WinBoxChild, scr_res: Vec2<f32>, bounds: Bounds) -> Bounds {
         let size = child.size.map(|e| e.rel) * bounds.1 + child.size.map(|e| e.px as f32) / scr_res;
-        let offs = child.offset.map(|e| e.rel) * bounds.1 - child.anchor.map(|e| e.rel) * bounds.1 * size +
-            (child.offset.map(|e| e.px) - child.anchor.map(|e| e.px)).map(|e| e as f32) / scr_res;
+        let offs = child.offset.map(|e| e.rel) * bounds.1 - child.anchor.map(|e| e.rel) * bounds.1 * size
+            + (child.offset.map(|e| e.px) - child.anchor.map(|e| e.px)).map(|e| e as f32) / scr_res;
         (offs, size)
     }
 }
@@ -75,23 +75,18 @@ impl Element for WinBox {
 
         let scr_res = renderer.get_view_resolution().map(|e| e as f32);
 
-        for child in self.children.borrow().iter()
-        {
-            child.element.render(
-                renderer,
-                rescache,
-                self.bounds_for_child(child, scr_res, bounds),
-            );
+        for child in self.children.borrow().iter() {
+            child
+                .element
+                .render(renderer, rescache, self.bounds_for_child(child, scr_res, bounds));
         }
     }
 
     fn handle_event(&self, event: &Event, scr_res: Vec2<f32>, bounds: Bounds) -> bool {
         self.children.borrow().iter().fold(false, |used, child| {
-            used | child.element.handle_event(
-                event,
-                scr_res,
-                self.bounds_for_child(child, scr_res, bounds),
-            )
+            used | child
+                .element
+                .handle_event(event, scr_res, self.bounds_for_child(child, scr_res, bounds))
         })
     }
 }

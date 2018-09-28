@@ -8,7 +8,7 @@ use std::{
 use vek::*;
 
 // Local
-use super::{primitive::draw_text, Element, ResCache, Span, Bounds};
+use super::{primitive::draw_text, Bounds, Element, ResCache, Span};
 use renderer::Renderer;
 
 #[allow(dead_code)]

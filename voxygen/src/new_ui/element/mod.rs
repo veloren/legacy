@@ -1,20 +1,13 @@
 // Modules
+pub mod button;
 pub mod hbox;
 pub mod label;
 pub mod rect;
 pub mod vbox;
-pub mod button;
 pub mod winbox;
 
 // Rexports
-pub use self::{
-    hbox::HBox,
-    label::Label,
-    rect::Rect,
-    vbox::VBox,
-    button::Button,
-    winbox::WinBox,
-};
+pub use self::{button::Button, hbox::HBox, label::Label, rect::Rect, vbox::VBox, winbox::WinBox};
 
 // Standard
 use std::{cell::RefCell, rc::Rc};

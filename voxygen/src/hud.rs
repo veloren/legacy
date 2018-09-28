@@ -6,14 +6,7 @@ use vek::*;
 
 // Local
 use new_ui::{
-    element::{
-        HBox,
-        Label,
-        Rect,
-        VBox,
-        Button,
-        WinBox,
-    },
+    element::{Button, HBox, Label, Rect, VBox, WinBox},
     Span, Ui,
 };
 use renderer::Renderer;
@@ -62,6 +55,19 @@ impl Hud {
             chat_box.root(),
         );
 
+        winbox.add_child_at(
+            Span::top_right(),
+            Span::top_right() + Span::px(16, -16),
+            Span::px(128, 64),
+            Button::new()
+                .with_color(Rgba::new(1.0, 0.0, 0.0, 1.0))
+                .with_hover_color(Rgba::new(0.0, 1.0, 0.0, 1.0))
+                .with_click_color(Rgba::new(0.0, 0.0, 1.0, 1.0))
+                .with_click_fn(|_| println!("Clicked the button!"))
+                .with_margin(Span::px(8, 8))
+                .with_child(Label::new().with_color(Rgba::one()).with_text("Click me!".to_string())),
+        );
+
         Hud {
             ui: Ui::new(winbox),
             debug_box,
@@ -73,9 +79,7 @@ impl Hud {
     pub fn chat_box(&self) -> &ChatBox { &self.chat_box }
 
     pub fn render(&mut self, renderer: &mut Renderer) { self.ui.render(renderer); }
-    pub fn handle_event(&self, event: &Event, renderer: &mut Renderer) -> bool {
-        self.ui.handle_event(event, renderer)
-    }
+    pub fn handle_event(&self, event: &Event, renderer: &mut Renderer) -> bool { self.ui.handle_event(event, renderer) }
 }
 
 pub struct DebugBox {
@@ -109,7 +113,6 @@ impl DebugBox {
         let buildtime_label = vbox.push_back(template_label.clone_all());
         let fps_label = vbox.push_back(template_label.clone_all());
         let pos_label = vbox.push_back(template_label.clone_all());
-        vbox.push_back(Button::new().with_click_fn(|_| println!("Clicked the button!")));
 
         Self {
             version_label,
@@ -145,10 +148,7 @@ impl ChatBox {
             vbox.push_back(template_label.clone_all());
         }
 
-        Self {
-            vbox,
-            template_label,
-        }
+        Self { vbox, template_label }
     }
 
     pub fn add_chat_msg(&self, text: String) {

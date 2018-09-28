@@ -8,7 +8,7 @@ pub mod span;
 mod tests;
 
 // Reexports
-pub use self::{rescache::ResCache, span::Span};
+pub use self::span::Span;
 
 // Standard
 use std::rc::Rc;
@@ -18,16 +18,23 @@ use vek::*;
 
 // Local
 use self::element::Element;
+use self::rescache::ResCache;
 use renderer::Renderer;
 
 pub struct Ui {
     base: Rc<dyn Element>,
+    rescache: ResCache,
 }
 
 impl Ui {
-    pub fn new(base: Rc<dyn Element>) -> Ui { Ui { base } }
+    pub fn new(base: Rc<dyn Element>) -> Ui {
+        Ui {
+            base,
+            rescache: ResCache::new(),
+        }
+    }
 
-    pub fn render(&self, renderer: &mut Renderer, rescache: &mut ResCache) {
-        self.base.render(renderer, rescache, (Vec2::zero(), Vec2::one()));
+    pub fn render(&mut self, renderer: &mut Renderer) {
+        self.base.render(renderer, &mut self.rescache, (Vec2::zero(), Vec2::one()));
     }
 }

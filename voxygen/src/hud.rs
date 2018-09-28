@@ -7,13 +7,12 @@ use vek::*;
 // Local
 use new_ui::{
     element::{Element, HBox, Label, Rect, VBox, WinBox},
-    ResCache, Span, Ui,
+    Span, Ui,
 };
 use renderer::Renderer;
 
 pub struct Hud {
     ui: Ui,
-    rescache: ResCache,
     debug_box: DebugBox,
     chat_box: ChatBox,
 }
@@ -57,7 +56,6 @@ impl Hud {
 
         Hud {
             ui: Ui::new(winbox),
-            rescache: ResCache::new(),
             debug_box,
             chat_box,
         }
@@ -66,7 +64,7 @@ impl Hud {
     pub fn debug_box(&self) -> &DebugBox { &self.debug_box }
     pub fn chat_box(&self) -> &ChatBox { &self.chat_box }
 
-    pub fn render(&mut self, renderer: &mut Renderer) { self.ui.render(renderer, &mut self.rescache); }
+    pub fn render(&mut self, renderer: &mut Renderer) { self.ui.render(renderer); }
 }
 
 pub struct DebugBox {

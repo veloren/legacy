@@ -59,16 +59,8 @@ pub trait Payloads: 'static {
     type Entity: Send + Sync + 'static;
 }
 
-pub struct ClientEvents {
-    pub incoming_chat_msgs: Vec<String>,
-}
-
-impl ClientEvents {
-    pub fn empty() -> ClientEvents {
-        Self {
-            incoming_chat_msgs: Vec::new(),
-        }
-    }
+pub enum ClientEvent {
+    RecvChatMsg { text: String },
 }
 
 pub struct Client<P: Payloads> {
@@ -83,7 +75,7 @@ pub struct Client<P: Payloads> {
     chunk_mgr: VolMgr<Chunk, ChunkContainer<<P as Payloads>::Chunk>, ChunkConverter, <P as Payloads>::Chunk>,
 
     callbacks: RwLock<Callbacks>,
-    events: Mutex<ClientEvents>,
+    events: Mutex<Vec<ClientEvent>>,
 
     view_distance: i64,
 }
@@ -120,7 +112,7 @@ impl<P: Payloads> Client<P> {
                 chunk_mgr: VolMgr::new(CHUNK_SIZE, VolGen::new(world::gen_chunk, gen_payload)),
 
                 callbacks: RwLock::new(Callbacks::new()),
-                events: Mutex::new(ClientEvents::empty()),
+                events: Mutex::new(vec![]),
 
                 view_distance: view_distance.max(1).min(10),
             });
@@ -145,8 +137,8 @@ impl<P: Payloads> Client<P> {
         &self.chunk_mgr
     }
 
-    pub fn get_events(&self) -> ClientEvents {
-        let mut events = ClientEvents::empty();
+    pub fn get_events(&self) -> Vec<ClientEvent> {
+        let mut events = vec![];
         mem::swap(&mut events, &mut self.events.lock());
         events
     }

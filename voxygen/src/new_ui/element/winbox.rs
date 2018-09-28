@@ -18,12 +18,14 @@ pub struct WinBoxChild {
     element: Rc<dyn Element>,
 }
 
+#[allow(dead_code)]
 pub struct WinBox {
     col: Cell<Rgba<f32>>,
     children: RefCell<Vec<WinBoxChild>>,
 }
 
 impl WinBox {
+    #[allow(dead_code)]
     pub fn new() -> Rc<Self> {
         Rc::new(Self {
             col: Cell::new(Rgba::zero()),
@@ -31,11 +33,13 @@ impl WinBox {
         })
     }
 
+    #[allow(dead_code)]
     pub fn with_color(self: Rc<Self>, col: Rgba<f32>) -> Rc<Self> {
         self.col.set(col);
         self
     }
 
+    #[allow(dead_code)]
     pub fn add_child_at<E: Element>(
         &self,
         offset: Vec2<Span>,
@@ -52,6 +56,7 @@ impl WinBox {
         child
     }
 
+    #[allow(dead_code)]
     pub fn clone_all(&self) -> Rc<Self> { Rc::new(self.clone()) }
 }
 

@@ -8,6 +8,7 @@ use vek::*;
 use super::{primitive::draw_rectangle, Element, ResCache, Span};
 use renderer::Renderer;
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct Rect {
     col: Cell<Rgba<f32>>,
@@ -15,6 +16,7 @@ pub struct Rect {
 }
 
 impl Rect {
+    #[allow(dead_code)]
     pub fn new() -> Rc<Self> {
         Rc::new(Self {
             col: Cell::new(Rgba::one()),
@@ -22,22 +24,29 @@ impl Rect {
         })
     }
 
+    #[allow(dead_code)]
     pub fn with_color(self: Rc<Self>, col: Rgba<f32>) -> Rc<Self> {
         self.col.set(col);
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_padding(self: Rc<Self>, padding: Vec2<Span>) -> Rc<Self> {
         self.padding.set(padding);
         self
     }
 
+    #[allow(dead_code)]
     pub fn get_color(&self) -> Rgba<f32> { self.col.get() }
+    #[allow(dead_code)]
     pub fn set_color(&self, col: Rgba<f32>) { self.col.set(col); }
 
+    #[allow(dead_code)]
     pub fn get_padding(&self) -> Vec2<Span> { self.padding.get() }
+    #[allow(dead_code)]
     pub fn set_padding(&self, padding: Vec2<Span>) { self.padding.set(padding); }
 
+    #[allow(dead_code)]
     pub fn clone_all(&self) -> Rc<Self> { Rc::new(self.clone()) }
 }
 

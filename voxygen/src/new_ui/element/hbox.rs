@@ -12,6 +12,7 @@ use vek::*;
 use super::{primitive::draw_rectangle, Element, ResCache, Span};
 use renderer::Renderer;
 
+#[allow(dead_code)]
 pub struct HBox {
     col: Cell<Rgba<f32>>,
     margin: Cell<Vec2<Span>>,
@@ -19,6 +20,7 @@ pub struct HBox {
 }
 
 impl HBox {
+    #[allow(dead_code)]
     pub fn new() -> Rc<Self> {
         Rc::new(Self {
             col: Cell::new(Rgba::zero()),
@@ -27,29 +29,38 @@ impl HBox {
         })
     }
 
+    #[allow(dead_code)]
     pub fn with_color(self: Rc<Self>, col: Rgba<f32>) -> Rc<Self> {
         self.col.set(col);
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_margin(self: Rc<Self>, margin: Vec2<Span>) -> Rc<Self> {
         self.margin.set(margin);
         self
     }
 
+    #[allow(dead_code)]
     pub fn push_back<E: Element>(&self, child: Rc<E>) -> Rc<E> {
         self.children.borrow_mut().push_back(child.clone());
         child
     }
 
+    #[allow(dead_code)]
     pub fn pop_front(&self) -> Option<Rc<dyn Element>> { self.children.borrow_mut().pop_front() }
 
+    #[allow(dead_code)]
     pub fn get_color(&self) -> Rgba<f32> { self.col.get() }
+    #[allow(dead_code)]
     pub fn set_color(&self, col: Rgba<f32>) { self.col.set(col); }
 
+    #[allow(dead_code)]
     pub fn get_margin(&self) -> Vec2<Span> { self.margin.get() }
+    #[allow(dead_code)]
     pub fn set_margin(&self, margin: Vec2<Span>) { self.margin.set(margin); }
 
+    #[allow(dead_code)]
     pub fn clone_all(&self) -> Rc<Self> { Rc::new(self.clone()) }
 }
 

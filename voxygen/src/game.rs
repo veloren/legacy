@@ -22,7 +22,7 @@ use vek::*;
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
-use client::{self, Client, PlayMode, CHUNK_SIZE};
+use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::manager::Manager;
 use region::{Chunk, Container};
 
@@ -310,8 +310,8 @@ impl Game {
     pub fn handle_client_events(&mut self) {
         let mut events = self.client.get_events();
 
-        events.incoming_chat_msgs.drain(..).for_each(|text| {
-            self.hud.chat_box().add_chat_msg(text);
+        events.drain(..).for_each(|event| match event {
+            ClientEvent::RecvChatMsg { text } => self.hud.chat_box().add_chat_msg(text),
         });
     }
 

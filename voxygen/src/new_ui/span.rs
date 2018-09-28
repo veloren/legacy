@@ -4,6 +4,7 @@ use std::ops::*;
 // Library
 use vek::*;
 
+#[allow(dead_code)]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Span {
     pub rel: f32,
@@ -11,32 +12,46 @@ pub struct Span {
 }
 
 impl Span {
+    #[allow(dead_code)]
     pub fn zero() -> Vec2<Self> { Self::rel(0.0, 0.0) }
 
+    #[allow(dead_code)]
     pub fn full() -> Vec2<Self> { Self::rel(1.0, 1.0) }
 
+    #[allow(dead_code)]
     pub fn center() -> Vec2<Self> { Self::rel(0.5, 0.5) }
 
+    #[allow(dead_code)]
     pub fn left() -> Vec2<Self> { Self::rel(0.0, 0.5) }
 
+    #[allow(dead_code)]
     pub fn right() -> Vec2<Self> { Self::rel(1.0, 0.5) }
 
+    #[allow(dead_code)]
     pub fn top() -> Vec2<Self> { Self::rel(0.5, 0.0) }
 
+    #[allow(dead_code)]
     pub fn bottom() -> Vec2<Self> { Self::rel(0.5, 1.0) }
 
+    #[allow(dead_code)]
     pub fn top_left() -> Vec2<Self> { Self::rel(0.0, 0.0) }
 
+    #[allow(dead_code)]
     pub fn top_right() -> Vec2<Self> { Self::rel(1.0, 0.0) }
 
+    #[allow(dead_code)]
     pub fn bottom_left() -> Vec2<Self> { Self::rel(0.0, 1.0) }
 
+    #[allow(dead_code)]
     pub fn bottom_right() -> Vec2<Self> { Self::rel(1.0, 1.0) }
 
+    #[allow(dead_code)]
     pub fn rel(x: f32, y: f32) -> Vec2<Self> { Self::rel_and_px(x, y, 0, 0) }
 
+    #[allow(dead_code)]
     pub fn px(x: i32, y: i32) -> Vec2<Self> { Self::rel_and_px(0.0, 0.0, x, y) }
 
+    #[allow(dead_code)]
     pub fn rel_and_px(rx: f32, ry: f32, px: i32, py: i32) -> Vec2<Self> {
         Vec2::new(Span { rel: rx, px: px }, Span { rel: ry, px: py })
     }

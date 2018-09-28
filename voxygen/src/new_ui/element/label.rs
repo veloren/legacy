@@ -11,6 +11,7 @@ use vek::*;
 use super::{primitive::draw_text, Element, ResCache, Span};
 use renderer::Renderer;
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct Label {
     text: RefCell<Option<String>>,
@@ -19,6 +20,7 @@ pub struct Label {
 }
 
 impl Label {
+    #[allow(dead_code)]
     pub fn new() -> Rc<Self> {
         Rc::new(Self {
             text: RefCell::new(None),
@@ -27,30 +29,40 @@ impl Label {
         })
     }
 
+    #[allow(dead_code)]
     pub fn with_text(self: Rc<Self>, text: String) -> Rc<Self> {
         *self.text.borrow_mut() = Some(text);
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_color(self: Rc<Self>, col: Rgba<f32>) -> Rc<Self> {
         self.col.set(col);
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_size(self: Rc<Self>, size: Vec2<Span>) -> Rc<Self> {
         self.size.set(size);
         self
     }
 
+    #[allow(dead_code)]
     pub fn get_text(&self) -> Ref<Option<String>> { self.text.borrow() }
+    #[allow(dead_code)]
     pub fn set_text(&self, text: String) { *self.text.borrow_mut() = Some(text); }
 
+    #[allow(dead_code)]
     pub fn get_color(&self) -> Rgba<f32> { self.col.get() }
+    #[allow(dead_code)]
     pub fn set_color(&self, col: Rgba<f32>) { self.col.set(col); }
 
+    #[allow(dead_code)]
     pub fn get_size(&self) -> Vec2<Span> { self.size.get() }
+    #[allow(dead_code)]
     pub fn set_size(&self, size: Vec2<Span>) { self.size.set(size); }
 
+    #[allow(dead_code)]
     pub fn clone_all(&self) -> Rc<Self> { Rc::new(self.clone()) }
 }
 

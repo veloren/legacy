@@ -20,12 +20,14 @@ use vek::*;
 use self::{element::Element, rescache::ResCache};
 use renderer::Renderer;
 
+#[allow(dead_code)]
 pub struct Ui {
     base: Rc<dyn Element>,
     rescache: ResCache,
 }
 
 impl Ui {
+    #[allow(dead_code)]
     pub fn new(base: Rc<dyn Element>) -> Ui {
         Ui {
             base,
@@ -33,6 +35,7 @@ impl Ui {
         }
     }
 
+    #[allow(dead_code)]
     pub fn render(&mut self, renderer: &mut Renderer) {
         self.base
             .render(renderer, &mut self.rescache, (Vec2::zero(), Vec2::one()));

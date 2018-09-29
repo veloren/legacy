@@ -1,0 +1,3 @@
+[submodule "voxygen/assets"]
+	path = voxygen/assets
+	url = git@gitlab.com:veloren/assets/legacy_assets.git

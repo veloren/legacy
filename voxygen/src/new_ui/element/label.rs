@@ -16,6 +16,8 @@ use renderer::Renderer;
 pub struct Label {
     text: RefCell<Option<String>>,
     col: Cell<Rgba<f32>>,
+    bg_col: Cell<Rgba<f32>>,
+    padding: Cell<Vec2<Span>>,
     size: Cell<Vec2<Span>>,
 }
 
@@ -25,6 +27,8 @@ impl Label {
         Rc::new(Self {
             text: RefCell::new(None),
             col: Cell::new(Rgba::new(0.0, 0.0, 0.0, 1.0)),
+            bg_col: Cell::new(Rgba::new(1.0, 1.0, 1.0, 1.0)),
+            padding: Cell::new(Span::zero()),
             size: Cell::new(Span::px(16, 16)),
         })
     }

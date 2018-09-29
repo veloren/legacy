@@ -1,21 +1,34 @@
 // Standard
-use std::rc::Rc;
+use std::{
+    rc::Rc,
+    cell::RefCell,
+    sync::atomic::{AtomicBool, Ordering},
+    mem,
+};
 
 // Library
 use vek::*;
 
 // Local
 use new_ui::{
-    element::{Button, HBox, Label, Rect, VBox, WinBox},
+    element::{Button, HBox, Label, Rect, VBox, WinBox, TextBox},
     Span, Ui,
 };
 use renderer::Renderer;
 use window::Event;
 
+pub enum HudEvent {
+    ChatMsgSent { text: String },
+}
+
 pub struct Hud {
     ui: Ui,
     debug_box: DebugBox,
     chat_box: ChatBox,
+    chatbox_input: Rc<TextBox>,
+
+    chat_enabled: Rc<AtomicBool>,
+    events: Rc<RefCell<Vec<HudEvent>>>,
 }
 
 impl Hud {
@@ -50,36 +63,86 @@ impl Hud {
         let chat_box = ChatBox::new();
         winbox.add_child_at(
             Span::bottom_left(),
-            Span::bottom_left() + Span::px(-16, 16),
+            Span::bottom_left() + Span::px(-16, 56),
             Span::px(316, 176),
             chat_box.root(),
         );
 
+        let chat_enabled = Rc::new(AtomicBool::new(false));
+        let events = Rc::new(RefCell::new(vec![]));
+
+        let chat_enabled_ref = chat_enabled.clone();
+        let events_ref = events.clone();
+
+        let chatbox_input = TextBox::new()
+            .with_color(Rgba::new(1.0, 1.0, 1.0, 1.0))
+            .with_background_color(Rgba::new(0.0, 0.0, 0.0, 0.8))
+            .with_margin(Span::px(8, 8))
+            .with_return_fn(move |chatbox_input, text| {
+                if chat_enabled_ref.load(Ordering::Relaxed) {
+                    events_ref.borrow_mut().push(HudEvent::ChatMsgSent{
+                        text: text.to_string(),
+                    });
+                    chat_enabled_ref.store(false, Ordering::Relaxed);
+                }
+                chatbox_input.set_background_color(Rgba::new(0.0, 0.0, 0.0, 0.8));
+            })
+            .with_text("".to_string());
+
         winbox.add_child_at(
-            Span::top_right(),
-            Span::top_right() + Span::px(16, -16),
-            Span::px(128, 64),
-            Button::new()
-                .with_color(Rgba::new(1.0, 0.0, 0.0, 1.0))
-                .with_hover_color(Rgba::new(0.0, 1.0, 0.0, 1.0))
-                .with_click_color(Rgba::new(0.0, 0.0, 1.0, 1.0))
-                .with_click_fn(|_| println!("Clicked the button!"))
-                .with_margin(Span::px(8, 8))
-                .with_child(Label::new().with_color(Rgba::one()).with_text("Click me!".to_string())),
+            Span::bottom_left(),
+            Span::bottom_left() + Span::px(-16, 16),
+            Span::px(316, 32),
+            chatbox_input.clone(),
         );
 
         Hud {
             ui: Ui::new(winbox),
             debug_box,
             chat_box,
+            chatbox_input,
+
+            chat_enabled,
+            events,
         }
     }
 
     pub fn debug_box(&self) -> &DebugBox { &self.debug_box }
     pub fn chat_box(&self) -> &ChatBox { &self.chat_box }
 
+    pub fn get_events(&self) -> Vec<HudEvent> {
+        let mut events = vec![];
+        mem::swap(&mut *self.events.borrow_mut(), &mut events);
+        events
+    }
+
     pub fn render(&mut self, renderer: &mut Renderer) { self.ui.render(renderer); }
-    pub fn handle_event(&self, event: &Event, renderer: &mut Renderer) -> bool { self.ui.handle_event(event, renderer) }
+    pub fn handle_event(&self, event: &Event, renderer: &mut Renderer) -> bool {
+        match event {
+            Event::Character { ch } => {
+                if self.chat_enabled.load(Ordering::Relaxed) {
+                    self.ui.handle_event(event, renderer)
+                } else {
+                    if *ch == '\n' || *ch == '\r' {
+                        self.chat_enabled.store(true, Ordering::Relaxed);
+                        self.chatbox_input.set_background_color(Rgba::new(0.0, 0.0, 0.3, 0.8));
+
+                        true
+                    } else {
+                        false
+                    }
+                }
+            },
+            Event::KeyboardInput { i, device } => {
+                if self.chat_enabled.load(Ordering::Relaxed) {
+                    self.ui.handle_event(event, renderer)
+                } else {
+                    false
+                }
+            },
+            _ => self.ui.handle_event(event, renderer),
+        }
+    }
 }
 
 pub struct DebugBox {

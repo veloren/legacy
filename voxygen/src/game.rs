@@ -42,6 +42,7 @@ use RENDERER_INFO;
 
 // TODO: This is experimental
 use new_ui;
+use hud::HudEvent;
 
 pub enum ChunkPayload {
     Meshes(FnvIndexMap<voxel::MaterialKind, voxel::Mesh>),
@@ -178,7 +179,7 @@ impl Game {
     pub fn handle_window_events(&self) {
         self.window.handle_events(|event| {
             // TODO: Experimental
-            if false && self.hud.handle_event(&event, &mut self.window.renderer_mut()) {
+            if true && self.hud.handle_event(&event, &mut self.window.renderer_mut()) {
                 return true;
             }
 
@@ -202,7 +203,7 @@ impl Game {
 
                     // Helper variables to clean up code. Add any new input modes here.
                     let general = &self.keys.general;
-                    let show_chat = self.ui.borrow().get_show_chat();
+                    //let show_chat = self.ui.borrow().get_show_chat();
 
                     // General inputs -------------------------------------------------------------
                     if keypress_eq(&general.pause, i.scancode) {
@@ -214,10 +215,10 @@ impl Game {
                             self.running.store(false, Ordering::Relaxed);
                         }
                     } else if keypress_eq(&general.chat, i.scancode) && i.state == ElementState::Released {
-                        self.ui.borrow_mut().set_show_chat(!show_chat);
+                        //self.ui.borrow_mut().set_show_chat(!show_chat);
                     }
 
-                    if !show_chat {
+                    if true { // TODO: Remove this check
                         if keypress_eq(&general.forward, i.scancode) {
                             self.key_state.lock().up = match i.state {
                                 // Default: W (up)
@@ -263,7 +264,7 @@ impl Game {
                     // ----------------------------------------------------------------------------
                 },
                 Event::Raw { event } => {
-                    self.ui.borrow_mut().handle_event(event);
+                    //self.ui.borrow_mut().handle_event(event);
                 },
                 Event::Resized { w, h } => {
                     self.camera
@@ -318,6 +319,14 @@ impl Game {
 
         events.drain(..).for_each(|event| match event {
             ClientEvent::RecvChatMsg { text } => self.hud.chat_box().add_chat_msg(text),
+        });
+    }
+
+    pub fn handle_hud_events(&mut self) {
+        let mut events = self.hud.get_events();
+
+        events.drain(..).for_each(|event| match event {
+            HudEvent::ChatMsgSent { text } => self.client.send_chat_msg(text),
         });
     }
 
@@ -461,12 +470,12 @@ impl Game {
         tonemapper::render(&mut renderer, &self.tonemapper_pipeline, &self.global_consts);
 
         // Draw ui
-        self.ui
-            .borrow_mut()
-            .render(&mut renderer, &self.client, &self.window.get_size());
+        //self.ui
+        //    .borrow_mut()
+        //    .render(&mut renderer, &self.client, &self.window.get_size());
 
         // TODO: Experimental
-        if false {
+        if true {
             use get_build_time;
             use get_git_hash;
 
@@ -506,6 +515,7 @@ impl Game {
     pub fn run(&mut self) {
         while self.running.load(Ordering::Relaxed) {
             self.handle_window_events();
+            self.handle_hud_events();
             self.handle_client_events();
             self.update_chunks();
             self.update_entities();

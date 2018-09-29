@@ -12,7 +12,7 @@ use std::{io, process::exit, sync::mpsc};
 
 use syrup::Window;
 
-use client::{Chunk, Client, PlayMode};
+use client::{Chunk, Client, ClientEvent, PlayMode};
 
 struct Payloads {}
 impl client::Payloads for Payloads {
@@ -52,25 +52,18 @@ fn main() {
         },
     };
 
-    let (tx, rx) = mpsc::channel();
-    client.callbacks().set_recv_chat_msg(move |text| {
-        tx.send(format!("{}", text)).unwrap();
-    });
-
     let mut win = Window::initscr();
     win.writeln("Welcome to the Veloren headless client.");
 
     loop {
-        if let Ok(msg) = rx.try_recv() {
-            win.writeln(format!("{}", msg));
+        for event in client.get_events() {
+            match event {
+                ClientEvent::RecvChatMsg { text } => win.writeln(text),
+            }
         }
 
         if let Some(msg) = win.get() {
-            if msg.starts_with("!") {
-                client.send_cmd(msg[1..].split_whitespace().map(|s| s.into()).collect());
-            } else {
-                client.send_chat_msg(msg.clone());
-            }
+            client.send_chat_msg(msg.clone());
         }
     }
 }

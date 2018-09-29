@@ -53,8 +53,7 @@ impl<P: Payloads> Client<P> {
 
                 // One-shot messages
                 Incoming::Msg(ServerMsg::ChatMsg { text }) => {
-                    self.callbacks().call_recv_chat_msg(&text);
-                    self.events.lock().push(ClientEvent::RecvChatMsg { text });
+                    self.events.lock().push(ClientEvent::RecvChatMsg { text })
                 },
                 Incoming::Msg(ServerMsg::CompUpdate { uid, store }) => {
                     let entity = self.entity(uid).unwrap_or_else(|| {

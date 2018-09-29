@@ -9,7 +9,6 @@ extern crate gfx_window_glutin;
 extern crate glutin;
 
 // Ui
-extern crate conrod;
 extern crate fps_counter;
 extern crate gfx_glyph;
 extern crate lyon;
@@ -52,7 +51,6 @@ mod camera;
 mod game;
 mod key_state;
 mod keybinds;
-mod new_ui;
 mod tests;
 mod ui;
 mod window;

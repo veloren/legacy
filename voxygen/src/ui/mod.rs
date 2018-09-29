@@ -1,187 +1,53 @@
-// Crates
-extern crate conrod;
-extern crate fps_counter;
-extern crate glutin;
-
 // Modules
-mod convert_events;
-mod ui_components;
+pub mod element;
+mod primitive;
+mod render;
+pub mod rescache;
+pub mod span;
+#[cfg(test)]
+mod tests;
+
+// Reexports
+pub use self::span::Span;
 
 // Standard
-use std::{
-    collections::HashMap,
-    sync::mpsc::{self, Receiver, Sender},
-};
+use std::rc::Rc;
 
-// Project
-use common::manager::Manager;
+// Library
+use vek::*;
 
 // Local
-use self::ui_components::{UiState, MAX_CHAT_LINES};
-use client::Client;
-use game::Payloads;
+use self::{element::Element, rescache::ResCache};
 use renderer::Renderer;
+use window::Event;
 
-use conrod::{backend::gfx::Renderer as ConrodRenderer, image::Map, widget, Ui as conrod_ui, UiBuilder, UiCell};
-
-pub use conrod::gfx_core::handle::ShaderResourceView;
-pub use gfx_device_gl::Resources as ui_resources;
-pub type ImageMap = Map<(ShaderResourceView<ui_resources, [f32; 4]>, (u32, u32))>;
-
-pub enum UiInternalEvent {
-    UpdateChatText(String),
-    NewChatMessage(String),
-    SendChat,
-}
-
+#[allow(dead_code)]
 pub struct Ui {
-    conrod_renderer: ConrodRenderer<'static, ui_resources>,
-    ui: conrod_ui,
-    image_map: ImageMap,
-    pub fps: fps_counter::FPSCounter,
-    state: UiState,
-    ids: HashMap<String, widget::Id>,
-    event_tx: Sender<UiInternalEvent>,
-    event_rx: Receiver<UiInternalEvent>,
+    base: Rc<dyn Element>,
+    rescache: ResCache,
 }
 
 impl Ui {
-    pub fn new(renderer: &mut Renderer, size: [f64; 2], client: &Client<Payloads>) -> Self {
-        let mut ui = UiBuilder::new(size).build();
-        let mut factory = renderer.factory_mut().clone();
-        let color_view = renderer.color_view().clone();
-        let conrod_renderer = ConrodRenderer::new(&mut factory, &color_view, 1.0).unwrap();
-        let image_map = Map::new();
-        let (tx, rx) = mpsc::channel();
-
-        let tx2 = tx.clone();
-        client.callbacks().set_recv_chat_msg(move |text| {
-            if tx2.send(UiInternalEvent::NewChatMessage(text.to_string())).is_err() {
-                panic!("Could not send event to ui");
-            }
-        });
-
-        ui.theme.font_id = Some(
-            ui.fonts
-                .insert_from_file("assets/voxygen/fonts/NotoSans-Regular.ttf")
-                .unwrap(),
-        );
-
-        Self {
-            conrod_renderer,
-            ui,
-            image_map,
-            fps: fps_counter::FPSCounter::new(),
-            state: UiState::normal_game(),
-            ids: HashMap::new(),
-            event_tx: tx,
-            event_rx: rx,
+    #[allow(dead_code)]
+    pub fn new(base: Rc<dyn Element>) -> Ui {
+        Ui {
+            base,
+            rescache: ResCache::new(),
         }
     }
-
-    pub fn render(&mut self, renderer: &mut Renderer, client: &Manager<Client<Payloads>>, window_size: &[f64; 2]) {
-        self.update_internal_event(&client);
-        ui_components::render(self);
-        self.conrod_renderer.on_resize(renderer.color_view().clone());
-        self.conrod_renderer.fill(
-            &mut renderer.encoder_mut(),
-            (window_size[0] as f32, window_size[1] as f32),
-            1.0,
-            self.ui.draw(),
-            &self.image_map,
-        );
-        self.conrod_renderer.draw(
-            &mut renderer.factory_mut().clone(),
-            &mut renderer.encoder_mut(),
-            &self.image_map,
-        );
-    }
-
-    pub fn handle_event(&mut self, event: glutin::Event) {
-        if let Some(event) = convert_events::convert(event, self.ui.win_w, self.ui.win_h) {
-            self.ui.handle_event(event);
-        }
-    }
-
-    //    pub fn ui_event_keyboard_input(&mut self, input: KeyboardInput) {
-    //        if let Some(event) = convert_events::convert_keycode(input) {
-    //            self.ui.handle_event(event);
-    //        }
-    //    }
-    //
-    //    pub fn ui_event_window_resize(&mut self, w: u32, h: u32) {
-    //        self.ui.handle_event(Input::Resize(w, h));
-    //    }
-    //
-    //    pub fn ui_event_mouse_button(&mut self, state: ElementState, button: MouseButton) {
-    //        self.ui.handle_event(convert_events::convert_mousebutton(state, button));
-    //    }
-    //
-    //    pub fn ui_event_mouse_pos(&mut self, x: f64, y: f64) {
-    //        self.ui.handle_event(convert_events::convert_mouse_pos(x, y, self.ui.win_w, self.ui.win_h));
-    //    }
-    //
-    //    pub fn ui_event_character(&mut self, ch: char) {
-    //        self.ui.handle_event(convert_events::convert_character(ch));
-    //    }
-
-    fn generate_widget_id(&mut self) -> widget::Id { self.ui.widget_id_generator().next() }
-
-    pub fn get_widget_id(&mut self, widget_name: &str) -> widget::Id {
-        let widget_name = widget_name.to_string();
-        if self.ids.contains_key(&widget_name) {
-            self.ids[&widget_name]
-        } else {
-            let id = self.generate_widget_id();
-            self.ids.insert(widget_name, id);
-            id
-        }
-    }
-
-    pub fn get_ui_cell(&mut self) -> UiCell { self.ui.set_widgets() }
 
     #[allow(dead_code)]
-    pub fn get_width(&self) -> f64 { self.ui.win_w }
-
-    pub fn get_height(&self) -> f64 { self.ui.win_h }
-
-    pub fn get_state(&self) -> UiState { self.state.clone() }
-
-    pub fn set_show_chat(&mut self, show: bool) { self.state.show_chat = show; }
-
-    pub fn get_show_chat(&self) -> bool { self.state.show_chat.clone() }
-
-    pub fn get_event_tx(&self) -> Sender<UiInternalEvent> { self.event_tx.clone() }
-
-    pub fn widget_events<T>(&self, id: widget::Id, fnc: T)
-    where
-        T: Fn(conrod::event::Widget),
-    {
-        for widget_event in self.ui.widget_input(id).events() {
-            fnc(widget_event);
-        }
+    pub fn render(&mut self, renderer: &mut Renderer) {
+        self.base
+            .render(renderer, &mut self.rescache, (Vec2::zero(), Vec2::one()));
     }
 
-    fn update_internal_event(&mut self, client: &Client<Payloads>) {
-        for event in self.event_rx.try_iter() {
-            match event {
-                UiInternalEvent::UpdateChatText(edit) => {
-                    self.state.chat_message = edit;
-                },
-                UiInternalEvent::NewChatMessage(text) => {
-                    if self.state.chat_lines.len() >= MAX_CHAT_LINES {
-                        self.state.chat_lines.pop_back();
-                    }
-
-                    self.state.chat_lines.push_front(text);
-                },
-                UiInternalEvent::SendChat => {
-                    if self.state.chat_message.len() != 0 {
-                        client.send_chat_msg(self.state.chat_message.clone());
-                        self.state.chat_message.clear();
-                    }
-                },
-            }
-        }
+    #[allow(dead_code)]
+    pub fn handle_event(&self, event: &Event, renderer: &mut Renderer) -> bool {
+        self.base.handle_event(
+            event,
+            renderer.get_view_resolution().map(|e| e as f32),
+            (Vec2::zero(), Vec2::one()),
+        )
     }
 }

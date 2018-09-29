@@ -40,7 +40,6 @@ impl<P: Payloads> Client<P> {
             let pers = self.chunk_mgr().persistence();
             let chunk_pos = pers.data().keys().map(|p| *p).collect::<Vec<_>>();
             for pos in chunk_pos {
-                // What?! Don't use snake_length
                 if (pos - Vec2::new(player_chunk.x, player_chunk.y))
                     .map(|e| e as f32)
                     .magnitude()

@@ -1,12 +1,18 @@
 #![feature(nll)]
+#![feature(arbitrary_self_types)]
 
 // Graphics
 #[macro_use]
 extern crate gfx;
-extern crate conrod;
 extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate glutin;
+
+// Ui
+extern crate conrod;
+extern crate fps_counter;
+extern crate gfx_glyph;
+extern crate lyon;
 
 // Mathematics
 extern crate alga;
@@ -46,12 +52,14 @@ mod camera;
 mod game;
 mod key_state;
 mod keybinds;
+mod new_ui;
 mod tests;
 mod ui;
 mod window;
 
 // > Rendering
 mod consts;
+mod hud;
 mod pipeline;
 mod renderer;
 mod shader;

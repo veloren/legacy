@@ -155,6 +155,8 @@ impl<RM: Message> Connection<RM> {
             Ok(Ok(msg)) => return Ok(msg),
             _ => return Err(()),
         }
+
+        return Err(());
     }
 
     fn send_worker(&self) {

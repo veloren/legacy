@@ -1,4 +1,4 @@
-use super::super::Voxel;
+use Voxel;
 
 #[repr(u16)]
 #[derive(Copy, Clone, PartialEq)]

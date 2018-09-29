@@ -10,7 +10,6 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 // Library

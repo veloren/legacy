@@ -1,5 +1,4 @@
 // Standard
-use super::{PersState, VolContainer, VolMgr};
 use chunk::{Chunk, ChunkContainer, ChunkConverter};
 use std::{clone::Clone, sync::Arc};
 
@@ -12,7 +11,10 @@ use collision::{Collider, Primitive, ResolutionTti, PLANCK_LENGTH};
 use common::Uid;
 
 // Local
-use super::Entity;
+use Entity;
+use PersState;
+use VolContainer;
+use VolMgr;
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 const GROUND_GRAVITY: f32 = -9.81;

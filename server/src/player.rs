@@ -50,8 +50,8 @@ impl<P: Payloads> Server<P> {
             PlayMode::Headless => self.world.create_entity(),
             PlayMode::Character => self.world.create_character(alias.clone()),
         }.with(Player { alias, mode })
-        .with(Client {
-            postoffice: Arc::new(po),
-        })
+            .with(Client {
+                postoffice: Arc::new(po),
+            })
     }
 }

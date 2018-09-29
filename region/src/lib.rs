@@ -97,39 +97,3 @@ pub trait Volume: Send + Sync + Any {
     fn at(&self, pos: Vec3<i64>) -> Option<Self::VoxelType>;
     fn set(&mut self, pos: Vec3<i64>, vt: Self::VoxelType);
 }
-
-/*
-
-mod block;
-mod chunk_container;
-mod chunk_conv;
-mod chunk_file;
-mod chunk_rle;
-mod chunk;
-mod container;
-mod vol_mgr;
-mod vol_pers;
-
-use std::{
-    any::Any,
-    cmp::Eq,
-    fmt::Debug,
-    hash::Hash,
-};
-
-use coord::prelude::*;
-
-// Reexports
-pub use self::{
-    block::{BlockMaterial, Block},
-    chunk_container::{ChunkContainer},
-    chunk_conv::{ChunkConverter},
-    chunk_file::{ChunkFile},
-    chunk_rle::{ChunkRle, BlockRle, BLOCK_RLE_MAX_CNT},
-    chunk::{Chunk},
-    container::{VolContainer, Container},
-    vol_mgr::{VolState, FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolMgrIter},
-    vol_pers::{VolPers},
-};
-
-*/

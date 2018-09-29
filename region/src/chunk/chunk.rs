@@ -128,13 +128,11 @@ impl Chunk {
                     if chunk
                         .at(Vec3::new(i, j, k))
                         .unwrap_or(Block::new(BlockMaterial::Air))
-                        .material()
-                        == BlockMaterial::Earth
+                        .material() == BlockMaterial::Earth
                         && chunk
                             .at(Vec3::new(i, j, k + 1))
                             .unwrap_or(Block::new(BlockMaterial::Air))
-                            .material()
-                            == BlockMaterial::Air
+                            .material() == BlockMaterial::Air
                     {
                         if boulder_noise.get((pos2d * 123.573).into_array()) > 0.54 {
                             let mut rng = XorShiftRng::from_seed([

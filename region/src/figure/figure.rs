@@ -5,8 +5,9 @@ use std::any::Any;
 use vek::*;
 
 // Local
-use super::super::{Volume, Voxel};
 use figure::{Cell, CellMaterial};
+use Volume;
+use Voxel;
 
 pub struct Figure {
     size: Vec3<i64>,

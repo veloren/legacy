@@ -287,6 +287,7 @@ fn tti_simple() {
 
 macro_rules! checkWillCollide {
     ($x:expr, $tti2:expr, $normal2:expr) => {
+
         let res = $x;
         println!("EXPT: {:?} {:?}", $tti2, $normal2);
         println!("{:?}", res);
@@ -304,6 +305,7 @@ macro_rules! checkWillCollide {
 
 macro_rules! checkTouching {
     ($x:expr, $normal2:expr) => {
+
         let res = $x;
         println!("EXPT: {:?}", $normal2);
         println!("{:?}", res);
@@ -319,6 +321,7 @@ macro_rules! checkTouching {
 
 macro_rules! checkOverlapping {
     ($x:expr, $since2:expr) => {
+
         let res = $x;
         println!("EXPT: {:?}", $since2);
         println!("{:?}", res);
@@ -335,6 +338,7 @@ macro_rules! checkOverlapping {
 
 macro_rules! checkNone {
     ($x:expr) => {
+
         let res = $x;
         println!("{:?}", res);
         assert!(res.is_none());

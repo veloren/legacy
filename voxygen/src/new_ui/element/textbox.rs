@@ -8,7 +8,10 @@ use std::{
 use vek::*;
 
 // Local
-use super::{primitive::{draw_text, draw_rectangle}, Bounds, Element, ResCache, Span, Event};
+use super::{
+    primitive::{draw_rectangle, draw_text},
+    Bounds, Element, Event, ResCache, Span,
+};
 use renderer::Renderer;
 
 #[allow(dead_code)]
@@ -109,7 +112,14 @@ impl Element for TextBox {
 
         let child_bounds = (bounds.0 + margin_rel, bounds.1 - margin_rel * 2.0);
         let sz = self.size.get().map(|e| e.rel) * scr_res.map(|e| e as f32) + self.size.get().map(|e| e.px as f32);
-        draw_text(renderer, rescache, &self.text.borrow(), child_bounds.0, sz, self.col.get());
+        draw_text(
+            renderer,
+            rescache,
+            &self.text.borrow(),
+            child_bounds.0,
+            sz,
+            self.col.get(),
+        );
     }
 
     fn handle_event(&self, event: &Event, scr_res: Vec2<f32>, bounds: Bounds) -> bool {
@@ -121,8 +131,12 @@ impl Element for TextBox {
                         self.return_fn.borrow_mut().as_mut().map(|f| (*f)(self, &text));
                         text.clear();
                     },
-                    '\x08' => { self.text.borrow_mut().pop(); },
-                    c => { self.text.borrow_mut().push(*c); },
+                    '\x08' => {
+                        self.text.borrow_mut().pop();
+                    },
+                    c => {
+                        self.text.borrow_mut().push(*c);
+                    },
                 }
                 true
             },

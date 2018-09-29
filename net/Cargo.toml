@@ -1,0 +1,11 @@
+[package]
+name = "net"
+version = "0.1.0"
+authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
+
+[dependencies]
+common = { path = "../common" }
+region = { path = "../region" }
+serde = "1.0"
+serde_derive = "1.0"
+vek = { version = "0.9", features = ["serde"] }

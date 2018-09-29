@@ -41,8 +41,8 @@ use window::{Event, RenderWindow};
 use RENDERER_INFO;
 
 // TODO: This is experimental
-use new_ui;
 use hud::HudEvent;
+use new_ui;
 
 pub enum ChunkPayload {
     Meshes(FnvIndexMap<voxel::MaterialKind, voxel::Mesh>),
@@ -218,7 +218,8 @@ impl Game {
                         //self.ui.borrow_mut().set_show_chat(!show_chat);
                     }
 
-                    if true { // TODO: Remove this check
+                    if true {
+                        // TODO: Remove this check
                         if keypress_eq(&general.forward, i.scancode) {
                             self.key_state.lock().up = match i.state {
                                 // Default: W (up)
@@ -486,7 +487,7 @@ impl Game {
             self.hud
                 .debug_box()
                 .githash_label
-                .set_text(format!("Git hash: {}", &get_git_hash()[..8]));
+                .set_text(format!("Git hash: {}", &get_git_hash().get(..8).unwrap_or("<none>")));
             self.hud
                 .debug_box()
                 .buildtime_label

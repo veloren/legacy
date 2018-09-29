@@ -1,9 +1,9 @@
 // Standard
 use std::{
-    rc::Rc,
     cell::RefCell,
-    sync::atomic::{AtomicBool, Ordering},
     mem,
+    rc::Rc,
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 // Library
@@ -11,7 +11,7 @@ use vek::*;
 
 // Local
 use new_ui::{
-    element::{Button, HBox, Label, Rect, VBox, WinBox, TextBox},
+    element::{Button, HBox, Label, Rect, TextBox, VBox, WinBox},
     Span, Ui,
 };
 use renderer::Renderer;
@@ -80,14 +80,13 @@ impl Hud {
             .with_margin(Span::px(8, 8))
             .with_return_fn(move |chatbox_input, text| {
                 if chat_enabled_ref.load(Ordering::Relaxed) {
-                    events_ref.borrow_mut().push(HudEvent::ChatMsgSent{
-                        text: text.to_string(),
-                    });
+                    events_ref
+                        .borrow_mut()
+                        .push(HudEvent::ChatMsgSent { text: text.to_string() });
                     chat_enabled_ref.store(false, Ordering::Relaxed);
                 }
                 chatbox_input.set_background_color(Rgba::new(0.0, 0.0, 0.0, 0.8));
-            })
-            .with_text("".to_string());
+            }).with_text("".to_string());
 
         winbox.add_child_at(
             Span::bottom_left(),

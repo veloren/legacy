@@ -27,7 +27,7 @@ pub enum CompStore {
     Player { alias: String, mode: PlayMode },
     Character { name: String },
     // TODO: Change this to region::item::Item later!
-    Inventory { slots: [[Some(0); 9]; 5] },
+    Inventory { slots: [[Option<u64>; 9]; 5] },
     Health(u32),
 }
 

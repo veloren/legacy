@@ -29,7 +29,7 @@ use region::{Chunk, Container};
 // Local
 use camera::Camera;
 use consts::{ConstHandle, GlobalConsts};
-use hud::Hud;
+use hud::{Hud, HudEvent};
 use key_state::KeyState;
 use keybinds::Keybinds;
 use pipeline::Pipeline;
@@ -39,10 +39,6 @@ use tonemapper;
 use voxel;
 use window::{Event, RenderWindow};
 use RENDERER_INFO;
-
-// TODO: This is experimental
-use hud::HudEvent;
-use new_ui;
 
 pub enum ChunkPayload {
     Meshes(FnvIndexMap<voxel::MaterialKind, voxel::Mesh>),
@@ -66,8 +62,6 @@ pub struct Game {
 
     global_consts: ConstHandle<GlobalConsts>,
     camera: Mutex<Camera>,
-
-    ui: RefCell<Ui>,
 
     key_state: Mutex<KeyState>,
     keys: Keybinds,
@@ -105,7 +99,6 @@ impl Game {
 
         // Contruct the UI
         let window_dims = window.get_size();
-        let ui = Ui::new(&mut window.renderer_mut(), window_dims, &client);
 
         // Create pipelines
 
@@ -156,8 +149,6 @@ impl Game {
             global_consts,
             camera: Mutex::new(Camera::new()),
 
-            ui: RefCell::new(ui),
-
             key_state: Mutex::new(KeyState::new()),
             keys: Keybinds::new(),
 
@@ -203,7 +194,6 @@ impl Game {
 
                     // Helper variables to clean up code. Add any new input modes here.
                     let general = &self.keys.general;
-                    //let show_chat = self.ui.borrow().get_show_chat();
 
                     // General inputs -------------------------------------------------------------
                     if keypress_eq(&general.pause, i.scancode) {
@@ -218,44 +208,42 @@ impl Game {
                         //self.ui.borrow_mut().set_show_chat(!show_chat);
                     }
 
-                    if true {
-                        // TODO: Remove this check
-                        if keypress_eq(&general.forward, i.scancode) {
-                            self.key_state.lock().up = match i.state {
-                                // Default: W (up)
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            }
-                        } else if keypress_eq(&general.left, i.scancode) {
-                            self.key_state.lock().left = match i.state {
-                                // Default: A (left)
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            }
-                        } else if keypress_eq(&general.back, i.scancode) {
-                            self.key_state.lock().down = match i.state {
-                                // Default: S (down)
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            }
-                        } else if keypress_eq(&general.right, i.scancode) {
-                            self.key_state.lock().right = match i.state {
-                                // Default: D (right)
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            }
-                        } else if keypress_eq(&general.jump, i.scancode) {
-                            self.key_state.lock().jump = match i.state {
-                                // Default: Space (fly)
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            }
-                        } else if keypress_eq(&general.crouch, i.scancode) {
-                            // self.key_state.lock().fall = match i.state { // Default: Shift (fall)
-                            //     ElementState::Pressed => true,
-                            //     ElementState::Released => false,
-                            // }
+                    // TODO: Remove this check
+                    if keypress_eq(&general.forward, i.scancode) {
+                        self.key_state.lock().up = match i.state {
+                            // Default: W (up)
+                            ElementState::Pressed => true,
+                            ElementState::Released => false,
                         }
+                    } else if keypress_eq(&general.left, i.scancode) {
+                        self.key_state.lock().left = match i.state {
+                            // Default: A (left)
+                            ElementState::Pressed => true,
+                            ElementState::Released => false,
+                        }
+                    } else if keypress_eq(&general.back, i.scancode) {
+                        self.key_state.lock().down = match i.state {
+                            // Default: S (down)
+                            ElementState::Pressed => true,
+                            ElementState::Released => false,
+                        }
+                    } else if keypress_eq(&general.right, i.scancode) {
+                        self.key_state.lock().right = match i.state {
+                            // Default: D (right)
+                            ElementState::Pressed => true,
+                            ElementState::Released => false,
+                        }
+                    } else if keypress_eq(&general.jump, i.scancode) {
+                        self.key_state.lock().jump = match i.state {
+                            // Default: Space (fly)
+                            ElementState::Pressed => true,
+                            ElementState::Released => false,
+                        }
+                    } else if keypress_eq(&general.crouch, i.scancode) {
+                        // self.key_state.lock().fall = match i.state { // Default: Shift (fall)
+                        //     ElementState::Pressed => true,
+                        //     ElementState::Released => false,
+                        // }
                     }
 
                     // ----------------------------------------------------------------------------
@@ -263,9 +251,6 @@ impl Game {
                     // Mount inputs ---------------------------------------------------------------
                     // placeholder
                     // ----------------------------------------------------------------------------
-                },
-                Event::Raw { event } => {
-                    //self.ui.borrow_mut().handle_event(event);
                 },
                 Event::Resized { w, h } => {
                     self.camera
@@ -470,42 +455,35 @@ impl Game {
 
         tonemapper::render(&mut renderer, &self.tonemapper_pipeline, &self.global_consts);
 
-        // Draw ui
-        //self.ui
-        //    .borrow_mut()
-        //    .render(&mut renderer, &self.client, &self.window.get_size());
+        use get_build_time;
+        use get_git_hash;
 
-        // TODO: Experimental
-        if true {
-            use get_build_time;
-            use get_git_hash;
+        // TODO: Use a HudEvent to pass this in!
+        self.hud
+            .debug_box()
+            .version_label
+            .set_text(format!("Version: {}", env!("CARGO_PKG_VERSION")));
+        self.hud
+            .debug_box()
+            .githash_label
+            .set_text(format!("Git hash: {}", &get_git_hash().get(..8).unwrap_or("<none>")));
+        self.hud
+            .debug_box()
+            .buildtime_label
+            .set_text(format!("Build time: {}", get_build_time()));
+        self.hud
+            .debug_box()
+            .fps_label
+            .set_text(format!("FPS: {}", self.last_fps));
 
-            self.hud
-                .debug_box()
-                .version_label
-                .set_text(format!("Version: {}", env!("CARGO_PKG_VERSION")));
-            self.hud
-                .debug_box()
-                .githash_label
-                .set_text(format!("Git hash: {}", &get_git_hash().get(..8).unwrap_or("<none>")));
-            self.hud
-                .debug_box()
-                .buildtime_label
-                .set_text(format!("Build time: {}", get_build_time()));
-            self.hud
-                .debug_box()
-                .fps_label
-                .set_text(format!("FPS: {}", self.last_fps));
+        let pos_text = self
+            .client
+            .player_entity()
+            .map(|p| format!("Pos: {}", p.read().pos().map(|e| e as i64)))
+            .unwrap_or("Unknown position".to_string());
+        self.hud.debug_box().pos_label.set_text(pos_text);
 
-            let pos_text = self
-                .client
-                .player_entity()
-                .map(|p| format!("Pos: {}", p.read().pos().map(|e| e as i64)))
-                .unwrap_or("Unknown position".to_string());
-            self.hud.debug_box().pos_label.set_text(pos_text);
-
-            self.hud.render(&mut renderer);
-        }
+        self.hud.render(&mut renderer);
 
         self.window.swap_buffers();
         renderer.end_frame();

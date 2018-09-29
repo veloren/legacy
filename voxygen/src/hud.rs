@@ -10,11 +10,11 @@ use std::{
 use vek::*;
 
 // Local
-use new_ui::{
+use renderer::Renderer;
+use ui::{
     element::{Button, HBox, Label, Rect, TextBox, VBox, WinBox},
     Span, Ui,
 };
-use renderer::Renderer;
 use window::Event;
 
 pub enum HudEvent {

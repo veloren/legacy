@@ -63,7 +63,7 @@ impl Ui {
 
         ui.theme.font_id = Some(
             ui.fonts
-                .insert_from_file("assets/voxygen/fonts/NotoSans-Regular.ttf")
+                .insert_from_file("assets/fonts/NotoSans-Regular.ttf")
                 .unwrap(),
         );
 

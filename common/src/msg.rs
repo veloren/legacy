@@ -4,6 +4,7 @@ use vek::*;
 // Project
 use net::Message;
 use post::{PostBox, PostOffice};
+use item::Item;
 
 // SessionKind
 
@@ -25,6 +26,7 @@ pub enum CompStore {
     Dir(Vec2<f32>),
     Player { alias: String, mode: PlayMode },
     Character { name: String },
+    Inventory { slots: [[Item; 9]; 5] },
     Health(u32),
 }
 

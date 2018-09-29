@@ -28,6 +28,7 @@ pub enum Weapon {
     Bow,
 }
 
+#[derive(Debug)]
 pub enum Item {
     Stackable { number: u8, variant: Stackable },
     Tool { damage: u8, quality: u8, variant: Tool },

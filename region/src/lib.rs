@@ -1,4 +1,5 @@
 #![feature(nll, euclidean_division, specialization)]
+#![feature(option_replace)]
 
 #[macro_use]
 extern crate log;

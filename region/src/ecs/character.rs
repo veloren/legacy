@@ -21,7 +21,7 @@ pub struct Character {
 
 #[derive(Debug)]
 pub struct Inventory {
-    pub slots: [[Item; 9]; 5],
+    pub slots: [[Option<Item>; 9]; 5],
 }
 
 impl Component for Inventory {
@@ -30,12 +30,34 @@ impl Component for Inventory {
 
 impl NetComp for Inventory {
     fn to_store(&self) -> Option<CompStore> {
-        Some(CompStore::Inventory) {
+        Some(CompStore::Inventory {
             slots: self.slots.clone(),
-        }
+        })
     }
 }
 
+impl Inventory {
+    pub fn get(&self, x: usize, y: usize) -> Option<Item> {
+        self.slots
+        .get(x)
+        .and_then(|column| column.get(y))
+        .and_then(|cell| *cell) 
+    }
+
+    pub fn give(&mut self, x: usize, y: usize, item: Item) -> Option<Item> {
+        self.slots
+        .get(x)
+        .and_then(|column| column.get(y))
+        .and_then(|cell| cell.replace(item))
+    } 
+
+    pub fn take(&mut self, x: usize, y: usize) -> Option<Item> {
+        self.slots
+        .get(x)
+        .and_then(|column| column.get(y))
+        .and_then(|cell| cell.take())
+    } 
+}
 
 impl Component for Character {
     type Storage = VecStorage<Self>;

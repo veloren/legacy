@@ -1,8 +1,10 @@
+#[derive(Debug, Clone)]
 pub enum Stackable {
     Arrow,
     Bomb,
 }
 
+#[derive(Debug, Clone)]
 pub enum Tool {
     Lantern,
     Glider,
@@ -10,25 +12,28 @@ pub enum Tool {
     Shield,
 }
 
+#[derive(Debug, Clone)]
 pub enum Food {
     Apple,
     Bread,
     Beef,
 }
 
+#[derive(Debug, Clone)]
 pub enum Potion {
     Health,
     Damage,
     Mystery,
 }
 
+#[derive(Debug, Clone)]
 pub enum Weapon {
     Dagger,
     Sword,
     Bow,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Item {
     Stackable { number: u8, variant: Stackable },
     Tool { damage: u8, quality: u8, variant: Tool },

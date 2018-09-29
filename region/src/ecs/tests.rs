@@ -18,7 +18,7 @@ fn test_create_raw_ecs() {
     world.register::<Dir>();
     world.register::<Character>();
     world.register::<Health>();
-    let e0 = world
+    let _e0 = world
         .create_entity()
         .with(Pos(Vec3::zero()))
         .with(Vel(Vec3::zero()))

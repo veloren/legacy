@@ -4,15 +4,14 @@ use std::{
     net::{SocketAddr, TcpStream, ToSocketAddrs, UdpSocket},
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc::{self, RecvError, TryRecvError},
-        Arc,
+        mpsc, Arc,
     },
     thread::{self, JoinHandle},
 };
 
 // Library
 use get_if_addrs::get_if_addrs;
-use parking_lot::{Mutex, MutexGuard, RwLock};
+use parking_lot::{Mutex, RwLock};
 
 // Parent
 use super::{
@@ -156,6 +155,8 @@ impl<RM: Message> Connection<RM> {
             Ok(Ok(msg)) => return Ok(msg),
             _ => return Err(()),
         }
+
+        return Err(());
     }
 
     fn send_worker(&self) {

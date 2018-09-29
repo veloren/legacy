@@ -1,12 +1,15 @@
+// Standard
+use std::any::Any;
+
+// Library
 use noise::{NoiseFn, OpenSimplex, Seedable};
 use rand::{prng::XorShiftRng, RngCore, SeedableRng};
 use vek::*;
 
+// Local
 use chunk::{Block, BlockMaterial};
 use Volume;
 use Voxel;
-
-use std::any::Any;
 
 #[derive(Clone, Debug)]
 pub struct Chunk {

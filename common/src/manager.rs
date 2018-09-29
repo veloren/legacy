@@ -1,3 +1,4 @@
+// Standard
 use std::{
     ops::Deref,
     sync::{
@@ -17,7 +18,7 @@ use std::{
 
 pub trait Managed: Send + Sync + Sized + 'static {
     fn init_workers(&self, manager: &mut Manager<Self>);
-    fn on_drop(&self, manager: &mut Manager<Self>) {}
+    fn on_drop(&self, _manager: &mut Manager<Self>) {}
 }
 
 #[derive(Debug)]
@@ -117,7 +118,7 @@ mod tests {
 
     #[test]
     fn test_manager() {
-        let server_mgr = Manager::init(Server::new());
+        let _server_mgr = Manager::init(Server::new());
         thread::sleep(Duration::from_millis(50));
     }
 }

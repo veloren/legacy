@@ -1,12 +1,5 @@
 // Standard
-use std::{
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    thread,
-    time::Duration,
-};
+use std::{thread, time::Duration};
 
 // Library
 use parking_lot::Mutex;
@@ -14,15 +7,15 @@ use vek::*;
 
 // Project
 use common::{
-    get_version,
     manager::Manager,
-    msg::{ClientMsg, ClientPostBox, ClientPostOffice, CompStore, ServerMsg, SessionKind},
+    msg::{ClientMsg, CompStore, ServerMsg, SessionKind},
     post::Incoming,
 };
 use region::Entity;
 
 // Local
 use Client;
+use ClientEvent;
 use ClientStatus;
 use Payloads;
 
@@ -38,7 +31,8 @@ impl<P: Payloads> Client<P> {
                 Incoming::Session(session) => match session.kind {
                     SessionKind::Ping => {
                         let pb = Mutex::new(session.postbox);
-                        Manager::add_worker(mgr, |client, running, _| {
+                        // TODO: Move this to a dedicated method?
+                        Manager::add_worker(mgr, |_client, _running, _| {
                             thread::spawn(move || {
                                 let pb = pb.into_inner();
 
@@ -58,7 +52,9 @@ impl<P: Payloads> Client<P> {
                 },
 
                 // One-shot messages
-                Incoming::Msg(ServerMsg::ChatMsg { text }) => self.callbacks().call_recv_chat_msg(&text),
+                Incoming::Msg(ServerMsg::ChatMsg { text }) => {
+                    self.events.lock().push(ClientEvent::RecvChatMsg { text })
+                },
                 Incoming::Msg(ServerMsg::CompUpdate { uid, store }) => {
                     let entity = self.entity(uid).unwrap_or_else(|| {
                         // Create an entity with default attributes if it doesn't already exist

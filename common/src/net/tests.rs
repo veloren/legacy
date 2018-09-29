@@ -6,15 +6,9 @@ use std::{
     time::Duration,
 };
 
-// Library
-use bincode;
-
 // Parent
 use super::{
-    message::{
-        Error::{self, NetworkErr},
-        Message,
-    },
+    message::{Error::NetworkErr, Message},
     packet::{Frame, FrameError, IncomingPacket, OutgoingPacket},
     protocol::Protocol,
     tcp::Tcp,

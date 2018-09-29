@@ -60,7 +60,7 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
             // Send them back to the player
             srv.send_chat_msg(player, &format!("Online Players: {}", player_names));
         }),
-        Some("tp") => {
+        Some("tp") => 'tp: {
             // Find the alias the player typed (i.e: '/tp zesterer')
             let tgt_alias = if let Some(s) = cmd.nth(0) {
                 s

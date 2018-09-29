@@ -1,15 +1,12 @@
 #![feature(nll, euclidean_division)]
 
 // Crates
-#[macro_use]
-extern crate log;
 extern crate common;
 extern crate parking_lot;
 extern crate region;
 extern crate vek;
 
 // Modules
-mod callbacks;
 mod error;
 mod net;
 mod player;
@@ -22,10 +19,10 @@ pub use common::msg::PlayMode;
 // Standard
 use std::{
     collections::HashMap,
+    mem,
     net::ToSocketAddrs,
     sync::{atomic::Ordering, Arc},
-    thread,
-    time::{self, Duration},
+    time::Duration,
 };
 
 // Library
@@ -34,9 +31,8 @@ use vek::*;
 
 // Project
 use common::{
-    get_version,
     manager::{Managed, Manager},
-    msg::{ClientMsg, ClientPostBox, ClientPostOffice, ServerMsg, SessionKind},
+    msg::{ClientMsg, ClientPostOffice, ServerMsg, SessionKind},
     Uid,
 };
 use region::{
@@ -45,7 +41,6 @@ use region::{
 };
 
 // Local
-use callbacks::Callbacks;
 use error::Error;
 use player::Player;
 
@@ -70,6 +65,10 @@ pub trait Payloads: 'static {
     type Entity: Send + Sync + 'static;
 }
 
+pub enum ClientEvent {
+    RecvChatMsg { text: String },
+}
+
 pub struct Client<P: Payloads> {
     status: RwLock<ClientStatus>,
     postoffice: Manager<ClientPostOffice>,
@@ -81,7 +80,7 @@ pub struct Client<P: Payloads> {
 
     chunk_mgr: VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk>,
 
-    callbacks: RwLock<Callbacks>,
+    events: Mutex<Vec<ClientEvent>>,
 
     view_distance: i64,
 }
@@ -120,7 +119,7 @@ impl<P: Payloads> Client<P> {
                     VolGen::new(world::gen_chunk, gen_payload),
                 ),
 
-                callbacks: RwLock::new(Callbacks::new()),
+                events: Mutex::new(vec![]),
 
                 view_distance: view_distance.max(1).min(10),
             });
@@ -145,9 +144,13 @@ impl<P: Payloads> Client<P> {
         &self.chunk_mgr
     }
 
-    pub fn status<'a>(&'a self) -> RwLockReadGuard<'a, ClientStatus> { self.status.read() }
+    pub fn get_events(&self) -> Vec<ClientEvent> {
+        let mut events = vec![];
+        mem::swap(&mut events, &mut self.events.lock());
+        events
+    }
 
-    pub fn callbacks<'a>(&'a self) -> RwLockReadGuard<'a, Callbacks> { self.callbacks.read() }
+    pub fn status<'a>(&'a self) -> RwLockReadGuard<'a, ClientStatus> { self.status.read() }
 
     pub fn time(&self) -> f64 { *self.time.read() }
 

@@ -6,7 +6,7 @@ use vek::*;
 
 // Project
 use common::manager::Manager;
-use region::{physics, VolState};
+use region::physics;
 
 // Local
 use Client;

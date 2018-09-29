@@ -5,9 +5,6 @@ use std::{io, net::SocketAddr};
 use bincode;
 use serde::{de::DeserializeOwned, Serialize};
 
-// Local
-use Uid;
-
 #[derive(Debug)]
 pub enum Error {
     NetworkErr(io::Error),

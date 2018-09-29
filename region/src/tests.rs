@@ -1,5 +1,5 @@
 // Standard
-use std::{collections::HashMap, f32::INFINITY, sync::Arc, thread, time};
+use std::{collections::HashMap, sync::Arc, thread, time};
 
 //Library
 use parking_lot::RwLock;
@@ -689,8 +689,8 @@ const CHUNK_MID: [f32; 3] = [
 
 fn gen_chunk_flat(pos: Vec3<i64>, con: &Container<ChunkContainer, i64>) {
     let mut c = Chunk::new();
-    c.set_size(Vec3::new(CHUNK_SIZE));
-    c.set_offset(pos * Vec3::new(CHUNK_SIZE));
+    c.set_size(Vec3::from(CHUNK_SIZE));
+    c.set_offset(pos * Vec3::from(CHUNK_SIZE));
     for x in 0..CHUNK_SIZE[0] {
         for y in 0..CHUNK_SIZE[1] {
             c.set(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
@@ -704,8 +704,8 @@ fn gen_chunk_flat_border(pos: Vec3<i64>, con: &Container<ChunkContainer, i64>) {
     let mut vols = con.vols_mut();
     if let Some(c) = vols.get_mut(PersState::Raw) {
         let c: &mut Chunk = c.as_any_mut().downcast_mut::<Chunk>().expect("Should be Chunk");
-        c.set_size(Vec3::new(CHUNK_SIZE));
-        c.set_offset(pos * Vec3::new(CHUNK_SIZE));
+        c.set_size(Vec3::from(CHUNK_SIZE));
+        c.set_offset(pos * Vec3::from(CHUNK_SIZE));
         for i in 0..CHUNK_SIZE[0] {
             c.set(Vec3::new(i, 0, 3), Block::new(BlockMaterial::Stone));
             c.set(Vec3::new(i, CHUNK_SIZE[0] - 1, 3), Block::new(BlockMaterial::Stone));
@@ -724,7 +724,7 @@ fn gen_payload(pos: Vec3<i64>, con: &Container<ChunkContainer, i64>) { *con.payl
 
 #[test]
 fn physics_fall() {
-    let vol_mgr = VolMgr::new(Vec3::new(CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload));
+    let vol_mgr = VolMgr::new(Vec3::from(CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload));
     vol_mgr.gen(Vec3::new(0, 0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
                                                      //touch
@@ -739,17 +739,17 @@ fn physics_fall() {
         ))),
     );
     for _ in 0..40 {
-        physics::tick(ent.iter(), &vol_mgr, Vec3::new(CHUNK_SIZE), 0.1)
+        physics::tick(ent.iter(), &vol_mgr, Vec3::from(CHUNK_SIZE), 0.1)
     }
     let p = ent.get(&1);
     let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 3.0);
-    //println!("{}", d.length());
-    assert!(d.length() < 0.01);
+    //println!("{}", d.magnitude());
+    assert!(d.magnitude() < 0.01);
 }
 
 #[test]
 fn physics_fallfast() {
-    let vol_mgr = VolMgr::new(Vec3::new(CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload));
+    let vol_mgr = VolMgr::new(Vec3::from(CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload));
     vol_mgr.gen(Vec3::new(0, 0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
                                                      //touch
@@ -764,17 +764,17 @@ fn physics_fallfast() {
         ))),
     );
     for _ in 0..100 {
-        physics::tick(ent.iter(), &vol_mgr, Vec3::new(CHUNK_SIZE), 0.1)
+        physics::tick(ent.iter(), &vol_mgr, Vec3::from(CHUNK_SIZE), 0.1)
     }
     let p = ent.get(&1);
     let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 3.0);
-    println!("{}", d.length());
-    assert!(d.length() < 0.01);
+    println!("{}", d.magnitude());
+    assert!(d.magnitude() < 0.01);
 }
 
 #[test]
 fn physics_jump() {
-    let vol_mgr = VolMgr::new(Vec3::new(CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload));
+    let vol_mgr = VolMgr::new(Vec3::from(CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload));
     vol_mgr.gen(Vec3::new(0, 0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
                                                      //touch
@@ -789,26 +789,26 @@ fn physics_jump() {
         ))),
     );
     for _ in 0..3 {
-        physics::tick(ent.iter(), &vol_mgr, Vec3::new(CHUNK_SIZE), 0.04)
+        physics::tick(ent.iter(), &vol_mgr, Vec3::from(CHUNK_SIZE), 0.04)
     }
     {
         let p = ent.get(&1);
         assert!(p.unwrap().read().pos().z > 10.2);
     }
     for _ in 0..50 {
-        physics::tick(ent.iter(), &vol_mgr, Vec3::new(CHUNK_SIZE), 0.1)
+        physics::tick(ent.iter(), &vol_mgr, Vec3::from(CHUNK_SIZE), 0.1)
     }
     {
         let p = ent.get(&1);
         let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 3.0);
-        //println!("{}", d.length());
-        assert!(d.length() < 0.01);
+        //println!("{}", d.magnitude());
+        assert!(d.magnitude() < 0.01);
     }
 }
 
 #[test]
 fn physics_walk() {
-    let vol_mgr = VolMgr::new(Vec3::new(CHUNK_SIZE), VolGen::new(gen_chunk_flat_border, gen_payload));
+    let vol_mgr = VolMgr::new(Vec3::from(CHUNK_SIZE), VolGen::new(gen_chunk_flat_border, gen_payload));
     vol_mgr.gen(Vec3::new(0, 0, 0));
     thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
                                                      //touch
@@ -823,12 +823,12 @@ fn physics_walk() {
         ))),
     );
     for _ in 0..80 {
-        physics::tick(ent.iter(), &vol_mgr, Vec3::new(CHUNK_SIZE), 0.5)
+        physics::tick(ent.iter(), &vol_mgr, Vec3::from(CHUNK_SIZE), 0.5)
     }
     {
         let p = ent.get(&1);
         let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0]*2.0-1.0 - /*player size*/0.45, CHUNK_MID[1], 3.0);
-        println!("length {}", d.length());
-        assert!(d.length() < 0.01);
+        println!("length {}", d.magnitude());
+        assert!(d.magnitude() < 0.01);
     }
 }

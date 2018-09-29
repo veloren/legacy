@@ -6,15 +6,13 @@ use std::{
     cell::RefCell,
     f32::consts::PI,
     net::ToSocketAddrs,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 // Library
 use dot_vox;
 use fnv::FnvBuildHasher;
+use fps_counter::FPSCounter;
 use glutin::ElementState;
 use indexmap::IndexMap;
 use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
@@ -24,7 +22,7 @@ use vek::*;
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
-use client::{self, Client, PlayMode, CHUNK_SIZE};
+use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::manager::Manager;
 use region::{
     chunk::{Chunk, ChunkContainer, ChunkConverter},
@@ -34,6 +32,7 @@ use region::{
 // Local
 use camera::Camera;
 use consts::{ConstHandle, GlobalConsts};
+use hud::{Hud, HudEvent};
 use key_state::KeyState;
 use keybinds::Keybinds;
 use pipeline::Pipeline;
@@ -67,14 +66,17 @@ pub struct Game {
     global_consts: ConstHandle<GlobalConsts>,
     camera: Mutex<Camera>,
 
-    ui: RefCell<Ui>,
-
     key_state: Mutex<KeyState>,
     keys: Keybinds,
 
     skybox_pipeline: Pipeline<skybox::pipeline::Init<'static>>,
     volume_pipeline: voxel::VolumePipeline,
     tonemapper_pipeline: Pipeline<tonemapper::pipeline::Init<'static>>,
+
+    hud: Hud,
+
+    fps: FPSCounter,
+    last_fps: usize,
 
     skybox_model: skybox::Model,
     player_model: voxel::Model,
@@ -115,7 +117,6 @@ impl Game {
 
         // Contruct the UI
         let window_dims = window.get_size();
-        let ui = Ui::new(&mut window.renderer_mut(), window_dims, &client);
 
         // Create pipelines
 
@@ -166,14 +167,17 @@ impl Game {
             global_consts,
             camera: Mutex::new(Camera::new()),
 
-            ui: RefCell::new(ui),
-
             key_state: Mutex::new(KeyState::new()),
             keys: Keybinds::new(),
 
             skybox_pipeline,
             volume_pipeline,
             tonemapper_pipeline,
+
+            hud: Hud::new(),
+
+            fps: FPSCounter::new(),
+            last_fps: 60,
 
             skybox_model,
             player_model,
@@ -183,6 +187,11 @@ impl Game {
 
     pub fn handle_window_events(&self) {
         self.window.handle_events(|event| {
+            // TODO: Experimental
+            if true && self.hud.handle_event(&event, &mut self.window.renderer_mut()) {
+                return true;
+            }
+
             match event {
                 Event::CloseRequest => self.running.store(false, Ordering::Relaxed),
                 Event::CursorMoved { dx, dy } => {
@@ -203,7 +212,6 @@ impl Game {
 
                     // Helper variables to clean up code. Add any new input modes here.
                     let general = &self.keys.general;
-                    let show_chat = self.ui.borrow().get_show_chat();
 
                     // General inputs -------------------------------------------------------------
                     if keypress_eq(&general.pause, i.scancode) {
@@ -215,46 +223,45 @@ impl Game {
                             self.running.store(false, Ordering::Relaxed);
                         }
                     } else if keypress_eq(&general.chat, i.scancode) && i.state == ElementState::Released {
-                        self.ui.borrow_mut().set_show_chat(!show_chat);
+                        //self.ui.borrow_mut().set_show_chat(!show_chat);
                     }
 
-                    if !show_chat {
-                        if keypress_eq(&general.forward, i.scancode) {
-                            self.key_state.lock().up = match i.state {
-                                // Default: W (up)
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            }
-                        } else if keypress_eq(&general.left, i.scancode) {
-                            self.key_state.lock().left = match i.state {
-                                // Default: A (left)
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            }
-                        } else if keypress_eq(&general.back, i.scancode) {
-                            self.key_state.lock().down = match i.state {
-                                // Default: S (down)
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            }
-                        } else if keypress_eq(&general.right, i.scancode) {
-                            self.key_state.lock().right = match i.state {
-                                // Default: D (right)
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            }
-                        } else if keypress_eq(&general.jump, i.scancode) {
-                            self.key_state.lock().jump = match i.state {
-                                // Default: Space (fly)
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            }
-                        } else if keypress_eq(&general.crouch, i.scancode) {
-                            // self.key_state.lock().fall = match i.state { // Default: Shift (fall)
-                            //     ElementState::Pressed => true,
-                            //     ElementState::Released => false,
-                            // }
+                    // TODO: Remove this check
+                    if keypress_eq(&general.forward, i.scancode) {
+                        self.key_state.lock().up = match i.state {
+                            // Default: W (up)
+                            ElementState::Pressed => true,
+                            ElementState::Released => false,
                         }
+                    } else if keypress_eq(&general.left, i.scancode) {
+                        self.key_state.lock().left = match i.state {
+                            // Default: A (left)
+                            ElementState::Pressed => true,
+                            ElementState::Released => false,
+                        }
+                    } else if keypress_eq(&general.back, i.scancode) {
+                        self.key_state.lock().down = match i.state {
+                            // Default: S (down)
+                            ElementState::Pressed => true,
+                            ElementState::Released => false,
+                        }
+                    } else if keypress_eq(&general.right, i.scancode) {
+                        self.key_state.lock().right = match i.state {
+                            // Default: D (right)
+                            ElementState::Pressed => true,
+                            ElementState::Released => false,
+                        }
+                    } else if keypress_eq(&general.jump, i.scancode) {
+                        self.key_state.lock().jump = match i.state {
+                            // Default: Space (fly)
+                            ElementState::Pressed => true,
+                            ElementState::Released => false,
+                        }
+                    } else if keypress_eq(&general.crouch, i.scancode) {
+                        // self.key_state.lock().fall = match i.state { // Default: Shift (fall)
+                        //     ElementState::Pressed => true,
+                        //     ElementState::Released => false,
+                        // }
                     }
 
                     // ----------------------------------------------------------------------------
@@ -263,9 +270,6 @@ impl Game {
                     // placeholder
                     // ----------------------------------------------------------------------------
                 },
-                Event::Raw { event } => {
-                    self.ui.borrow_mut().handle_event(event);
-                },
                 Event::Resized { w, h } => {
                     self.camera
                         .lock()
@@ -273,6 +277,7 @@ impl Game {
                 },
                 _ => {},
             }
+            false
         });
 
         // Calculate movement player movement vector
@@ -362,6 +367,22 @@ impl Game {
                 }
             }
         }
+    }
+
+    pub fn handle_client_events(&mut self) {
+        let mut events = self.client.get_events();
+
+        events.drain(..).for_each(|event| match event {
+            ClientEvent::RecvChatMsg { text } => self.hud.chat_box().add_chat_msg(text),
+        });
+    }
+
+    pub fn handle_hud_events(&mut self) {
+        let mut events = self.hud.get_events();
+
+        events.drain(..).for_each(|event| match event {
+            HudEvent::ChatMsgSent { text } => self.client.send_chat_msg(text),
+        });
     }
 
     pub fn update_entities(&self) {
@@ -482,20 +503,50 @@ impl Game {
 
         tonemapper::render(&mut renderer, &self.tonemapper_pipeline, &self.global_consts);
 
-        // Draw ui
-        self.ui
-            .borrow_mut()
-            .render(&mut renderer, &self.client, &self.window.get_size());
+        use get_build_time;
+        use get_git_hash;
+
+        // TODO: Use a HudEvent to pass this in!
+        self.hud
+            .debug_box()
+            .version_label
+            .set_text(format!("Version: {}", env!("CARGO_PKG_VERSION")));
+        self.hud
+            .debug_box()
+            .githash_label
+            .set_text(format!("Git hash: {}", &get_git_hash().get(..8).unwrap_or("<none>")));
+        self.hud
+            .debug_box()
+            .buildtime_label
+            .set_text(format!("Build time: {}", get_build_time()));
+        self.hud
+            .debug_box()
+            .fps_label
+            .set_text(format!("FPS: {}", self.last_fps));
+
+        let pos_text = self
+            .client
+            .player_entity()
+            .map(|p| format!("Pos: {}", p.read().pos().map(|e| e as i64)))
+            .unwrap_or("Unknown position".to_string());
+        self.hud.debug_box().pos_label.set_text(pos_text);
+
+        self.hud.render(&mut renderer);
 
         self.window.swap_buffers();
         renderer.end_frame();
+
+        self.last_fps = self.fps.tick();
     }
 
     pub fn run(&mut self) {
         while self.running.load(Ordering::Relaxed) {
             self.handle_window_events();
+            self.handle_hud_events();
+            self.handle_client_events();
             self.update_chunks();
             self.update_entities();
+
             self.render_frame();
         }
     }

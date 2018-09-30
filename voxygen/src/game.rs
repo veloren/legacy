@@ -344,7 +344,8 @@ impl Game {
                                 (pos.x * CHUNK_SIZE[0]) as f32,
                                 (pos.y * CHUNK_SIZE[1]) as f32,
                                 (pos.z * CHUNK_SIZE[2]) as f32,
-                            )).to_homogeneous();
+                            ))
+                            .to_homogeneous();
 
                             // Create set new model constants
                             let model_consts = ConstHandle::new(&mut renderer);

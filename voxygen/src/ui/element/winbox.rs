@@ -104,7 +104,8 @@ impl Clone for WinBox {
                         anchor: c.anchor,
                         size: c.size,
                         element: c.element.deep_clone(),
-                    }).collect(),
+                    })
+                    .collect(),
             ),
         }
     }

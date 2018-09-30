@@ -42,7 +42,7 @@ void main() {
 	float time_of_day = get_time_of_day(time.x);
 	vec3 sun_color = get_sun_color(time_of_day);
 	vec3 sun_dir = get_sun_dir(time_of_day);
-	
+
 	// Bump
 	float s[5];
 	float scale = 0.25;

@@ -4,8 +4,8 @@ use glutin;
 use glutin::{
     dpi::{LogicalPosition, LogicalSize},
     Api::OpenGl,
-    ContextBuilder, DeviceEvent, Event as glutinEvent, EventsLoop, GlContext, GlRequest, GlWindow, WindowBuilder,
-    WindowEvent,
+    ContextBuilder, DeviceEvent, ElementState, Event as glutinEvent, EventsLoop, GlContext, GlRequest, GlWindow,
+    WindowBuilder, WindowEvent,
 };
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
@@ -96,7 +96,7 @@ impl RenderWindow {
         renderer.get_info()
     }
 
-    pub fn handle_events<'a, F: FnMut(Event)>(&self, mut func: F) {
+    pub fn handle_events<'a, F: FnMut(Event) -> bool>(&self, mut func: F) {
         // We need to mutate these inside the closure, so we take a mutable reference
         let gl_window = &mut self.gl_window.read();
         let events_loop = &mut self.events_loop.write();
@@ -132,18 +132,11 @@ impl RenderWindow {
                         });
                     },
                     WindowEvent::MouseWheel { delta, modifiers, .. } => {
-                        let dx: f64;
-                        let dy: f64;
-                        match delta {
-                            glutin::MouseScrollDelta::LineDelta(x, y) => {
-                                dx = f64::from(x) * 8.0;
-                                dy = f64::from(y) * 8.0;
-                            },
-                            glutin::MouseScrollDelta::PixelDelta(LogicalPosition { x, y }) => {
-                                dx = x.into();
-                                dy = y.into();
-                            },
-                        }
+                        let (dx, dy) = match delta {
+                            glutin::MouseScrollDelta::LineDelta(x, y) => (f64::from(x) * 8.0, f64::from(y) * 8.0),
+                            glutin::MouseScrollDelta::PixelDelta(LogicalPosition { x, y }) => (x.into(), y.into()),
+                        };
+
                         func(Event::MouseWheel { dx, dy, modifiers });
                     },
                     WindowEvent::KeyboardInput { device_id, input } => {
@@ -154,14 +147,14 @@ impl RenderWindow {
                         });
                     },
                     WindowEvent::MouseInput { state, button, .. } => {
-                        if button == glutin::MouseButton::Left {
+                        let intercepted = func(Event::MouseButton { state, button });
+                        if !intercepted && button == glutin::MouseButton::Left && state == ElementState::Pressed {
                             self.trap_cursor();
                         }
-
-                        func(Event::MouseButton { state, button });
                     },
-                    WindowEvent::CloseRequested => func(Event::CloseRequest),
-
+                    WindowEvent::CloseRequested => {
+                        func(Event::CloseRequest);
+                    },
                     WindowEvent::Focused(is_focused) => {
                         if !is_focused {
                             self.untrap_cursor();

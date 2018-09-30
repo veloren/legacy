@@ -1,13 +1,16 @@
+// Standard
+use std::any::Any;
+
+// Library
 use noise::{NoiseFn, OpenSimplex, Seedable};
 use rand::{prng::XorShiftRng, RngCore, SeedableRng};
 use vek::*;
 
+// Local
 use Block;
 use BlockMaterial;
 use Volume;
 use Voxel;
-
-use std::any::Any;
 
 #[derive(Clone)]
 pub struct Chunk {
@@ -162,7 +165,8 @@ impl Chunk {
                                 let v = Vec2::new(
                                     tree_noise.get((pos2d * 100.0 + branch as f64 + 0.0).into_array()),
                                     tree_noise.get((pos2d * 100.0 + branch as f64 + 100.0).into_array()),
-                                ).normalized();
+                                )
+                                .normalized();
                                 for l in 0..25 + big * 4 {
                                     let inc = v.map(|e| (e * (1.0 - 0.025 * branch as f64) * 0.5 * l as f64) as i64);
                                     chunk.set(

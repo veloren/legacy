@@ -31,8 +31,10 @@ impl Shader {
         let expanded_code = Shader::expand(filename)?;
 
         match env::var("VOXYGEN_DEBUG_SHADERS") {
-            Ok(val) => if val.parse::<i32>().unwrap() == 1 {
-                println!("{}", &expanded_code);
+            Ok(val) => {
+                if val.parse::<i32>().unwrap() == 1 {
+                    println!("{}", &expanded_code);
+                }
             },
             _ => {},
         };
@@ -40,6 +42,12 @@ impl Shader {
         Ok(Shader {
             data: expanded_code.into_bytes(),
         })
+    }
+
+    pub fn from_str(code: &str) -> Shader {
+        Shader {
+            data: code.as_bytes().to_vec(),
+        }
     }
 
     pub fn bytes(&self) -> &[u8] { &self.data }

@@ -3,7 +3,7 @@
 	url = ../../veloren/assets/voxygen.git
 [submodule "client/assets"]
 	path = client/assets
-	url = https://gitlab.com/veloren/assets/client
+	url = ../../veloren/assets/client.git
 [submodule "server/assets"]
 	path = server/assets
-	url = https://gitlab.com/veloren/assets/server
+	url = ../../veloren/assets/server.git

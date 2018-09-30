@@ -25,8 +25,7 @@ fn test_create_raw_ecs() {
         .with(Dir(Vec2::zero()))
         .with(Character {
             name: "test".to_string(),
-        })
-        .with(Health(100))
+        }).with(Health(100))
         .build();
 }
 

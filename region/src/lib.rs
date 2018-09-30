@@ -1,4 +1,4 @@
-#![feature(nll, euclidean_division, specialization)]
+#![feature(nll, euclidean_division, specialization, option_replace)]
 
 #[macro_use]
 extern crate log;
@@ -24,6 +24,7 @@ mod container;
 mod entity;
 pub mod figure;
 pub mod physics;
+mod terrain;
 #[cfg(test)]
 mod tests;
 mod vol_gen;

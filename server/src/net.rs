@@ -235,7 +235,8 @@ impl<P: Payloads> Server<P> {
         for (client_uid, client) in (
             &self.world.read_storage::<UidMarker>(),
             &self.world.read_storage::<Client>(),
-        ).join()
+        )
+            .join()
         {
             let client_uid = client_uid.id();
 

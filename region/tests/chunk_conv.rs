@@ -8,8 +8,8 @@ extern crate vek;
 use std::any::Any;
 
 // Library
-use vek::*;
 use test::Bencher;
+use vek::*;
 
 // Project
 use region::{

@@ -301,8 +301,7 @@ impl Mesh {
                                     Vec3::new(1, 0, 0),
                                     col,
                                     mat,
-                                )
-                                .scale(Vec3::new(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x + scale.x, offset.y, offset.z])]);
                         }
                         // -x
@@ -319,8 +318,7 @@ impl Mesh {
                                     Vec3::new(-1, 0, 0),
                                     col,
                                     mat,
-                                )
-                                .scale(Vec3::new(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z])]);
                         }
                         // +y
@@ -337,8 +335,7 @@ impl Mesh {
                                     Vec3::new(0, 1, 0),
                                     col,
                                     mat,
-                                )
-                                .scale(Vec3::new(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y + scale.y, offset.z])]);
                         }
                         // -y
@@ -355,8 +352,7 @@ impl Mesh {
                                     Vec3::new(0, -1, 0),
                                     col,
                                     mat,
-                                )
-                                .scale(Vec3::new(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z])]);
                         }
                         // +z
@@ -373,8 +369,7 @@ impl Mesh {
                                     Vec3::new(0, 0, 1),
                                     col,
                                     mat,
-                                )
-                                .scale(Vec3::new(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z + scale.z])]);
                         }
                         // -z
@@ -391,8 +386,7 @@ impl Mesh {
                                     Vec3::new(0, 0, -1),
                                     col,
                                     mat,
-                                )
-                                .scale(Vec3::new(scale.x, scale.y, scale.z))
+                                ).scale(Vec3::new(scale.x, scale.y, scale.z))
                                 .with_offset([offset.x, offset.y, offset.z])]);
                         }
                     }

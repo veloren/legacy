@@ -20,7 +20,10 @@ use vek::*;
 
 // Project
 use client::{Client, ClientEvent, PlayMode};
-use region::{Container, chunk::{Chunk, ChunkContainer}};
+use region::{
+    chunk::{Chunk, ChunkContainer},
+    Container,
+};
 
 struct Payloads {}
 impl client::Payloads for Payloads {

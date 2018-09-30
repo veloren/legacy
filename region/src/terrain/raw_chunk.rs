@@ -25,14 +25,14 @@ enum ChunkData {
 
 #[derive(Clone, Debug)]
 pub struct RawChunk {
-    sz: Vec3<u64>,
+    sz: Vec3<u64>, // TODO: Consider whether permitting only 2^x sizes would speed things up
     data: ChunkData,
 }
 
 impl RawChunk {
     // Return the given offet if it is within the chunk bounds or None otherwise
     fn validate_offset(&self, off: Vec3<u64>) -> Option<Vec3<u64>> {
-        if off.x >= 0 && off.x < self.sz.x && off.y >= 0 && off.y < self.sz.y && off.z >= 0 && off.z < self.sz.z {
+        if off.x < self.sz.x && off.y < self.sz.y && off.z < self.sz.z {
             Some(off)
         } else {
             None
@@ -110,6 +110,10 @@ impl WriteVolume for RawChunk {
             ChunkData::Heterogeneous(blocks) => {
                 // TODO: This little bit is kind of horrid. We do this swapping thing to keep the
                 // borrow checker happy. If you can find a way to neaten this, please do!
+                // Note that despite the vec![] constructed below, the standard specifies that this
+                // will NOT perform an allocation since the Vec has no items. Therefore, despite
+                // appearances, this little piece of code still probably compiles down to be pretty
+                // much optimal.
                 let mut tmp = vec![];
                 mem::swap(blocks, &mut tmp);
                 // Replace the block if the offet is within the chunk bounds

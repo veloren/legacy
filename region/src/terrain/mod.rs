@@ -67,13 +67,13 @@ pub trait WriteVolume: ReadVolume {
     fn fill(&mut self, vox: Self::Voxel) {
         // Default implementation
         let sz = self.get_size();
-        (0..sz.x).for_each(|x| {
-            (0..sz.y).for_each(|y| {
-                (0..sz.x).for_each(|z| {
+        for x in 0..sz.x {
+            for y in 0..sz.y {
+                for z in 0..sz.z {
                     self.set_at(Vec3::new(x, y, z), vox.clone());
-                })
-            })
-        });
+                }
+            }
+        }
     }
 }
 

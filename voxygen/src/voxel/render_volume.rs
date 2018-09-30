@@ -1,5 +1,10 @@
-use region::{Block, BlockMaterial, Cell, CellMaterial, Chunk, Figure, Volume, Voxel};
+use std::cmp::{Ord, Ordering, PartialOrd};
 
+use region::{
+    chunk::{Block, BlockMaterial, Chunk},
+    figure::{Cell, CellMaterial, Figure},
+    Volume, Voxel,
+};
 use voxel::{Material, MaterialKind, RenderMaterial};
 
 pub trait RenderVoxel: Voxel {

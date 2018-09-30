@@ -1,52 +1,65 @@
-#![feature(nll, euclidean_division, specialization)]
+#![feature(nll, euclidean_division, specialization, option_replace)]
 
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate enum_map;
+extern crate bincode;
 extern crate noise;
 extern crate rand;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate threadpool;
 extern crate vek;
 #[macro_use]
 extern crate lazy_static;
 extern crate common;
 extern crate parking_lot;
-extern crate serde;
 extern crate specs;
-#[macro_use]
-extern crate serde_derive;
 
-mod block;
-mod cell;
-mod chunk;
-mod chunk_conv;
-mod chunk_file;
-mod chunk_rle;
+pub mod chunk;
 mod collision;
+mod container;
 mod entity;
-mod figure;
+pub mod figure;
 pub mod physics;
+mod terrain;
 #[cfg(test)]
 mod tests;
+mod vol_gen;
 mod vol_mgr;
-mod vol_per;
+mod vol_pers;
 
 pub mod ecs;
 pub mod item;
 
 // Reexports
-pub use block::{Block, BlockMaterial};
-pub use cell::{Cell, CellMaterial};
-pub use chunk::Chunk;
-pub use chunk_conv::{ChunkContainer, ChunkConverter};
+pub use container::{Container, VolContainer};
 pub use entity::Entity;
-pub use figure::Figure;
-pub use vol_mgr::{FnGenFunc, FnPayloadFunc, VolGen, VolMgr, VolState};
-pub use vol_per::{Container, PersState, VolPers, VolumeConverter};
+pub use vol_gen::{FnGenFunc, FnPayloadFunc, VolGen};
+pub use vol_mgr::{VolMgr, VolState};
+pub use vol_pers::VolPers;
 
-use std::any::Any;
+// Project
+use std::{any::Any, cmp::Eq, fmt::Debug, hash::Hash};
 use vek::*;
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum PersState {
+    Raw,
+    Rle,
+    File,
+    //Network,
+}
+
+pub trait Key: Copy + Eq + Hash + Debug + 'static {
+    fn print(&self) -> String;
+}
+
+pub trait VolConverter<C: VolContainer> {
+    fn convert<K: Key>(key: &K, container: &mut C, state: PersState);
+}
 
 pub trait Voxel: Copy + Clone + Any {
     type Material: Copy + Clone;
@@ -76,7 +89,8 @@ pub trait Volume: Send + Sync + Any {
     //TODO: sizeof?
     //fn memory_size(&self) -> u64;
 
-    fn as_any(&mut self) -> &mut Any;
+    fn as_any_mut(&mut self) -> &mut Any;
+    fn as_any(&self) -> &Any;
 
     fn set_size(&mut self, size: Vec3<i64>);
     fn set_offset(&mut self, offset: Vec3<i64>);

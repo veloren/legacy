@@ -15,7 +15,6 @@ mod world;
 
 // Reexport
 pub use common::msg::PlayMode;
-pub use region::{Block, Chunk, ChunkContainer, ChunkConverter, FnPayloadFunc, Volume, Voxel};
 
 // Standard
 use std::{
@@ -28,6 +27,7 @@ use std::{
 
 // Library
 use parking_lot::{Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use vek::*;
 
 // Project
 use common::{
@@ -35,14 +35,22 @@ use common::{
     msg::{ClientMsg, ClientPostOffice, ServerMsg, SessionKind},
     Uid,
 };
-use region::{Entity, VolGen, VolMgr};
+use region::{
+    chunk::{Block, Chunk, ChunkContainer, ChunkConverter},
+    Entity, FnPayloadFunc, VolGen, VolMgr, Volume, Voxel,
+};
 
 // Local
 use error::Error;
 use player::Player;
 
 // Constants
-pub const CHUNK_SIZE: i64 = 32;
+pub const CHUNK_SIZE: [i64; 3] = [32, 32, 32];
+pub const CHUNK_MID: [f32; 3] = [
+    CHUNK_SIZE[0] as f32 / 2.0,
+    CHUNK_SIZE[1] as f32 / 2.0,
+    CHUNK_SIZE[2] as f32 / 2.0,
+];
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Copy, Clone, PartialEq)]
@@ -70,7 +78,7 @@ pub struct Client<P: Payloads> {
     entities: RwLock<HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>>,
     phys_lock: Mutex<()>,
 
-    chunk_mgr: VolMgr<Chunk, ChunkContainer<<P as Payloads>::Chunk>, ChunkConverter, <P as Payloads>::Chunk>,
+    chunk_mgr: VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk>,
 
     events: Mutex<Vec<ClientEvent>>,
 
@@ -78,7 +86,7 @@ pub struct Client<P: Payloads> {
 }
 
 impl<P: Payloads> Client<P> {
-    pub fn new<S: ToSocketAddrs, GF: FnPayloadFunc<Chunk, P::Chunk, Output = P::Chunk>>(
+    pub fn new<S: ToSocketAddrs, GF: FnPayloadFunc<Chunk, ChunkContainer, P::Chunk>>(
         mode: PlayMode,
         alias: String,
         remote_addr: S,
@@ -106,7 +114,10 @@ impl<P: Payloads> Client<P> {
                 entities: RwLock::new(HashMap::new()),
                 phys_lock: Mutex::new(()),
 
-                chunk_mgr: VolMgr::new(CHUNK_SIZE, VolGen::new(world::gen_chunk, gen_payload)),
+                chunk_mgr: VolMgr::new(
+                    Vec3::from_slice(&CHUNK_SIZE),
+                    VolGen::new(world::gen_chunk, gen_payload),
+                ),
 
                 events: Mutex::new(vec![]),
 
@@ -125,11 +136,11 @@ impl<P: Payloads> Client<P> {
 
     pub fn send_cmd(&self, args: Vec<String>) { self.postoffice.send_one(ClientMsg::Cmd { args }); }
 
-    pub fn view_distance(&self) -> f32 { (self.view_distance * CHUNK_SIZE) as f32 }
+    pub fn view_distance(&self) -> f32 {
+        (Vec3::from_slice(&CHUNK_SIZE).map(|e| e as f32) * (self.view_distance as f32)).magnitude()
+    }
 
-    pub fn chunk_mgr(
-        &self,
-    ) -> &VolMgr<Chunk, ChunkContainer<<P as Payloads>::Chunk>, ChunkConverter, <P as Payloads>::Chunk> {
+    pub fn chunk_mgr(&self) -> &VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk> {
         &self.chunk_mgr
     }
 
@@ -197,6 +208,13 @@ impl<P: Payloads> Managed for Client<P> {
         Manager::add_worker(manager, |client, running, mut mgr| {
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
                 client.tick(40.0 / 1000.0, &mut mgr);
+            }
+        });
+
+        // Tick2 worker
+        Manager::add_worker(manager, |client, running, mut mgr| {
+            while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
+                client.manage_chunks(500.0 / 1000.0, &mut mgr);
             }
         });
     }

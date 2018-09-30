@@ -6,13 +6,14 @@ authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
 [dependencies]
 common = { path = "../common" }
 enum-map = "0.2.31"
+bincode = "1.0.0"
 log = "0.4"
 rand = "0.5.0"
 noise = "0.5.1"
 vek = "0.9"
 threadpool = "1.7.1"
 lazy_static = "1.0.1"
-parking_lot = { version = "0.6", features = ["nightly"] }
+parking_lot = { version = "0.6.4", features = ["nightly"] }
 serde = "1.0"
 serde_derive = "1.0"
 specs = { version = "0.12", features = ["nightly", "serde"] }

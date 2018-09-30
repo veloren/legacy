@@ -3,8 +3,10 @@ use dot_vox::DotVoxData;
 use vek::*;
 
 // Project
-use client::Volume;
-use region::{Cell, CellMaterial, Figure, Voxel};
+use region::{
+    figure::{Cell, CellMaterial, Figure},
+    Volume, Voxel,
+};
 
 pub fn vox_to_figure(vox: DotVoxData) -> Figure {
     let mut figure = Figure::new();

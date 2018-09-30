@@ -1,5 +1,4 @@
-#![feature(nll)]
-#![feature(arbitrary_self_types)]
+#![feature(nll, euclidean_division, arbitrary_self_types)]
 
 // Graphics
 #[macro_use]

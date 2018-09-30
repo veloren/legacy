@@ -1,7 +1,7 @@
-use Voxel;
+use super::super::Voxel;
 
 #[repr(u16)]
-#[derive(Copy, Clone, PartialEq, EnumMap)]
+#[derive(Copy, Clone, PartialEq, EnumMap, Debug, Serialize, Deserialize)]
 pub enum BlockMaterial {
     Air,
     Grass,
@@ -15,7 +15,7 @@ pub enum BlockMaterial {
     Gold,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Block {
     mat: BlockMaterial,
 }

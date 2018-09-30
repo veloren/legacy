@@ -1,18 +1,29 @@
 #![feature(nll)]
 
+// Crates
 extern crate client;
 extern crate common;
 extern crate get_if_addrs;
 extern crate pretty_env_logger;
+extern crate region;
 extern crate syrup;
+extern crate vek;
 #[macro_use]
 extern crate log;
 
-use std::{io, process::exit, sync::mpsc};
+// Standard
+use std::{io, sync::mpsc};
 
+// Library
 use syrup::Window;
+use vek::*;
 
-use client::{Chunk, Client, ClientEvent, PlayMode};
+// Project
+use client::{Client, ClientEvent, PlayMode};
+use region::{
+    chunk::{Chunk, ChunkContainer},
+    Container,
+};
 
 struct Payloads {}
 impl client::Payloads for Payloads {
@@ -20,7 +31,12 @@ impl client::Payloads for Payloads {
     type Entity = ();
 }
 
-fn gen_payload(_: &Chunk) -> <Payloads as client::Payloads>::Chunk { () }
+fn gen_payload(
+    key: Vec3<i64>,
+    con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>,
+) -> <Payloads as client::Payloads>::Chunk {
+    ()
+}
 
 fn main() {
     info!("Starting headless client...");
@@ -44,13 +60,8 @@ fn main() {
         alias = default_alias.to_string();
     }
 
-    let client = match Client::<Payloads>::new(PlayMode::Headless, alias, &remote_addr.trim(), gen_payload, 0) {
-        Ok(c) => c,
-        Err(e) => {
-            println!("An error occured when attempting to initiate the client: {:?}", e);
-            exit(0);
-        },
-    };
+    let client = Client::<Payloads>::new(PlayMode::Headless, alias, &remote_addr.trim(), gen_payload, 0)
+        .expect("error when attempting to initiate the client");
 
     let mut win = Window::initscr();
     win.writeln("Welcome to the Veloren headless client.");

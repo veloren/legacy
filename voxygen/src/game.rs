@@ -24,7 +24,10 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 // Project
 use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::manager::Manager;
-use region::{Chunk, Container};
+use region::{
+    chunk::{Chunk, ChunkContainer, ChunkConverter},
+    Container, PersState, VolContainer, VolConverter, VolState,
+};
 
 // Local
 use camera::Camera;
@@ -80,8 +83,23 @@ pub struct Game {
     other_player_model: voxel::Model,
 }
 
-fn gen_payload(chunk: &Chunk) -> <Payloads as client::Payloads>::Chunk {
-    ChunkPayload::Meshes(voxel::Mesh::from(chunk))
+fn gen_payload(key: Vec3<i64>, con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>) {
+    if con.vols().get(PersState::Raw).is_none() {
+        //only get mutable lock if no Raw exists
+        ChunkConverter::convert(&key, &mut con.vols_mut(), PersState::Raw);
+    }
+    if let Some(raw) = con.vols().get(PersState::Raw) {
+        let chunk: &Chunk = raw.as_any().downcast_ref::<Chunk>().expect("Should be Chunk");
+        *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(chunk)));
+    } else {
+        let vols = con.vols();
+        panic!(
+            "Raw chunk {} does not exist, rle: {}, file: {}",
+            key,
+            vols.get(PersState::Rle).is_some(),
+            vols.get(PersState::File).is_some()
+        );
+    }
 }
 
 impl Game {
@@ -300,6 +318,58 @@ impl Game {
         }
     }
 
+    pub fn update_chunks(&self) {
+        let mut renderer = self.window.renderer_mut();
+        // Find the chunk the camera is in
+        let cam_origin = *self.camera.lock().get_pos();
+        let cam_chunk = Vec3::<i64>::new(
+            (cam_origin.x as i64).div_euc(CHUNK_SIZE[0]),
+            (cam_origin.y as i64).div_euc(CHUNK_SIZE[1]),
+            (cam_origin.z as i64).div_euc(CHUNK_SIZE[2]),
+        );
+
+        for (pos, con) in self.client.chunk_mgr().persistence().hot().iter() {
+            // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
+            if (*pos - cam_chunk).map(|e| e.abs()).sum() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE[0] {
+                continue;
+            }
+            {
+                let mut trylock = &mut con.payload_try_mut(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
+                if let Some(ref mut lock) = trylock {
+                    //sometimes persistence does not exist, dont render then
+                    if let Some(ref mut payload) = **lock {
+                        if let ChunkPayload::Meshes(ref mut mesh) = payload {
+                            // Calculate chunk mode matrix
+                            let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
+                                (pos.x * CHUNK_SIZE[0]) as f32,
+                                (pos.y * CHUNK_SIZE[1]) as f32,
+                                (pos.z * CHUNK_SIZE[2]) as f32,
+                            ))
+                            .to_homogeneous();
+
+                            // Create set new model constants
+                            let model_consts = ConstHandle::new(&mut renderer);
+
+                            // Update chunk model constants
+                            model_consts.update(
+                                &mut renderer,
+                                voxel::ModelConsts {
+                                    model_mat: *model_mat.as_ref(),
+                                },
+                            );
+
+                            // Update the chunk payload
+                            *payload = ChunkPayload::Model {
+                                model: voxel::Model::new(&mut renderer, mesh),
+                                model_consts,
+                            };
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn handle_client_events(&mut self) {
         let mut events = self.client.get_events();
 
@@ -314,42 +384,6 @@ impl Game {
         events.drain(..).for_each(|event| match event {
             HudEvent::ChatMsgSent { text } => self.client.send_chat_msg(text),
         });
-    }
-
-    pub fn update_chunks(&mut self) {
-        let renderer = &mut self.window.renderer_mut();
-
-        for (pos, con) in self.client.chunk_mgr().persistence().data().iter() {
-            let mut con = con.write();
-            if let Some(payload) = con.payload_mut() {
-                if let ChunkPayload::Meshes(ref mut meshes) = payload {
-                    // Calculate chunk mode matrix
-                    let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
-                        (pos.x * CHUNK_SIZE) as f32,
-                        (pos.y * CHUNK_SIZE) as f32,
-                        0.0,
-                    ))
-                    .to_homogeneous();
-
-                    // Create set new model constants
-                    let model_consts = ConstHandle::new(renderer);
-
-                    // Update chunk model constants
-                    model_consts.update(
-                        renderer,
-                        voxel::ModelConsts {
-                            model_mat: *model_mat.as_ref(),
-                        },
-                    );
-
-                    // Update the chunk payload
-                    *payload = ChunkPayload::Model {
-                        model: voxel::Model::new(renderer, meshes),
-                        model_consts,
-                    };
-                }
-            }
-        }
     }
 
     pub fn update_entities(&self) {
@@ -422,17 +456,31 @@ impl Game {
         self.skybox_model
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
+        // Find the chunk the camera is in
+        let cam_chunk = Vec3::<i64>::new(
+            (cam_origin.x as i64).div_euc(CHUNK_SIZE[0]),
+            (cam_origin.y as i64).div_euc(CHUNK_SIZE[1]),
+            (cam_origin.z as i64).div_euc(CHUNK_SIZE[2]),
+        );
+
         // Render each chunk
-        for (_, con) in self.client.chunk_mgr().persistence().data().iter() {
-            let con = con.write();
-            if let Some(payload) = con.payload() {
-                if let ChunkPayload::Model {
-                    ref model,
-                    ref model_consts,
-                } = payload
-                {
-                    self.volume_pipeline
-                        .draw_model(&model, model_consts, &self.global_consts);
+        for (pos, con) in self.client.chunk_mgr().persistence().hot().iter() {
+            // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
+            if (*pos - cam_chunk).map(|e| e.abs()).sum() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE[0] {
+                continue;
+            }
+            // rendering actually does not set the time, but updating does it
+            let trylock = &con.payload_try(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
+            if let Some(ref lock) = trylock {
+                if let Some(ref payload) = **lock {
+                    if let ChunkPayload::Model {
+                        ref model,
+                        ref model_consts,
+                    } = payload
+                    {
+                        self.volume_pipeline
+                            .draw_model(&model, model_consts, &self.global_consts);
+                    }
                 }
             }
         }

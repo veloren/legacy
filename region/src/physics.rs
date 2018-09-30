@@ -1,5 +1,6 @@
 // Standard
-use std::sync::Arc;
+use chunk::{Chunk, ChunkContainer, ChunkConverter};
+use std::{clone::Clone, sync::Arc};
 
 // Library
 use parking_lot::RwLock;
@@ -10,9 +11,9 @@ use collision::{Collider, Primitive, ResolutionTti, PLANCK_LENGTH};
 use common::Uid;
 
 // Local
-use chunk_conv::{ChunkContainer, ChunkConverter};
-use Chunk;
 use Entity;
+use PersState;
+use VolContainer;
 use VolMgr;
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
@@ -29,8 +30,8 @@ pub fn tick<
     I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)>,
 >(
     entities: I,
-    chunk_mgr: &VolMgr<Chunk, ChunkContainer<CP>, ChunkConverter, CP>,
-    chunk_size: i64,
+    chunk_mgr: &VolMgr<Chunk, ChunkContainer, ChunkConverter, CP>,
+    chunk_size: Vec3<i64>,
     dt: f32,
 ) {
     // TODO: use const support once we use Vek
@@ -99,7 +100,7 @@ pub fn tick<
         *entity.vel_mut() *= fric_fac;
 
         let mut velocity = *entity.vel() * dt;
-        debug!("velocity: {}", velocity);
+        //debug!("velocity: {}", velocity);
 
         // movement can be executed in max 3 steps because we are using TTI
         for _ in 0..3 {
@@ -178,7 +179,7 @@ pub fn tick<
                 }
             }
             if normal.z != 0.0 {
-                debug!("full stop z");
+                //debug!("full stop z");
                 velocity.z = 0.0;
                 entity.vel_mut().z = 0.0;
             }
@@ -197,14 +198,19 @@ pub fn tick<
             }
         }
 
-        let chunk = entity_prim
-            .col_center()
-            .map(|e| e as i64)
-            .map(|e| e.div_euc(chunk_size));
-        let chunk_exists = chunk_mgr.loaded(Vec2::new(chunk.x, chunk.y));
-        if !chunk_exists {
-            *entity.vel_mut() = Vec3::broadcast(0.0);
-            continue; //skip applying
+        let cd = entity_prim.col_center();
+        let cs = chunk_size.map(|e| e as f32);
+        let chunk = Vec3::new(cd.x.div_euc(cs.x), cd.y.div_euc(cs.y), cd.z.div_euc(cs.z)); //Vec3<f32> has no div_euc!
+        let chunk = chunk.map(|e| e as i64);
+        if let Some(c) = chunk_mgr.persistence().hot().get(&chunk) {
+            // this is a bit strict requiering it in hot, but currently the only working version
+            let chunk_exists = chunk_mgr.loaded(chunk) && c.vols().contains(PersState::Raw);
+            if !chunk_exists {
+                *entity.vel_mut() = Vec3::broadcast(0.0);
+                continue; //skip applying
+            }
+        } else {
+            return; //skip applying
         }
 
         // apply

@@ -7,12 +7,11 @@ use rand::{prng::XorShiftRng, RngCore, SeedableRng};
 use vek::*;
 
 // Local
-use Block;
-use BlockMaterial;
+use chunk::{Block, BlockMaterial};
 use Volume;
 use Voxel;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Chunk {
     size: Vec3<i64>,
     offset: Vec3<i64>,
@@ -72,29 +71,31 @@ impl Chunk {
                         + ridge * ridge_factor * chaos;
 
                     let continent = continent_noise.get((pos / 1024.0).into_array()) * 32.0;
-                    let height = (terrain * mountain_height * chaos + terrain_height + continent) as i64;
+                    let height = (terrain * mountain_height * chaos + terrain_height + continent) as f64;
 
-                    voxels.push(Block::new(if k == 0 {
+                    voxels.push(Block::new(if pos.z == 0.0 {
                         BlockMaterial::Stone
-                    } else if k <= height {
+                    } else if pos.z <= height {
                         let cave0 = 1.0 - cave_noise_0.get((pos / cave_scale).into_array()).abs();
                         let cave1 = 1.0 - cave_noise_1.get((pos / cave_scale).into_array()).abs();
 
                         if cave0 * cave1 + cave0 + cave1 > 2.85 {
                             BlockMaterial::Air
-                        } else if k < height - 4 {
+                        } else if pos.z < height - 4.0 {
                             if ore_noise.get((pos / ore_scarcity).into_array()) > 0.4 {
                                 BlockMaterial::Gold
                             } else {
                                 BlockMaterial::Stone
                             }
-                        } else if k < height {
+                        } else if pos.z < height {
                             BlockMaterial::Earth
+                        } else if pos.z <= (size.z as f64) / 3.0 + 5.0 {
+                            BlockMaterial::Sand
                         } else {
                             BlockMaterial::Earth
                         }
                     } else {
-                        if k <= size.z / 3 {
+                        if pos.z <= (size.z as f64) / 3.0 {
                             BlockMaterial::Water
                         } else {
                             BlockMaterial::Air
@@ -258,5 +259,7 @@ impl Volume for Chunk {
         }
     }
 
-    fn as_any(&mut self) -> &mut Any { self }
+    fn as_any_mut(&mut self) -> &mut Any { self }
+
+    fn as_any(&self) -> &Any { self }
 }

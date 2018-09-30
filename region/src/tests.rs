@@ -289,7 +289,6 @@ macro_rules! checkWillCollide {
         let res = $x;
         println!("EXPT: {:?} {:?}", $tti2, $normal2);
         println!("{:?}", res);
-
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
         if let ResolutionTti::WillCollide { tti, normal } = res {
@@ -307,7 +306,6 @@ macro_rules! checkTouching {
         let res = $x;
         println!("EXPT: {:?}", $normal2);
         println!("{:?}", res);
-
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
         if let ResolutionTti::Touching { normal } = res {
@@ -323,7 +321,6 @@ macro_rules! checkOverlapping {
         let res = $x;
         println!("EXPT: {:?}", $since2);
         println!("{:?}", res);
-
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
         if let ResolutionTti::Overlapping { since } = res {

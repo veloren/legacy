@@ -31,8 +31,10 @@ impl Shader {
         let expanded_code = Shader::expand(filename)?;
 
         match env::var("VOXYGEN_DEBUG_SHADERS") {
-            Ok(val) => if val.parse::<i32>().unwrap() == 1 {
-                println!("{}", &expanded_code);
+            Ok(val) => {
+                if val.parse::<i32>().unwrap() == 1 {
+                    println!("{}", &expanded_code);
+                }
             },
             _ => {},
         };

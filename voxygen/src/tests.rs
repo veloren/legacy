@@ -103,6 +103,7 @@ mod tests {
             } else if ext == "vert" {
                 assert!(validate_shader(path, "vert"));
             }
-        }).unwrap();
+        })
+        .unwrap();
     }
 }

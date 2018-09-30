@@ -86,7 +86,8 @@ impl Hud {
                     chat_enabled_ref.store(false, Ordering::Relaxed);
                 }
                 chatbox_input.set_background_color(Rgba::new(0.0, 0.0, 0.0, 0.8));
-            }).with_text("".to_string());
+            })
+            .with_text("".to_string());
 
         winbox.add_child_at(
             Span::bottom_left(),

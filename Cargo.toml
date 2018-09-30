@@ -6,6 +6,7 @@ members = [
     "world",
     "voxygen",
     "server-cli",
+    "login-cli",
     "headless"
 ]
 

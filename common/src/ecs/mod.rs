@@ -10,10 +10,8 @@ use std::collections::HashMap;
 
 // Library
 use specs::{saveload::MarkedBuilder, Builder, Component, EntityBuilder, World};
+use util::msg::CompStore;
 use vek::*;
-
-// Project
-use common::msg::CompStore;
 
 // Local
 use self::{

@@ -3,7 +3,7 @@ use dot_vox::DotVoxData;
 use vek::*;
 
 // Project
-use region::{
+use common::terrain::{
     figure::{Cell, CellMaterial, Figure},
     Volume, Voxel,
 };

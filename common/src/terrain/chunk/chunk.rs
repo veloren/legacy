@@ -7,9 +7,10 @@ use rand::{prng::XorShiftRng, RngCore, SeedableRng};
 use vek::*;
 
 // Local
-use chunk::{Block, BlockMaterial};
-use Volume;
-use Voxel;
+use terrain::{
+    chunk::{Block, BlockMaterial},
+    Volume, Voxel,
+};
 
 #[derive(Clone, Debug)]
 pub struct Chunk {

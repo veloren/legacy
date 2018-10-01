@@ -1,5 +1,5 @@
 use super::super::{container::VolContainer, PersState, Volume};
-use chunk::{Block, Chunk, ChunkFile, ChunkRle};
+use terrain::chunk::{Block, Chunk, ChunkFile, ChunkRle};
 
 pub struct ChunkContainer {
     raw: Option<Chunk>,

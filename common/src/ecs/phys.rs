@@ -3,7 +3,7 @@ use specs::{Component, VecStorage};
 use vek::*;
 
 // Project
-use common::msg::CompStore;
+use util::msg::CompStore;
 
 // Local
 use super::NetComp;

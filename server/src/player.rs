@@ -6,10 +6,12 @@ use specs::{Builder, Component, EntityBuilder, VecStorage};
 
 // Project
 use common::{
-    manager::Manager,
-    msg::{CompStore, PlayMode, ServerPostOffice},
+    ecs::{CreateUtil, NetComp},
+    util::{
+        manager::Manager,
+        msg::{CompStore, PlayMode, ServerPostOffice},
+    },
 };
-use region::ecs::{CreateUtil, NetComp};
 
 // Local
 use net::Client;

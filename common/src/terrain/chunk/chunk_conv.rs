@@ -1,9 +1,10 @@
 use bincode;
 
-use super::super::{Key, PersState, VolContainer, VolConverter, Volume, Voxel};
-use chunk::{Block, BlockRle, Chunk, ChunkContainer, ChunkFile, ChunkRle, BLOCK_RLE_MAX_CNT};
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::{fs::File, io::prelude::*, u8};
+use terrain::{
+    chunk::{Block, BlockRle, Chunk, ChunkContainer, ChunkFile, ChunkRle, BLOCK_RLE_MAX_CNT},
+    Key, PersState, VolContainer, VolConverter, Volume, Voxel,
+};
 use vek::*;
 
 pub struct ChunkConverter {}

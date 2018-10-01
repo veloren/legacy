@@ -16,7 +16,7 @@ use super::{
 };
 
 // Local
-use PORTS;
+use util::testutils::PORTS;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TestMessage {

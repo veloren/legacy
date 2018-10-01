@@ -3,7 +3,6 @@
 // Crates
 extern crate common;
 extern crate parking_lot;
-extern crate region;
 pub extern crate specs;
 extern crate vek;
 
@@ -16,7 +15,7 @@ pub mod player;
 mod tick;
 
 // Reexports
-pub use common::manager::Manager;
+pub use common::util::manager::Manager;
 pub use error::Error;
 
 // Standard
@@ -32,8 +31,10 @@ use parking_lot::RwLock;
 use specs::{Entity, World};
 
 // Project
-use common::{manager::Managed, msg::ServerPostOffice};
-use region::ecs;
+use common::{
+    ecs,
+    util::{manager::Managed, msg::ServerPostOffice},
+};
 
 // Local
 use api::Api;

@@ -11,14 +11,16 @@ use specs::{saveload::Marker, Builder, Component, Entity, Join, VecStorage};
 
 // Project
 use common::{
-    manager::Manager,
-    msg::{ClientMsg, ServerMsg, ServerPostOffice, SessionKind},
-    post::Incoming,
-};
-use region::ecs::{
-    net::UidMarker,
-    phys::{Dir, Pos, Vel},
-    NetComp,
+    ecs::{
+        net::UidMarker,
+        phys::{Dir, Pos, Vel},
+        NetComp,
+    },
+    util::{
+        manager::Manager,
+        msg::{ClientMsg, ServerMsg, ServerPostOffice, SessionKind},
+        post::Incoming,
+    },
 };
 
 // Local

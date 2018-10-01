@@ -7,12 +7,15 @@ use rand::prelude::*;
 use vek::*;
 
 // Parent
-use super::{
-    chunk::{Block, BlockMaterial, Chunk, ChunkContainer},
+use physics::{
     collision::{Cuboid, Primitive, ResolutionCol, ResolutionTti},
-    physics, Container, Entity, PersState, VolContainer, VolGen, VolMgr, VolState, Volume, Voxel,
+    physics,
 };
-use common::Uid;
+use terrain::{
+    chunk::{Block, BlockMaterial, Chunk, ChunkContainer},
+    Container, Entity, PersState, VolContainer, VolGen, VolMgr, VolState, Volume, Voxel,
+};
+use Uid;
 
 #[test]
 fn collide_simple() {

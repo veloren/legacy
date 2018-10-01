@@ -1,13 +1,10 @@
 // Local
-use super::{Container, Key, PersState, VolContainer, VolConverter, VolPers, Volume, Voxel};
-use collision::{Collider, Primitive};
+use terrain::{Container, VolContainer, Volume};
 
 // Standard
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
 // Library
-use parking_lot::{Mutex, RwLock};
-use threadpool::ThreadPool;
 use vek::*;
 
 pub trait FnGenFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:

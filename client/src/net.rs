@@ -7,11 +7,13 @@ use vek::*;
 
 // Project
 use common::{
-    manager::Manager,
-    msg::{ClientMsg, CompStore, ServerMsg, SessionKind},
-    post::Incoming,
+    terrain::Entity,
+    util::{
+        manager::Manager,
+        msg::{ClientMsg, CompStore, ServerMsg, SessionKind},
+        post::Incoming,
+    },
 };
-use region::Entity;
 
 // Local
 use Client;

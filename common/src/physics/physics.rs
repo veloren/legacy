@@ -1,5 +1,4 @@
 // Standard
-use chunk::{Chunk, ChunkContainer, ChunkConverter};
 use std::{clone::Clone, sync::Arc};
 
 // Library
@@ -7,14 +6,12 @@ use parking_lot::RwLock;
 use vek::*;
 
 // Project
-use collision::{Collider, Primitive, ResolutionTti, PLANCK_LENGTH};
-use common::Uid;
+use physics::collision::{Collider, Primitive, ResolutionTti, PLANCK_LENGTH};
+use terrain::chunk::{Chunk, ChunkContainer, ChunkConverter};
+use Uid;
 
 // Local
-use Entity;
-use PersState;
-use VolContainer;
-use VolMgr;
+use terrain::{Entity, PersState, VolContainer, VolMgr};
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 const GROUND_GRAVITY: f32 = -9.81;

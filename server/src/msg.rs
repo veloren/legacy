@@ -6,8 +6,7 @@ use specs::prelude::*;
 use vek::*;
 
 // Project
-use common::manager::Manager;
-use region::ecs::phys::Pos;
+use common::{ecs::phys::Pos, util::manager::Manager};
 
 // Local
 use api::Api;

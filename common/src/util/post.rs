@@ -15,8 +15,8 @@ use std::{
 use parking_lot::Mutex;
 
 // Local
-use manager::{Managed, Manager};
 use net::{Connection, Error, Message, UdpMgr};
+use util::manager::{Managed, Manager};
 
 // Information
 // -----------

@@ -2,8 +2,7 @@
 use specs::{prelude::*, saveload::Marker};
 
 // Project
-use common::msg::ServerMsg;
-use region::ecs::net::UidMarker;
+use common::{ecs::net::UidMarker, util::msg::ServerMsg};
 
 // Local
 use net::{Client, DisconnectReason};

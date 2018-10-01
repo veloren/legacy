@@ -3,7 +3,7 @@ use vek::*;
 
 // Project
 use net::Message;
-use post::{PostBox, PostOffice};
+use util::post::{PostBox, PostOffice};
 
 // SessionKind
 

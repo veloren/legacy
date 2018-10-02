@@ -9,10 +9,7 @@ use glutin::{ElementState, MouseButton};
 use vek::*;
 
 // Local
-use super::{
-    primitive::{draw_rectangle, draw_text},
-    Bounds, Element, Event, ResCache, Span,
-};
+use super::{primitive::draw_rectangle, Bounds, Element, Event, ResCache, Span};
 use renderer::Renderer;
 
 #[derive(Copy, Clone, PartialEq)]
@@ -165,7 +162,7 @@ impl Element for Button {
                     && cursor.x < bounds.0.x + bounds.1.x
                     && cursor.y < bounds.0.y + bounds.1.y
                 {
-                    if (self.active_mode.get() == ActiveMode::None) {
+                    if self.active_mode.get() == ActiveMode::None {
                         self.active_mode.set(ActiveMode::Hover);
                     }
                 } else {

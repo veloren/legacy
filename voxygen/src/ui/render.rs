@@ -10,10 +10,7 @@ use gfx::{
     VertexBuffer,
 };
 use gfx_device_gl;
-use lyon::tessellation::{
-    self,
-    geometry_builder::{BuffersBuilder, VertexBuffers, VertexConstructor},
-};
+use lyon::tessellation::{self, geometry_builder::VertexConstructor};
 use vek::*;
 
 // Local

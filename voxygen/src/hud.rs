@@ -12,7 +12,7 @@ use vek::*;
 // Local
 use renderer::Renderer;
 use ui::{
-    element::{Button, HBox, Label, Rect, TextBox, VBox, WinBox},
+    element::{HBox, Label, Rect, TextBox, VBox, WinBox},
     Span, Ui,
 };
 use window::Event;

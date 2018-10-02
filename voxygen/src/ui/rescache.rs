@@ -10,12 +10,10 @@ use std::{
 use gfx::{handle::Buffer, Slice};
 use gfx_device_gl;
 use gfx_glyph::GlyphBrush;
-use lyon::tessellation::geometry_builder::VertexBuffers;
 use vek::*;
 
 // Local
 use super::render::{FillPso, FillVertex};
-use shader::Shader;
 
 // What is this?
 // -------------
@@ -86,7 +84,7 @@ impl ResCache {
         }
         self.rect_vbos
             .get(&hash)
-            .map(|r| r.clone())
+            .cloned()
             .expect("This panic shouldn't be possible.")
     }
 
@@ -95,12 +93,12 @@ impl ResCache {
         hash: u64,
         f: F,
     ) -> Rc<RefCell<GlyphBrushRes>> {
-        if let None = self.glyph_brushes.get(&hash) {
+        if self.glyph_brushes.get(&hash).is_none() {
             self.glyph_brushes.insert(hash, Rc::new(RefCell::new(f())));
         }
         self.glyph_brushes
             .get(&hash)
-            .map(|r| r.clone())
+            .cloned()
             .expect("This panic shouldn't be possible.")
     }
 }

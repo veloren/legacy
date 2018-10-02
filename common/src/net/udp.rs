@@ -32,7 +32,7 @@ impl Udp {
         socket.connect(&remote).unwrap();
         Ok(Udp {
             socket: RwLock::new(socket),
-            remote: remote,
+            remote,
             in_buffer: RwLock::new(VecDeque::new()),
             waiting_thread: Mutex::new(None),
         })

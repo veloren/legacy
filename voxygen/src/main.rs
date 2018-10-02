@@ -78,7 +78,7 @@ use parking_lot::Mutex;
 
 // Project
 use client::PlayMode;
-use common::{get_version, util};
+use common::get_version;
 
 // Local
 use game::Game;

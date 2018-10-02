@@ -67,12 +67,7 @@ impl OutgoingPacket {
             if remaining == 0 {
                 return Err(FrameError::SendDone);
             }
-            let to_send;
-            if size >= remaining {
-                to_send = remaining;
-            } else {
-                to_send = size;
-            }
+            let to_send = if size >= remaining { remaining } else { size };
             let end_pos = self.pos + to_send;
             let frame = Frame::Data {
                 id: self.data.id,
@@ -81,7 +76,7 @@ impl OutgoingPacket {
             };
             self.pos += to_send as u64;
             self.dataframesno += 1;
-            return Ok(frame);
+            Ok(frame)
         }
     }
 
@@ -123,7 +118,8 @@ impl IncomingPacket {
                 }
                 self.pos += data.len() as u64;
                 self.dataframesno += 1;
-                return self.pos == self.data.bytes.len() as u64;
+
+                self.pos == self.data.bytes.len() as u64
             },
         }
     }

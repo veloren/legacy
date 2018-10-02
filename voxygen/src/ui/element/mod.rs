@@ -11,7 +11,7 @@ pub mod winbox;
 pub use self::{button::Button, hbox::HBox, label::Label, rect::Rect, textbox::TextBox, vbox::VBox, winbox::WinBox};
 
 // Standard
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 // Library
 use vek::*;

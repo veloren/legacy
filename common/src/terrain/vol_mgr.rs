@@ -49,21 +49,22 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
 
     pub fn at(&self, pos: Vec3<i64>) -> Option<VolState<C, P>> {
         if let Some(con) = self.pers.get(&pos) {
-            return Some(VolState::Exists(con));
+            Some(VolState::Exists(con))
         } else if self.pending.read().get(&pos).is_some() {
-            return Some(VolState::Loading);
+            Some(VolState::Loading)
+        } else {
+            None
         }
-        return None;
     }
 
     pub fn persistence<'a>(&'a self) -> &'a VolPers<Vec3<i64>, C, VC, P> { &self.pers }
 
     pub fn contains(&self, pos: Vec3<i64>) -> bool {
-        return self.pers.get(&pos).is_some() || self.pending.read().get(&pos).is_some();
+        self.pers.get(&pos).is_some() || self.pending.read().get(&pos).is_some()
     }
 
     pub fn loaded(&self, pos: Vec3<i64>) -> bool {
-        return self.pending.read().get(&pos).is_none() && self.pers.get(&pos).is_some();
+        self.pending.read().get(&pos).is_none() && self.pers.get(&pos).is_some()
     }
 
     pub fn pending_cnt(&self) -> usize { return self.pending.read().len(); }
@@ -120,7 +121,7 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
                 return any_vol.at(vox_pos).unwrap_or(V::VoxelType::empty());
             };
         };
-        return V::VoxelType::empty();
+        V::VoxelType::empty()
     }
 }
 
@@ -196,12 +197,12 @@ impl<
         let low = low.map(|e| e.ceil() as i64);
         let high = high.map(|e| (e.floor() as i64) + 1); // +1 is for the for loop
 
-        return VolMgrIter {
+        VolMgrIter {
             cur: low,
             low,
             high,
             mgr: self,
-        };
+        }
     }
 
     fn get_nearby_dir(&'a self, col: &Primitive, dir: Vec3<f32>) -> Self::Iter {
@@ -217,11 +218,11 @@ impl<
         let low = low.map(|e| e.ceil() as i64);
         let high = high.map(|e| (e.floor() as i64) + 1); // +1 is for the for loop
 
-        return VolMgrIter {
+        VolMgrIter {
             cur: low,
             low,
             high,
             mgr: self,
-        };
+        }
     }
 }

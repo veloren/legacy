@@ -153,7 +153,7 @@ impl Cuboid {
         } else {
             first_hit.z
         };
-        return direction * min;
+        direction * min
     }
 
     fn cuboid_col(&self, b: &Cuboid) -> Option<ResolutionCol> {
@@ -430,7 +430,7 @@ impl Cuboid {
             });
         }
 
-        return None;
+        None
     }
 
     #[allow(dead_code)]

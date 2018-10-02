@@ -1,7 +1,6 @@
 use vek::*;
 
-use super::super::Volume;
-use chunk::Block;
+use terrain::{chunk::Block, Volume};
 
 use std::any::Any;
 

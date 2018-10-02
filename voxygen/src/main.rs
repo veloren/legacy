@@ -43,7 +43,6 @@ extern crate time;
 
 extern crate client;
 extern crate common;
-extern crate region;
 
 // Modules
 mod camera;
@@ -79,7 +78,7 @@ use parking_lot::Mutex;
 
 // Project
 use client::PlayMode;
-use common::get_version;
+use common::{get_version, util};
 
 // Local
 use game::Game;
@@ -157,7 +156,7 @@ fn main() {
     let mut name_choice = name_choice.trim();
     if name_choice.len() == 0 {
         println!("No name chosen, generating random one...");
-        name_choice = common::names::generate();
+        name_choice = common::util::names::generate();
     }
 
     println!("");

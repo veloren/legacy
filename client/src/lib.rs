@@ -3,7 +3,6 @@
 // Crates
 extern crate common;
 extern crate parking_lot;
-extern crate region;
 extern crate vek;
 
 // Modules
@@ -14,7 +13,7 @@ mod tick;
 mod world;
 
 // Reexport
-pub use common::msg::PlayMode;
+pub use common::util::msg::PlayMode;
 
 // Standard
 use std::{
@@ -31,13 +30,15 @@ use vek::*;
 
 // Project
 use common::{
-    manager::{Managed, Manager},
-    msg::{ClientMsg, ClientPostOffice, ServerMsg, SessionKind},
+    terrain::{
+        chunk::{Chunk, ChunkContainer, ChunkConverter},
+        Entity, FnPayloadFunc, VolGen, VolMgr, Voxel,
+    },
+    util::{
+        manager::{Managed, Manager},
+        msg::{ClientMsg, ClientPostOffice, ServerMsg, SessionKind},
+    },
     Uid,
-};
-use region::{
-    chunk::{Block, Chunk, ChunkContainer, ChunkConverter},
-    Entity, FnPayloadFunc, VolGen, VolMgr, Volume, Voxel,
 };
 
 // Local

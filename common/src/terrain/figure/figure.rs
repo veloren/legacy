@@ -5,9 +5,10 @@ use std::any::Any;
 use vek::*;
 
 // Local
-use figure::{Cell, CellMaterial};
-use Volume;
-use Voxel;
+use terrain::{
+    figure::{Cell, CellMaterial},
+    Volume, Voxel,
+};
 
 pub struct Figure {
     size: Vec3<i64>,

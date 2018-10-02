@@ -1,45 +1,20 @@
-#![feature(nll, euclidean_division, specialization, option_replace)]
-
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate enum_map;
-extern crate bincode;
-extern crate noise;
-extern crate rand;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate threadpool;
-extern crate vek;
-#[macro_use]
-extern crate lazy_static;
-extern crate common;
-extern crate parking_lot;
-extern crate specs;
-
 pub mod chunk;
-mod collision;
 mod container;
 mod entity;
 pub mod figure;
-pub mod physics;
 mod terrain;
-#[cfg(test)]
-mod tests;
 mod vol_gen;
 mod vol_mgr;
 mod vol_pers;
 
-pub mod ecs;
-pub mod item;
-
 // Reexports
-pub use container::{Container, VolContainer};
-pub use entity::Entity;
-pub use vol_gen::{FnGenFunc, FnPayloadFunc, VolGen};
-pub use vol_mgr::{VolMgr, VolState};
-pub use vol_pers::VolPers;
+pub use terrain::{
+    container::{Container, VolContainer},
+    entity::Entity,
+    vol_gen::{FnGenFunc, FnPayloadFunc, VolGen},
+    vol_mgr::{VolMgr, VolState},
+    vol_pers::VolPers,
+};
 
 // Project
 use std::{any::Any, cmp::Eq, fmt::Debug, hash::Hash};

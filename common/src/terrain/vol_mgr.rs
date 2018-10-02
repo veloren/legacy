@@ -7,10 +7,8 @@ use threadpool::ThreadPool;
 use vek::*;
 
 // Local
-use super::{
-    Container, FnGenFunc, FnPayloadFunc, Key, PersState, VolContainer, VolConverter, VolGen, VolPers, Volume, Voxel,
-};
-use collision::{Collider, Primitive};
+use super::{Container, Key, PersState, VolContainer, VolConverter, VolGen, VolPers, Volume, Voxel};
+use physics::collision::{Collider, Primitive};
 
 pub enum VolState<C: VolContainer, P: Send + Sync + 'static> {
     Loading,

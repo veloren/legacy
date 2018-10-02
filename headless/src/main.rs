@@ -5,7 +5,6 @@ extern crate client;
 extern crate common;
 extern crate get_if_addrs;
 extern crate pretty_env_logger;
-extern crate region;
 extern crate syrup;
 extern crate vek;
 #[macro_use]
@@ -20,7 +19,7 @@ use vek::*;
 
 // Project
 use client::{Client, ClientEvent, PlayMode};
-use region::{
+use common::terrain::{
     chunk::{Chunk, ChunkContainer},
     Container,
 };
@@ -51,7 +50,7 @@ fn main() {
         remote_addr = "91.67.21.222:38888";
     }
 
-    let default_alias = common::names::generate();
+    let default_alias = common::util::names::generate();
     println!("Alias: [{}]", default_alias);
     let mut alias = String::new();
     io::stdin().read_line(&mut alias).unwrap();

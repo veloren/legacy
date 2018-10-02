@@ -1,6 +1,6 @@
 #![feature(test)]
 
-extern crate region;
+extern crate common;
 extern crate test;
 extern crate vek;
 
@@ -12,7 +12,7 @@ use test::Bencher;
 use vek::*;
 
 // Project
-use region::{
+use common::terrain::{
     chunk::{Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, ChunkConverter, ChunkRle},
     Container, PersState, VolContainer, VolConverter, VolPers, Volume, Voxel,
 };

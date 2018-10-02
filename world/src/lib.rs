@@ -1,8 +1,8 @@
 #![feature(nll)]
 
+extern crate common;
 extern crate euler;
 extern crate noise;
-extern crate region;
 
 mod gen;
 mod map;

@@ -6,7 +6,6 @@ authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>", "Terah <terah.dev@gm
 [dependencies]
 common = { path = "../common" }
 world = { path = "../world" }
-region = { path = "../region" }
 #log = "0.4"
 #pretty_env_logger = "0.2.3"
 #time = "0.1.40"

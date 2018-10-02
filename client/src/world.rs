@@ -5,10 +5,12 @@ use std::path::Path;
 use vek::*;
 
 // Project
-use common::manager::Manager;
-use region::{
-    chunk::{Chunk, ChunkContainer, ChunkConverter, ChunkFile},
-    Container, Key, PersState, VolContainer, VolConverter,
+use common::{
+    terrain::{
+        chunk::{Chunk, ChunkContainer, ChunkConverter, ChunkFile},
+        Container, Key, PersState, VolContainer, VolConverter,
+    },
+    util::manager::Manager,
 };
 
 // Local

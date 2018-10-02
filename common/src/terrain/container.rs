@@ -1,7 +1,6 @@
 use super::{PersState, Volume, Voxel};
 
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
-use std::time::SystemTime;
 
 pub trait VolContainer: Send + Sync + 'static {
     type VoxelType: Voxel;

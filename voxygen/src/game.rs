@@ -23,10 +23,12 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
 use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
-use common::manager::Manager;
-use region::{
-    chunk::{Chunk, ChunkContainer, ChunkConverter},
-    Container, PersState, VolContainer, VolConverter, VolState,
+use common::{
+    terrain::{
+        chunk::{Chunk, ChunkContainer, ChunkConverter},
+        Container, PersState, VolContainer, VolConverter, VolState,
+    },
+    util::manager::Manager,
 };
 
 // Local

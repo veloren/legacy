@@ -8,10 +8,12 @@ use std::{net::TcpListener, sync::Arc, thread, time::Duration};
 
 // Project
 use common::{
-    manager::Manager,
     net::Message,
-    post::{Incoming, PostBox, PostOffice},
-    PORTS,
+    util::{
+        manager::Manager,
+        post::{Incoming, PostBox, PostOffice},
+        testutils::PORTS,
+    },
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]

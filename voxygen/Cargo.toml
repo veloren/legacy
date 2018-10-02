@@ -9,7 +9,6 @@ build = "build.rs"
 # Local
 common = { path = "../common" }
 client = { path = "../client" }
-region = { path = "../region" }
 
 # Graphics
 gfx = "0.17.1"

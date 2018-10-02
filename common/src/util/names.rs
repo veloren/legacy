@@ -1,6 +1,6 @@
 use rand::{thread_rng, Rng};
 
-const NAMES: [&'static str; 24] = [
+const NAMES: [&str; 24] = [
     "Olaf",
     "Günter",
     "Tom",

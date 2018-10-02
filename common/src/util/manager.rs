@@ -70,7 +70,7 @@ impl<T: Managed> Manager<T> {
         }
     }
 
-    pub fn await_shutdown(mut this: Self) { let _ = this.workers.drain(..).for_each(|w| w.join().unwrap()); }
+    pub fn await_shutdown(mut this: Self) { this.workers.drain(..).for_each(|w| w.join().unwrap()); }
 
     pub fn internal(this: &Self) -> &Arc<T> { &this.internal }
 }

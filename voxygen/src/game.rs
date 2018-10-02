@@ -1,9 +1,5 @@
-// Ui
-use ui::Ui;
-
 // Standard
 use std::{
-    cell::RefCell,
     f32::consts::PI,
     net::ToSocketAddrs,
     sync::atomic::{AtomicBool, Ordering},
@@ -26,7 +22,7 @@ use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::{
     terrain::{
         chunk::{Chunk, ChunkContainer, ChunkConverter},
-        Container, PersState, VolContainer, VolConverter, VolState,
+        Container, PersState, VolContainer, VolConverter,
     },
     util::manager::Manager,
 };
@@ -118,7 +114,7 @@ impl Game {
             .expect("Could not create new client");
 
         // Contruct the UI
-        let window_dims = window.get_size();
+        let _window_dims = window.get_size();
 
         // Create pipelines
 
@@ -336,7 +332,7 @@ impl Game {
                 continue;
             }
             {
-                let mut trylock = &mut con.payload_try_mut(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
+                let trylock = &mut con.payload_try_mut(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
                 if let Some(ref mut lock) = trylock {
                     //sometimes persistence does not exist, dont render then
                     if let Some(ref mut payload) = **lock {

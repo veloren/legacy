@@ -1,5 +1,3 @@
-use std::cmp::{Ord, Ordering, PartialOrd};
-
 use common::terrain::{
     chunk::{Block, BlockMaterial, Chunk},
     figure::{Cell, CellMaterial, Figure},

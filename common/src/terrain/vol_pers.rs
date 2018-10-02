@@ -42,7 +42,7 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
         if x.is_none() {
             x = self.cold.read().get(&key).map(|v| v.clone());
         }
-        return x;
+        x
     }
 
     pub fn exists(&self, key: &K, state: PersState) -> bool {
@@ -52,7 +52,7 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
         if let Some(entry) = self.hot.read().get(&key) {
             return entry.vols().contains(state);
         }
-        return false;
+        false
     }
 
     pub fn generate(&self, key: &K, state: PersState) {

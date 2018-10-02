@@ -1,12 +1,6 @@
-// Standard
-use std::{cell::Cell, hash::Hash};
-
-// Library
-use vek::*;
-
 // Library
 use gfx::traits::FactoryExt;
-use gfx_glyph::{GlyphBrush, GlyphBrushBuilder, Scale, Section};
+use gfx_glyph::{GlyphBrushBuilder, Scale, Section};
 use lyon::{
     math::rect,
     tessellation::{
@@ -15,6 +9,7 @@ use lyon::{
         FillOptions,
     },
 };
+use vek::*;
 
 // Local
 use super::{
@@ -22,7 +17,6 @@ use super::{
     rescache::{GlyphBrushRes, RectVboRes, ResCache},
 };
 use renderer::Renderer;
-use shader::Shader;
 
 fn create_rect_vbo(renderer: &mut Renderer, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>) -> RectVboRes {
     let mut mesh: VertexBuffers<FillVertex, u16> = VertexBuffers::new();

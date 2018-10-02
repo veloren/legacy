@@ -122,7 +122,7 @@ impl Element for TextBox {
         );
     }
 
-    fn handle_event(&self, event: &Event, scr_res: Vec2<f32>, bounds: Bounds) -> bool {
+    fn handle_event(&self, event: &Event, _scr_res: Vec2<f32>, _bounds: Bounds) -> bool {
         match event {
             Event::Character { ch } => {
                 match ch {

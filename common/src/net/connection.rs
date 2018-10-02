@@ -145,18 +145,16 @@ impl<RM: Message> Connection<RM> {
 
     pub fn try_recv(&self) -> Result<RM, ()> {
         match self.recvd_message_read.lock().try_recv() {
-            Ok(Ok(msg)) => return Ok(msg),
+            Ok(Ok(msg)) => Ok(msg),
             _ => Err(()),
         }
     }
 
     pub fn recv(&self) -> Result<RM, ()> {
         match self.recvd_message_read.lock().recv() {
-            Ok(Ok(msg)) => return Ok(msg),
-            _ => return Err(()),
+            Ok(Ok(msg)) => Ok(msg),
+            _ => Err(()),
         }
-
-        return Err(());
     }
 
     fn send_worker(&self) {

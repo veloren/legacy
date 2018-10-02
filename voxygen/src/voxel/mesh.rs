@@ -201,7 +201,7 @@ where
             ]
         };
         vecs.iter().fold(0, |acc, v| {
-            acc + if self.at(pos + *v).unwrap_or(V::VoxelType::empty()).is_opaque() {
+            acc + if self.at(pos + *v).unwrap_or_else(V::VoxelType::empty).is_opaque() {
                 0
             } else {
                 1
@@ -308,7 +308,7 @@ impl Mesh {
                         // -x
                         if vol
                             .at(Vec3::new(x - 1, y, z))
-                            .unwrap_or(V::VoxelType::empty())
+                            .unwrap_or_else(V::VoxelType::empty)
                             .should_add(opaque)
                         {
                             mesh.add_quads(&[vol
@@ -326,7 +326,7 @@ impl Mesh {
                         // +y
                         if vol
                             .at(Vec3::new(x, y + 1, z))
-                            .unwrap_or(V::VoxelType::empty())
+                            .unwrap_or_else(V::VoxelType::empty)
                             .should_add(opaque)
                         {
                             mesh.add_quads(&[vol

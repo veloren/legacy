@@ -11,7 +11,7 @@ extern crate vek;
 extern crate log;
 
 // Standard
-use std::{io, sync::mpsc};
+use std::io;
 
 // Library
 use syrup::Window;
@@ -19,10 +19,7 @@ use vek::*;
 
 // Project
 use client::{Client, ClientEvent, PlayMode};
-use common::terrain::{
-    chunk::{Chunk, ChunkContainer},
-    Container,
-};
+use common::terrain::{chunk::ChunkContainer, Container};
 
 struct Payloads {}
 impl client::Payloads for Payloads {
@@ -44,7 +41,7 @@ fn main() {
     println!("Remote server address [127.0.0.1:59003]:");
     io::stdin().read_line(&mut remote_addr).unwrap();
     let mut remote_addr = remote_addr.trim();
-    if remote_addr.len() == 0 {
+    if remote_addr.is_empty() {
         remote_addr = "127.0.0.1:59003";
     } else if remote_addr == "m" {
         remote_addr = "91.67.21.222:38888";
@@ -55,7 +52,7 @@ fn main() {
     let mut alias = String::new();
     io::stdin().read_line(&mut alias).unwrap();
     let mut alias = alias.trim().to_string();
-    if alias.len() == 0 {
+    if alias.is_empty() {
         alias = default_alias.to_string();
     }
 

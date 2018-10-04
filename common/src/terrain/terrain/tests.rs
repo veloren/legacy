@@ -12,7 +12,7 @@ fn test_raw_chunk() {
 }
 
 fn test_volume<V: Volume + ConstructVolume>() {
-    let (sizes, offs) = get_sizes_and_offsets();
+    let (sizes, _offs) = get_sizes_and_offsets();
 
     assert!(V::Voxel::empty().is_empty());
     assert!(!V::Voxel::solid().is_empty());

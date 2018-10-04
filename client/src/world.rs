@@ -27,7 +27,7 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<i64>, con: &Containe
         *vol.file_mut() = filepath;
         con.vols_mut().insert(vol, PersState::File);
     } else {
-        let mut vol = Chunk::test(
+        let vol = Chunk::test(
             Vec3::new(pos.x * CHUNK_SIZE[0], pos.y * CHUNK_SIZE[1], pos.z * CHUNK_SIZE[2]),
             Vec3::from_slice(&CHUNK_SIZE),
         );
@@ -36,7 +36,7 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<i64>, con: &Containe
 }
 
 impl<P: Payloads> Client<P> {
-    pub(crate) fn load_unload_chunks(&self, mgr: &mut Manager<Self>) {
+    pub(crate) fn load_unload_chunks(&self, _mgr: &mut Manager<Self>) {
         // Only update chunks if the player exists
         if let Some(player_entity) = self.player_entity() {
             // Find the chunk the player is in

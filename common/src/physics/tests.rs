@@ -8,12 +8,12 @@ use vek::*;
 
 // Parent
 use physics::{
-    collision::{Cuboid, Primitive, ResolutionCol, ResolutionTti},
+    collision::{Primitive, ResolutionCol, ResolutionTti},
     physics,
 };
 use terrain::{
     chunk::{Block, BlockMaterial, Chunk, ChunkContainer},
-    Container, Entity, PersState, VolContainer, VolGen, VolMgr, VolState, Volume, Voxel,
+    Container, Entity, PersState, VolContainer, VolGen, VolMgr, Volume, Voxel,
 };
 use Uid;
 

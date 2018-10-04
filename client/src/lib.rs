@@ -32,7 +32,7 @@ use vek::*;
 use common::{
     terrain::{
         chunk::{Chunk, ChunkContainer, ChunkConverter},
-        Entity, FnPayloadFunc, VolGen, VolMgr, Voxel,
+        Entity, FnPayloadFunc, VolGen, VolMgr,
     },
     util::{
         manager::{Managed, Manager},
@@ -99,7 +99,7 @@ impl<P: Payloads> Client<P> {
 
         // Initiate a connection handshake
         let pb = postoffice.create_postbox(SessionKind::Connect);
-        pb.send(ClientMsg::Connect {
+        let _ = pb.send(ClientMsg::Connect {
             alias: alias.clone(),
             mode,
         });
@@ -133,9 +133,9 @@ impl<P: Payloads> Client<P> {
         }
     }
 
-    pub fn send_chat_msg(&self, text: String) { self.postoffice.send_one(ClientMsg::ChatMsg { text }); }
+    pub fn send_chat_msg(&self, text: String) { let _ = self.postoffice.send_one(ClientMsg::ChatMsg { text }); }
 
-    pub fn send_cmd(&self, args: Vec<String>) { self.postoffice.send_one(ClientMsg::Cmd { args }); }
+    pub fn send_cmd(&self, args: Vec<String>) { let _ = self.postoffice.send_one(ClientMsg::Cmd { args }); }
 
     pub fn view_distance(&self) -> f32 {
         (Vec3::from_slice(&CHUNK_SIZE).map(|e| e as f32) * (self.view_distance as f32)).magnitude()
@@ -197,7 +197,7 @@ impl<P: Payloads> Managed for Client<P> {
             }
 
             // Send a disconnect message to the server
-            client
+            let _ = client
                 .postoffice
                 .create_postbox(SessionKind::Disconnect)
                 .send(ClientMsg::Disconnect {

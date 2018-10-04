@@ -99,11 +99,12 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
             }
         }),
         Some("alias") => srv.do_for_mut(|srv| 'nick: {
-            let alias = if let Some(a) = cmd.nth(0) {
-                a
-            } else {
-                srv.send_chat_msg(player, "A second argument is needed: /alias <alias>");
-                break 'nick;
+            let alias = match cmd.nth(0) {
+                Some(alias) if alias.len() > 0 => alias,
+                _ => {
+                    srv.send_chat_msg(player, "A second argument is needed: /alias <alias>");
+                    break 'nick;
+                },
             };
 
             // Give the player their new alias, hold on to the old one temporarily

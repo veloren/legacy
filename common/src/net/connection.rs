@@ -126,7 +126,7 @@ impl<RM: Message> Connection<RM> {
     pub fn stop<'b>(manager: &'b Arc<Connection<RM>>) {
         let m = manager.clone();
         m.running.store(false, Ordering::Relaxed);
-        m.recvd_message_write.lock().send(Err(ConnectionError::Disconnected));
+        let _ = m.recvd_message_write.lock().send(Err(ConnectionError::Disconnected));
         // non blocking stop for now
     }
 

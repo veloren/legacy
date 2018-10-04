@@ -206,8 +206,8 @@ impl<SK: Message, SM: Message, RM: Message> PostOffice<SK, SM, RM> {
         // Send shutdown message to the remote (we don't care if this fails)
         let _ = self.outgoing_send.lock().send(Ok(Letter::Shutdown));
         // Close the connection
-        self.outgoing_send.lock().send(Err(()));
-        self.incoming_send.lock().send(Err(()));
+        let _ = self.outgoing_send.lock().send(Err(()));
+        let _ = self.incoming_send.lock().send(Err(()));
     }
 }
 
@@ -235,7 +235,7 @@ impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
             while running.load(Ordering::Relaxed) {
                 match po.conn.recv() {
                     Ok(Letter::OpenBox { uid, kind }) => {
-                        incoming_send.send(Ok(Incoming::Session(PostBoxSession {
+                        let _ = incoming_send.send(Ok(Incoming::Session(PostBoxSession {
                             postbox: po.create_postbox_with_uid(uid),
                             kind,
                         })));
@@ -247,14 +247,14 @@ impl<SK: Message, SM: Message, RM: Message> Managed for PostOffice<SK, SM, RM> {
                         po.pb_sends.lock().get(&uid).map(|s| s.send(payload));
                     },
                     Ok(Letter::OneShot(m)) => {
-                        incoming_send.send(Ok(Incoming::Msg(m)));
+                        let _ = incoming_send.send(Ok(Incoming::Msg(m)));
                     },
                     Ok(Letter::Shutdown) | Err(_) => break,
                 }
             }
 
             // Send an end message to notify the user that the other end has disconnected
-            incoming_send.send(Ok(Incoming::End));
+            let _ = incoming_send.send(Ok(Incoming::End));
         });
     }
 

@@ -140,7 +140,7 @@ impl Element for TextBox {
                 }
                 true
             },
-            Event::KeyboardInput { i, device } => true,
+            Event::KeyboardInput { .. } => true,
             _ => false,
         }
     }

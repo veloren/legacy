@@ -14,7 +14,7 @@ use Payloads;
 use CHUNK_SIZE;
 
 impl<P: Payloads> Client<P> {
-    pub(crate) fn tick(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
+    pub(crate) fn tick(&self, dt: f32, _mgr: &mut Manager<Self>) -> bool {
         let entities = self.entities.read();
 
         // Physics tick
@@ -33,7 +33,7 @@ impl<P: Payloads> Client<P> {
         *self.status() != ClientStatus::Disconnected
     }
 
-    pub(crate) fn manage_chunks(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
+    pub(crate) fn manage_chunks(&self, _dt: f32, mgr: &mut Manager<Self>) -> bool {
         self.load_unload_chunks(mgr);
         self.chunk_mgr().persistence().try_cold_offload();
         self.chunk_mgr().persistence().debug();

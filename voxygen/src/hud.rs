@@ -133,7 +133,7 @@ impl Hud {
                     }
                 }
             },
-            Event::KeyboardInput { i, device } => {
+            Event::KeyboardInput { .. } => {
                 if self.chat_enabled.load(Ordering::Relaxed) {
                     self.ui.handle_event(event, renderer)
                 } else {

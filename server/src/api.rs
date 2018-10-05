@@ -19,6 +19,8 @@ pub trait Api {
 
     fn world(&self) -> &World;
     fn world_mut(&mut self) -> &mut World;
+    
+    fn is_valid_alias(&self, alias: &str) -> bool;
 }
 
 impl<P: Payloads> Api for Server<P> {
@@ -64,4 +66,8 @@ impl<P: Payloads> Api for Server<P> {
     fn world(&self) -> &World { &self.world }
 
     fn world_mut(&mut self) -> &mut World { &mut self.world }
+
+    fn is_valid_alias(&self, alias: &str) -> bool {
+        alias.len() > 0
+    }
 }

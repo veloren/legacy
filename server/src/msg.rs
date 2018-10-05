@@ -104,7 +104,7 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
                 _ => {
                     srv.send_chat_msg(player, "A second argument is needed: /alias <alias>");
                     break 'nick;
-                }
+                },
             };
 
             if !srv.is_valid_alias(&alias) {

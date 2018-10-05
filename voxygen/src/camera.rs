@@ -1,9 +1,11 @@
-use nalgebra::{Matrix4, Perspective3, Translation3, Vector2, Vector3, Vector4};
 use std::f32::consts::PI;
+
+use nalgebra::{Matrix4, Perspective3, Translation3, Vector3, Vector4};
+use vek::{Vec2, Vec3};
 
 pub struct Camera {
     focus: Vector3<f32>,
-    ori: Vector2<f32>,
+    ori: Vec2<f32>,
     aspect_ratio: f32,
     fov: f32,
     zoom: f32,
@@ -13,7 +15,7 @@ impl Camera {
     pub fn new() -> Camera {
         Camera {
             focus: Vector3::new(100.0, 100.0, 50.0),
-            ori: Vector2::zeros(),
+            ori: Vec2::zero(),
             aspect_ratio: 1.618,
             fov: 1.5,
             zoom: 10.0,
@@ -38,7 +40,7 @@ impl Camera {
         )
     }
 
-    pub fn rotate_by(&mut self, dangle: Vector2<f32>) {
+    pub fn rotate_by(&mut self, dangle: Vec2<f32>) {
         self.ori += dangle;
         if self.ori.y < -PI / 2.0 {
             self.ori.y = -PI / 2.0;
@@ -54,14 +56,14 @@ impl Camera {
         }
     }
 
-    pub fn get_pos(&self) -> Vector3<f32> {
+    pub fn get_pos(&self) -> Vec3<f32> {
         // TODO: There should be a more efficient way of doing this, but oh well
         let p = self.get_mats().0.try_inverse().unwrap_or(Matrix4::zeros()) * Vector4::new(0.0, 0.0, 0.0, 1.0);
-        Vector3::new(p.x, p.y, p.z)
+        Vec3::new(p.x, p.y, p.z)
     }
 
     #[allow(dead_code)]
-    pub fn ori(&self) -> &Vector2<f32> { &self.ori }
+    pub fn ori(&self) -> &Vec2<f32> { &self.ori }
 
     #[allow(dead_code)]
     pub fn set_aspect_ratio(&mut self, ratio: f32) { self.aspect_ratio = ratio; }

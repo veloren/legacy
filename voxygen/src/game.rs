@@ -11,7 +11,7 @@ use fnv::FnvBuildHasher;
 use fps_counter::FPSCounter;
 use glutin::ElementState;
 use indexmap::IndexMap;
-use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
+use nalgebra::{Rotation3, Translation3, Vector3};
 use parking_lot::Mutex;
 use vek::*;
 
@@ -196,7 +196,7 @@ impl Game {
                     if self.window.cursor_trapped().load(Ordering::Relaxed) {
                         self.camera
                             .lock()
-                            .rotate_by(Vector2::new(dx as f32 * 0.002, dy as f32 * 0.002));
+                            .rotate_by(Vec2::new(dx as f32 * 0.002, dy as f32 * 0.002));
                     }
                 },
                 Event::MouseWheel { dy, .. } => {
@@ -281,8 +281,8 @@ impl Game {
         // Calculate movement player movement vector
         let ori = *self.camera.lock().ori();
         let unit_vecs = (
-            Vector2::new(ori.x.cos(), -ori.x.sin()),
-            Vector2::new(ori.x.sin(), ori.x.cos()),
+            Vec2::new(ori.x.cos(), -ori.x.sin()),
+            Vec2::new(ori.x.sin(), ori.x.cos()),
         );
         let dir_vec = self.key_state.lock().dir_vec();
         let mov_vec = unit_vecs.0 * dir_vec.x + unit_vecs.1 * dir_vec.y;
@@ -319,7 +319,7 @@ impl Game {
     pub fn update_chunks(&self) {
         let mut renderer = self.window.renderer_mut();
         // Find the chunk the camera is in
-        let cam_origin = *self.camera.lock().get_pos();
+        let cam_origin = self.camera.lock().get_pos();
         let cam_chunk = Vec3::<i64>::new(
             (cam_origin.x as i64).div_euc(CHUNK_SIZE[0]),
             (cam_origin.y as i64).div_euc(CHUNK_SIZE[1]),
@@ -424,7 +424,7 @@ impl Game {
     pub fn render_frame(&mut self) {
         // Calculate frame constants
         let camera_mats = self.camera.lock().get_mats();
-        let cam_origin = *self.camera.lock().get_pos();
+        let cam_origin = self.camera.lock().get_pos();
         let play_origin = self
             .client
             .player_entity()

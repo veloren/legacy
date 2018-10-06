@@ -7,17 +7,40 @@ use vek::*;
 
 // Project
 use physics::collision::{Collider, Primitive, ResolutionTti, PLANCK_LENGTH};
-use terrain::chunk::{Chunk, ChunkContainer, ChunkConverter};
+use terrain::chunk::{Chunk};
+use terrain::{Voxel, VoxelAbsType, VoxelRelType, VoxelRelVec, VoxelAbsVec, VolumeIdxVec};
+
 use Uid;
 
 // Local
-use terrain::{Entity, PersState, VolContainer, VolMgr};
+use terrain::{Entity, PersState, ChunkMgr};
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 const GROUND_GRAVITY: f32 = -9.81;
 const BLOCK_SIZE_PLUS_SMALL: f32 = 1.0 + PLANCK_LENGTH;
 const BLOCK_HOP_SPEED: f32 = 15.0;
 const BLOCK_HOP_MAX: f32 = 0.34;
+
+// estimates the blocks around a entity that are needed during physics calculation.
+fn get_nearby(col: &Primitive, dir: Vec3<f32>) -> (/*low:*/VoxelAbsVec , /*high:*/VoxelAbsVec) {
+    // get the entity boundrieds and convert them to blocks, then caluclate the entity velocity and adjust it
+    // then move the playr up by BLOCK_SIZE_PLUS_SMALL for block hopping
+
+    let scale = Vec3::new(1.0, 1.0, 1.0); //between entities and world
+    let dirabs = Vec3::new(dir.x.abs(), dir.y.abs(), dir.z.abs()) / 2.0;
+    let area = col.col_approx_abc() + dirabs + scale;
+
+    let pos = col.col_center() + dir / 2.0;
+    let low = pos - area;
+    let mut high = pos + area;
+    // apply Hop correction to high
+    high.z += BLOCK_SIZE_PLUS_SMALL;
+    // ceil the low and floor the high for dat performance improve
+    let low = low.map(|e| e.ceil() as VoxelAbsType);
+    let high = high.map(|e| (e.floor() as VoxelAbsType) + 1); // +1 is for the for loop
+
+    (low, high)
+}
 
 #[allow(non_snake_case)]
 pub fn tick<
@@ -27,8 +50,8 @@ pub fn tick<
     I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)>,
 >(
     entities: I,
-    chunk_mgr: &VolMgr<Chunk, ChunkContainer, ChunkConverter, CP>,
-    chunk_size: Vec3<i64>,
+    chunk_mgr: &ChunkMgr<CP>,
+    chunk_size: VoxelRelVec,
     dt: f32,
 ) {
     // TODO: use const support once we use Vek
@@ -50,11 +73,22 @@ pub fn tick<
 
         let mut entity_prim = Primitive::new_cuboid(middle, radius);
 
+        // generate primitives from volsample
+        //TODO: Fix calculation! FIXME
+        let (low, high) = get_nearby(&entity_prim, Vec3::new(0.0, 0.0, 0.0));
+        let volsample = chunk_mgr.get_sample(low, high);
+        let mut nearby_primitves = Vec::new();
+        for (pos, b) in volsample.iter() {
+            if b.is_solid() {
+                let entity = Primitive::new_cuboid(pos.map(|e| e as f32) + Vec3::new(0.5, 0.5, 0.5), Vec3::new(0.5, 0.5, 0.5));
+                nearby_primitves.push(entity);
+            }
+        }
+
         // is standing on ground to jump
         let mut on_ground = false;
         let can_jump_prim = Primitive::new_cuboid(middle, radius);
-        let ground_prims = chunk_mgr.get_nearby(&can_jump_prim);
-        for prim in ground_prims {
+        for prim in &nearby_primitves {
             let res = prim.time_to_impact(&can_jump_prim, &SMALLER_THAN_BLOCK_GOING_DOWN);
             if let Some(ResolutionTti::WillCollide { tti, .. }) = res {
                 if tti < PLANCK_LENGTH * 2.0 {
@@ -106,11 +140,10 @@ pub fn tick<
             }
 
             // collision with terrain
-            let potential_collision_prims = chunk_mgr.get_nearby_dir(&entity_prim, velocity);
             let mut tti = 1.0; // 1.0 = full tick
             let mut normal = Vec3::new(0.0, 0.0, 0.0);
 
-            for prim in potential_collision_prims {
+            for prim in &nearby_primitves {
                 let r = prim.time_to_impact(&entity_prim, &velocity);
                 if let Some(r) = r {
                     //info!("colliding in tti: {:?}", r);
@@ -147,9 +180,8 @@ pub fn tick<
                 // block hopping
                 let mut auto_jump_prim = entity_prim.clone();
                 auto_jump_prim.move_by(&Vec3::new(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
-                let potential_collision_prims = chunk_mgr.get_nearby(&auto_jump_prim);
                 let mut collision_after_hop = false;
-                for prim in potential_collision_prims {
+                for prim in &nearby_primitves {
                     let res = prim.resolve_col(&auto_jump_prim);
                     if let Some(..) = res {
                         collision_after_hop = true;
@@ -185,8 +217,7 @@ pub fn tick<
         // am i stuck check
         let mut entity_prim_stuck = entity_prim.clone();
         entity_prim_stuck.scale_by(0.9);
-        let stuck_check = chunk_mgr.get_nearby(&entity_prim_stuck);
-        for prim in stuck_check {
+        for prim in nearby_primitves {
             let res = prim.resolve_col(&entity_prim_stuck);
             if let Some(..) = res {
                 warn!("entity is stuck!");
@@ -195,19 +226,10 @@ pub fn tick<
             }
         }
 
-        let cd = entity_prim.col_center();
-        let cs = chunk_size.map(|e| e as f32);
-        let chunk = Vec3::new(cd.x.div_euc(cs.x), cd.y.div_euc(cs.y), cd.z.div_euc(cs.z)); //Vec3<f32> has no div_euc!
-        let chunk = chunk.map(|e| e as i64);
-        if let Some(c) = chunk_mgr.persistence().hot().get(&chunk) {
-            // this is a bit strict requiering it in hot, but currently the only working version
-            let chunk_exists = chunk_mgr.loaded(chunk) && c.vols().contains(PersState::Raw);
-            if !chunk_exists {
-                *entity.vel_mut() = Vec3::broadcast(0.0);
-                continue; //skip applying
-            }
-        } else {
-            return; //skip applying
+        let cd = entity_prim.col_center().map(|e| e as VoxelAbsType);
+        if !chunk_mgr.exists_block(cd) {
+            *entity.vel_mut() = Vec3::broadcast(0.0);
+            continue; //skip applying
         }
 
         // apply

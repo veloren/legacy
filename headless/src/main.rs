@@ -19,7 +19,7 @@ use vek::*;
 
 // Project
 use client::{Client, ClientEvent, PlayMode};
-use common::terrain::{chunk::ChunkContainer, Container};
+use common::terrain::{chunk::ChunkContainer, VolumeIdxVec};
 
 struct Payloads {}
 impl client::Payloads for Payloads {
@@ -28,8 +28,8 @@ impl client::Payloads for Payloads {
 }
 
 fn gen_payload(
-    key: Vec3<i64>,
-    con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>,
+    key: VolumeIdxVec,
+    con: &ChunkContainer<<Payloads as client::Payloads>::Chunk>,
 ) -> <Payloads as client::Payloads>::Chunk {
     ()
 }

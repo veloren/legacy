@@ -7,19 +7,16 @@ use vek::*;
 // Local
 use terrain::{
     figure::{Cell, CellMaterial},
-    Volume, Voxel,
+    Volume, Voxel, ReadVolume, ReadWriteVolume, ConstructVolume, VoxelRelVec,
 };
 
 pub struct Figure {
-    size: Vec3<i64>,
-    offset: Vec3<i64>,
-    ori: Vec3<f32>,
-    scale: Vec3<f32>,
+    size: VoxelRelVec,
     voxels: Vec<Cell>,
 }
 
 impl Figure {
-    pub fn test(offset: Vec3<i64>, size: Vec3<i64>) -> Figure {
+    pub fn test(offset: Vec3<i64>, size: VoxelRelVec) -> Figure {
         let mut voxels = Vec::new();
 
         for _i in 0..size.x {
@@ -32,22 +29,58 @@ impl Figure {
 
         Figure {
             size,
-            offset,
             voxels,
-            ori: Vec3::new(0.0, 0.0, 0.0),
-            scale: Vec3::new(1.0, 1.0, 1.0),
         }
     }
 
-    fn pos_to_index(&self, pos: Vec3<i64>) -> usize {
-        (pos.x * self.size.y * self.size.z + pos.y * self.size.z + pos.z) as usize
+    fn calculate_index(&self, off: VoxelRelVec) -> usize {
+        (off.x * self.size.y * self.size.z + off.y * self.size.z + off.z) as usize
     }
-
-    pub fn set_ori(&mut self, ori: Vec3<f32>) { self.ori = ori; }
-
-    pub fn set_scale(&mut self, scale: Vec3<f32>) { self.scale = scale; }
 }
 
+impl Volume for Figure {
+    type VoxelType = Cell;
+
+    fn size(&self) -> VoxelRelVec { self.size }
+}
+
+impl ReadVolume for Figure {
+    fn at_unsafe(&self, off: VoxelRelVec) -> Cell {
+        self.voxels[self.calculate_index(off)]
+    }
+}
+
+impl ReadWriteVolume for Figure {
+    fn replace_at_unsafe(&mut self, off: VoxelRelVec, vox: Self::VoxelType) -> Self::VoxelType {
+        let i = self.calculate_index(off);
+        let r = self.voxels[i];
+        self.voxels[i] = vox;
+        r
+    }
+
+    fn fill(&mut self, vox: Self::VoxelType) {
+        // Default implementation
+        for v in self.voxels.iter_mut() {
+            *v = vox;
+        }
+    }
+}
+
+impl ConstructVolume for Figure {
+    fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> Figure {
+        let mut vol = Figure {
+            size,
+            voxels: vec![vox; (size.x * size.y * size.z) as usize],
+        };
+        vol
+    }
+
+    fn empty(size: VoxelRelVec) -> Figure {
+        Self::filled(size, Cell::empty())
+    }
+}
+
+/*
 impl Volume for Figure {
     type VoxelType = Cell;
 
@@ -94,16 +127,13 @@ impl Volume for Figure {
     fn as_any_mut(&mut self) -> &mut Any { self }
 
     fn as_any(&self) -> &Any { self }
-}
+}*/
 
 impl Figure {
     pub fn new() -> Self {
         Figure {
             size: Vec3::from((0, 0, 0)),
-            offset: Vec3::from((0, 0, 0)),
             voxels: Vec::new(),
-            ori: Vec3::new(0.0, 0.0, 0.0),
-            scale: Vec3::new(1.0, 1.0, 1.0),
         }
     }
 }

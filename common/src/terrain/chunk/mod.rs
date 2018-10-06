@@ -1,16 +1,17 @@
+mod hetero;
+mod homo;
+mod rle;
+mod sample;
 mod block;
-mod chunk;
-mod chunk_container;
-mod chunk_conv;
-mod chunk_file;
-mod chunk_rle;
+mod container;
+mod conv;
 
 // Reexports
 pub use self::{
     block::{Block, BlockMaterial},
-    chunk::Chunk,
-    chunk_container::ChunkContainer,
-    chunk_conv::ChunkConverter,
-    chunk_file::ChunkFile,
-    chunk_rle::{BlockRle, ChunkRle, BLOCK_RLE_MAX_CNT},
+    container::{Chunk, ChunkContainer},
+    hetero::HeterogeneousData,
+    homo::HomogeneousData,
+    sample::ChunkSample,
+    rle::{BlockRle, RleData, BLOCK_RLE_MAX_CNT},
 };

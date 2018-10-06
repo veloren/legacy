@@ -4,6 +4,8 @@
 extern crate common;
 extern crate parking_lot;
 extern crate vek;
+#[macro_use]
+extern crate log;
 
 // Modules
 mod error;
@@ -31,8 +33,8 @@ use vek::*;
 // Project
 use common::{
     terrain::{
-        chunk::{Chunk, ChunkContainer, ChunkConverter},
-        Entity, FnPayloadFunc, VolGen, VolMgr, Voxel,
+        chunk::{ChunkContainer},
+        Entity, FnPayloadFunc, VolGen, Voxel, ChunkMgr, VolumeIdxVec, VoxelRelType,
     },
     util::{
         manager::{Managed, Manager},
@@ -46,7 +48,7 @@ use error::Error;
 use player::Player;
 
 // Constants
-pub const CHUNK_SIZE: [i64; 3] = [32, 32, 32];
+pub const CHUNK_SIZE: [VoxelRelType; 3] = [32, 32, 32];
 pub const CHUNK_MID: [f32; 3] = [
     CHUNK_SIZE[0] as f32 / 2.0,
     CHUNK_SIZE[1] as f32 / 2.0,
@@ -79,7 +81,7 @@ pub struct Client<P: Payloads> {
     entities: RwLock<HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>>,
     phys_lock: Mutex<()>,
 
-    chunk_mgr: VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk>,
+    chunk_mgr: ChunkMgr<<P as Payloads>::Chunk>,
 
     events: Mutex<Vec<ClientEvent>>,
 
@@ -87,7 +89,7 @@ pub struct Client<P: Payloads> {
 }
 
 impl<P: Payloads> Client<P> {
-    pub fn new<S: ToSocketAddrs, GF: FnPayloadFunc<Chunk, ChunkContainer, P::Chunk>>(
+    pub fn new<S: ToSocketAddrs, GF: FnPayloadFunc<VolumeIdxVec, ChunkContainer<P::Chunk>>>(
         mode: PlayMode,
         alias: String,
         remote_addr: S,
@@ -115,7 +117,7 @@ impl<P: Payloads> Client<P> {
                 entities: RwLock::new(HashMap::new()),
                 phys_lock: Mutex::new(()),
 
-                chunk_mgr: VolMgr::new(
+                chunk_mgr: ChunkMgr::new(
                     Vec3::from_slice(&CHUNK_SIZE),
                     VolGen::new(world::gen_chunk, gen_payload),
                 ),
@@ -141,7 +143,7 @@ impl<P: Payloads> Client<P> {
         (Vec3::from_slice(&CHUNK_SIZE).map(|e| e as f32) * (self.view_distance as f32)).magnitude()
     }
 
-    pub fn chunk_mgr(&self) -> &VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk> {
+    pub fn chunk_mgr(&self) -> &ChunkMgr<<P as Payloads>::Chunk> {
         &self.chunk_mgr
     }
 

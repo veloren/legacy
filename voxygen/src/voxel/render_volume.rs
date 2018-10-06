@@ -1,7 +1,7 @@
 use common::terrain::{
-    chunk::{Block, BlockMaterial, Chunk},
+    chunk::{Block, BlockMaterial, Chunk, HeterogeneousData},
     figure::{Cell, CellMaterial, Figure},
-    Volume, Voxel,
+    Volume, Voxel, ReadVolume, PhysicalllyVolume,
 };
 use voxel::{Material, MaterialKind, RenderMaterial};
 
@@ -13,7 +13,7 @@ pub trait RenderVoxel: Voxel {
     fn should_add(&self, other_opaque: bool) -> bool { !self.is_occupied() || !self.is_opaque() && other_opaque }
 }
 
-pub trait RenderVolume: Volume
+pub trait RenderVolume: ReadVolume
 where
     Self::VoxelType: RenderVoxel,
 {
@@ -61,7 +61,7 @@ impl RenderVoxel for Block {
     fn is_occupied(&self) -> bool { self.material() != BlockMaterial::Air }
 }
 
-impl RenderVolume for Chunk {}
+impl RenderVolume for HeterogeneousData {}
 
 impl RenderVoxel for Cell {
     fn get_color(&self) -> u8 {

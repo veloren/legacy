@@ -21,9 +21,10 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::{
     terrain::{
-        chunk::{Chunk, ChunkContainer, ChunkConverter},
-        Container, PersState, VolContainer, VolConverter,
+        chunk::{Chunk, ChunkContainer, HeterogeneousData},
+        Container, PersState, ConvertVolume, VolumeIdxVec, VolCluster,
     },
+    terrain,
     util::manager::Manager,
 };
 
@@ -81,16 +82,16 @@ pub struct Game {
     other_player_model: voxel::Model,
 }
 
-fn gen_payload(key: Vec3<i64>, con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>) {
-    if con.vols().get(PersState::Raw).is_none() {
+fn gen_payload(key: VolumeIdxVec, con: &ChunkContainer<<Payloads as client::Payloads>::Chunk>) {
+    if con.data().get(PersState::Hetero).is_none() {
         //only get mutable lock if no Raw exists
-        ChunkConverter::convert(&key, &mut con.vols_mut(), PersState::Raw);
+        con.data_mut().convert(PersState::Hetero);
     }
-    if let Some(raw) = con.vols().get(PersState::Raw) {
-        let chunk: &Chunk = raw.as_any().downcast_ref::<Chunk>().expect("Should be Chunk");
-        *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(chunk)));
+    if let Some(hetero) = con.data().get_any(PersState::Hetero) {
+        let hetero: &HeterogeneousData = hetero.as_any().downcast_ref::<HeterogeneousData>().expect("Should be Hetero");
+        *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(hetero)));
     } else {
-        let vols = con.vols();
+        let vols = con.data();
         panic!(
             "Raw chunk {} does not exist, rle: {}, file: {}",
             key,
@@ -321,14 +322,14 @@ impl Game {
         // Find the chunk the camera is in
         let cam_origin = *self.camera.lock().get_pos();
         let cam_chunk = Vec3::<i64>::new(
-            (cam_origin.x as i64).div_euc(CHUNK_SIZE[0]),
-            (cam_origin.y as i64).div_euc(CHUNK_SIZE[1]),
-            (cam_origin.z as i64).div_euc(CHUNK_SIZE[2]),
+            (cam_origin.x as i64).div_euc(CHUNK_SIZE[0] as i64),
+            (cam_origin.y as i64).div_euc(CHUNK_SIZE[1] as i64),
+            (cam_origin.z as i64).div_euc(CHUNK_SIZE[2] as i64),
         );
 
-        for (pos, con) in self.client.chunk_mgr().persistence().hot().iter() {
+        for (pos, con) in self.client.chunk_mgr().map().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
-            if (*pos - cam_chunk).map(|e| e.abs()).sum() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE[0] {
+            if (*pos - cam_chunk.map(|e| e as i32)).map(|e| e.abs() as u16).sum() > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE[0] {
                 continue;
             }
             {
@@ -339,9 +340,9 @@ impl Game {
                         if let ChunkPayload::Meshes(ref mut mesh) = payload {
                             // Calculate chunk mode matrix
                             let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
-                                (pos.x * CHUNK_SIZE[0]) as f32,
-                                (pos.y * CHUNK_SIZE[1]) as f32,
-                                (pos.z * CHUNK_SIZE[2]) as f32,
+                                (pos.x * CHUNK_SIZE[0] as i32) as f32,
+                                (pos.y * CHUNK_SIZE[1] as i32) as f32,
+                                (pos.z * CHUNK_SIZE[2] as i32) as f32,
                             ))
                             .to_homogeneous();
 
@@ -456,15 +457,15 @@ impl Game {
 
         // Find the chunk the camera is in
         let cam_chunk = Vec3::<i64>::new(
-            (cam_origin.x as i64).div_euc(CHUNK_SIZE[0]),
-            (cam_origin.y as i64).div_euc(CHUNK_SIZE[1]),
-            (cam_origin.z as i64).div_euc(CHUNK_SIZE[2]),
+            (cam_origin.x as i64).div_euc(CHUNK_SIZE[0] as i64),
+            (cam_origin.y as i64).div_euc(CHUNK_SIZE[1] as i64),
+            (cam_origin.z as i64).div_euc(CHUNK_SIZE[2] as i64),
         );
 
         // Render each chunk
-        for (pos, con) in self.client.chunk_mgr().persistence().hot().iter() {
+        for (pos, con) in self.client.chunk_mgr().map().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
-            if (*pos - cam_chunk).map(|e| e.abs()).sum() > (self.client.view_distance() as i64 * 2) / CHUNK_SIZE[0] {
+            if (*pos - cam_chunk.map(|e| e as i32)).map(|e| e.abs() as u16).sum() > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE[0] {
                 continue;
             }
             // rendering actually does not set the time, but updating does it

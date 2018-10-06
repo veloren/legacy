@@ -201,7 +201,7 @@ where
             ]
         };
         vecs.iter().fold(0, |acc, v| {
-            acc + if self.at(pos + *v).unwrap_or_else(V::VoxelType::empty).is_opaque() {
+            acc + if self.at((pos + *v).map(|e| e as u16)).unwrap_or_else(V::VoxelType::empty).is_opaque() {
                 0
             } else {
                 1
@@ -264,7 +264,7 @@ impl Mesh {
         V::VoxelType: RenderVoxel,
     {
         let mut map = FnvIndexMap::with_capacity_and_hasher(4, Default::default());
-        let scale = vol.scale();
+        let scale = Vec3::new(1.0, 1.0, 1.0);
         let scale = Vec3::new(scale.x as f32, scale.y as f32, scale.z as f32);
 
         for x in 0..vol.size().x {
@@ -295,7 +295,7 @@ impl Mesh {
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    Vec3::new(x + 1, y + 0, z + 0),
+                                    Vec3::new(x as i64 + 1, y as i64 + 0, z as i64 + 0),
                                     Vec3::new(0, 1, 0),
                                     Vec3::new(0, 0, 1),
                                     Vec3::new(1, 0, 0),
@@ -313,7 +313,7 @@ impl Mesh {
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    Vec3::new(x - 1, y + 0, z + 0),
+                                    Vec3::new(x as i64 - 1, y as i64 + 0, z as i64 + 0),
                                     Vec3::new(0, 0, 1),
                                     Vec3::new(0, 1, 0),
                                     Vec3::new(-1, 0, 0),
@@ -331,7 +331,7 @@ impl Mesh {
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    Vec3::new(x + 0, y + 1, z + 0),
+                                    Vec3::new(x as i64 + 0, y as i64 + 1, z as i64 + 0),
                                     Vec3::new(0, 0, 1),
                                     Vec3::new(1, 0, 0),
                                     Vec3::new(0, 1, 0),
@@ -349,7 +349,7 @@ impl Mesh {
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    Vec3::new(x + 0, y - 1, z + 0),
+                                    Vec3::new(x as i64 + 0, y as i64 - 1, z as i64 + 0),
                                     Vec3::new(1, 0, 0),
                                     Vec3::new(0, 0, 1),
                                     Vec3::new(0, -1, 0),
@@ -367,7 +367,7 @@ impl Mesh {
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    Vec3::new(x + 0, y + 0, z + 1),
+                                    Vec3::new(x as i64 + 0, y as i64 + 0, z as i64 + 1),
                                     Vec3::new(1, 0, 0),
                                     Vec3::new(0, 1, 0),
                                     Vec3::new(0, 0, 1),
@@ -385,7 +385,7 @@ impl Mesh {
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
-                                    Vec3::new(x + 0, y + 0, z - 1),
+                                    Vec3::new(x as i64 + 0, y as i64 + 0, z as i64 - 1),
                                     Vec3::new(0, 1, 0),
                                     Vec3::new(1, 0, 0),
                                     Vec3::new(0, 0, -1),

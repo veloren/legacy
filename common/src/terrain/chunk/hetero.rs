@@ -1,26 +1,23 @@
-// Standard
-use std::any::Any;
-
 // Library
 use noise::{NoiseFn, OpenSimplex, Seedable};
 use rand::{prng::XorShiftRng, RngCore, SeedableRng};
 use vek::*;
+use num::{Num, ToPrimitive};
 
 // Local
 use terrain::{
     chunk::{Block, BlockMaterial},
-    Volume, Voxel,
+    Volume, ReadVolume, ReadWriteVolume, ConstructVolume, AnyVolume, SerializeVolume, Voxel, VoxelRelVec, VoxelAbsVec,
 };
 
 #[derive(Clone, Debug)]
-pub struct Chunk {
-    size: Vec3<i64>,
-    offset: Vec3<i64>,
+pub struct HeterogeneousData {
+    size: VoxelRelVec,
     voxels: Vec<Block>,
 }
 
-impl Chunk {
-    pub fn test(offset: Vec3<i64>, size: Vec3<i64>) -> Chunk {
+impl HeterogeneousData {
+    pub fn test(offset: VoxelAbsVec, size: VoxelRelVec) -> HeterogeneousData {
         let offs_x_noise = OpenSimplex::new().set_seed(1);
         let offs_y_noise = OpenSimplex::new().set_seed(2);
         let offs_z_noise = OpenSimplex::new().set_seed(3);
@@ -57,7 +54,7 @@ impl Chunk {
         for i in 0..size.x {
             for j in 0..size.y {
                 for k in 0..size.z {
-                    let pos = (Vec3::new(i, j, k) + offset).map(|e| e as f64);
+                    let pos = (Vec3::new(i, j, k).map(|e| e as i64) + offset).map(|e| e as f64);
 
                     let chaos = chaos_noise.get((pos / 256.0).into_array()).abs() * 3.0;
 
@@ -106,7 +103,7 @@ impl Chunk {
             }
         }
 
-        let mut chunk = Chunk { size, offset, voxels };
+        let mut chunk = HeterogeneousData { size, voxels };
 
         let tree_noise = OpenSimplex::new().set_seed(11);
         let forest_noise = OpenSimplex::new().set_seed(12);
@@ -115,7 +112,7 @@ impl Chunk {
 
         for i in 0..size.x {
             for j in 0..size.y {
-                let pos2d = (Vec2::new(i, j) + Vec2::new(offset.x, offset.y)).map(|e| e as f64);
+                let pos2d = (Vec2::new(i, j).map(|e| e as i64) + Vec2::new(offset.x, offset.y)).map(|e| e as f64);
 
                 let offs2d = Vec2::new(
                     offs_x_noise.get((pos2d * 0.3).into_array()),
@@ -129,16 +126,8 @@ impl Chunk {
                 let forest = forest_noise.get(((pos2d + offs2d) / forest_scale).into_array()) * 0.2;
 
                 for k in 0..size.z {
-                    if chunk
-                        .at(Vec3::new(i, j, k))
-                        .unwrap_or(Block::new(BlockMaterial::Air))
-                        .material()
-                        == BlockMaterial::Earth
-                        && chunk
-                            .at(Vec3::new(i, j, k + 1))
-                            .unwrap_or(Block::new(BlockMaterial::Air))
-                            .material()
-                            == BlockMaterial::Air
+                    if chunk.at_unsafe(Vec3::new(i, j, k)).material() == BlockMaterial::Earth
+                        && chunk.at_unsafe(Vec3::new(i, j, k + 1)).material() == BlockMaterial::Air
                     {
                         if boulder_noise.get((pos2d * 123.573).into_array()) > 0.54 {
                             let mut rng = XorShiftRng::from_seed([
@@ -148,8 +137,9 @@ impl Chunk {
                                 for jj in -4..5 {
                                     for kk in -4..5 {
                                         if ii * ii + jj * jj + kk * kk < 25 + rng.next_u32() as i64 % 5 {
-                                            chunk.set(
-                                                Vec3::new(i + ii, j + jj, k + kk),
+                                            let off = Vec3::new(i as i64 + ii, j as i64 + jj, k as i64 + kk);
+                                            chunk.set_at(
+                                                off.map(|e| e as u16),
                                                 Block::new(BlockMaterial::Stone),
                                             );
                                         }
@@ -171,20 +161,26 @@ impl Chunk {
                                 .normalized();
                                 for l in 0..25 + big * 4 {
                                     let inc = v.map(|e| (e * (1.0 - 0.025 * branch as f64) * 0.5 * l as f64) as i64);
-                                    chunk.set(
-                                        Vec3::new(i + inc.x, j + inc.y, k + branch / 2),
+                                    let off = Vec3::new(i as i64 + inc.x, j as i64 + inc.y, k as i64 + branch / 2);
+                                    chunk.set_at(
+                                        off.map(|e| e as u16),
                                         Block::new(BlockMaterial::Leaves),
                                     );
                                 }
                             }
 
-                            for trunk in 0..6 + big {
-                                chunk.set(Vec3::new(i, j, k + trunk), Block::new(BlockMaterial::Log));
+                            for trunk in 0..6 + big as u16 {
+                                let off = Vec3::new(i, j, k + trunk);
+                                chunk.set_at(
+                                    off,
+                                    Block::new(BlockMaterial::Log),
+                                );
                             }
                         } else {
-                            chunk.set(
-                                Vec3::new(i, j, k),
-                                Block::new(if k + mountain_offs > (size.z * 7) / 9 {
+                            let off = Vec3::new(i, j, k);
+                            chunk.set_at(
+                                off,
+                                Block::new(if k as i64 + mountain_offs > (size.z as i64 * 7) / 9 {
                                     BlockMaterial::Stone
                                 } else if k < size.z / 3 + 3 {
                                     BlockMaterial::Sand
@@ -205,62 +201,65 @@ impl Chunk {
         chunk
     }
 
-    fn pos_to_index(&self, pos: Vec3<i64>) -> usize {
-        (pos.x * self.size.y * self.size.z + pos.y * self.size.z + pos.z) as usize
+    fn calculate_index(&self, off: VoxelRelVec) -> usize {
+        (off.x * self.size.y * self.size.z + off.y * self.size.z + off.z) as usize
     }
 
-    pub fn voxels_mut(&mut self) -> &mut Vec<Block> { &mut self.voxels }
-
     pub fn new() -> Self {
-        Chunk {
+        HeterogeneousData {
             size: Vec3::from((0, 0, 0)),
-            offset: Vec3::from((0, 0, 0)),
             voxels: Vec::new(),
+        }
+    }
+
+    pub fn mut_size(&mut self) -> &mut VoxelRelVec {
+        &mut self.size
+    }
+
+    pub fn mut_voxel(&mut self) -> &mut Vec<Block> {
+        &mut self.voxels
+    }
+}
+
+impl Volume for HeterogeneousData {
+    type VoxelType = Block;
+
+    fn size(&self) -> VoxelRelVec { self.size }
+}
+
+impl ReadVolume for HeterogeneousData {
+    fn at_unsafe(&self, off: VoxelRelVec) -> Block {
+        self.voxels[self.calculate_index(off)]
+    }
+}
+
+impl ReadWriteVolume for HeterogeneousData {
+    fn replace_at_unsafe(&mut self, off: VoxelRelVec, vox: Self::VoxelType) -> Self::VoxelType {
+        let i = self.calculate_index(off);
+        let r = self.voxels[i];
+        self.voxels[i] = vox;
+        r
+    }
+
+    fn fill(&mut self, vox: Self::VoxelType) {
+        // Default implementation
+        for v in self.voxels.iter_mut() {
+            *v = vox;
         }
     }
 }
 
-impl Volume for Chunk {
-    type VoxelType = Block;
-
-    fn fill(&mut self, block: Block) {
-        for v in self.voxels.iter_mut() {
-            *v = block;
-        }
+impl ConstructVolume for HeterogeneousData {
+    fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> HeterogeneousData {
+        let mut vol = HeterogeneousData {
+            size,
+            voxels: vec![],
+        };
+        vol.fill(vox);
+        vol
     }
 
-    fn size(&self) -> Vec3<i64> { self.size }
-
-    fn offset(&self) -> Vec3<i64> { self.offset }
-
-    fn ori(&self) -> Vec3<f32> { Vec3::new(0.0, 0.0, 0.0) }
-
-    fn scale(&self) -> Vec3<f32> { Vec3::new(1.0, 1.0, 1.0) }
-
-    fn set_size(&mut self, size: Vec3<i64>) {
-        self.size = size;
-        self.voxels.resize((size.x * size.y * size.z) as usize, Block::empty());
+    fn empty(size: VoxelRelVec) -> HeterogeneousData {
+        Self::filled(size, Block::empty())
     }
-
-    fn set_offset(&mut self, offset: Vec3<i64>) { self.offset = offset; }
-
-    fn at(&self, pos: Vec3<i64>) -> Option<Block> {
-        if pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= self.size.x || pos.y >= self.size.y || pos.z >= self.size.z {
-            None
-        } else {
-            Some(self.voxels[self.pos_to_index(pos)])
-        }
-    }
-
-    fn set(&mut self, pos: Vec3<i64>, vt: Block) {
-        if pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= self.size.x || pos.y >= self.size.y || pos.z >= self.size.z {
-        } else {
-            let i = self.pos_to_index(pos);
-            self.voxels[i] = vt;
-        }
-    }
-
-    fn as_any_mut(&mut self) -> &mut Any { self }
-
-    fn as_any(&self) -> &Any { self }
 }

@@ -1,45 +1,45 @@
 // Standard
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::{HashSet, HashMap}, sync::Arc, thread, time::Duration};
 
 // Library
-use parking_lot::{Mutex, RwLock};
+use parking_lot::{Mutex, RwLock, RwLockReadGuard};
 use threadpool::ThreadPool;
 use vek::*;
 
 // Local
-use super::{Container, Key, PersState, VolContainer, VolConverter, VolGen, VolPers, Volume, Voxel};
-use physics::collision::{Collider, Primitive};
-
-pub enum VolState<C: VolContainer, P: Send + Sync + 'static> {
-    Loading,
-    Exists(Arc<Container<C, P>>),
-}
+use terrain::{Container, Key, PersState, VoxelRelVec, VoxelAbsVec, VolumeIdxVec, VolPers, VolGen, Volume, ReadVolume, VolCluster, Voxel};
+use terrain::chunk::{ChunkContainer, Block, ChunkSample, Chunk};
+use terrain;
+//use physics::collision::{Collider, Primitive};
 
 lazy_static! {
     static ref POOL: Mutex<ThreadPool> = Mutex::new(ThreadPool::new(2));
 }
 
-impl Key for Vec3<i64> {
+impl Key for VolumeIdxVec {
     fn print(&self) -> String { return format!("c{},{},{}", self.x, self.y, self.z).to_string(); }
 }
 
-pub struct VolMgr<
-    V: 'static + Volume,
-    C: VolContainer<VoxelType = V::VoxelType>,
-    VC: VolConverter<C>,
-    P: Send + Sync + 'static,
-> {
-    vol_size: Vec3<i64>,
-    pending: Arc<RwLock<HashSet<Vec3<i64>>>>,
-    pers: VolPers<Vec3<i64>, C, VC, P>,
-    gen: VolGen<V, C, P>,
+/*
+ --> Get absolute
+ --> Trigger creation
+ --> Trigger Payload Generation ?
+ --> It currently tries to abstract all Chunks away and only return ChunkSample!
+
+
+*/
+
+
+pub struct ChunkMgr<P: Send + Sync + 'static> {
+    vol_size: VoxelRelVec,
+    pending: Arc<RwLock<HashSet<VolumeIdxVec>>>,
+    pers: VolPers<VolumeIdxVec, ChunkContainer<P>>,
+    gen: VolGen<VolumeIdxVec, ChunkContainer<P>>,
 }
 
-impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConverter<C>, P: Send + Sync + 'static>
-    VolMgr<V, C, VC, P>
-{
-    pub fn new(vol_size: Vec3<i64>, gen: VolGen<V, C, P>) -> VolMgr<V, C, VC, P> {
-        VolMgr {
+impl<P: Send + Sync + 'static> ChunkMgr<P> {
+    pub fn new(vol_size: VoxelRelVec, gen: VolGen<VolumeIdxVec, ChunkContainer<P>>) -> ChunkMgr<P> {
+        ChunkMgr {
             vol_size,
             pending: Arc::new(RwLock::new(HashSet::new())),
             pers: VolPers::new(),
@@ -47,19 +47,129 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
         }
     }
 
-    pub fn at(&self, pos: Vec3<i64>) -> Option<VolState<C, P>> {
-        if let Some(con) = self.pers.get(&pos) {
-            Some(VolState::Exists(con))
-        } else if self.pending.read().get(&pos).is_some() {
-            Some(VolState::Loading)
-        } else {
-            None
-        }
+    pub fn exists_block(&self, pos: VoxelAbsVec) -> bool {
+        self.exists_chunk(terrain::voxabs_to_volidx(pos, self.vol_size))
     }
 
-    pub fn persistence<'a>(&'a self) -> &'a VolPers<Vec3<i64>, C, VC, P> { &self.pers }
+    pub fn exists_chunk(&self, pos: VolumeIdxVec) -> bool {
+        self.pers.map().get(&pos).is_some()
+    }
 
+    pub fn get_block(&self, pos: VoxelAbsVec) -> Option<Block> {
+        let chunk = terrain::voxabs_to_volidx(pos, self.vol_size);
+        let off = terrain::voxabs_to_voxrel(pos, self.vol_size);
+        let map = self.pers.map();
+        let chunk = map.get(&chunk);
+        if let Some(chunk) = chunk {
+            let lock = chunk.data();
+            let hetero = lock.get(PersState::Hetero);
+            if let Some(hetero) = hetero {
+                return hetero.at(off)
+            }
+        }
+        None
+    }
+
+    pub fn get_sample(&self, from: VoxelAbsVec, to: VoxelAbsVec) -> ChunkSample<P> {
+        let mut c = 0;
+        while true {
+            if let Some(sample) = self.try_get_sample(from, to) {
+                return sample;
+            } else {
+                c += 1;
+                if c > 10 {
+                    warn!("Long waiting chunk sample {}", c)
+                }
+                thread::sleep(Duration::from_millis(10));
+            }
+        }
+        panic!("unreachable");
+    }
+
+    /*
+
+    impl<'a, P> ChunkSample<'a, P> {
+        pub fn new(
+            size: VoxelRelVec,
+            block_from_abs: VoxelAbsVec,
+            block_to_abs: VoxelAbsVec,
+            map: HashMap<VolumeIdxVec, (&'a ChunkContainer<P>, RwLockReadGuard<'a, Chunk>)>
+        ) -> Self {
+    */
+
+    pub fn try_get_sample(&self, from: VoxelAbsVec, to: VoxelAbsVec) -> Option<ChunkSample<P>> {
+        let mut map = HashMap::new();
+        let chunk_from = terrain::voxabs_to_volidx(from, self.vol_size);
+        let chunk_to = terrain::voxabs_to_volidx(to, self.vol_size);
+        let lock = self.pers.map();
+        for x in chunk_from.x .. chunk_to.x + 1 {
+            for y in chunk_from.y .. chunk_to.y + 1 {
+                for z in chunk_from.z .. chunk_to.z + 1 {
+                    let key = Vec3::new(x,y,z);
+
+                    let cc = lock.get(&key).map(|v| v.clone());
+
+/*
+                    if cc
+                        .and_then(|cc| cc.data_try().map(|value| map.insert(key, Arc::new(value)) ))
+                        .is_none() {
+                            return None;
+                    }
+                    */
+
+                    if let Some(cc) = cc {
+                        if cc.data_try().take().map(|value| map.insert(key, Arc::new(value))).is_none() {
+                            return None;
+                        }
+                    }
+
+                }
+            }
+        }
+        return Some(ChunkSample::new(self.vol_size, from, to, map));
+        None
+    }
+
+    pub fn gen(&self, pos: VolumeIdxVec) {
+        let gen_func = self.gen.gen_func.clone();
+        let payload_func = self.gen.payload_func.clone();
+        let pen = self.pending.clone();
+        {
+            let mut pen_lock = pen.write();
+            if pen_lock.get(&pos).is_some() {
+                return;
+            }
+            pen_lock.insert(pos); // the lock above guarantees that no 2 threads can generate the same chunk
+        }
+        let con = Arc::new(ChunkContainer::new());
+        self.pers.map_mut().insert(pos, con.clone());
+        // we copied the Arc above and added the blank container to the persistence because those operations are inexpensive
+        // and we can now run the chunk generaton which is expensive in a new thread without locking the whole persistence
+
+        POOL.lock().execute(move || {
+            gen_func(pos, &con);
+            payload_func(pos, &con);
+            pen.write().remove(&pos);
+        });
+    }
+
+    pub fn remove(&self, pos: VolumeIdxVec) -> bool { self.pers.map_mut().remove(&pos).is_some() }
+
+    pub fn pending_chunk_cnt(&self) -> usize { self.pending.read().len() }
+
+    pub fn map(&self) -> HashMap<VolumeIdxVec, Arc<ChunkContainer<P>>> {
+        // I just dont want to give access to the real persistency here
+        let lock = self.pers.map();
+        let mut new_map = HashMap::new();
+        for (k, a) in lock.iter() {
+            new_map.insert(*k, a.clone());
+        }
+        return new_map;
+    }
+
+/*
     pub fn contains(&self, pos: Vec3<i64>) -> bool {
+        const dasd: Vec3<i64> = Vec3::new(0,0,0);
         self.pers.get(&pos).is_some() || self.pending.read().get(&pos).is_some()
     }
 
@@ -103,7 +213,7 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
         });
     }
 
-    pub fn get_voxel_at(&self, pos: Vec3<i64>) -> V::VoxelType {
+    pub fn get_voxel_at(&self, pos: Vec3<i64>) -> Block {
         let vol_pos = Vec3::new(
             pos.x.div_euc(self.vol_size.x),
             pos.y.div_euc(self.vol_size.y),
@@ -114,17 +224,18 @@ impl<V: 'static + Volume, C: VolContainer<VoxelType = V::VoxelType>, VC: VolConv
             pos.y.mod_euc(self.vol_size.y),
             pos.z.mod_euc(self.vol_size.z),
         );
-        let ref data_ref = self.pers.hot();
+        let ref data_ref = self.pers.map();
         if let Some(container) = data_ref.get(&vol_pos) {
-            if let Some(any_vol) = container.vols().get(PersState::Raw) {
+            if let Some(any_vol) = container.data().get(PersState::Raw) {
                 //TODO: also allow for other datasets other than Raw, e.g. Rle
-                return any_vol.at(vox_pos).unwrap_or(V::VoxelType::empty());
+                return any_vol.at(vox_pos).unwrap_or(Block::empty());
             };
         };
-        V::VoxelType::empty()
-    }
+        Block::empty()
+    }*/
 }
 
+/*
 pub struct VolMgrIter<
     'a,
     V: 'static + Volume,
@@ -226,3 +337,5 @@ impl<
         }
     }
 }
+
+*/

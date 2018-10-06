@@ -1,5 +1,5 @@
 // Standard
-use std::path::Path;
+use std::{fs::File, io::prelude::*, path::Path, u8};
 
 // Library
 use vek::*;
@@ -7,9 +7,10 @@ use vek::*;
 // Project
 use common::{
     terrain::{
-        chunk::{Chunk, ChunkContainer, ChunkConverter, ChunkFile},
-        Container, Key, PersState, VolContainer, VolConverter,
+        chunk::{HeterogeneousData, ChunkContainer, HomogeneousData, RleData},
+        Container, Key, PersState, VolumeIdxVec, VoxelAbsType, VolumeIdxType, SerializeVolume, VolCluster,
     },
+    terrain,
     util::manager::Manager,
 };
 
@@ -18,20 +19,47 @@ use Client;
 use Payloads;
 use CHUNK_SIZE;
 
-pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<i64>, con: &Container<ChunkContainer, P>) {
+pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: &ChunkContainer<P>) {
     let filename = pos.print() + ".dat";
     let filepath = "./saves/".to_owned() + &(filename);
     let path = Path::new(&filepath);
+    let mut could_load = false;
     if path.exists() {
-        let mut vol = ChunkFile::new(Vec3::from_slice(&CHUNK_SIZE));
-        *vol.file_mut() = filepath;
-        con.vols_mut().insert(vol, PersState::File);
-    } else {
-        let mut vol = Chunk::test(
-            Vec3::new(pos.x * CHUNK_SIZE[0], pos.y * CHUNK_SIZE[1], pos.z * CHUNK_SIZE[2]),
+        let mut datfile = File::open(&filename).unwrap();
+        let mut content = Vec::<u8>::new();
+        datfile
+            .read_to_end(&mut content)
+            .expect(&format!("read of file {} failed", &filename));
+        if content[0..3] != [86, 101, 108, 48] /*magic number*/ {
+            error!("magic number mismatch, abandon chunk");
+            return;
+        }
+        content.remove(0); //Hope zesterer never reads this 4 lines
+        content.remove(0);
+        content.remove(0);
+        content.remove(0);
+        let state = content.remove(0);
+        if state == 1 {
+            let vol: Result<HomogeneousData, ()> = SerializeVolume::from_bytes(&content);
+            if let Ok(vol) = vol {
+                con.data_mut().insert(vol);
+                could_load = true;
+            }
+        } else {
+            let vol: Result<RleData, ()> = SerializeVolume::from_bytes(&content);
+            if let Ok(vol) = vol {
+                con.data_mut().insert(vol);
+                could_load = true;
+            }
+        }
+
+    }
+    if !could_load {
+        let mut vol = HeterogeneousData::test(
+            terrain::volidx_to_voxabs(pos, Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2])),
             Vec3::from_slice(&CHUNK_SIZE),
         );
-        con.vols_mut().insert(vol, PersState::Raw);
+        con.data_mut().insert(vol);
     }
 }
 
@@ -40,18 +68,13 @@ impl<P: Payloads> Client<P> {
         // Only update chunks if the player exists
         if let Some(player_entity) = self.player_entity() {
             // Find the chunk the player is in
-            let player_chunk = player_entity.read().pos().map(|e| e as i64);
-
-            let player_chunk = Vec3::new(
-                player_chunk.x.div_euc(CHUNK_SIZE[0]),
-                player_chunk.y.div_euc(CHUNK_SIZE[1]),
-                player_chunk.z.div_euc(CHUNK_SIZE[2]),
-            );
+            let player_pos = player_entity.read().pos().map(|e| e as VoxelAbsType);
+            let player_chunk = terrain::voxabs_to_volidx(player_pos, Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2]));
 
             // Collect chunks around the player
             const GENERATION_FACTOR: f32 = 1.4;
             let mut chunks = vec![];
-            let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as i64;
+            let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as VolumeIdxType;
             for i in player_chunk.x - view_dist..player_chunk.x + view_dist + 1 {
                 for j in player_chunk.y - view_dist..player_chunk.y + view_dist + 1 {
                     for k in player_chunk.z - view_dist..player_chunk.z + view_dist + 1 {
@@ -64,43 +87,58 @@ impl<P: Payloads> Client<P> {
             chunks.sort_by(|a, b| a.0.cmp(&b.0));
 
             // Generate chunks around the player
-            const MAX_CHUNKS_IN_QUEUE: u64 = 12; // to not overkill the vol_mgr
+            const MAX_CHUNKS_IN_QUEUE: usize = 12; // to not overkill the vol_mgr
             for (_diff, pos) in chunks.iter() {
-                if !self.chunk_mgr().contains(*pos) {
+                if !self.chunk_mgr().exists_chunk(*pos) {
                     // generate up to MAX_CHUNKS_IN_QUEUE chunks around the player
-                    if self.chunk_mgr().pending_cnt() < MAX_CHUNKS_IN_QUEUE as usize {
+                    if self.chunk_mgr().pending_chunk_cnt() < MAX_CHUNKS_IN_QUEUE {
                         self.chunk_mgr().gen(*pos);
-                    }
-                } else {
-                    // check if payloads does not exist, and then generate it because its dropped below
-                    if self.chunk_mgr().loaded(*pos) {
-                        self.chunk_mgr().persistence().generate(&pos, PersState::Raw);
-                        if let Some(con) = self.chunk_mgr().persistence().get(&pos) {
-                            if con.payload().is_none() {
-                                self.chunk_mgr().gen_payload(*pos);
-                            }
-                        }
                     }
                 }
             }
 
-            const DIFF_TILL_UNLOAD: i64 = 5;
+            const DIFF_TILL_UNLOAD: VolumeIdxType = 5;
             //unload chunks that have a distance of 5 or greater that the last rendered chunk, so that we dont unload to fast, e.g. if we go back a chunk
             let unload_chunk_diff = chunks.last().unwrap().0 + DIFF_TILL_UNLOAD;
 
             //drop old chunks
             {
+                /*
                 let chunks = self.chunk_mgr().persistence().hot();
                 for (pos, container) in chunks.iter() {
                     let diff = (player_chunk - *pos).map(|e| e.abs()).sum();
                     if diff > unload_chunk_diff {
                         let mut lock = container.vols_mut();
-                        ChunkConverter::convert(pos, &mut lock, PersState::File);
-                        lock.remove(PersState::Raw);
-                        lock.remove(PersState::Rle);
-                        *container.payload_mut() = None;
+                        let state;
+                        if lock.contains(PersState::Homo) {
+                            state = PersState::Homo;
+                        } else {
+                            if !lock.contains(PersState::Rle) {
+                                lock.convert(PersState::Rle);
+                            }
+                            state = PersState::Rle;
+                        }
+                        let filename = pos.print() + ".dat";
+                        let filepath = "./saves/".to_owned() + &(filename);
+                        let mut content = vec![86, 101, 108, 48]; /*magic number*/
+                        if state == PersState::Homo {
+                            // This is serialization of PersState, omg, so bad coding. Hate myself for this
+                            content.push(1);
+                        } else {
+                            content.push(2);
+                        }
+                        let ser = lock.get_serializeable(state);
+                        content.extend_from_slice(&ser.to_bytes());
+                        let mut datfile = File::create(filepath).unwrap();
+                        datfile.write_all(&content).unwrap();
+                        debug!("write to file: {}, bytes: {}", filename, content.len());
+
+
+                        *lock.payload_mut() = None;
+                        *lock.remove(state);
                     }
                 }
+                */
             }
         }
     }

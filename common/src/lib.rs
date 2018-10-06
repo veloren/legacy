@@ -19,12 +19,13 @@ extern crate specs;
 extern crate threadpool;
 extern crate time;
 extern crate vek;
+extern crate num;
 
 pub mod ecs;
 pub mod item;
 pub mod net;
-pub mod physics;
 pub mod terrain;
+pub mod physics;
 pub mod util;
 
 pub type Uid = u64;

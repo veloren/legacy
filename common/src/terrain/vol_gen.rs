@@ -1,5 +1,5 @@
 // Local
-use terrain::{Container, VolContainer, Volume};
+use terrain::{Container, Key};
 
 // Standard
 use std::sync::Arc;
@@ -7,52 +7,35 @@ use std::sync::Arc;
 // Library
 use vek::*;
 
-pub trait FnGenFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:
-    Fn(Vec3<i64>, &Container<C, P>) + Send + Sync + 'static
-{
-}
-impl<
-        V: Volume,
-        C: VolContainer<VoxelType = V::VoxelType>,
-        P: Send + Sync + 'static,
-        T: Fn(Vec3<i64>, &Container<C, P>),
-    > FnGenFunc<V, C, P> for T
-where
-    T: Send + Sync + 'static,
-{}
-
-pub trait FnPayloadFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:
-    Fn(Vec3<i64>, &Container<C, P>) + Send + Sync + 'static
-{
-}
-impl<
-        V: Volume,
-        C: VolContainer<VoxelType = V::VoxelType>,
-        P: Send + Sync + 'static,
-        T: Fn(Vec3<i64>, &Container<C, P>),
-    > FnPayloadFunc<V, C, P> for T
-where
-    T: Send + Sync + 'static,
-{}
-
-pub struct VolGen<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static> {
-    pub gen_func: Arc<FnGenFunc<V, C, P, Output = ()> + Send + Sync + 'static>,
-    pub payload_func: Arc<FnPayloadFunc<V, C, P, Output = ()>>,
+pub trait FnGenFunc<K: Key, C: Container>: Fn(K, &C) + Send + Sync + 'static {
 }
 
-impl<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static> VolGen<V, C, P> {
-    pub fn new<GF: FnGenFunc<V, C, P> + Send + Sync + 'static, PF: FnPayloadFunc<V, C, P>>(
+impl<K: Key, C: Container, T: Fn(K, &C)> FnGenFunc<K, C> for T
+    where T: Send + Sync + 'static {
+
+}
+
+pub trait FnPayloadFunc<K: Key, C: Container>: Fn(K, &C) + Send + Sync + 'static {
+}
+
+impl<K: Key, C: Container, T: Fn(K, &C)> FnPayloadFunc<K, C> for T
+    where T: Send + Sync + 'static {
+
+}
+
+pub struct VolGen<K: Key, C: Container> {
+    pub gen_func: Arc<FnGenFunc<K, C, Output = ()>>,
+    pub payload_func: Arc<FnPayloadFunc<K, C, Output = ()>>,
+}
+
+impl<K: Key, C: Container> VolGen<K, C> {
+    pub fn new<GF: FnGenFunc<K, C>, PF: FnPayloadFunc<K, C>>(
         gen_func: GF,
         payload_func: PF,
-    ) -> VolGen<V, C, P> {
+    ) -> VolGen<K, C> {
         VolGen {
             gen_func: Arc::new(gen_func),
             payload_func: Arc::new(payload_func),
         }
     }
 }
-
-/*
-  - offload
-  -  gen
-*/

@@ -1,4 +1,4 @@
-use terrain::{Container, Key, PersState, VolContainer, VolConverter};
+use terrain::{Key, PersState, Container, VolCluster};
 
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::{collections::HashMap, marker::PhantomData, sync::Arc};
@@ -18,60 +18,45 @@ use std::{collections::HashMap, marker::PhantomData, sync::Arc};
  When you modify a version, you must either also change all other implementations or drop them!
 */
 
-pub struct VolPers<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> {
-    hot: RwLock<HashMap<K, Arc<Container<C, P>>>>,
-    cold: RwLock<HashMap<K, Arc<Container<C, P>>>>,
-    phantom: PhantomData<VC>,
+pub struct VolPers<K: Key, C: Container> {
+    map: RwLock<HashMap<K, Arc<C>>>,
 }
 
-impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> VolPers<K, C, VC, P> {
-    pub fn new() -> VolPers<K, C, VC, P> {
+impl<K: Key, C: Container> VolPers<K, C> {
+    pub fn new() -> VolPers<K, C> {
         VolPers {
-            hot: RwLock::new(HashMap::new()),
-            cold: RwLock::new(HashMap::new()),
-            phantom: PhantomData,
+            map: RwLock::new(HashMap::new()),
         }
     }
 
-    pub fn hot_mut(&self) -> RwLockWriteGuard<HashMap<K, Arc<Container<C, P>>>> { self.hot.write() }
+    pub fn map(&self) -> RwLockReadGuard<HashMap<K, Arc<C>>> { self.map.read() }
 
-    pub fn hot(&self) -> RwLockReadGuard<HashMap<K, Arc<Container<C, P>>>> { self.hot.read() }
+    pub fn map_mut(&self) -> RwLockWriteGuard<HashMap<K, Arc<C>>> { self.map.write() }
 
-    pub fn get(&self, key: &K) -> Option<Arc<Container<C, P>>> {
-        let mut x = self.hot.read().get(&key).map(|v| v.clone());
-        if x.is_none() {
-            x = self.cold.read().get(&key).map(|v| v.clone());
-        }
-        x
+    pub fn get(&self, key: &K) -> Option<Arc<C>> {
+        self.map.read().get(&key).map(|v| v.clone())
     }
 
     pub fn exists(&self, key: &K, state: PersState) -> bool {
-        if let Some(entry) = self.cold.read().get(&key) {
-            return entry.vols().contains(state);
-        }
-        if let Some(entry) = self.hot.read().get(&key) {
-            return entry.vols().contains(state);
+        if let Some(entry) = self.map.read().get(&key) {
+            return entry.data().contains(state);
         }
         false
     }
 
     pub fn generate(&self, key: &K, state: PersState) {
-        let mut x = self.hot.read().get(&key).map(|v| v.clone());
-        if x.is_none() {
-            x = self.cold.read().get(&key).map(|v| v.clone());
-        }
-        if let Some(container) = x {
-            let mut lock = container.vols_mut();
+        if let Some(container) = self.map.read().get(&key).map(|v| v.clone()) {
+            let mut lock = container.data_mut();
             let contains = lock.contains(state.clone());
             if !contains {
                 info!("generate from persistence key: {:?} state: {:?}", key, state);
-                VC::convert(key, &mut lock, state);
+                lock.convert(state);
             }
         }
     }
-
+/*
     pub fn try_cold_offload(&self) {
-        let h = self.hot.try_write();
+        let h = self.map.try_write();
         if let Some(mut h) = h {
             let mut c = self.cold.try_write();
             if let Some(ref mut c) = c {
@@ -104,12 +89,5 @@ impl<K: Key, C: VolContainer, VC: VolConverter<C>, P: Send + Sync + 'static> Vol
             }
         }
     }
-
-    pub fn debug(&self) {
-        debug!(
-            "hot containers: {}, cold containers: {}",
-            self.hot.read().len(),
-            self.cold.read().len()
-        );
-    }
+*/
 }

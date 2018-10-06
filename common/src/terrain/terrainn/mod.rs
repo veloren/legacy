@@ -84,3 +84,7 @@ pub trait ConstructVolume: Volume {
     /// Construct a new volume with the given size, filled with clones of the given voxel.
     fn filled(sz: Vec3<u64>, vox: Self::Voxel) -> Self;
 }
+
+pub trait SerializeVolume: Volume {
+    //TODO
+}

@@ -2,12 +2,74 @@ use bincode;
 
 use std::{fs::File, io::prelude::*, u8};
 use terrain::{
-    chunk::{Block, BlockRle, Chunk, ChunkContainer, ChunkFile, ChunkRle, BLOCK_RLE_MAX_CNT},
-    Key, PersState, VolContainer, VolConverter, Volume, Voxel,
+    chunk::{Block, BlockRle, Chunk, HomogeneousData, HeterogeneousData, RleData, BLOCK_RLE_MAX_CNT},
+    Key, PersState, VolCluster, Volume, ReadVolume, ReadWriteVolume, Voxel, ConvertVolume, ConstructVolume,
 };
 use vek::*;
 
-pub struct ChunkConverter {}
+impl ConvertVolume for HeterogeneousData {
+    fn convert<Chunk>(&self, state: &PersState, con: &mut Chunk) where Chunk: VolCluster<VoxelType = Block>,
+    {
+        match state {
+            PersState::Homo => {
+                let mut homo = HomogeneousData::new();
+                *homo.mut_size() = self.size();
+                *homo.mut_voxel() = self.at_unsafe(Vec3::new(0, 0, 0));
+                con.insert(homo);
+            },
+            PersState::Hetero => {
+            },
+            PersState::Rle => {
+                let mut homo = RleData::new();
+                *homo.mut_size() = self.size();
+                *homo.mut_voxel() = Vec::new();
+                con.insert(homo);
+            },
+            PersState::File => {
+            },
+        }
+    }
+}
+
+impl ConvertVolume for HomogeneousData {
+    fn convert<Chunk>(&self, state: &PersState, con: &mut Chunk) where Chunk: VolCluster<VoxelType = Block>,
+    {
+        match state {
+            PersState::Homo => {
+            },
+            PersState::Hetero => {
+                let mut hetero = HeterogeneousData::new();
+                *hetero.mut_size() = self.size();
+                hetero.fill(self.at_unsafe(Vec3::new(0, 0, 0)));
+                con.insert(hetero);
+            },
+            PersState::Rle => {
+            },
+            PersState::File => {
+            },
+        }
+    }
+}
+
+impl ConvertVolume for RleData {
+    fn convert<Chunk>(&self, state: &PersState, con: &mut Chunk) where Chunk: VolCluster<VoxelType = Block>,
+    {
+        match state {
+            PersState::Homo => {
+            },
+            PersState::Hetero => {
+                let mut hetero = HeterogeneousData::new();
+                *hetero.mut_size() = self.size();
+                hetero.fill(self.at_unsafe(Vec3::new(0, 0, 0)));
+                con.insert(hetero);
+            },
+            PersState::Rle => {
+            },
+            PersState::File => {
+            },
+        }
+    }
+}
 
 /*
 + This is some ugly code, it covers the conversion from any persistent state into any other persistent state. e.g. the code for transforming a RleChunk into a RawChunk
@@ -16,8 +78,10 @@ pub struct ChunkConverter {}
 + This file is tested well with tests to ensure the algorithms work
 */
 
+/*
 impl VolConverter<ChunkContainer> for ChunkConverter {
     fn convert<K: Key>(key: &K, container: &mut ChunkContainer, state: PersState) {
+        let x = Homogeneous::new();
         match state {
             PersState::Raw => {
                 if container.get_mut(PersState::Rle).is_none() && container.get_mut(PersState::File).is_some() {
@@ -162,3 +226,4 @@ impl VolConverter<ChunkContainer> for ChunkConverter {
         }
     }
 }
+*/

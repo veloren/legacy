@@ -99,12 +99,26 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
             }
         }),
         Some("alias") => srv.do_for_mut(|srv| 'nick: {
-            let alias = if let Some(a) = cmd.nth(0) {
-                a
-            } else {
-                srv.send_chat_msg(player, "A second argument is needed: /alias <alias>");
-                break 'nick;
+            let alias = match cmd.nth(0) {
+                Some(alias) => alias,
+                _ => {
+                    srv.send_chat_msg(player, "A second argument is needed: /alias <alias>");
+                    break 'nick;
+                },
             };
+
+            // Check if the alias is already used by another player.
+            for p in (&srv.world.read_storage::<Player>()).join() {
+                if p.alias == alias {
+                    srv.send_chat_msg(player, "This alias is already in use");
+                    break 'nick;
+                }
+            }
+
+            if !srv.is_valid_alias(&alias) {
+                srv.send_chat_msg(player, "The provided alias is invalid");
+                break 'nick;
+            }
 
             // Give the player their new alias, hold on to the old one temporarily
             if let Some(old_alias) = srv.do_for_comp_mut::<Player, _, _>(player, |player_comp| {

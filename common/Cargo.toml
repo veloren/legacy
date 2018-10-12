@@ -20,3 +20,4 @@ threadpool = "1.7.1"
 specs = { version = "0.12", features = ["nightly", "serde"] }
 parking_lot = { version = "0.6.4", features = ["nightly"] }
 vek = { version = "0.9.5", features = ["serde"] }
+dot_vox = "1.0.1"

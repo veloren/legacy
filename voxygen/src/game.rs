@@ -11,9 +11,9 @@ use fnv::FnvBuildHasher;
 use fps_counter::FPSCounter;
 use glutin::ElementState;
 use indexmap::IndexMap;
-use nalgebra::{Rotation3, Translation3, Vector3};
+use nalgebra::{Rotation3, Translation3, Vector3, Matrix4};
 use parking_lot::Mutex;
-use vek::*;
+use vek::{Vec2, Vec3, Mat4};
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
@@ -79,6 +79,29 @@ pub struct Game {
     skybox_model: skybox::Model,
     player_model: voxel::Model,
     other_player_model: voxel::Model,
+}
+
+use float_cmp::ApproxEqUlps;
+
+fn assert_eq_mat4(m1: &Matrix4<f32>, m2: &Mat4<f32>) {
+    for i in 0..4 {
+        for j in 0..4 {
+            let v1 = unsafe{m1.get_unchecked(i, j)};
+            let v2 = m2[(i, j)];
+            if !v2.approx_eq_ulps(v1, 10) {
+                println!("i: {} j: {} v1: {} v2: {}", i, j, v1, v2);
+                println!("{:#?}", m1);
+                println!("{:#?}", m2);
+                assert!(false);
+                return
+            }
+        }
+    }
+}
+
+/// Use a 1x16 slice as a 4x4 slice.
+fn to_4x4(array: &[f32; 16]) -> &[[f32; 4]; 4] {
+    unsafe { &*(array as *const _ as *const _) }
 }
 
 fn gen_payload(key: Vec3<i64>, con: &Container<ChunkContainer, <Payloads as client::Payloads>::Chunk>) {
@@ -319,7 +342,7 @@ impl Game {
     pub fn update_chunks(&self) {
         let mut renderer = self.window.renderer_mut();
         // Find the chunk the camera is in
-        let cam_origin = self.camera.lock().get_pos();
+        let cam_origin = self.camera.lock().get_pos(None);
         let cam_chunk = Vec3::<i64>::new(
             (cam_origin.x as i64).div_euc(CHUNK_SIZE[0]),
             (cam_origin.y as i64).div_euc(CHUNK_SIZE[1]),
@@ -338,12 +361,18 @@ impl Game {
                     if let Some(ref mut payload) = **lock {
                         if let ChunkPayload::Meshes(ref mut mesh) = payload {
                             // Calculate chunk mode matrix
+                            let model_mat = Mat4::<f32>::translation_3d(Vec3::new(
+                                (pos.x * CHUNK_SIZE[0]) as f32,
+                                (pos.y * CHUNK_SIZE[1]) as f32,
+                                (pos.z * CHUNK_SIZE[2]) as f32));
+                            /*
                             let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
                                 (pos.x * CHUNK_SIZE[0]) as f32,
                                 (pos.y * CHUNK_SIZE[1]) as f32,
                                 (pos.z * CHUNK_SIZE[2]) as f32,
                             ))
                             .to_homogeneous();
+                            */
 
                             // Create set new model constants
                             let model_consts = ConstHandle::new(&mut renderer);
@@ -352,7 +381,7 @@ impl Game {
                             model_consts.update(
                                 &mut renderer,
                                 voxel::ModelConsts {
-                                    model_mat: *model_mat.as_ref(),
+                                    model_mat: *to_4x4(&model_mat.into_col_array()),
                                 },
                             );
 
@@ -391,7 +420,7 @@ impl Game {
         // Set camera focus to the player's head
         if let Some(player_entity) = self.client.player_entity() {
             let player_entity = player_entity.read();
-            self.camera.lock().set_focus(Vector3::<f32>::from(
+            self.camera.lock().set_focus(Vec3::<f32>::from(
                 (*player_entity.pos() + Vec3::new(0.0, 0.0, 1.75)).into_array(),
             ));
         }
@@ -403,9 +432,28 @@ impl Game {
             let mut entity = entity.write();
 
             // Calculate entity model matrix
-            let model_mat = &Translation3::from_vector(Vector3::from(entity.pos().into_array())).to_homogeneous()
+            
+            let m1 = Mat4::<f32>::translation_3d(Vec3::from(entity.pos().into_array()));
+            let m2 = &Translation3::from_vector(Vector3::from(entity.pos().into_array())).to_homogeneous();
+            assert_eq_mat4(&m2, &m1);
+
+            let m3 = Mat4::rotation_z(PI - entity.look_dir().x);
+            let m4 = Rotation3::new(Vector3::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous();
+            assert_eq_mat4(&m4, &m3);
+
+            let m5 = Mat4::rotation_x(entity.look_dir().y);
+            let m6 = Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
+            assert_eq_mat4(&m6, &m5);
+
+            let model_mat = Mat4::<f32>::translation_3d(Vec3::from(entity.pos().into_array()))
+                * Mat4::rotation_z(PI - entity.look_dir().x)
+                * Mat4::rotation_x(entity.look_dir().y);;
+            
+            let model_mat_nalg = &Translation3::from_vector(Vector3::from(entity.pos().into_array())).to_homogeneous()
                 * Rotation3::new(Vector3::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous()
                 * Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
+            
+            assert_eq_mat4(&model_mat_nalg, &model_mat);
 
             // Update the model const buffer (its payload)
             // TODO: Put the model into the payload so we can have per-entity models!
@@ -415,7 +463,7 @@ impl Game {
                 .update(
                     &mut renderer,
                     voxel::ModelConsts {
-                        model_mat: *model_mat.as_ref(),
+                        model_mat: *to_4x4(&model_mat.into_col_array()),
                     },
                 );
         }
@@ -424,7 +472,7 @@ impl Game {
     pub fn render_frame(&mut self) {
         // Calculate frame constants
         let camera_mats = self.camera.lock().get_mats();
-        let cam_origin = self.camera.lock().get_pos();
+        let cam_origin = self.camera.lock().get_pos(Some(&camera_mats));
         let play_origin = self
             .client
             .player_entity()
@@ -441,8 +489,8 @@ impl Game {
         self.global_consts.update(
             &mut renderer,
             GlobalConsts {
-                view_mat: *camera_mats.0.as_ref(),
-                proj_mat: *camera_mats.1.as_ref(),
+                view_mat: *to_4x4(&camera_mats.0.into_col_array()),
+                proj_mat: *to_4x4(&camera_mats.1.into_col_array()),
                 cam_origin: [cam_origin.x, cam_origin.y, cam_origin.z, 1.0],
                 play_origin,
                 view_distance: [self.client.view_distance(); 4],

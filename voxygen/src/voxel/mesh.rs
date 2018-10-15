@@ -288,13 +288,15 @@ impl Mesh {
 
                     let mesh = map.entry(render_mat.kind()).or_insert(Mesh::new());
 
+                    let fake_optimize = true;
+
                     if vox.is_occupied() {
                         let opaque = vox.is_opaque();
                         // +x
                         if vol
                             .at_conv(Vec3::new(x + 1, y, z))
-                            .unwrap_or(V::VoxelType::empty())
-                            .should_add(opaque)
+                            .map(|v| v.should_add(opaque))
+                            .unwrap_or(!fake_optimize)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
@@ -311,8 +313,8 @@ impl Mesh {
                         // -x
                         if vol
                             .at_conv(Vec3::new(x - 1, y, z))
-                            .unwrap_or_else(V::VoxelType::empty)
-                            .should_add(opaque)
+                            .map(|v| v.should_add(opaque))
+                            .unwrap_or(!fake_optimize)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
@@ -329,8 +331,8 @@ impl Mesh {
                         // +y
                         if vol
                             .at_conv(Vec3::new(x, y + 1, z))
-                            .unwrap_or_else(V::VoxelType::empty)
-                            .should_add(opaque)
+                            .map(|v| v.should_add(opaque))
+                            .unwrap_or(!fake_optimize)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
@@ -347,8 +349,8 @@ impl Mesh {
                         // -y
                         if vol
                             .at_conv(Vec3::new(x, y - 1, z))
-                            .unwrap_or(V::VoxelType::empty())
-                            .should_add(opaque)
+                            .map(|v| v.should_add(opaque))
+                            .unwrap_or(!fake_optimize)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
@@ -365,8 +367,8 @@ impl Mesh {
                         // +z
                         if vol
                             .at_conv(Vec3::new(x, y, z + 1))
-                            .unwrap_or(V::VoxelType::empty())
-                            .should_add(opaque)
+                            .map(|v| v.should_add(opaque))
+                            .unwrap_or(!fake_optimize)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(
@@ -383,8 +385,8 @@ impl Mesh {
                         // -z
                         if vol
                             .at_conv(Vec3::new(x, y, z - 1))
-                            .unwrap_or(V::VoxelType::empty())
-                            .should_add(opaque)
+                            .map(|v| v.should_add(opaque))
+                            .unwrap_or(!fake_optimize)
                         {
                             mesh.add_quads(&[vol
                                 .get_ao_quad(

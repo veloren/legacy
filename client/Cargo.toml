@@ -5,6 +5,7 @@ authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>", "Terah <terah.dev@gm
 
 [dependencies]
 common = { path = "../common" }
+world = { path = "../world" }
 vek = "0.9.5"
 log = "0.4"
 parking_lot = { version = "0.6.4", features = ["nightly"] }

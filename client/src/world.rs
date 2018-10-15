@@ -19,6 +19,7 @@ use parking_lot::{Mutex, RwLock};
 use Client;
 use Payloads;
 use CHUNK_SIZE;
+use world_crate;
 
 pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<P>>>>) {
     let filename = pos.print() + ".dat";
@@ -43,9 +44,7 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<VolOffs>, con: Arc<M
                 pos
             );
         }
-        let vol = HeterogeneousData::test(terrain::voloffs_to_voxabs(pos, CHUNK_SIZE), CHUNK_SIZE);
-        let mut c = Chunk::Hetero(vol);
-        c.convert(PersState::Homo); //TODO: not so performant, do check directly in chunk generation
+        let c = world_crate::World::gen_chunk(pos.map(|e| e as i32));
         *con.lock() = Some(ChunkContainer::<P>::new(c));
     }
 }

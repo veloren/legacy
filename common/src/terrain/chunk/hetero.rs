@@ -44,6 +44,14 @@ impl From<DotVoxData> for Chunk {
 }
 
 impl Chunk {
+    pub fn empty() -> Self {
+        Self {
+            size: Vec3::new(0, 0, 0),
+            offset: Vec3::new(0, 0, 0),
+            voxels: vec![],
+        }
+    }
+
     pub fn test(offset: Vec3<i64>, size: Vec3<i64>) -> Chunk {
         let mut voxels = Vec::new();
 
@@ -60,10 +68,12 @@ impl Chunk {
         );
         let cliff_vari_nz = SuperSimplex::new()
             .set_seed(new_seed());
-        let hill_nz = SuperSimplex::new()
-            .set_seed(new_seed());
+        let hill_nz = HybridMulti::new()
+            .set_seed(new_seed())
+            .set_octaves(2);
         let ridge_nz = HybridMulti::new()
-            .set_seed(new_seed());
+            .set_seed(new_seed())
+            .set_octaves(3);
         let peak_nz = HybridMulti::new()
             .set_seed(new_seed())
             .set_octaves(2);
@@ -97,16 +107,20 @@ impl Chunk {
 
                 let river = { // 0.0 = normal/flat, max_depth = deepest
                     let depth = 24.0;
-                    let max_depth = 16.0;
+                    let max_depth = 8.0;
 
-                    dry.neg().add(1.0).powf(16.0).mul(depth).min(max_depth)
+                    if dry < 0.15 {
+                        dry.mul(20.0).cos().mul(max_depth).max(0.0)
+                    } else {
+                        0.0
+                    }
                 };
 
                 let hill = { // 0.0 = normal/flat, 1.0 = highest
-                    let scale = 512.0;
-                    let amp = 16.0;
+                    let scale = 1024.0;
+                    let amp = 32.0;
 
-                    hill_nz.get(pos2d.div(scale).into_array()).abs().mul(dry).mul(amp)
+                    hill_nz.get(pos2d.div(scale).into_array()).mul(dry).mul(amp)
                 };
 
                 let ridge = {
@@ -186,7 +200,6 @@ impl Chunk {
 
                 for k in 0..size.z {
                     let base_surf = 64.0;
-                    let water_level = base_surf - 6.0;
 
                     let pos3d = (Vec3::new(i, j, k) + offset).map(|e| e as f64);
 
@@ -227,6 +240,7 @@ impl Chunk {
 
                     let basic_surf = base_surf + hill;
                     let alt_surf = basic_surf - river + cliff.max(peak + ridge);
+                    let water_level = basic_surf - 2.0;
 
                     let surf = alt_surf;
 
@@ -242,15 +256,16 @@ impl Chunk {
                                 Block::new(BlockMaterial::Grass)
                             }
                         } else {
-                            if house.is_roof && pos3d.z < alt_surf + 1.0 {
-                                Block::new(BlockMaterial::Stone)
-                            } else if house.is_roof && pos3d.z > alt_surf + 16.0 && pos3d.z < alt_surf + 22.0 + house.roof_height {
-                                Block::new(BlockMaterial::Stone)
-                            } else if house.is_window && pos3d.z < alt_surf + 12.0 && pos3d.z > alt_surf + 5.0 && !house.is_door {
-                                Block::new(BlockMaterial::Water)
-                            } else if house.is_wall && pos3d.z < alt_surf + 20.0 && !(house.is_door && pos3d.z < alt_surf + 5.0) {
-                                Block::new(BlockMaterial::Log)
-                            } else if pos3d.z < water_level {
+                            //if house.is_roof && pos3d.z < alt_surf + 1.0 {
+                            //    Block::new(BlockMaterial::Stone)
+                            //} else if house.is_roof && pos3d.z > alt_surf + 16.0 && pos3d.z < alt_surf + 22.0 + house.roof_height {
+                            //    Block::new(BlockMaterial::Stone)
+                            //} else if house.is_window && pos3d.z < alt_surf + 12.0 && pos3d.z > alt_surf + 5.0 && !house.is_door {
+                            //    Block::new(BlockMaterial::Water)
+                            //} else if house.is_wall && pos3d.z < alt_surf + 20.0 && !(house.is_door && pos3d.z < alt_surf + 5.0) {
+                            //    Block::new(BlockMaterial::Log)
+                            //} else
+                            if pos3d.z < water_level {
                                 Block::new(BlockMaterial::Water)
                             } else {
                                 Block::new(BlockMaterial::Air)
@@ -283,6 +298,14 @@ impl Chunk {
     }
 
     pub(crate) fn voxels_mut(&mut self) -> &mut Vec<Block> { &mut self.voxels }
+
+    pub fn new(size: Vec3<i64>, offset: Vec3<i64>, voxels: Vec<Block>) -> Self {
+        Chunk {
+            size,
+            offset,
+            voxels,
+        }
+    }
 }
 
 impl Volume for HeterogeneousData {

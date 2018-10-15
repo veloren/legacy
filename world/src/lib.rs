@@ -1,28 +1,49 @@
 #![feature(nll)]
 
 extern crate common;
-extern crate euler;
+extern crate vek;
 extern crate noise;
+extern crate dot_vox;
 
-mod gen;
-mod map;
+mod util;
 
-// Reexports
-pub use map::{Biome, Map};
+// Library
+use noise::{NoiseFn, SuperSimplex, HybridMulti, Seedable, MultiFractal};
+use vek::*;
+use dot_vox::DotVoxData;
 
-pub struct World {
-    map: Map,
-}
+// Project
+use common::terrain::{
+    chunk::{Chunk, Block, BlockMaterial},
+    Voxel,
+};
+
+const CHUNK_SZ: (u32, u32, u32) = (64, 64, 64);
+
+pub struct World;
 
 impl World {
-    pub fn new(seed: u32, size: u32) -> World {
-        World {
-            map: Map::new(seed, size),
+    pub fn gen_chunk(offs: Vec3<i32>) -> Chunk {
+        let chunk_sz = Vec3::from(CHUNK_SZ).map(|e: u32| e as i64);
+
+        let mut voxels = Vec::new();
+
+        for x in 0..CHUNK_SZ.0 {
+            for y in 0..CHUNK_SZ.1 {
+                for z in 0..CHUNK_SZ.2 {
+                    voxels.push(Block::new(if z == 0 {
+                        BlockMaterial::Stone
+                    } else {
+                        BlockMaterial::Air
+                    }));
+                }
+            }
         }
+
+        Chunk::new(
+            chunk_sz,
+            offs.map(|e| e as i64),
+            voxels,
+        )
     }
-
-    pub fn tick(&mut self, secs: f64) { self.map.tick(secs); }
-
-    #[allow(dead_code)]
-    pub fn map(&mut self) -> &mut Map { &mut self.map }
 }

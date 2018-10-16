@@ -1,9 +1,10 @@
-#![feature(nll)]
+#![feature(nll, fn_traits, associated_type_defaults)]
 
 extern crate common;
 extern crate vek;
 extern crate noise;
 extern crate dot_vox;
+extern crate num_traits;
 
 mod util;
 

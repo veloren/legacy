@@ -14,7 +14,6 @@ extern crate lyon;
 
 // Mathematics
 extern crate alga;
-extern crate nalgebra;
 extern crate vek;
 
 // File loading

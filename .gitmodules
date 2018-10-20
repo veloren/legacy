@@ -7,3 +7,6 @@
 [submodule "server/assets"]
 	path = server/assets
 	url = ../../veloren/assets/server.git
+[submodule "assets/world"]
+	path = assets/world
+	url = git@gitlab.com:veloren/assets/world.git

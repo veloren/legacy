@@ -18,6 +18,7 @@ pub struct Sample {
     pub river: f64,
     pub hill: f64,
     pub ridge: f64,
+    pub cliff_height: f64,
 }
 
 pub struct OverworldGen {
@@ -27,6 +28,7 @@ pub struct OverworldGen {
     chaos_nz: SuperSimplex,
     hill_nz: HybridMulti,
     ridge_nz: HybridMulti,
+    cliff_height_nz: SuperSimplex,
 }
 
 impl OverworldGen {
@@ -48,10 +50,12 @@ impl OverworldGen {
                 .set_seed(new_seed()),
             hill_nz: HybridMulti::new()
                 .set_seed(new_seed())
-                .set_octaves(2),
+                .set_octaves(3),
             ridge_nz: HybridMulti::new()
                 .set_seed(new_seed())
-                .set_octaves(2),
+                .set_octaves(3),
+            cliff_height_nz: SuperSimplex::new()
+                .set_seed(new_seed()),
         }, 64)
     }
 
@@ -67,8 +71,8 @@ impl OverworldGen {
         let vari_scale = 32.0;
         // Dryer areas have a less stable temperature
         (
-            self.temp_nz.get(pos.div(scale).into_array()) * 0.8 +
-            self.temp_vari_nz.get(pos.div(vari_scale).into_array()) * 0.2
+            self.temp_nz.get(pos.div(scale).into_array()) * 0.9 +
+            self.temp_vari_nz.get(pos.div(vari_scale).into_array()) * 0.1
         ).mul(0.5 + dry * 0.5)
     }
 
@@ -92,16 +96,25 @@ impl OverworldGen {
 
     // -amp = lowest, amp = highest
     fn get_hill(&self, pos: Vec2<f64>, dry: f64) -> f64 {
-        let scale = 512.0;
+        let scale = 1024.0;
         let amp = 32.0;
         self.hill_nz.get(pos.div(scale).into_array()).mul(dry).mul(amp)
     }
 
     // 0.0 = lowest, height = highest
     fn get_ridge(&self, pos: Vec2<f64>, chaos: f64) -> f64 {
-        let scale = 1024.0;
-        let height = 130.0;
+        let scale = 1000.0;
+        let height = 200.0;
         (1.0 - self.ridge_nz.get(pos.div(scale).into_array()).abs()).mul(chaos).mul(height)
+    }
+
+    // (1.0 - vari) * height = lowest, 1.0 = avg, (1.0 + vari) * height = highest
+    fn get_cliff_height(&self, pos: Vec2<f64>) -> f64 {
+        let scale = 256.0;
+        let vari = 0.3;
+        let height = 130.0;
+
+        self.cliff_height_nz.get(pos.div(scale).into_array()).mul(vari).add(1.0).mul(height)
     }
 }
 
@@ -118,6 +131,7 @@ impl Gen for OverworldGen {
         let river = self.get_river(dry);
         let hill = self.get_hill(pos, dry);
         let ridge = self.get_ridge(pos, chaos);
+        let cliff_height = self.get_cliff_height(pos);
 
         Sample {
             dry,
@@ -127,6 +141,7 @@ impl Gen for OverworldGen {
             river,
             hill,
             ridge,
+            cliff_height,
         }
     }
 }

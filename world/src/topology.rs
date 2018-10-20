@@ -15,6 +15,7 @@ use common::terrain::{
 use Gen;
 use cachegen::CacheGen;
 use overworld::{self, OverworldGen};
+use tree::{self, TreeGen};
 
 #[derive(Copy, Clone)]
 pub struct Sample {
@@ -26,6 +27,7 @@ pub struct TopologyGen {
     cliff_spot_nz: SuperSimplex,
     cliff_nz: HybridMulti,
     overworld_gen: CacheGen<OverworldGen>,
+    tree_gen: TreeGen,
 }
 
 impl TopologyGen {
@@ -43,6 +45,7 @@ impl TopologyGen {
                 .set_seed(new_seed())
                 .set_octaves(2),
             overworld_gen: OverworldGen::new(),
+            tree_gen: TreeGen::new(),
         }
     }
 
@@ -61,7 +64,7 @@ impl TopologyGen {
 
         (
             chaos.mul(0.3) +
-            self.cliff_nz.get(pos.div(scale).into_array()).mul(chaos).mul(dry).mul(0.4) +
+            self.cliff_nz.get(pos.div(scale).into_array()).mul(chaos).mul(0.4) +
             self.cliff_spot_nz.get(pos.div(spot_scale).into_array()).max(0.0).mul(dry).mul(0.3)
         ).mul(layers).round().div(layers).max(0.0)
     }
@@ -90,13 +93,18 @@ impl Gen for TopologyGen {
         // Calculate the surface information
         let (overworld, basic_surf, peak, alt_surf, water_surf) = self.get_surf(pos);
 
+        // Tree
+        let tree = self.tree_gen.sample((pos, overworld, basic_surf));
+
         let pos = pos.map(|e| e as f64);
 
         // 0.0 = flat
         let surf_angle = peak - self.get_peak(pos - Vec3::unit_z(), overworld.chaos) - 1.0;
 
         // Work out which block we should be using
-        let block = if pos.z < alt_surf - 8.0 {
+        let block = if let Some(tree_block) = tree.block {
+            tree_block
+        } else if pos.z < alt_surf - 8.0 {
             // Underground materials
             Block::new(BlockMaterial::Stone)
         } else if pos.z >= alt_surf {
@@ -106,7 +114,7 @@ impl Gen for TopologyGen {
             } else {
                 Block::new(BlockMaterial::Air)
             }
-        } else if surf_angle < -0.5 {
+        } else if surf_angle < -0.5 || pos.z < water_surf + 1.0 {
             // Near-surface materials
             if pos.z < alt_surf - 3.5 {
                 Block::new(BlockMaterial::Earth)
@@ -114,15 +122,15 @@ impl Gen for TopologyGen {
                 // Surface materials
                 if pos.z < water_surf {
                     Block::new(BlockMaterial::Sand)
-                } else if overworld.temp < -0.5 {
+                } else if overworld.temp < -0.35 {
                     Block::new(BlockMaterial::Snow)
-                } else if overworld.temp > 0.5 {
+                } else if overworld.temp > 0.35 {
                     Block::new(BlockMaterial::Sand)
                 } else {
                     Block::new(BlockMaterial::Grass)
                 }
             }
-        } else if pos.z < alt_surf - 5.0 {
+        } else if pos.z < alt_surf - 1.5 {
             if surf_angle < -0.3 {
                 Block::new(BlockMaterial::Earth)
             } else {

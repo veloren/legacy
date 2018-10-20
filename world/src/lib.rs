@@ -1,4 +1,4 @@
-#![feature(nll, fn_traits, associated_type_defaults, self_struct_ctor)]
+#![feature(nll, fn_traits, associated_type_defaults, self_struct_ctor, euclidean_division)]
 
 extern crate common;
 extern crate vek;
@@ -14,6 +14,7 @@ mod util;
 mod cachegen;
 mod overworld;
 mod topology;
+mod tree;
 
 // Standard
 use std::{mem, hash::Hash};

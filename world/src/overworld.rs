@@ -67,7 +67,7 @@ impl OverworldGen {
 
     // -1.0 = coldest, 0.0 = avg, 1.0 = hottest
     fn get_temp(&self, pos: Vec2<f64>, dry: f64) -> f64 {
-        let scale = 2048.0;
+        let scale = 4096.0;
         let vari_scale = 32.0;
         // Dryer areas have a less stable temperature
         (
@@ -96,7 +96,7 @@ impl OverworldGen {
 
     // -amp = lowest, amp = highest
     fn get_hill(&self, pos: Vec2<f64>, dry: f64) -> f64 {
-        let scale = 1024.0;
+        let scale = 2048.0;
         let amp = 32.0;
         self.hill_nz.get(pos.div(scale).into_array()).mul(dry).mul(amp)
     }
@@ -104,7 +104,7 @@ impl OverworldGen {
     // 0.0 = lowest, height = highest
     fn get_ridge(&self, pos: Vec2<f64>, chaos: f64) -> f64 {
         let scale = 1000.0;
-        let height = 200.0;
+        let height = 190.0;
         (1.0 - self.ridge_nz.get(pos.div(scale).into_array()).abs()).mul(chaos).mul(height)
     }
 

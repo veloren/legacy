@@ -60,8 +60,8 @@ impl TopologyGen {
 
     // 0.0 = lowest, height = highest
     fn get_peak(&self, pos: Vec3<f64>, chaos: f64) -> f64 {
-        let scale = Vec3::new(300.0, 300.0, 400.0);
-        let height = 150.0;
+        let scale = Vec3::new(300.0, 300.0, 200.0);
+        let height = 100.0;
         self.peak_nz.get(pos.div(scale).into_array()).mul(chaos).mul(height)
     }
 

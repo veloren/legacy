@@ -117,7 +117,7 @@ impl OverworldGen {
     fn get_cliff_height(&self, pos: Vec2<f64>) -> f64 {
         let scale = 256.0;
         let vari = 0.3;
-        let height = 190.0;
+        let height = 160.0;
 
         self.cliff_height_nz.get(pos.div(scale).into_array()).mul(vari).add(1.0).mul(height)
     }

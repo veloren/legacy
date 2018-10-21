@@ -22,6 +22,7 @@ pub struct Sample {
 }
 
 pub struct OverworldGen {
+    turb_nz: (SuperSimplex, SuperSimplex),
     dry_nz: HybridMulti,
     temp_nz: HybridMulti,
     temp_vari_nz: HybridMulti,
@@ -37,6 +38,10 @@ impl OverworldGen {
         let mut new_seed = || { seed += 1; seed };
 
         CacheGen::new(Self {
+            turb_nz: (
+                SuperSimplex::new().set_seed(new_seed()),
+                SuperSimplex::new().set_seed(new_seed()),
+            ),
             dry_nz: HybridMulti::new()
                 .set_seed(new_seed())
                 .set_octaves(4),
@@ -61,7 +66,7 @@ impl OverworldGen {
 
     // 0.0 = wet, 1.0 = dry
     fn get_dry(&self, pos: Vec2<f64>) -> f64 {
-        let scale = 2048.0;
+        let scale = 3000.0;
         self.dry_nz.get(pos.div(scale).into_array()).mul(1.5).abs().min(1.0)
     }
 
@@ -125,12 +130,19 @@ impl Gen for OverworldGen {
     fn sample(&self, pos: Vec2<i64>) -> Sample {
         let pos = pos.map(|e| e as f64);
 
-        let dry = self.get_dry(pos);
+        let turb_scale = 128.0;
+        let turb_amp = 64.0;
+        let turb_pos = pos + Vec2::new(
+            self.turb_nz.0.get(pos.div(turb_scale).into_array()),
+            self.turb_nz.1.get(pos.div(turb_scale).into_array()),
+        ) * turb_amp;
+
+        let dry = self.get_dry(turb_pos);
         let temp = self.get_temp(pos, dry);
         let chaos = self.get_chaos(pos, dry);
         let river = self.get_river(dry);
-        let hill = self.get_hill(pos, dry);
-        let ridge = self.get_ridge(pos, chaos);
+        let hill = self.get_hill(turb_pos, dry);
+        let ridge = self.get_ridge(turb_pos, chaos);
         let cliff_height = self.get_cliff_height(pos);
 
         Sample {

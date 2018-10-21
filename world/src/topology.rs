@@ -60,8 +60,8 @@ impl TopologyGen {
 
     // 0.0 = lowest, height = highest
     fn get_peak(&self, pos: Vec3<f64>, chaos: f64) -> f64 {
-        let scale = Vec3::new(300.0, 300.0, 600.0);
-        let height = 100.0;
+        let scale = Vec3::new(300.0, 300.0, 400.0);
+        let height = 150.0;
         self.peak_nz.get(pos.div(scale).into_array()).mul(chaos).mul(height)
     }
 
@@ -133,7 +133,7 @@ impl Gen for TopologyGen {
                 } else {
                     Block::STONE
                 }
-            } else if surf_angle < -0.35 || pos.z < water_surf + 1.0 {
+            } else if surf_angle < -0.7 || pos.z < water_surf + 1.0 {
                 // Near-surface materials
                 if pos.z < alt_surf - 3.5 {
                     Block::EARTH
@@ -152,7 +152,7 @@ impl Gen for TopologyGen {
             } else if pos.z < alt_surf - 1.5 {
                 if cave {
                     Block::AIR
-                } else if surf_angle < -0.2 {
+                } else if surf_angle < -0.5 {
                     Block::EARTH
                 } else {
                     Block::STONE

@@ -96,7 +96,7 @@ pub fn tick<
     'a,
     CP: Send + Sync + 'static,
     EP: Send + Sync + 'static,
-    I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)>,
+    I: Iterator<Item = &'a Arc<RwLock<Entity<EP>>>>,
 >(
     entities: I,
     chunk_mgr: &ChunkMgr<CP>,
@@ -131,7 +131,7 @@ pub fn tick<
 
     let dt = dt.as_float_secs() as f32;
 
-    for (.., entity) in entities {
+    for entity in entities {
         let mut entity = entity.write();
 
         // Gravity

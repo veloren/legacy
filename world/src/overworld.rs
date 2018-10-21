@@ -109,7 +109,7 @@ impl OverworldGen {
     // 0.0 = lowest, height = highest
     fn get_ridge(&self, pos: Vec2<f64>, chaos: f64) -> f64 {
         let scale = 1500.0;
-        let height = 190.0;
+        let height = 170.0;
         (1.0 - self.ridge_nz.get(pos.div(scale).into_array()).abs()).mul(chaos).mul(height)
     }
 

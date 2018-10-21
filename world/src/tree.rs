@@ -19,8 +19,14 @@ use overworld;
 fn load_trees() -> Vec<Chunk> {
     let mut trees = vec![];
 
-    trees.push(Chunk::from(dot_vox::load("../assets/world/Trees/Pine Trees/B2.vox")
-        .expect("cannot find tree")));
+    trees.push(Chunk::from(dot_vox::load("../assets/world/Trees/Pine Trees/A1.vox").unwrap()));
+    trees.push(Chunk::from(dot_vox::load("../assets/world/Trees/Pine Trees/A2.vox").unwrap()));
+    trees.push(Chunk::from(dot_vox::load("../assets/world/Trees/Pine Trees/B1.vox").unwrap()));
+    trees.push(Chunk::from(dot_vox::load("../assets/world/Trees/Pine Trees/B2.vox").unwrap()));
+
+    trees.push(Chunk::from(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/5R.vox").unwrap()));
+    trees.push(Chunk::from(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq4.vox").unwrap()));
+    trees.push(Chunk::from(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue3.vox").unwrap()));
 
     trees
 }
@@ -51,24 +57,45 @@ impl TreeGen {
         }
     }
 
+    fn get_dice(&self, pos: Vec2<i64>, seed: i64) -> i64 {
+        let next = 327387278322 ^ seed * 1103515245 + 12345;
+        let next = 327387278322 ^ pos.x * 1103515245 + 12345;
+        let next = 327387278322 ^ (next + pos.y) * 1103515245 + 12345;
+        next
+    }
+
+    fn get_cell_pos(&self, cell_coord: Vec2<i64>, freq: i64, warp: i64) -> Vec2<i64> {
+        cell_coord * freq + freq / 2 + Vec2::new(
+            self.get_dice(cell_coord, 0),
+            self.get_dice(cell_coord, 1),
+        ).map(|e| e.mod_euc(warp * 2)) - warp / 2
+    }
+
     /// Returns (grid_pos, offset)
     fn get_nearest_tree(&self, pos: Vec3<i64>, overworld: overworld::Sample, basic_surf: f64) -> (Vec2<i64>, Vec3<i64>) {
-        let freq = 64;
+        let freq = 32;
+        let warp = 24;
 
         let pos2di = Vec2::<i64>::from(pos);
 
-        let tree_grid_pos = pos2di.map(|e| e.div_euc(freq));
-        let tree_world_offs = pos2di.map(|e| e.mod_euc(freq)) - freq / 2;
+        let cell_coord = pos2di.map(|e| e.div_euc(freq));
+        let cell_offs = pos2di.map(|e| e.mod_euc(freq)) - freq / 2;
 
-        let seed = tree_grid_pos.x * 1103515245 + 12345;
-        let seed = (seed + tree_grid_pos.y) * 1103515245 + 12345;
-        let offsx = seed % (freq / 3) - freq / 6;
-        let seed = seed * 1103515245 + 12345;
-        let offsy = seed % (freq / 3) - freq / 6;
+        let mut min = (cell_coord, freq); // Dummy, to be replaced
+        for x in -1..2 {
+            for y in -1..2 {
+                let dist = (self.get_cell_pos(cell_coord + Vec2::new(x, y), freq, warp) - pos2di).map(|e| e.abs()).reduce_min();
+                if dist < min.1 {
+                    min = (cell_coord + Vec2::new(x, y), dist);
+                }
+            }
+        }
+
+        let cell_pos = self.get_cell_pos(min.0, freq, warp);
 
         (
-            tree_grid_pos,
-            Vec3::new(tree_world_offs.x + offsx, tree_world_offs.y + offsy, pos.z - basic_surf as i64),
+            min.0,
+            Vec3::new(cell_pos.x - pos.x, cell_pos.y - pos.y, pos.z - basic_surf as i64),
         )
     }
 }
@@ -78,18 +105,18 @@ impl Gen for TreeGen {
     type Out = Sample;
 
     fn sample(&self, i: (Vec3<i64>, overworld::Sample, f64)) -> Sample {
-        let freq = 64;
-
         let pos = i.0;
         let overworld = i.1;
         let basic_surf = i.2;
 
         let (tree_grid_pos, tree_world_offs) = self.get_nearest_tree(pos, overworld, basic_surf);
 
-        let model_offset = tree_world_offs + Vec3::from(Vec2::from(TREES[0].size())) / 2;
+        let tree_idx = self.get_dice(tree_grid_pos, 2) as usize % TREES.len();
+
+        let model_offset = tree_world_offs + Vec3::from(Vec2::from(TREES[tree_idx].size())) / 2;
 
         Sample {
-            block: TREES[0].at(model_offset).and_then(|b| if b.is_solid() { Some(b) } else { None })
+            block: TREES[tree_idx].at(model_offset).and_then(|b| if b.is_solid() { Some(b) } else { None })
         }
     }
 }

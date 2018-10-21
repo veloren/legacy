@@ -10,3 +10,6 @@
 [submodule "assets/world"]
 	path = assets/world
 	url = git@gitlab.com:veloren/assets/world.git
+[submodule "assets/voxygen"]
+	path = assets/voxygen
+	url = git@gitlab.com:veloren/assets/voxygen.git

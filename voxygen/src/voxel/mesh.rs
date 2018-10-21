@@ -63,7 +63,7 @@ gfx_defines! {
 pub(super) type VertexBuffer = gfx::handle::Buffer<gfx_device_gl::Resources, Vertex>;
 
 impl Vertex {
-    pub fn new(pos: [f32; 3], norm: NormalDirection, ao: u8, col: u8, mat: Material) -> Vertex {
+    pub fn new(pos: [f32; 3], norm: NormalDirection, ao: u8, col: u8, mat: u8) -> Vertex {
         let mut norm_ao_col_mat: u32 = u8::from(norm) as _;
         norm_ao_col_mat = norm_ao_col_mat | (ao as u32) << 8;
         norm_ao_col_mat = norm_ao_col_mat | (col as u32) << 16;
@@ -121,7 +121,7 @@ impl Quad {
         norm: NormalDirection,
         ao: u8,
         col: u8,
-        mat: Material,
+        mat: u8,
     ) -> Quad {
         Quad {
             verts: [
@@ -168,7 +168,7 @@ trait GetAO {
         y_unit: Vec3<i64>,
         z_unit: Vec3<i64>,
         col: u8,
-        mat: Material,
+        mat: u8,
     ) -> Quad;
 }
 impl<V: RenderVolume> GetAO for V
@@ -220,7 +220,7 @@ where
         y_unit: Vec3<i64>,
         z_unit: Vec3<i64>,
         col: u8,
-        mat: Material,
+        mat: u8,
     ) -> Quad {
         let units = [Vec3::new(0, 0, 0), x_unit, x_unit + y_unit, y_unit];
 

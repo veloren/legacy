@@ -1,57 +1,39 @@
 use super::super::Voxel;
 
-#[repr(u16)]
-#[derive(Copy, Clone, PartialEq, EnumMap, Debug, Serialize, Deserialize)]
-pub enum BlockMaterial {
-    Air,
-    Grass,
-    Sand,
-    Earth,
-    Stone,
-    Water,
-    Snow,
-    Log,
-    Leaves,
-    Gold,
-}
-
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Block {
-    mat: BlockMaterial,
+    mat: u8,
 }
 
 impl Block {
-    pub fn from_byte(byte: u8) -> Self {
+    pub const AIR: Block   = Block::from_byte(0);
+    pub const GRASS: Block = Block::from_byte(26);
+    pub const SAND: Block  = Block::from_byte(122);
+    pub const EARTH: Block = Block::from_byte(98);
+    pub const STONE: Block = Block::from_byte(1);
+    pub const WATER: Block = Block::from_byte(206);
+    pub const SNOW: Block  = Block::from_byte(7);
+    pub const LOG: Block   = Block::from_byte(77);
+    pub const LEAF: Block  = Block::from_byte(34);
+    pub const GOLD: Block  = Block::from_byte(95);
+
+    pub const fn from_byte(byte: u8) -> Self {
         Self {
-            mat: match byte {
-                0 => BlockMaterial::Air,
-                1 => BlockMaterial::Grass,
-                2 => BlockMaterial::Sand,
-                3 => BlockMaterial::Earth,
-                4 => BlockMaterial::Stone,
-                5 => BlockMaterial::Water,
-                6 => BlockMaterial::Snow,
-                7 => BlockMaterial::Log,
-                8 => BlockMaterial::Leaves,
-                9 => BlockMaterial::Gold,
-                _ => BlockMaterial::Stone,
-            },
+            mat: byte,
         }
     }
 }
 
 impl Voxel for Block {
-    type Material = BlockMaterial;
+    type Material = u8;
 
     fn new(mat: Self::Material) -> Self { Block { mat } }
 
     fn empty() -> Self {
-        Block {
-            mat: BlockMaterial::Air,
-        }
+        Self::AIR
     }
 
-    fn is_solid(&self) -> bool { self.mat != BlockMaterial::Air }
+    fn is_solid(&self) -> bool { *self != Self::AIR }
 
     fn material(&self) -> Self::Material { self.mat }
 }

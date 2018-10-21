@@ -55,7 +55,7 @@ impl OverworldGen {
                 .set_seed(new_seed()),
             hill_nz: HybridMulti::new()
                 .set_seed(new_seed())
-                .set_octaves(3),
+                .set_octaves(1),
             ridge_nz: HybridMulti::new()
                 .set_seed(new_seed())
                 .set_octaves(3),
@@ -76,8 +76,8 @@ impl OverworldGen {
         let vari_scale = 32.0;
         // Dryer areas have a less stable temperature
         (
-            self.temp_nz.get(pos.div(scale).into_array()) * 0.9 +
-            self.temp_vari_nz.get(pos.div(vari_scale).into_array()) * 0.1
+            self.temp_nz.get(pos.div(scale).into_array()) * 0.95 +
+            self.temp_vari_nz.get(pos.div(vari_scale).into_array()) * 0.05
         ).mul(0.5 + dry * 0.5)
     }
 
@@ -101,14 +101,14 @@ impl OverworldGen {
 
     // -amp = lowest, amp = highest
     fn get_hill(&self, pos: Vec2<f64>, dry: f64) -> f64 {
-        let scale = 2048.0;
+        let scale = 4000.0;
         let amp = 32.0;
-        self.hill_nz.get(pos.div(scale).into_array()).mul(dry).mul(amp)
+        self.hill_nz.get(pos.div(scale).into_array()).mul(amp)
     }
 
     // 0.0 = lowest, height = highest
     fn get_ridge(&self, pos: Vec2<f64>, chaos: f64) -> f64 {
-        let scale = 1000.0;
+        let scale = 1500.0;
         let height = 190.0;
         (1.0 - self.ridge_nz.get(pos.div(scale).into_array()).abs()).mul(chaos).mul(height)
     }
@@ -117,7 +117,7 @@ impl OverworldGen {
     fn get_cliff_height(&self, pos: Vec2<f64>) -> f64 {
         let scale = 256.0;
         let vari = 0.3;
-        let height = 130.0;
+        let height = 190.0;
 
         self.cliff_height_nz.get(pos.div(scale).into_array()).mul(vari).add(1.0).mul(height)
     }

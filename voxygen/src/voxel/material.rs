@@ -41,16 +41,16 @@ impl MaterialKind {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RenderMaterial {
-    mat: Material,
+    mat: u8,
     kind: MaterialKind,
 }
 
 impl RenderMaterial {
-    pub fn new(mat: Material, kind: MaterialKind) -> Self { RenderMaterial { mat, kind } }
+    pub fn new(mat: u8, kind: MaterialKind) -> Self { RenderMaterial { mat, kind } }
 
     pub fn kind(&self) -> MaterialKind { self.kind }
 
-    pub fn mat(&self) -> Material { self.mat }
+    pub fn mat(&self) -> u8 { self.mat }
 
     pub fn is_opaque(&self) -> bool { self.kind.is_opaque() }
 }

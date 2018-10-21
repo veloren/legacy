@@ -23,7 +23,13 @@ use std::{mem, hash::Hash};
 use vek::*;
 
 // Project
-use common::terrain::chunk::Chunk;
+use common::terrain::{
+    Voxel,
+    chunk::{
+        Chunk,
+        Block,
+    },
+};
 
 // Local
 use topology::TopologyGen;
@@ -52,6 +58,14 @@ impl World {
         let chunk_sz = Vec3::from(CHUNK_SZ).map(|e: u32| e as i64);
 
         let mut voxels = Vec::new();
+
+        if offs.z < 0 || offs.z > 4 {
+            return Chunk::new(
+                chunk_sz,
+                offs.map(|e| e as i64),
+                vec![Block::AIR; chunk_sz.product() as usize],
+            );
+        }
 
         for x in 0..CHUNK_SZ.0 {
             for y in 0..CHUNK_SZ.1 {

@@ -23,9 +23,10 @@ where
 
 impl RenderVoxel for Block {
     fn get_color(&self) -> u8 {
+        /*
         let color_map = enum_map! {
             BlockMaterial::Air => 255,
-            BlockMaterial::Grass => 150,
+            BlockMaterial::Grass => 20,
             BlockMaterial::Sand  => 151,
             BlockMaterial::Earth =>152,
             BlockMaterial::Stone => 153,
@@ -35,11 +36,15 @@ impl RenderVoxel for Block {
             BlockMaterial::Leaves =>157,
             BlockMaterial::Gold => 158,
         };
+        */
 
-        color_map[self.material()]
+        //color_map[self.material()]
+
+        self.material()
     }
 
     fn get_mat(&self) -> RenderMaterial {
+        /*
         let mat_map = enum_map! {
             BlockMaterial::Air => RenderMaterial::new(Material::Empty, MaterialKind::Empty),
             BlockMaterial::Grass => RenderMaterial::new(Material::Grass, MaterialKind::Solid),
@@ -54,11 +59,17 @@ impl RenderVoxel for Block {
         };
 
         mat_map[self.material()]
+        */
+
+        match self.material() {
+            206 => RenderMaterial::new(206, MaterialKind::Water),
+            m => RenderMaterial::new(m, MaterialKind::Solid),
+        }
     }
 
-    fn is_opaque(&self) -> bool { self.get_mat().is_opaque() }
+    fn is_opaque(&self) -> bool { *self != Self::WATER && *self != Self::AIR }
 
-    fn is_occupied(&self) -> bool { self.material() != BlockMaterial::Air }
+    fn is_occupied(&self) -> bool { *self != Self::AIR }
 }
 
 impl RenderVoxel for Cell {
@@ -76,13 +87,13 @@ impl RenderVoxel for Cell {
 
     fn get_mat(&self) -> RenderMaterial {
         match self.material() {
-            CellMaterial::Empty => RenderMaterial::new(Material::Empty, MaterialKind::Empty),
-            CellMaterial::GlossySmooth(_) => RenderMaterial::new(Material::GlossySmooth, MaterialKind::Solid),
-            CellMaterial::GlossyRough(_) => RenderMaterial::new(Material::GlossyRough, MaterialKind::Solid),
-            CellMaterial::MatteSmooth(_) => RenderMaterial::new(Material::MatteSmooth, MaterialKind::Solid),
-            CellMaterial::MatteRough(_) => RenderMaterial::new(Material::MatteRough, MaterialKind::Solid),
-            CellMaterial::MetallicSmooth(_) => RenderMaterial::new(Material::MetallicSmooth, MaterialKind::Solid),
-            CellMaterial::MetallicRough(_) => RenderMaterial::new(Material::MetallicRough, MaterialKind::Solid),
+            CellMaterial::Empty => RenderMaterial::new(0, MaterialKind::Empty),
+            CellMaterial::GlossySmooth(_) => RenderMaterial::new(0, MaterialKind::Solid),
+            CellMaterial::GlossyRough(_) => RenderMaterial::new(0, MaterialKind::Solid),
+            CellMaterial::MatteSmooth(_) => RenderMaterial::new(0, MaterialKind::Solid),
+            CellMaterial::MatteRough(_) => RenderMaterial::new(0, MaterialKind::Solid),
+            CellMaterial::MetallicSmooth(_) => RenderMaterial::new(0, MaterialKind::Solid),
+            CellMaterial::MetallicRough(_) => RenderMaterial::new(0, MaterialKind::Solid),
         }
     }
 

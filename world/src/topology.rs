@@ -8,7 +8,7 @@ use noise::{NoiseFn, SuperSimplex, HybridMulti, Seedable, MultiFractal};
 // Project
 use common::terrain::{
     Voxel,
-    chunk::{Block, BlockMaterial},
+    chunk::Block,
 };
 
 // Local
@@ -60,8 +60,8 @@ impl TopologyGen {
 
     // 0.0 = lowest, height = highest
     fn get_peak(&self, pos: Vec3<f64>, chaos: f64) -> f64 {
-        let scale = Vec3::new(300.0, 300.0, 200.0);
-        let height = 55.0;
+        let scale = Vec3::new(300.0, 300.0, 600.0);
+        let height = 100.0;
         self.peak_nz.get(pos.div(scale).into_array()).mul(chaos).mul(height)
     }
 
@@ -88,7 +88,7 @@ impl TopologyGen {
 
         let basic_surf = 50.0 + overworld.hill;
         let alt_surf = basic_surf - overworld.river + (cliff * overworld.cliff_height).max(peak + overworld.ridge);
-        let water_surf = (basic_surf - 2.0).max(44.0);
+        let water_surf = (basic_surf - 2.0).max(42.0);
 
         (overworld, basic_surf, peak, alt_surf, water_surf)
     }
@@ -116,49 +116,49 @@ impl Gen for TopologyGen {
         } else if pos.z >= alt_surf {
             // Above-ground materials
             if pos.z < water_surf {
-                Block::new(BlockMaterial::Water)
+                Block::WATER
             } else {
-                Block::new(BlockMaterial::Air)
+                Block::AIR
             }
         } else {
             let cave_scale = 800.0;
-            let cave =
-                self.cave_nz.0.get(pos.div(cave_scale).into_array()).abs() < 0.1 &&
-                self.cave_nz.1.get(pos.div(cave_scale).into_array()).abs() < 0.1;
+            let cave = false;
+            //    self.cave_nz.0.get(pos.div(cave_scale).into_array()).abs() < 0.1 &&
+            //    self.cave_nz.1.get(pos.div(cave_scale).into_array()).abs() < 0.1;
 
             if pos.z < alt_surf - 8.0 {
                 // Underground materials
                 if cave {
-                    Block::new(BlockMaterial::Air)
+                    Block::AIR
                 } else {
-                    Block::new(BlockMaterial::Stone)
+                    Block::STONE
                 }
-            } else if surf_angle < -0.7 || pos.z < water_surf + 1.0 {
+            } else if surf_angle < -0.35 || pos.z < water_surf + 1.0 {
                 // Near-surface materials
                 if pos.z < alt_surf - 3.5 {
-                    Block::new(BlockMaterial::Earth)
+                    Block::EARTH
                 } else {
                     // Surface materials
                     if pos.z < water_surf {
-                        Block::new(BlockMaterial::Sand)
+                        Block::SAND
                     } else if overworld.temp < -0.25 {
-                        Block::new(BlockMaterial::Snow)
+                        Block::SNOW
                     } else if overworld.temp > 0.25 {
-                        Block::new(BlockMaterial::Sand)
+                        Block::SAND
                     } else {
-                        Block::new(BlockMaterial::Grass)
+                        Block::GRASS
                     }
                 }
             } else if pos.z < alt_surf - 1.5 {
                 if cave {
-                    Block::new(BlockMaterial::Air)
-                } else if surf_angle < -0.5 {
-                    Block::new(BlockMaterial::Earth)
+                    Block::AIR
+                } else if surf_angle < -0.2 {
+                    Block::EARTH
                 } else {
-                    Block::new(BlockMaterial::Stone)
+                    Block::STONE
                 }
             } else {
-                Block::new(BlockMaterial::Air)
+                Block::AIR
             }
         };
 

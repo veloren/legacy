@@ -69,7 +69,7 @@ impl TopologyGen {
     fn get_cliff(&self, pos: Vec3<f64>, dry: f64, chaos: f64) -> f64 {
         let scale = Vec3::new(512.0, 512.0, 2000.0);
         let spot_scale = Vec3::new(128.0, 128.0, 2000.0);
-        let layers = 4.0;
+        let layers = 5.0;
 
         (
             chaos.mul(0.3) +

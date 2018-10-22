@@ -90,8 +90,8 @@ impl OverworldGen {
 
     // 0.0 = normal/low, 1.0 = high
     fn get_chaos(&self, pos: Vec2<f64>, dry: f64) -> f64 {
-        let scale = 1500.0;
-        self.chaos_nz.get(pos.div(scale).into_array()).mul(dry).powf(1.0).mul(4.0).max(0.0).min(1.0)
+        let scale = 900.0;
+        self.chaos_nz.get(pos.div(scale).into_array()).mul(dry).powf(1.0).mul(1.3).max(0.0).min(1.0)
     }
 
     // 0.0 = low, 1.0 = high
@@ -122,7 +122,7 @@ impl OverworldGen {
     // 0.0 = lowest, height = highest
     fn get_ridge(&self, pos: Vec2<f64>, chaos: f64) -> f64 {
         let scale = 1500.0;
-        let height = 140.0;
+        let height = 240.0;
         (1.0 - self.ridge_nz.get(pos.div(scale).into_array()).abs()).powf(0.75).mul(chaos).mul(height)
     }
 
@@ -130,7 +130,7 @@ impl OverworldGen {
     fn get_cliff_height(&self, pos: Vec2<f64>) -> f64 {
         let scale = 800.0;
         let vari = 0.6;
-        let height = 160.0;
+        let height = 180.0;
 
         self.cliff_height_nz.get(pos.div(scale).into_array()).mul(vari).add(1.0).mul(height)
     }

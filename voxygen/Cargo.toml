@@ -22,7 +22,7 @@ gfx_glyph = "0.13"
 
 # Mathematics
 nalgebra = "0.16"
-vek = "0.9"
+vek = "0.9.5"
 alga = "0.7.1"
 
 # File loading

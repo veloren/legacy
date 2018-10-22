@@ -1,4 +1,4 @@
-#![feature(nll, euclidean_division)]
+#![feature(nll, euclidean_division, label_break_value)]
 
 // Crates
 extern crate common;

@@ -23,38 +23,29 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: &Chunk
     let filename = pos.print() + ".dat";
     let filepath = "./saves/".to_owned() + &(filename);
     let path = Path::new(&filepath);
-    let mut could_load = false;
-    if path.exists() {
-        let mut datfile = File::open(&filename).unwrap();
-        let mut content = Vec::<u8>::new();
-        datfile
-            .read_to_end(&mut content)
-            .expect(&format!("read of file {} failed", &filename));
-        if content[0..3] != [86, 101, 108, 48] /*magic number*/ {
-            error!("magic number mismatch, abandon chunk");
-            return;
-        }
-        content.remove(0); //Hope zesterer never reads this 4 lines
-        content.remove(0);
-        content.remove(0);
-        content.remove(0);
-        let state = content.remove(0);
-        if state == 1 {
-            let vol: Result<HomogeneousData, ()> = SerializeVolume::from_bytes(&content);
-            if let Ok(vol) = vol {
-                con.data_mut().insert(vol);
-                could_load = true;
-            }
-        } else {
-            let vol: Result<RleData, ()> = SerializeVolume::from_bytes(&content);
-            if let Ok(vol) = vol {
-                con.data_mut().insert(vol);
-                could_load = true;
-            }
-        }
+    'load: {
+        if path.exists() {
+            let mut datfile = File::open(&filename).unwrap();
+            let mut content = Vec::<u8>::new();
+            datfile
+                .read_to_end(&mut content)
+                .expect(&format!("read of file {} failed", &filename));
+            let state = content.remove(0);
 
-    }
-    if !could_load {
+            if state == 1 {
+                let vol: Result<HomogeneousData, ()> = SerializeVolume::from_bytes(&content);
+                if let Ok(vol) = vol {
+                    con.data_mut().insert(vol);
+                    break 'load;
+                }
+            } else {
+                let vol: Result<RleData, ()> = SerializeVolume::from_bytes(&content);
+                if let Ok(vol) = vol {
+                    con.data_mut().insert(vol);
+                    break 'load;
+                }
+            }
+        }
         let mut vol = HeterogeneousData::test(
             terrain::volidx_to_voxabs(pos, Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2])),
             Vec3::from_slice(&CHUNK_SIZE),
@@ -120,7 +111,7 @@ impl<P: Payloads> Client<P> {
                         }
                         let filename = pos.print() + ".dat";
                         let filepath = "./saves/".to_owned() + &(filename);
-                        let mut content = vec![86, 101, 108, 48]; /*magic number*/
+                        let mut content = vec![]; /*magic number*/
                         if state == PersState::Homo {
                             // This is serialization of PersState, omg, so bad coding. Hate myself for this
                             content.push(1);

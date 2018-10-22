@@ -1,7 +1,7 @@
 use common::terrain::{
     chunk::{Block, BlockMaterial, Chunk, HeterogeneousData},
     figure::{Cell, CellMaterial, Figure},
-    Volume, Voxel, ReadVolume, PhysicallyVolume,
+    Volume, Voxel, ReadVolume, PhysicalVolume,
 };
 use voxel::{Material, MaterialKind, RenderMaterial};
 
@@ -13,7 +13,7 @@ pub trait RenderVoxel: Voxel {
     fn should_add(&self, other_opaque: bool) -> bool { !self.is_occupied() || !self.is_opaque() && other_opaque }
 }
 
-pub trait RenderVolume: ReadVolume + PhysicallyVolume
+pub trait RenderVolume: ReadVolume + PhysicalVolume
 where
     Self::VoxelType: RenderVoxel,
 {

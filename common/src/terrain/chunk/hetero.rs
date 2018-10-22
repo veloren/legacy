@@ -7,7 +7,7 @@ use num::{Num, ToPrimitive};
 // Local
 use terrain::{
     chunk::{Block, BlockMaterial},
-    Volume, ReadVolume, ReadWriteVolume, ConstructVolume, PhysicallyVolume, Voxel, VoxelRelVec, VoxelAbsVec,
+    Volume, ReadVolume, ReadWriteVolume, PhysicalVolume, ConstructVolume, Voxel, VoxelRelVec, VoxelAbsVec,
 };
 
 #[derive(Clone, Debug)]
@@ -242,7 +242,6 @@ impl ReadWriteVolume for HeterogeneousData {
     }
 
     fn fill(&mut self, vox: Self::VoxelType) {
-        // Default implementation
         for v in self.voxels.iter_mut() {
             *v = vox;
         }
@@ -251,12 +250,10 @@ impl ReadWriteVolume for HeterogeneousData {
 
 impl ConstructVolume for HeterogeneousData {
     fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> HeterogeneousData {
-        let mut vol = HeterogeneousData {
+        HeterogeneousData {
             size,
-            voxels: vec![],
-        };
-        vol.fill(vox);
-        vol
+            voxels: vec![vox; size.product() as usize],
+        }
     }
 
     fn empty(size: VoxelRelVec) -> HeterogeneousData {
@@ -264,8 +261,5 @@ impl ConstructVolume for HeterogeneousData {
     }
 }
 
-impl PhysicallyVolume for HeterogeneousData {
-    fn scale(&self) -> Vec3<f32> {
-        Vec3::new(1.0, 1.0, 1.0)
-    }
+impl PhysicalVolume for HeterogeneousData {
 }

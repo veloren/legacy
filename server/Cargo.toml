@@ -10,7 +10,7 @@ world = { path = "../world" }
 #pretty_env_logger = "0.2.3"
 #time = "0.1.40"
 
-vek = "0.9"
+vek = "0.9.5"
 specs = "0.12"
 parking_lot = "0.6"
 

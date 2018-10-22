@@ -4,7 +4,7 @@ use vek::*;
 // Local
 use terrain::{
     figure::{Cell, CellMaterial},
-    Volume, Voxel, PhysicallyVolume, ReadVolume, ReadWriteVolume, ConstructVolume, VoxelRelVec,
+    Volume, Voxel, PhysicalVolume, ReadVolume, ReadWriteVolume, ConstructVolume, VoxelRelVec,
 };
 
 pub struct Figure {
@@ -77,7 +77,7 @@ impl ConstructVolume for Figure {
     }
 }
 
-impl PhysicallyVolume for Figure {
+impl PhysicalVolume for Figure {
     fn scale(&self) -> Vec3<f32> {
         Vec3::new(0.1, 0.1, 0.1)
     }

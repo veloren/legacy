@@ -8,7 +8,7 @@ use vek::*;
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
-use common::terrain::{Voxel, PhysicallyVolume};
+use common::terrain::{Voxel, PhysicalVolume};
 
 // Local
 use voxel::{Material, MaterialKind, RenderVolume, RenderVoxel};

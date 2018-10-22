@@ -94,10 +94,10 @@ fn gen_payload(key: VolumeIdxVec, con: &ChunkContainer<<Payloads as client::Payl
     } else {
         let vols = con.data();
         panic!(
-            "Raw chunk {} does not exist, rle: {}, file: {}",
+            "Hetero chunk {} does not exist, rle: {}, Homo: {}",
             key,
             vols.get(PersState::Rle).is_some(),
-            vols.get(PersState::File).is_some()
+            vols.get(PersState::Homo).is_some()
         );
     }
 }

@@ -7,7 +7,7 @@ use vek::*;
 // Local
 use terrain::{
     chunk::{Block},
-    Volume, ReadVolume, ConstructVolume, PhysicallyVolume, Voxel, VoxelRelVec,
+    Volume, ReadVolume, ConstructVolume, PhysicalVolume, Voxel, VoxelRelVec,
 };
 
 //TODO: optimizations:
@@ -35,7 +35,7 @@ impl RleData {
     pub fn new() -> Self {
         RleData {
             size: Vec3::from((0, 0, 0)),
-            voxels: Vec::new(),
+            voxels: vec![],
         }
     }
 
@@ -73,8 +73,5 @@ impl ConstructVolume for RleData {
     }
 }
 
-impl PhysicallyVolume for RleData {
-    fn scale(&self) -> Vec3<f32> {
-        Vec3::new(1.0, 1.0, 1.0)
-    }
+impl PhysicalVolume for RleData {
 }

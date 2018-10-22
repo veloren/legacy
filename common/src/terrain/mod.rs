@@ -1,7 +1,6 @@
 pub mod chunk;
 mod entity;
 pub mod figure;
-mod terrainn;
 mod vol_gen;
 mod vol_pers;
 mod chunk_mgr;
@@ -29,8 +28,6 @@ pub enum PersState {
     Homo,
     Hetero,
     Rle,
-    File,
-    //Network,
 }
 
 pub trait Key: Copy + Eq + Hash + Debug + 'static {
@@ -60,19 +57,11 @@ pub fn volidx_to_voxabs(volidx: VolumeIdxVec, vol_size: VoxelRelVec) -> VoxelAbs
 }
 
 pub fn voxabs_to_volidx(voxabs: VoxelAbsVec, vol_size: VoxelRelVec) -> VolumeIdxVec {
-    Vec3::new(
-        voxabs.x.div_euc(vol_size.x as i64) as i32,
-        voxabs.y.div_euc(vol_size.y as i64) as i32,
-        voxabs.z.div_euc(vol_size.z as i64) as i32,
-    )
+    voxabs.map2(vol_size, |a,s| a.div_euc(s as i64) as i32)
 }
 
 pub fn voxabs_to_voxrel(voxabs: VoxelAbsVec, vol_size: VoxelRelVec) -> VoxelRelVec {
-    Vec3::new(
-        voxabs.x.mod_euc(vol_size.x as i64) as u16,
-        voxabs.y.mod_euc(vol_size.y as i64) as u16,
-        voxabs.z.mod_euc(vol_size.z as i64) as u16,
-    )
+    voxabs.map2(vol_size, |a,s| a.mod_euc(s as i64) as u16)
 }
 
 /// Helper function to manually validate a offset of any time and convert it
@@ -163,7 +152,7 @@ impl<V: Any + Debug> AnyVolume for V where V: Clone {
 }
 
 pub trait ConvertVolume: Volume + Clone + Debug {
-    fn convert<VC: VolCluster<VoxelType = Self::VoxelType>>(&self, state: &PersState, con: &mut VC);
+    fn convert<VC: VolCluster<VoxelType = Self::VoxelType>>(&self, state: PersState, con: &mut VC);
 }
 
 pub trait SerializeVolume: Volume {
@@ -184,6 +173,7 @@ pub trait VolCluster: Send + Sync + 'static {
 
     fn new() -> Self;
     fn contains(&self, state: PersState) -> bool;
+    //fn empty(&self) -> bool;
     fn insert<V: Volume<VoxelType = Self::VoxelType> + AnyVolume>(&mut self, vol: V);
     fn remove(&mut self, state: PersState);
     fn get<'a>(&'a self, state: PersState) -> Option<&'a dyn ReadVolume<VoxelType = Self::VoxelType>>;
@@ -191,15 +181,18 @@ pub trait VolCluster: Send + Sync + 'static {
     fn get_vol<'a>(&'a self, state: PersState) -> Option<&'a dyn Volume<VoxelType = Self::VoxelType>>;
     fn get_serializeable<'a>(&'a self, state: PersState) -> Option<&'a dyn SerializeVolume<VoxelType = Self::VoxelType>>;
     fn get_any<'a>(&'a self, state: PersState) -> Option<&'a dyn AnyVolume>;
+    //fn prefered<'a>(&'a self) -> Option<&'a dyn ReadVolume<VoxelType = Self::VoxelType>>;
+    //fn prefered_mut<'a>(&'a mut self) -> Option<&'a mut dyn ReadWriteVolume<VoxelType = Self::VoxelType>>;
+    //fn prefered_vol<'a>(&'a self) -> Option<&'a dyn Volume<VoxelType = Self::VoxelType>>;
+    //fn prefered_serializeable<'a>(&'a self) -> Option<&'a dyn SerializeVolume<VoxelType = Self::VoxelType>>;
+    //fn prefered_any<'a>(&'a self) -> Option<&'a dyn AnyVolume>;
 }
 
-pub trait PhysicallyVolume: Volume {
-    // offset additionaly to the position, often (0,0,0)
-    //fn offset(&self) -> Vec3<f32>;
-    // orientation on the 3 axis in rad
-    //fn ori(&self) -> Vec3<f32>;
-    // scale is applied to size and offset
-    fn scale(&self) -> Vec3<f32>;
+pub trait PhysicalVolume: Volume {
+    fn scale(&self) -> Vec3<f32> {
+        // Default implementation
+        Vec3 { x: 1.0, y: 1.0, z: 1.0 }
+    }
 }
 
 pub trait Container {

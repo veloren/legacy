@@ -8,7 +8,7 @@ use terrain::{
 use vek::*;
 
 impl ConvertVolume for HeterogeneousData {
-    fn convert<Chunk>(&self, state: &PersState, con: &mut Chunk) where Chunk: VolCluster<VoxelType = Block>,
+    fn convert<Chunk>(&self, state: PersState, con: &mut Chunk) where Chunk: VolCluster<VoxelType = Block>,
     {
         match state {
             PersState::Homo => {
@@ -25,14 +25,12 @@ impl ConvertVolume for HeterogeneousData {
                 *homo.mut_voxel() = Vec::new();
                 con.insert(homo);
             },
-            PersState::File => {
-            },
         }
     }
 }
 
 impl ConvertVolume for HomogeneousData {
-    fn convert<Chunk>(&self, state: &PersState, con: &mut Chunk) where Chunk: VolCluster<VoxelType = Block>,
+    fn convert<Chunk>(&self, state: PersState, con: &mut Chunk) where Chunk: VolCluster<VoxelType = Block>,
     {
         match state {
             PersState::Homo => {
@@ -44,15 +42,13 @@ impl ConvertVolume for HomogeneousData {
                 con.insert(hetero);
             },
             PersState::Rle => {
-            },
-            PersState::File => {
             },
         }
     }
 }
 
 impl ConvertVolume for RleData {
-    fn convert<Chunk>(&self, state: &PersState, con: &mut Chunk) where Chunk: VolCluster<VoxelType = Block>,
+    fn convert<Chunk>(&self, state: PersState, con: &mut Chunk) where Chunk: VolCluster<VoxelType = Block>,
     {
         match state {
             PersState::Homo => {
@@ -64,8 +60,6 @@ impl ConvertVolume for RleData {
                 con.insert(hetero);
             },
             PersState::Rle => {
-            },
-            PersState::File => {
             },
         }
     }

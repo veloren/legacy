@@ -57,7 +57,6 @@ impl VolCluster for Chunk {
                     PersState::Homo => return false,
                     PersState::Hetero => return hetero.is_some(),
                     PersState::Rle => return rle.is_some(),
-                    PersState::File => return false,
                 }
             },
         }
@@ -114,7 +113,6 @@ impl VolCluster for Chunk {
                     *rle = None;
                 }
             },
-            PersState::File => return,
         }
     }
 
@@ -145,7 +143,6 @@ impl VolCluster for Chunk {
                     return rle.as_ref().map(|c| c as &dyn ReadVolume<VoxelType = Block>);
                 }
             },
-            PersState::File => return None,
         }
         /*
         return match state {
@@ -167,7 +164,6 @@ impl VolCluster for Chunk {
                 }
             },
             PersState::Rle => return None,
-            PersState::File => return None,
         }
         /*
         return match state {
@@ -196,7 +192,6 @@ impl VolCluster for Chunk {
                     return rle.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>);
                 }
             },
-            PersState::File => return None,
         }
         /*
         return match state {
@@ -222,7 +217,6 @@ impl VolCluster for Chunk {
                     return rle.as_ref().map(|c| c as &dyn SerializeVolume<VoxelType = Block>);
                 }
             },
-            PersState::File => return None,
         }
         /*
         return match state {
@@ -252,7 +246,6 @@ impl VolCluster for Chunk {
                     return rle.as_ref().map(|c| c as &dyn AnyVolume);
                 }
             },
-            PersState::File => return None,
         }
         /*
         return match state {

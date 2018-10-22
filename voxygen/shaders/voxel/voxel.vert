@@ -4,7 +4,7 @@
 #include <luts.glsl>
 
 in vec3 vert_pos;
-in uint vert_norm_ao_col_mat;
+in uint vert_attrib;
 
 layout (std140)
 uniform model_consts {
@@ -29,19 +29,27 @@ flat out vec3 frag_norm;
 flat out uint frag_mat;
 
 void main() {
-    uint norm_id = vert_norm_ao_col_mat & 0xFFu;
-    uint ao = (vert_norm_ao_col_mat & 0xFF00u) >> 8;
-    uint col_id = (vert_norm_ao_col_mat & 0xFF0000u) >> 16;
-    uint mat_id = (vert_norm_ao_col_mat & 0xFF000000u) >> 24;
+	// This is kind of ugly, but hey - parallel code!
+	uvec4 attr = (uvec4(vert_attrib) >> uvec4(
+		0,
+		16,
+		20,
+		24
+	)) & uvec4(
+		0xFFFFu,
+		0x0F,
+		0x0F,
+		0xFF
+	);
 
 	vec3 world_pos = (model_mat * vec4(vert_pos, 1)).xyz;
 
 	frag_pos = vert_pos;
 	frag_world_pos = world_pos;
-    frag_col = col_lut[col_id];
-    frag_ao = float(ao);
-	frag_norm = norm_lut[norm_id];
-	frag_mat = mat_id;
+    frag_col = col_lut[attr.x & 0xFFu];
+    frag_ao = float(attr.y);
+	frag_norm = norm_lut[attr.z];
+	frag_mat = attr.w;
 
 	gl_Position = proj_mat * view_mat * vec4(world_pos, 1);
 }

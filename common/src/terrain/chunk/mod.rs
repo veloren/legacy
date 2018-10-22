@@ -10,7 +10,7 @@ mod tests;
 
 // Reexports
 pub use self::{
-    block::{Block, BlockMaterial},
+    block::{Block, BlockMat},
     cluster::Chunk,
     container::ChunkContainer,
     hetero::HeterogeneousData,

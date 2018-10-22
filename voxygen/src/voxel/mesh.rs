@@ -56,25 +56,26 @@ impl From<NormalDirection> for u8 {
 gfx_defines! {
     vertex Vertex {
         pos: [f32; 3] = "vert_pos",
-        norm_ao_col_mat: u32 = "vert_norm_ao_col_mat",
+        attrib: u32 = "vert_attrib",
     }
 }
 
 pub(super) type VertexBuffer = gfx::handle::Buffer<gfx_device_gl::Resources, Vertex>;
 
 impl Vertex {
-    pub fn new(pos: [f32; 3], norm: NormalDirection, ao: u8, col: u8, mat: u8) -> Vertex {
-        let mut norm_ao_col_mat: u32 = u8::from(norm) as _;
-        norm_ao_col_mat = norm_ao_col_mat | (ao as u32) << 8;
-        norm_ao_col_mat = norm_ao_col_mat | (col as u32) << 16;
-        norm_ao_col_mat = norm_ao_col_mat | ((mat as u8) as u32) << 24;
-        Vertex { pos, norm_ao_col_mat }
+    pub fn new(pos: [f32; 3], norm: NormalDirection, ao: u8, col: u16, mat: u8) -> Vertex {
+        let attrib: u32 = 0x00000000;
+        let attrib = attrib | (col as u32  & 0xFFFF) << 0;
+        let attrib = attrib | (ao as u32   & 0x0F) << 16;
+        let attrib = attrib | (norm as u32 & 0x0F) << 20;
+        let attrib = attrib | (mat as u32  & 0xFF) << 24;
+        Vertex { pos, attrib }
     }
 
     pub fn scale(&self, scale: Vec3<f32>) -> Vertex {
         Vertex {
             pos: [self.pos[0] * scale.x, self.pos[1] * scale.y, self.pos[2] * scale.z],
-            norm_ao_col_mat: self.norm_ao_col_mat,
+            attrib: self.attrib,
         }
     }
 }
@@ -120,7 +121,7 @@ impl Quad {
         p3: [f32; 3],
         norm: NormalDirection,
         ao: u8,
-        col: u8,
+        col: u16,
         mat: u8,
     ) -> Quad {
         Quad {
@@ -167,7 +168,7 @@ trait GetAO {
         x_unit: Vec3<i64>,
         y_unit: Vec3<i64>,
         z_unit: Vec3<i64>,
-        col: u8,
+        col: u16,
         mat: u8,
     ) -> Quad;
 }
@@ -219,7 +220,7 @@ where
         x_unit: Vec3<i64>,
         y_unit: Vec3<i64>,
         z_unit: Vec3<i64>,
-        col: u8,
+        col: u16,
         mat: u8,
     ) -> Quad {
         let units = [Vec3::new(0, 0, 0), x_unit, x_unit + y_unit, y_unit];
@@ -288,7 +289,7 @@ impl Mesh {
 
                     let mesh = map.entry(render_mat.kind()).or_insert(Mesh::new());
 
-                    let fake_optimize = true;
+                    let fake_optimize = false;
 
                     if vox.is_occupied() {
                         let opaque = vox.is_opaque();

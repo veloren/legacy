@@ -1,8 +1,20 @@
 use super::super::Voxel;
 
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct BlockMat {
+    pub grad: u8, // 0x0 - 0xFE = gradient, 0xFF = palette mode
+    pub index: u8,
+}
+
+impl BlockMat {
+    pub fn get_palette(&self) -> u16 {
+        ((self.grad as u16) << 8) | (self.index as u16)
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Block {
-    mat: u8,
+    mat: BlockMat,
 }
 
 impl Block {
@@ -19,13 +31,16 @@ impl Block {
 
     pub const fn from_byte(byte: u8) -> Self {
         Self {
-            mat: byte,
+            mat: BlockMat {
+                grad: 0xFF,
+                index: byte,
+            },
         }
     }
 }
 
 impl Voxel for Block {
-    type Material = u8;
+    type Material = BlockMat;
 
     fn new(mat: Self::Material) -> Self { Block { mat } }
 

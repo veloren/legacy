@@ -1,12 +1,12 @@
 use common::terrain::{
-    chunk::{Block, BlockMaterial},
+    chunk::{Block, BlockMat},
     figure::{Cell, CellMaterial},
     PhysicalVolume, ReadVolume, Voxel,
 };
 use voxel::{Material, MaterialKind, RenderMaterial};
 
 pub trait RenderVoxel: Voxel {
-    fn get_color(&self) -> u8;
+    fn get_color(&self) -> u16;
     fn get_mat(&self) -> RenderMaterial;
     fn is_opaque(&self) -> bool;
     fn is_occupied(&self) -> bool;
@@ -22,7 +22,7 @@ where
 // Implementations for common structures
 
 impl RenderVoxel for Block {
-    fn get_color(&self) -> u8 {
+    fn get_color(&self) -> u16 {
         /*
         let color_map = enum_map! {
             BlockMaterial::Air => 255,
@@ -40,7 +40,7 @@ impl RenderVoxel for Block {
 
         //color_map[self.material()]
 
-        self.material()
+        self.material().get_palette()
     }
 
     fn get_mat(&self) -> RenderMaterial {
@@ -62,8 +62,8 @@ impl RenderVoxel for Block {
         */
 
         match self.material() {
-            206 => RenderMaterial::new(206, MaterialKind::Water),
-            m => RenderMaterial::new(m, MaterialKind::Solid),
+            BlockMat { grad: 0xFF, index: 206 } => RenderMaterial::new(Material::Water as u8, MaterialKind::Water),
+            m => RenderMaterial::new(Material::MatteSmooth as u8, MaterialKind::Solid),
         }
     }
 
@@ -73,7 +73,7 @@ impl RenderVoxel for Block {
 }
 
 impl RenderVoxel for Cell {
-    fn get_color(&self) -> u8 {
+    fn get_color(&self) -> u16 {
         match self.material() {
             CellMaterial::Empty => 0,
             CellMaterial::GlossySmooth(c)
@@ -81,7 +81,7 @@ impl RenderVoxel for Cell {
             | CellMaterial::MatteSmooth(c)
             | CellMaterial::MatteRough(c)
             | CellMaterial::MetallicSmooth(c)
-            | CellMaterial::MetallicRough(c) => c,
+            | CellMaterial::MetallicRough(c) => c as u16,
         }
     }
 

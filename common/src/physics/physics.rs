@@ -36,8 +36,8 @@ fn get_nearby(col: &Primitive, dir: Vec3<f32>) -> (/*low:*/VoxelAbsVec , /*high:
     // apply Hop correction to high
     high.z += BLOCK_SIZE_PLUS_SMALL;
     // ceil the low and floor the high for dat performance improve
-    let low = low.map(|e| e.ceil() as VoxelAbsType);
-    let high = high.map(|e| (e.floor() as VoxelAbsType) + 1); // +1 is for the for loop
+    let low = low.map(|e| e.ceil() as VoxelAbsType - 1);
+    let high = high.map(|e| (e.floor() as VoxelAbsType) + 1 + 1); // +1 is for the for loop
 
     (low, high)
 }
@@ -76,7 +76,12 @@ pub fn tick<
         // generate primitives from volsample
         //TODO: Fix calculation! FIXME
         let (low, high) = get_nearby(&entity_prim, Vec3::new(0.0, 0.0, 0.0));
-        let volsample = chunk_mgr.get_sample(low, high);
+        println!("low: {}, high: {}", &low, &high);
+        let volsample = chunk_mgr.try_get_sample(low, high);
+        if let Err(_) = volsample {
+            continue; //skip this entity, because not all chunks are loaded
+        }
+        let volsample = volsample.unwrap();
         let mut nearby_primitves = Vec::new();
         for (pos, b) in volsample.iter() {
             if b.is_solid() {

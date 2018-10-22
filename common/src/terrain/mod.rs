@@ -104,6 +104,15 @@ pub trait ReadVolume: Volume {
         }
     }
 
+    /// like `at` but acceps i64 instead of VoxelRelType
+    fn at_conv(&self, off: Vec3<i64>) -> Option<Self::VoxelType> { // Default implementation
+        if let Some(off) = validate_offset(off, self.size()) {
+            self.at(off)
+        } else {
+            None
+        }
+    }
+
     /// like `at` but without any checks
     fn at_unsafe(&self, off: VoxelRelVec) -> Self::VoxelType;
 }
@@ -175,7 +184,6 @@ pub trait VolCluster: Send + Sync + 'static {
 
     fn new() -> Self;
     fn contains(&self, state: PersState) -> bool;
-    fn convert(&mut self, state: PersState) -> bool;
     fn insert<V: Volume<VoxelType = Self::VoxelType> + AnyVolume>(&mut self, vol: V);
     fn remove(&mut self, state: PersState);
     fn get<'a>(&'a self, state: PersState) -> Option<&'a dyn ReadVolume<VoxelType = Self::VoxelType>>;
@@ -185,11 +193,11 @@ pub trait VolCluster: Send + Sync + 'static {
     fn get_any<'a>(&'a self, state: PersState) -> Option<&'a dyn AnyVolume>;
 }
 
-pub trait PhysicalllyVolume: Volume {
-    // offset of first Voxel in a hypothetical bigger Volume, e.g. offset = (50,0,0) means there is exactly space for another volume with offset (0,0,0) and size 50.
-    fn offset(&self) -> VoxelAbsVec;
+pub trait PhysicallyVolume: Volume {
+    // offset additionaly to the position, often (0,0,0)
+    //fn offset(&self) -> Vec3<f32>;
     // orientation on the 3 axis in rad
-    fn ori(&self) -> Vec3<f32>;
+    //fn ori(&self) -> Vec3<f32>;
     // scale is applied to size and offset
     fn scale(&self) -> Vec3<f32>;
 }

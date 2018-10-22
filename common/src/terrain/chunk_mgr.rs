@@ -20,15 +20,12 @@ impl Key for VolumeIdxVec {
     fn print(&self) -> String { return format!("c{},{},{}", self.x, self.y, self.z).to_string(); }
 }
 
-/*
- --> Get absolute
- --> Trigger creation
- --> Trigger Payload Generation ?
- --> It currently tries to abstract all Chunks away and only return ChunkSample!
-
-
-*/
-
+#[derive(Debug, PartialEq)]
+pub enum ChunkSampleError {
+  ChunkMissing,
+  CannotGetLock,
+  NoContent,
+}
 
 pub struct ChunkMgr<P: Send + Sync + 'static> {
     vol_size: VoxelRelVec,
@@ -70,17 +67,23 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         None
     }
 
-    pub fn get_sample(&self, from: VoxelAbsVec, to: VoxelAbsVec) -> ChunkSample<P> {
+    // Tries getting a Sample
+    pub fn try_get_sample(&self, from: VoxelAbsVec, to: VoxelAbsVec) -> Result<ChunkSample<P>, ChunkSampleError> {
         let mut c = 0;
         while true {
-            if let Some(sample) = self.try_get_sample(from, to) {
-                return sample;
-            } else {
-                c += 1;
-                if c > 10 {
-                    warn!("Long waiting chunk sample {}", c)
-                }
-                thread::sleep(Duration::from_millis(10));
+            match self.get_sample(from, to) {
+                 Ok(sample) => return Ok(sample),
+                 Err(e) => {
+                     if e == ChunkSampleError::CannotGetLock {
+                         c += 1;
+                         if c > 10 {
+                             warn!("Long waiting chunk sample {}", c)
+                         }
+                         thread::sleep(Duration::from_millis(10));
+                     } else {
+                         return Err(e);
+                     }
+                 }
             }
         }
         panic!("unreachable");
@@ -97,7 +100,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         ) -> Self {
     */
 
-    pub fn try_get_sample(&self, from: VoxelAbsVec, to: VoxelAbsVec) -> Option<ChunkSample<P>> {
+    pub fn get_sample(&self, from: VoxelAbsVec, to: VoxelAbsVec) -> Result<ChunkSample<P>, ChunkSampleError> {
         let mut map = HashMap::new();
         let chunk_from = terrain::voxabs_to_volidx(from, self.vol_size);
         let chunk_to = terrain::voxabs_to_volidx(to, self.vol_size);
@@ -119,15 +122,25 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
 
                     if let Some(cc) = cc {
                         if cc.data_try().take().map(|value| map.insert(key, Arc::new(value))).is_none() {
-                            return None;
+                            return Err(ChunkSampleError::CannotGetLock);
                         }
+                        let v = map.get(&key).unwrap();
+                        let empty = match ***v {
+                            Chunk::Homogeneous{ref homo} => homo.is_none(),
+                            Chunk::Heterogeneous{ref hetero, ref rle} => hetero.is_none() && rle.is_none(),
+                        };
+                        if empty {
+                            return Err(ChunkSampleError::NoContent);
+                        }
+                    } else {
+                        debug!("Chunk does not exist: {}", &key);
+                        return Err(ChunkSampleError::ChunkMissing);
                     }
 
                 }
             }
         }
-        return Some(ChunkSample::new(self.vol_size, from, to, map));
-        None
+        Ok(ChunkSample::new(self.vol_size, from, to, map))
     }
 
     pub fn gen(&self, pos: VolumeIdxVec) {

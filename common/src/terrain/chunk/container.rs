@@ -64,30 +64,6 @@ impl VolCluster for Chunk {
         false
     }
 
-
-    fn convert(&mut self, state: PersState) -> bool {
-        /*
-        let try = if let Chunk::Homogeneous{ref homo} = self {
-            homo.
-            if let Some(e) = homo {
-                e.convert(&state, self);
-                return true
-            };
-        }
-        if let Chunk::Heterogeneous{ref hetero, ref rle} = self {
-            if let Some(e) = hetero {
-                e.convert(&state, self);
-                return true
-            };
-            if let Some(e) = rle {
-                e.convert(&state, self);
-                return true
-            };
-        }*/
-        false
-
-    }
-
     fn insert<V: Volume<VoxelType = Block> + AnyVolume>(&mut self, mut vol: V) {
         let homo: Option<&mut HomogeneousData> = vol.as_any_mut().downcast_mut::<HomogeneousData>();
         if let Some(homo) = homo {

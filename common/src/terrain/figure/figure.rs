@@ -1,13 +1,10 @@
-// Standard
-use std::any::Any;
-
 // Library
 use vek::*;
 
 // Local
 use terrain::{
     figure::{Cell, CellMaterial},
-    Volume, Voxel, ReadVolume, ReadWriteVolume, ConstructVolume, VoxelRelVec,
+    Volume, Voxel, PhysicallyVolume, ReadVolume, ReadWriteVolume, ConstructVolume, VoxelRelVec,
 };
 
 pub struct Figure {
@@ -77,6 +74,12 @@ impl ConstructVolume for Figure {
 
     fn empty(size: VoxelRelVec) -> Figure {
         Self::filled(size, Cell::empty())
+    }
+}
+
+impl PhysicallyVolume for Figure {
+    fn scale(&self) -> Vec3<f32> {
+        Vec3::new(0.1, 0.1, 0.1)
     }
 }
 

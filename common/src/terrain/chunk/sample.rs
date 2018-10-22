@@ -47,15 +47,13 @@ impl<'a, P> ChunkSampleIter<'a, P> {
     pub fn new(sample: &'a ChunkSample<'a, P>) -> Self {
         let s = sample;
         let i = s.map.iter();
-        let mut csi = ChunkSampleIter{
+        ChunkSampleIter{
             dummy: None,
             owner: &s,
             chunkiter: i,
             chunkiteritem: None,
             block_rel: s.block_from_rel,
-        };
-        csi.chunkiteritem = csi.chunkiter.next();
-        return csi;
+        }
     }
 }
 
@@ -68,18 +66,27 @@ impl<'a, P> Iterator for ChunkSampleIter<'a, P> {
             self.block_rel = VoxelRelVec::new(0,0,0);
         }
         if let Some((key, item)) = self.chunkiteritem {
-            let rel = self.block_rel;
-            let abs = key.map(|e| e as VoxelAbsType) + rel.map(|e| e as VoxelAbsType);
-            let b = ChunkSample::<'a, P>::access(&item, rel);
-            self.block_rel.z += 1;
-            if self.block_rel.z == self.owner.vol_size.z {
-                self.block_rel.z = 0;
+            let abs = terrain::volidx_to_voxabs(*key, self.owner.vol_size) + self.block_rel.map(|e| e as VoxelAbsType);
+            if abs.x < self.owner.block_from_abs.x {
+                self.block_rel.x = self.owner.block_from_rel.x;
+            }
+            if abs.y < self.owner.block_from_abs.y {
+                self.block_rel.y = self.owner.block_from_rel.y;
+            }
+            if abs.z < self.owner.block_from_abs.z {
+                self.block_rel.z = self.owner.block_from_rel.z;
+            }
+
+            let b = ChunkSample::<'a, P>::access(&item, self.block_rel);
+            self.block_rel.x += 1;
+            if self.block_rel.x == self.owner.vol_size.x || abs.x > self.owner.block_to_abs.x {
+                self.block_rel.x = 0;
                 self.block_rel.y += 1;
-                if self.block_rel.y == self.owner.vol_size.y {
+                if self.block_rel.y == self.owner.vol_size.y || abs.y > self.owner.block_to_abs.y {
                     self.block_rel.y = 0;
-                    self.block_rel.x += 1;
-                    if self.block_rel.x == self.owner.vol_size.x {
-                        self.block_rel.x = 0;
+                    self.block_rel.z += 1;
+                    if self.block_rel.z == self.owner.vol_size.z || abs.z > self.owner.block_to_abs.z {
+                        self.block_rel.z = 0;
                         self.chunkiteritem = None;
                     }
                 }

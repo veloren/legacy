@@ -7,7 +7,7 @@ use num::{Num, ToPrimitive};
 // Local
 use terrain::{
     chunk::{Block, BlockMaterial},
-    Volume, ReadVolume, ReadWriteVolume, ConstructVolume, AnyVolume, SerializeVolume, Voxel, VoxelRelVec, VoxelAbsVec,
+    Volume, ReadVolume, ReadWriteVolume, ConstructVolume, PhysicallyVolume, Voxel, VoxelRelVec, VoxelAbsVec,
 };
 
 #[derive(Clone, Debug)]
@@ -127,7 +127,7 @@ impl HeterogeneousData {
 
                 for k in 0..size.z {
                     if chunk.at_unsafe(Vec3::new(i, j, k)).material() == BlockMaterial::Earth
-                        && chunk.at_unsafe(Vec3::new(i, j, k + 1)).material() == BlockMaterial::Air
+                        && k < size.z-1 && chunk.at_unsafe(Vec3::new(i, j, k + 1)).material() == BlockMaterial::Air
                     {
                         if boulder_noise.get((pos2d * 123.573).into_array()) > 0.54 {
                             let mut rng = XorShiftRng::from_seed([
@@ -261,5 +261,11 @@ impl ConstructVolume for HeterogeneousData {
 
     fn empty(size: VoxelRelVec) -> HeterogeneousData {
         Self::filled(size, Block::empty())
+    }
+}
+
+impl PhysicallyVolume for HeterogeneousData {
+    fn scale(&self) -> Vec3<f32> {
+        Vec3::new(1.0, 1.0, 1.0)
     }
 }

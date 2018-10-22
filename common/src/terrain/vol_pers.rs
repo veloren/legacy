@@ -50,7 +50,12 @@ impl<K: Key, C: Container> VolPers<K, C> {
             let contains = lock.contains(state.clone());
             if !contains {
                 info!("generate from persistence key: {:?} state: {:?}", key, state);
-                lock.convert(state);
+                panic!("to lazy");
+                /*
+                if lock.contains(PersState::Homo) {
+                    lock.get(PersState::Homo).covert(lock, state);
+                }
+                lock.convert(state);*/
             }
         }
     }

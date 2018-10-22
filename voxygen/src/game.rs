@@ -85,7 +85,8 @@ pub struct Game {
 fn gen_payload(key: VolumeIdxVec, con: &ChunkContainer<<Payloads as client::Payloads>::Chunk>) {
     if con.data().get(PersState::Hetero).is_none() {
         //only get mutable lock if no Raw exists
-        con.data_mut().convert(PersState::Hetero);
+        //con.data_mut().convert(PersState::Hetero);
+        panic!("To Lazy 2")
     }
     if let Some(hetero) = con.data().get_any(PersState::Hetero) {
         let hetero: &HeterogeneousData = hetero.as_any().downcast_ref::<HeterogeneousData>().expect("Should be Hetero");

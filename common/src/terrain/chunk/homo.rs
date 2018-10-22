@@ -4,7 +4,7 @@ use vek::*;
 // Local
 use terrain::{
     chunk::Block,
-    Volume, ReadVolume, ConstructVolume, AnyVolume, SerializeVolume, Voxel, VoxelRelVec,
+    Volume, ReadVolume, ConstructVolume, PhysicallyVolume, Voxel, VoxelRelVec,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -52,5 +52,11 @@ impl ConstructVolume for HomogeneousData {
 
     fn empty(size: VoxelRelVec) -> HomogeneousData {
         Self::filled(size, Block::empty())
+    }
+}
+
+impl PhysicallyVolume for HomogeneousData {
+    fn scale(&self) -> Vec3<f32> {
+        Vec3::new(1.0, 1.0, 1.0)
     }
 }

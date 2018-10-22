@@ -1,11 +1,12 @@
-use toml;
-
 use std::{
     fmt,
     fs::File,
     io::{self, Read, Write},
     path::Path,
 };
+
+use glutin::VirtualKeyCode;
+use toml;
 
 const KEYS_PATH: &str = "keybinds.toml";
 
@@ -38,6 +39,172 @@ impl fmt::Display for Error {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub struct VKeyCode {
+    code: VirtualKeyCode,
+}
+
+impl VKeyCode {
+    pub fn new(code: VirtualKeyCode) -> VKeyCode { VKeyCode { code } }
+
+    pub fn code(&self) -> VirtualKeyCode { self.code }
+}
+
+impl serde::Serialize for VKeyCode {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(vkcode_to_str(&self.code))
+    }
+}
+
+struct VKeyCodeVisitor;
+
+impl<'de> serde::de::Visitor<'de> for VKeyCodeVisitor {
+    type Value = VKeyCode;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result { formatter.write_str("a virtual key code") }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        match str_to_vkcode(value) {
+            Some(code) => Ok(VKeyCode { code }),
+            None => Err(E::custom(format!("invalid key: {}", value))),
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for VKeyCode {
+    fn deserialize<D>(deserializer: D) -> Result<VKeyCode, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_str(VKeyCodeVisitor)
+    }
+}
+
+pub fn vkcode_to_str(code: &VirtualKeyCode) -> &'static str {
+    match code {
+        VirtualKeyCode::Key1 => "Key1",
+        VirtualKeyCode::Key2 => "Key2",
+        VirtualKeyCode::Key3 => "Key3",
+        VirtualKeyCode::Key4 => "Key4",
+        VirtualKeyCode::Key5 => "Key5",
+        VirtualKeyCode::Key6 => "Key6",
+        VirtualKeyCode::Key7 => "Key7",
+        VirtualKeyCode::Key8 => "Key8",
+        VirtualKeyCode::Key9 => "Key9",
+        VirtualKeyCode::Key0 => "Key0",
+        VirtualKeyCode::A => "A",
+        VirtualKeyCode::B => "B",
+        VirtualKeyCode::C => "C",
+        VirtualKeyCode::D => "D",
+        VirtualKeyCode::E => "E",
+        VirtualKeyCode::F => "F",
+        VirtualKeyCode::G => "G",
+        VirtualKeyCode::H => "H",
+        VirtualKeyCode::I => "I",
+        VirtualKeyCode::J => "J",
+        VirtualKeyCode::K => "K",
+        VirtualKeyCode::L => "L",
+        VirtualKeyCode::M => "M",
+        VirtualKeyCode::N => "N",
+        VirtualKeyCode::O => "O",
+        VirtualKeyCode::P => "P",
+        VirtualKeyCode::Q => "Q",
+        VirtualKeyCode::R => "R",
+        VirtualKeyCode::S => "S",
+        VirtualKeyCode::T => "T",
+        VirtualKeyCode::U => "U",
+        VirtualKeyCode::V => "V",
+        VirtualKeyCode::W => "W",
+        VirtualKeyCode::X => "X",
+        VirtualKeyCode::Y => "Y",
+        VirtualKeyCode::Z => "Z",
+        VirtualKeyCode::Escape => "Escape",
+        VirtualKeyCode::F1 => "F1",
+        VirtualKeyCode::F2 => "F2",
+        VirtualKeyCode::F3 => "F3",
+        VirtualKeyCode::F4 => "F4",
+        VirtualKeyCode::F5 => "F5",
+        VirtualKeyCode::F6 => "F6",
+        VirtualKeyCode::F7 => "F7",
+        VirtualKeyCode::F8 => "F8",
+        VirtualKeyCode::F9 => "F9",
+        VirtualKeyCode::F10 => "F10",
+        VirtualKeyCode::F11 => "F11",
+        VirtualKeyCode::F12 => "F12",
+        VirtualKeyCode::Snapshot => "Snapshot",
+        VirtualKeyCode::Pause => "Pause",
+        VirtualKeyCode::Insert => "Insert",
+        VirtualKeyCode::Home => "Home",
+        VirtualKeyCode::Delete => "Delete",
+        VirtualKeyCode::End => "End",
+        VirtualKeyCode::PageDown => "PageDown",
+        VirtualKeyCode::PageUp => "PageUp",
+        VirtualKeyCode::Left => "Left",
+        VirtualKeyCode::Up => "Up",
+        VirtualKeyCode::Right => "Right",
+        VirtualKeyCode::Down => "Down",
+        VirtualKeyCode::Back => "Back",
+        VirtualKeyCode::Return => "Return",
+        VirtualKeyCode::Space => "Space",
+        VirtualKeyCode::LControl => "LControl",
+        VirtualKeyCode::LShift => "LShift",
+        _ => "",
+    }
+}
+
+pub fn str_to_vkcode(s: &str) -> Option<VirtualKeyCode> {
+    match s {
+        "Key1" => Some(VirtualKeyCode::Key1),
+        "Key2" => Some(VirtualKeyCode::Key2),
+        "Key3" => Some(VirtualKeyCode::Key3),
+        "Key4" => Some(VirtualKeyCode::Key4),
+        "Key5" => Some(VirtualKeyCode::Key5),
+        "Key6" => Some(VirtualKeyCode::Key6),
+        "Key7" => Some(VirtualKeyCode::Key7),
+        "Key8" => Some(VirtualKeyCode::Key8),
+        "Key9" => Some(VirtualKeyCode::Key0),
+        "Key0" => Some(VirtualKeyCode::Key0),
+        "A" => Some(VirtualKeyCode::A),
+        "B" => Some(VirtualKeyCode::B),
+        "C" => Some(VirtualKeyCode::C),
+        "D" => Some(VirtualKeyCode::D),
+        "E" => Some(VirtualKeyCode::E),
+        "F" => Some(VirtualKeyCode::F),
+        "G" => Some(VirtualKeyCode::G),
+        "H" => Some(VirtualKeyCode::H),
+        "I" => Some(VirtualKeyCode::I),
+        "J" => Some(VirtualKeyCode::J),
+        "K" => Some(VirtualKeyCode::K),
+        "L" => Some(VirtualKeyCode::L),
+        "M" => Some(VirtualKeyCode::M),
+        "N" => Some(VirtualKeyCode::N),
+        "O" => Some(VirtualKeyCode::O),
+        "P" => Some(VirtualKeyCode::P),
+        "Q" => Some(VirtualKeyCode::Q),
+        "R" => Some(VirtualKeyCode::R),
+        "S" => Some(VirtualKeyCode::S),
+        "T" => Some(VirtualKeyCode::T),
+        "U" => Some(VirtualKeyCode::U),
+        "V" => Some(VirtualKeyCode::V),
+        "W" => Some(VirtualKeyCode::W),
+        "X" => Some(VirtualKeyCode::X),
+        "Y" => Some(VirtualKeyCode::Y),
+        "Z" => Some(VirtualKeyCode::Z),
+        "Escape" => Some(VirtualKeyCode::Escape),
+        "Return" => Some(VirtualKeyCode::Return),
+        "Space" => Some(VirtualKeyCode::Space),
+        "LControl" => Some(VirtualKeyCode::LControl),
+        "LShift" => Some(VirtualKeyCode::LShift),
+        _ => None,
+    }
+}
+
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct Keybinds {
     pub general: General,
@@ -47,33 +214,33 @@ pub struct Keybinds {
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct General {
     // Movement
-    pub back: Option<u32>,
-    pub forward: Option<u32>,
-    pub left: Option<u32>,
-    pub right: Option<u32>,
-    pub dodge: Option<u32>,
-    pub crouch: Option<u32>,
-    pub jump: Option<u32>,
+    pub back: Option<VKeyCode>,
+    pub forward: Option<VKeyCode>,
+    pub left: Option<VKeyCode>,
+    pub right: Option<VKeyCode>,
+    pub dodge: Option<VKeyCode>,
+    pub crouch: Option<VKeyCode>,
+    pub jump: Option<VKeyCode>,
 
     // Actions
-    pub attack_1: Option<u32>,
-    pub attack_2: Option<u32>,
-    pub interact: Option<u32>,
-    pub mount: Option<u32>,
-    pub skill_1: Option<u32>,
-    pub skill_2: Option<u32>,
-    pub skill_3: Option<u32>,
-    pub use_item: Option<u32>,
+    pub attack_1: Option<VKeyCode>,
+    pub attack_2: Option<VKeyCode>,
+    pub interact: Option<VKeyCode>,
+    pub mount: Option<VKeyCode>,
+    pub skill_1: Option<VKeyCode>,
+    pub skill_2: Option<VKeyCode>,
+    pub skill_3: Option<VKeyCode>,
+    pub use_item: Option<VKeyCode>,
 
     // Menus
-    pub chat: Option<u32>,
-    pub inventory: Option<u32>,
-    pub pause: Option<u32>,
+    pub chat: Option<VKeyCode>,
+    pub inventory: Option<VKeyCode>,
+    pub pause: Option<VKeyCode>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct Mount {
-    pub dismount: Option<u32>,
+    pub dismount: Option<VKeyCode>,
 }
 
 impl Keybinds {
@@ -116,14 +283,14 @@ impl Keybinds {
                     dodge: Some(general.dodge.unwrap_or(default_keys.general.dodge.unwrap())),
                     crouch: Some(general.crouch.unwrap_or(default_keys.general.crouch.unwrap())),
                     jump: Some(general.jump.unwrap_or(default_keys.general.jump.unwrap())),
-                    attack_1: Some(general.attack_1.unwrap_or(default_keys.general.attack_1.unwrap())),
-                    attack_2: Some(general.attack_2.unwrap_or(default_keys.general.attack_2.unwrap())),
+                    attack_1: None,
+                    attack_2: None,
                     interact: Some(general.interact.unwrap_or(default_keys.general.interact.unwrap())),
+                    skill_1: None,
+                    skill_2: None,
+                    skill_3: None,
+                    use_item: None,
                     mount: Some(general.mount.unwrap_or(default_keys.general.mount.unwrap())),
-                    skill_1: Some(general.skill_1.unwrap_or(default_keys.general.skill_1.unwrap())),
-                    skill_2: Some(general.skill_2.unwrap_or(default_keys.general.skill_2.unwrap())),
-                    skill_3: Some(general.skill_3.unwrap_or(default_keys.general.skill_3.unwrap())),
-                    use_item: Some(general.use_item.unwrap_or(default_keys.general.use_item.unwrap())),
                     chat: Some(general.chat.unwrap_or(default_keys.general.chat.unwrap())),
                     inventory: Some(general.inventory.unwrap_or(default_keys.general.inventory.unwrap())),
                     pause: Some(general.pause.unwrap_or(default_keys.general.pause.unwrap())),
@@ -150,29 +317,31 @@ impl Keybinds {
         // The default keybinds struct. All new defaults will be added here.
         Keybinds {
             general: General {
-                back: Some(31),
-                forward: Some(17),
-                left: Some(30),
-                right: Some(32),
-                dodge: Some(29),
-                crouch: Some(42),
-                jump: Some(57),
+                back: Some(VKeyCode::new(VirtualKeyCode::S)),
+                forward: Some(VKeyCode::new(VirtualKeyCode::W)),
+                left: Some(VKeyCode::new(VirtualKeyCode::A)),
+                right: Some(VKeyCode::new(VirtualKeyCode::D)),
+                dodge: Some(VKeyCode::new(VirtualKeyCode::LShift)),
+                crouch: Some(VKeyCode::new(VirtualKeyCode::LControl)),
+                jump: Some(VKeyCode::new(VirtualKeyCode::Space)),
 
-                attack_1: Some(100),
-                attack_2: Some(100),
-                interact: Some(18),
-                mount: Some(20),
-                skill_1: Some(2),
-                skill_2: Some(3),
-                skill_3: Some(4),
-                use_item: Some(16),
+                attack_1: None,
+                attack_2: None,
+                interact: None,
+                mount: Some(VKeyCode::new(VirtualKeyCode::M)),
+                skill_1: None,
+                skill_2: None,
+                skill_3: None,
+                use_item: Some(VKeyCode::new(VirtualKeyCode::Q)),
 
-                chat: Some(28),
-                inventory: Some(48),
-                pause: Some(1),
+                chat: Some(VKeyCode::new(VirtualKeyCode::Return)),
+                inventory: Some(VKeyCode::new(VirtualKeyCode::I)),
+                pause: Some(VKeyCode::new(VirtualKeyCode::Escape)),
             },
 
-            mount: Mount { dismount: Some(20) },
+            mount: Mount {
+                dismount: Some(VKeyCode::new(VirtualKeyCode::M)),
+            },
         }
     }
 }

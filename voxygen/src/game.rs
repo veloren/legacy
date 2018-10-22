@@ -31,7 +31,7 @@ use camera::Camera;
 use consts::{ConstHandle, GlobalConsts};
 use hud::{Hud, HudEvent};
 use key_state::KeyState;
-use keybinds::Keybinds;
+use keybinds::{Keybinds, VKeyCode};
 use pipeline::Pipeline;
 use shader::Shader;
 use skybox;
@@ -214,58 +214,63 @@ impl Game {
                 },
                 Event::KeyboardInput { i, .. } => {
                     // Helper function to determine scancode equality
-                    fn keypress_eq(key: &Option<u32>, scancode: u32) -> bool {
-                        key.map(|sc| sc == scancode).unwrap_or(false)
+                    fn keypress_eq(key: &Option<VKeyCode>, input: Option<glutin::VirtualKeyCode>) -> bool {
+                        if let Some(k) = key {
+                            if let Some(i) = input {
+                                return k.code() == i;
+                            }
+                        }
+                        false
                     }
 
                     // Helper variables to clean up code. Add any new input modes here.
                     let general = &self.keys.general;
 
                     // General inputs -------------------------------------------------------------
-                    if keypress_eq(&general.pause, i.scancode) {
+                    if keypress_eq(&general.pause, i.virtual_keycode) {
                         // Default: Escape (free cursor)
                         self.window.untrap_cursor();
-                    } else if keypress_eq(&general.use_item, i.scancode) {
+                    } else if keypress_eq(&general.use_item, i.virtual_keycode) {
                         // Default: Ctrl+Q (quit) (temporary)
                         if i.modifiers.ctrl {
                             self.running.store(false, Ordering::Relaxed);
                         }
-                    } else if keypress_eq(&general.chat, i.scancode) && i.state == ElementState::Released {
+                    } else if keypress_eq(&general.chat, i.virtual_keycode) && i.state == ElementState::Released {
                         //self.ui.borrow_mut().set_show_chat(!show_chat);
                     }
 
                     // TODO: Remove this check
-                    if keypress_eq(&general.forward, i.scancode) {
+                    if keypress_eq(&general.forward, i.virtual_keycode) {
                         self.key_state.lock().up = match i.state {
                             // Default: W (up)
                             ElementState::Pressed => true,
                             ElementState::Released => false,
                         }
-                    } else if keypress_eq(&general.left, i.scancode) {
+                    } else if keypress_eq(&general.left, i.virtual_keycode) {
                         self.key_state.lock().left = match i.state {
                             // Default: A (left)
                             ElementState::Pressed => true,
                             ElementState::Released => false,
                         }
-                    } else if keypress_eq(&general.back, i.scancode) {
+                    } else if keypress_eq(&general.back, i.virtual_keycode) {
                         self.key_state.lock().down = match i.state {
                             // Default: S (down)
                             ElementState::Pressed => true,
                             ElementState::Released => false,
                         }
-                    } else if keypress_eq(&general.right, i.scancode) {
+                    } else if keypress_eq(&general.right, i.virtual_keycode) {
                         self.key_state.lock().right = match i.state {
                             // Default: D (right)
                             ElementState::Pressed => true,
                             ElementState::Released => false,
                         }
-                    } else if keypress_eq(&general.jump, i.scancode) {
+                    } else if keypress_eq(&general.jump, i.virtual_keycode) {
                         self.key_state.lock().jump = match i.state {
                             // Default: Space (fly)
                             ElementState::Pressed => true,
                             ElementState::Released => false,
                         }
-                    } else if keypress_eq(&general.crouch, i.scancode) {
+                    } else if keypress_eq(&general.crouch, i.virtual_keycode) {
                         // self.key_state.lock().fall = match i.state { // Default: Shift (fall)
                         //     ElementState::Pressed => true,
                         //     ElementState::Released => false,

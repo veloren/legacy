@@ -16,8 +16,8 @@ pub struct Sample {
     pub chaos: f64,
     pub grad_vari: f64,
 
-    pub river: f64,
     pub hill: f64,
+    pub river: f64,
     pub ridge: f64,
     pub cliff_height: f64,
 }
@@ -32,7 +32,7 @@ pub struct OverworldGen {
 
     hill_nz: HybridMulti,
     ridge_nz: HybridMulti,
-    cliff_height_nz: SuperSimplex,
+    cliff_height_nz: HybridMulti,
 }
 
 impl OverworldGen {
@@ -61,12 +61,13 @@ impl OverworldGen {
                 .set_seed(new_seed()),
             hill_nz: HybridMulti::new()
                 .set_seed(new_seed())
-                .set_octaves(1),
+                .set_octaves(2),
             ridge_nz: HybridMulti::new()
                 .set_seed(new_seed())
                 .set_octaves(3),
-            cliff_height_nz: SuperSimplex::new()
-                .set_seed(new_seed()),
+            cliff_height_nz: HybridMulti::new()
+                .set_seed(new_seed())
+                .set_octaves(3),
         }, 64)
     }
 
@@ -89,8 +90,8 @@ impl OverworldGen {
 
     // 0.0 = normal/low, 1.0 = high
     fn get_chaos(&self, pos: Vec2<f64>, dry: f64) -> f64 {
-        let scale = 1024.0;
-        self.chaos_nz.get(pos.div(scale).into_array()).mul(dry).powf(2.0).mul(4.0).max(0.0).min(1.0)
+        let scale = 1500.0;
+        self.chaos_nz.get(pos.div(scale).into_array()).mul(dry).powf(1.0).mul(4.0).max(0.0).min(1.0)
     }
 
     // 0.0 = low, 1.0 = high
@@ -99,36 +100,36 @@ impl OverworldGen {
         self.grad_vari_nz.get(pos.div(scale).into_array()).add(1.0).div(2.0)
     }
 
-    // 0.0 = normal/flat, max_depth = deepest
-    fn get_river(&self, dry: f64) -> f64 {
-        let depth = 24.0;
-        let max_depth = 8.0;
+    // -amp = lowest, amp = highest
+    fn get_hill(&self, pos: Vec2<f64>, dry: f64) -> f64 {
+        let scale = 1000.0;
+        let amp = 16.0;
+        self.hill_nz.get(pos.div(scale).into_array()).mul(amp)
+    }
 
-        if dry < 0.15 {
+    // 0.0 = normal/flat, max_depth = deepest
+    fn get_river(&self, dry: f64, hill: f64) -> f64 {
+        let depth = 24.0;
+        let max_depth = 8.0 + hill * 0.4;
+
+        if dry < 0.2 {
             dry.mul(20.0).cos().mul(max_depth).max(0.0)
         } else {
             0.0
         }
     }
 
-    // -amp = lowest, amp = highest
-    fn get_hill(&self, pos: Vec2<f64>, dry: f64) -> f64 {
-        let scale = 2000.0;
-        let amp = 48.0;
-        self.hill_nz.get(pos.div(scale).into_array()).mul(amp)
-    }
-
     // 0.0 = lowest, height = highest
     fn get_ridge(&self, pos: Vec2<f64>, chaos: f64) -> f64 {
         let scale = 1500.0;
-        let height = 170.0;
-        (1.0 - self.ridge_nz.get(pos.div(scale).into_array()).abs()).mul(chaos).mul(height)
+        let height = 140.0;
+        (1.0 - self.ridge_nz.get(pos.div(scale).into_array()).abs()).powf(0.75).mul(chaos).mul(height)
     }
 
     // (1.0 - vari) * height = lowest, 1.0 = avg, (1.0 + vari) * height = highest
     fn get_cliff_height(&self, pos: Vec2<f64>) -> f64 {
-        let scale = 256.0;
-        let vari = 0.3;
+        let scale = 800.0;
+        let vari = 0.6;
         let height = 160.0;
 
         self.cliff_height_nz.get(pos.div(scale).into_array()).mul(vari).add(1.0).mul(height)
@@ -154,8 +155,8 @@ impl Gen for OverworldGen {
         let chaos = self.get_chaos(pos, dry);
         let grad_vari = self.get_grad_vari(pos);
 
-        let river = self.get_river(dry);
         let hill = self.get_hill(turb_pos, dry);
+        let river = self.get_river(dry, hill);
         let ridge = self.get_ridge(turb_pos, chaos);
         let cliff_height = self.get_cliff_height(pos);
 
@@ -165,8 +166,8 @@ impl Gen for OverworldGen {
             chaos,
             grad_vari,
 
-            river,
             hill,
+            river,
             ridge,
             cliff_height,
         }

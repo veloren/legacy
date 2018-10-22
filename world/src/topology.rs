@@ -60,37 +60,40 @@ impl TopologyGen {
 
     // 0.0 = lowest, height = highest
     fn get_peak(&self, pos: Vec3<f64>, chaos: f64) -> f64 {
-        let scale = Vec3::new(300.0, 300.0, 200.0);
-        let height = 100.0;
+        let scale = Vec3::new(300.0, 300.0, 300.0);
+        let height = 75.0;
         self.peak_nz.get(pos.div(scale).into_array()).mul(chaos).mul(height)
     }
 
     // 0.0 = lowest, 1.0 = highest
     fn get_cliff(&self, pos: Vec3<f64>, dry: f64, chaos: f64) -> f64 {
         let scale = Vec3::new(512.0, 512.0, 2000.0);
-        let spot_scale = Vec3::new(128.0, 128.0, 200.0);
-        let layers = 3.0;
+        let spot_scale = Vec3::new(128.0, 128.0, 2000.0);
+        let layers = 4.0;
 
         (
             chaos.mul(0.3) +
-            self.cliff_nz.get(pos.div(scale).into_array()).mul(chaos).mul(0.4) +
-            self.cliff_spot_nz.get(pos.div(spot_scale).into_array()).max(0.0).mul(dry).mul(0.3)
+            self.cliff_nz.get(pos.div(scale).into_array()).mul(chaos).mul(0.5) +
+            self.cliff_spot_nz.get(pos.div(spot_scale).into_array()).max(0.0).mul(dry).mul(0.2)
         ).mul(layers).round().div(layers).max(0.0)
     }
 
-    fn get_surf(&self, pos: Vec3<i64>) -> (overworld::Sample, f64, f64, f64, f64) {
+    fn get_surf(&self, pos: Vec3<i64>) -> (overworld::Sample, f64, f64, f64, f64, f64, f64) {
         let overworld = self.overworld_gen.sample(Vec2::from(pos));
 
         let pos = pos.map(|e| e as f64);
 
-        let peak = self.get_peak(pos, overworld.chaos);
-        let cliff = self.get_cliff(pos, overworld.dry, overworld.chaos);
-
         let basic_surf = 50.0 + overworld.hill;
-        let alt_surf = basic_surf - overworld.river + (cliff * overworld.cliff_height).max(peak + overworld.ridge);
-        let water_surf = (basic_surf - 2.0).max(42.0);
 
-        (overworld, basic_surf, peak, alt_surf, water_surf)
+        let peak = self.get_peak(pos, overworld.chaos);
+        let mountain = peak + overworld.ridge;
+
+        let cliff = self.get_cliff(pos, overworld.dry, overworld.chaos) * overworld.cliff_height;
+
+        let alt_surf = basic_surf - overworld.river + cliff.max(mountain);
+        let water_surf = (48.0 + overworld.hill * 0.4).min(basic_surf - 2.0);
+
+        (overworld, basic_surf, peak, cliff, mountain, alt_surf, water_surf)
     }
 }
 
@@ -100,7 +103,7 @@ impl Gen for TopologyGen {
 
     fn sample(&self, pos: Vec3<i64>) -> Sample {
         // Calculate the surface information
-        let (overworld, basic_surf, peak, alt_surf, water_surf) = self.get_surf(pos);
+        let (overworld, basic_surf, peak, cliff, mountain, alt_surf, water_surf) = self.get_surf(pos);
 
         // Tree
         let tree = self.tree_gen.sample((pos, overworld, basic_surf));
@@ -133,38 +136,36 @@ impl Gen for TopologyGen {
                 } else {
                     Block::STONE
                 }
-            } else if surf_angle < -0.7 || pos.z < water_surf + 1.0 {
+            } else if surf_angle < -0.9 || pos.z < water_surf + 1.0 || cliff > mountain {
                 // Near-surface materials
                 if pos.z < alt_surf - 3.5 {
                     Block::EARTH
                 } else {
                     // Surface materials
-                    if pos.z < water_surf {
-                        Block::SAND
+                    if pos.z < water_surf - 1.0 {
+                        Block::EARTH
                     } else if overworld.temp < -0.25 {
                         Block::SNOW
-                    } else if overworld.temp > 0.25 {
-                        Block::SAND
                     } else {
                         Block::gradient3(
                             Block::GRAD3_O_STONE,
                             Block::GRAD3_A_GRASS,
                             Block::GRAD3_B_SAND,
                             (overworld.temp * 16.0 + overworld.grad_vari * 16.0) as u8,
-                            (64.0 - (pos.z - 40.0) / 2.0).max(0.0).min(64.0) as u8,
+                            (64.0 - (pos.z - 40.0) / 2.0 + overworld.grad_vari * 16.0).max(0.0).min(64.0) as u8,
                         )
                     }
                 }
-            } else if pos.z < alt_surf - 1.5 {
+            } else {
                 if cave {
                     Block::AIR
-                } else if surf_angle < -0.5 {
+                } else if surf_angle < -0.75 {
                     Block::EARTH
-                } else {
+                } else if pos.z < alt_surf - 4.5 {
                     Block::STONE
+                } else {
+                    Block::AIR
                 }
-            } else {
-                Block::AIR
             }
         };
 

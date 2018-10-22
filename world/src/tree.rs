@@ -84,8 +84,8 @@ impl TreeGen {
 
     /// Returns (grid_pos, offset)
     fn get_nearest_tree(&self, pos: Vec3<i64>, overworld: overworld::Sample, basic_surf: f64) -> (Vec2<i64>, Vec3<i64>) {
-        let freq = 64;
-        let warp = 48;
+        let freq = 128;
+        let warp = 96;
 
         let pos2di = Vec2::<i64>::from(pos);
 

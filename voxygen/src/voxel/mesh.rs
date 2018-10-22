@@ -289,7 +289,7 @@ impl Mesh {
 
                     let mesh = map.entry(render_mat.kind()).or_insert(Mesh::new());
 
-                    let fake_optimize = false;
+                    let fake_optimize = true;
 
                     if vox.is_occupied() {
                         let opaque = vox.is_opaque();

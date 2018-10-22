@@ -14,6 +14,7 @@ pub struct Sample {
     pub dry: f64,
     pub temp: f64,
     pub chaos: f64,
+    pub grad_vari: f64,
 
     pub river: f64,
     pub hill: f64,
@@ -27,6 +28,8 @@ pub struct OverworldGen {
     temp_nz: HybridMulti,
     temp_vari_nz: HybridMulti,
     chaos_nz: SuperSimplex,
+    grad_vari_nz: SuperSimplex,
+
     hill_nz: HybridMulti,
     ridge_nz: HybridMulti,
     cliff_height_nz: SuperSimplex,
@@ -51,6 +54,9 @@ impl OverworldGen {
             temp_vari_nz: HybridMulti::new()
                 .set_seed(new_seed())
                 .set_octaves(2),
+            grad_vari_nz: SuperSimplex::new()
+                .set_seed(new_seed()),
+
             chaos_nz: SuperSimplex::new()
                 .set_seed(new_seed()),
             hill_nz: HybridMulti::new()
@@ -87,6 +93,12 @@ impl OverworldGen {
         self.chaos_nz.get(pos.div(scale).into_array()).mul(dry).powf(2.0).mul(4.0).max(0.0).min(1.0)
     }
 
+    // 0.0 = low, 1.0 = high
+    fn get_grad_vari(&self, pos: Vec2<f64>) -> f64 {
+        let scale = 32.0;
+        self.grad_vari_nz.get(pos.div(scale).into_array()).add(1.0).div(2.0)
+    }
+
     // 0.0 = normal/flat, max_depth = deepest
     fn get_river(&self, dry: f64) -> f64 {
         let depth = 24.0;
@@ -101,8 +113,8 @@ impl OverworldGen {
 
     // -amp = lowest, amp = highest
     fn get_hill(&self, pos: Vec2<f64>, dry: f64) -> f64 {
-        let scale = 4000.0;
-        let amp = 32.0;
+        let scale = 2000.0;
+        let amp = 48.0;
         self.hill_nz.get(pos.div(scale).into_array()).mul(amp)
     }
 
@@ -140,6 +152,8 @@ impl Gen for OverworldGen {
         let dry = self.get_dry(turb_pos);
         let temp = self.get_temp(pos, dry);
         let chaos = self.get_chaos(pos, dry);
+        let grad_vari = self.get_grad_vari(pos);
+
         let river = self.get_river(dry);
         let hill = self.get_hill(turb_pos, dry);
         let ridge = self.get_ridge(turb_pos, chaos);
@@ -149,6 +163,7 @@ impl Gen for OverworldGen {
             dry,
             temp,
             chaos,
+            grad_vari,
 
             river,
             hill,

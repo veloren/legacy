@@ -29,10 +29,36 @@ impl Block {
     pub const LEAF: Block  = Block::from_byte(34);
     pub const GOLD: Block  = Block::from_byte(95);
 
+    pub const GRAD2_A_GRASS: u8 = 0;
+    pub const GRAD2_B_STONE: u8 = 0;
+    pub const GRAD2_B_DRY_GRASS: u8 = 1;
+
+    pub const GRAD3_O_STONE: u8 = 0;
+    pub const GRAD3_A_GRASS: u8 = 0;
+    pub const GRAD3_B_SAND: u8 = 0;
+
+    pub fn gradient2(idx_a: u8, idx_b: u8, grad: u8) -> Self {
+        Self {
+            mat: BlockMat {
+                grad: 0x40 | grad.min(0x3F),
+                index: (idx_a & 0xF) | ((idx_b & 0xF) << 4),
+            },
+        }
+    }
+
+    pub fn gradient3(idx_o: u8, idx_a: u8, idx_b: u8, grad_ab: u8, grad_o: u8) -> Self {
+        Self {
+            mat: BlockMat {
+                grad: 0xC0 | grad_o.min(0x3F),
+                index: (idx_o & 0x3) | ((idx_a & 0x1) << 2) | ((idx_b & 0x1) << 3) | (grad_ab.min(0x1F) << 3),
+            },
+        }
+    }
+
     pub const fn from_byte(byte: u8) -> Self {
         Self {
             mat: BlockMat {
-                grad: 0xFF,
+                grad: 0x80,
                 index: byte,
             },
         }

@@ -1,3 +1,56 @@
+const uint grad2_a_lut[16] = uint[16](
+	21u, // Dark grass
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u
+);
+
+const uint grad2_b_lut[16] = uint[16](
+	1u,   // Stone
+	126u, // Dry grass
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u,
+	0u
+);
+
+const uint grad3_o_lut[2] = uint[2](
+	106u, // Dark stone
+	0u
+);
+
+const uint grad3_a_lut[2] = uint[2](
+	26u, // Dark grass
+	0u
+);
+
+const uint grad3_b_lut[2] = uint[2](
+	130u, // Sand
+	0u
+);
+
 const vec4 col_lut[256] = vec4[256](
     vec4(0.21875, 0.21875, 0.21875, 0.99609375),
 	vec4(0.484375, 0.484375, 0.484375, 0.99609375),

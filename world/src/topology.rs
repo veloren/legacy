@@ -146,7 +146,13 @@ impl Gen for TopologyGen {
                     } else if overworld.temp > 0.25 {
                         Block::SAND
                     } else {
-                        Block::GRASS
+                        Block::gradient3(
+                            Block::GRAD3_O_STONE,
+                            Block::GRAD3_A_GRASS,
+                            Block::GRAD3_B_SAND,
+                            (overworld.temp * 16.0 + overworld.grad_vari * 16.0) as u8,
+                            (64.0 - (pos.z - 40.0) / 2.0).max(0.0).min(64.0) as u8,
+                        )
                     }
                 }
             } else if pos.z < alt_surf - 1.5 {

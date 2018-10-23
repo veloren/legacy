@@ -215,12 +215,11 @@ impl Game {
                 Event::KeyboardInput { i, .. } => {
                     // Helper function to determine scancode equality
                     fn keypress_eq(key: &Option<VKeyCode>, input: Option<glutin::VirtualKeyCode>) -> bool {
-                        if let Some(k) = key {
-                            if let Some(i) = input {
-                                return k.code() == i;
-                            }
+                        if let (Some(i), Some(k)) = (input, key) {
+                            k.code() == i
+                        } else {
+                            false
                         }
-                        false
                     }
 
                     // Helper variables to clean up code. Add any new input modes here.

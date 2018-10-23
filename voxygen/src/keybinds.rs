@@ -6,6 +6,7 @@ use std::{
 };
 
 use glutin::VirtualKeyCode;
+use serde::{Deserializer, Serializer};
 use toml;
 
 const KEYS_PATH: &str = "keybinds.toml";
@@ -39,30 +40,10 @@ impl fmt::Display for Error {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct VKeyCode {
-    code: VirtualKeyCode,
-}
-
-impl VKeyCode {
-    pub fn new(code: VirtualKeyCode) -> VKeyCode { VKeyCode { code } }
-
-    pub fn code(&self) -> VirtualKeyCode { self.code }
-}
-
-impl serde::Serialize for VKeyCode {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(vkcode_to_str(&self.code))
-    }
-}
-
 struct VKeyCodeVisitor;
 
 impl<'de> serde::de::Visitor<'de> for VKeyCodeVisitor {
-    type Value = VKeyCode;
+    type Value = VirtualKeyCode;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result { formatter.write_str("a virtual key code") }
 
@@ -71,16 +52,28 @@ impl<'de> serde::de::Visitor<'de> for VKeyCodeVisitor {
         E: serde::de::Error,
     {
         match str_to_vkcode(value) {
-            Some(code) => Ok(VKeyCode { code }),
+            Some(code) => Ok(code),
             None => Err(E::custom(format!("invalid key: {}", value))),
         }
     }
 }
 
-impl<'de> serde::Deserialize<'de> for VKeyCode {
-    fn deserialize<D>(deserializer: D) -> Result<VKeyCode, D::Error>
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct VKeyCode(#[serde(with = "VKeyCode")] VirtualKeyCode);
+
+impl VKeyCode {
+    pub fn code(&self) -> VirtualKeyCode { self.0 }
+
+    fn serialize<S>(code: &VirtualKeyCode, serializer: S) -> Result<S::Ok, S::Error>
     where
-        D: serde::Deserializer<'de>,
+        S: Serializer,
+    {
+        serializer.serialize_str(vkcode_to_str(code))
+    }
+
+    fn deserialize<'de, D>(deserializer: D) -> Result<VirtualKeyCode, D::Error>
+    where
+        D: Deserializer<'de>,
     {
         deserializer.deserialize_str(VKeyCodeVisitor)
     }
@@ -317,30 +310,30 @@ impl Keybinds {
         // The default keybinds struct. All new defaults will be added here.
         Keybinds {
             general: General {
-                back: Some(VKeyCode::new(VirtualKeyCode::S)),
-                forward: Some(VKeyCode::new(VirtualKeyCode::W)),
-                left: Some(VKeyCode::new(VirtualKeyCode::A)),
-                right: Some(VKeyCode::new(VirtualKeyCode::D)),
-                dodge: Some(VKeyCode::new(VirtualKeyCode::LShift)),
-                crouch: Some(VKeyCode::new(VirtualKeyCode::LControl)),
-                jump: Some(VKeyCode::new(VirtualKeyCode::Space)),
+                back: Some(VKeyCode(VirtualKeyCode::S)),
+                forward: Some(VKeyCode(VirtualKeyCode::W)),
+                left: Some(VKeyCode(VirtualKeyCode::A)),
+                right: Some(VKeyCode(VirtualKeyCode::D)),
+                dodge: Some(VKeyCode(VirtualKeyCode::LShift)),
+                crouch: Some(VKeyCode(VirtualKeyCode::LControl)),
+                jump: Some(VKeyCode(VirtualKeyCode::Space)),
 
                 attack_1: None,
                 attack_2: None,
                 interact: None,
-                mount: Some(VKeyCode::new(VirtualKeyCode::M)),
+                mount: Some(VKeyCode(VirtualKeyCode::M)),
                 skill_1: None,
                 skill_2: None,
                 skill_3: None,
-                use_item: Some(VKeyCode::new(VirtualKeyCode::Q)),
+                use_item: Some(VKeyCode(VirtualKeyCode::Q)),
 
-                chat: Some(VKeyCode::new(VirtualKeyCode::Return)),
-                inventory: Some(VKeyCode::new(VirtualKeyCode::I)),
-                pause: Some(VKeyCode::new(VirtualKeyCode::Escape)),
+                chat: Some(VKeyCode(VirtualKeyCode::Return)),
+                inventory: Some(VKeyCode(VirtualKeyCode::I)),
+                pause: Some(VKeyCode(VirtualKeyCode::Escape)),
             },
 
             mount: Mount {
-                dismount: Some(VKeyCode::new(VirtualKeyCode::M)),
+                dismount: Some(VKeyCode(VirtualKeyCode::M)),
             },
         }
     }

@@ -83,9 +83,9 @@ impl TreeGen {
     }
 
     /// Returns (grid_pos, offset)
-    fn get_nearest_tree(&self, pos: Vec3<i64>, overworld: overworld::Sample, basic_surf: f64) -> (Vec2<i64>, Vec3<i64>) {
-        let freq = 128;
-        let warp = 96;
+    fn get_nearest_tree(&self, pos: Vec3<i64>, overworld: overworld::Sample, alt_surf: f64) -> (Vec2<i64>, Vec3<i64>) {
+        let freq = 64;
+        let warp = 16;
 
         let pos2di = Vec2::<i64>::from(pos);
 
@@ -106,7 +106,7 @@ impl TreeGen {
 
         (
             min.0,
-            Vec3::new(cell_pos.x - pos.x, cell_pos.y - pos.y, pos.z - basic_surf as i64 + 2),
+            Vec3::new(cell_pos.x - pos.x, cell_pos.y - pos.y, pos.z - alt_surf as i64 + 2),
         )
     }
 }
@@ -118,16 +118,22 @@ impl Gen for TreeGen {
     fn sample(&self, i: (Vec3<i64>, overworld::Sample, f64)) -> Sample {
         let pos = i.0;
         let overworld = i.1;
-        let basic_surf = i.2;
+        let alt_surf = i.2;
 
-        let (tree_grid_pos, tree_world_offs) = self.get_nearest_tree(pos, overworld, basic_surf);
+        let (tree_grid_pos, tree_world_offs) = self.get_nearest_tree(pos, overworld, alt_surf);
 
         let tree_idx = self.get_dice(tree_grid_pos, 2) as usize % TREES.len();
 
         let model_offset = tree_world_offs + Vec3::from(Vec2::from(TREES[tree_idx].size()) / 2);
 
+        let block = if overworld.tree_density > 0.5 {
+            TREES[tree_idx].at(model_offset).and_then(|b| if b.is_solid() { Some(b) } else { None })
+        } else {
+            None
+        };
+
         Sample {
-            block: TREES[tree_idx].at(model_offset).and_then(|b| if b.is_solid() { Some(b) } else { None })
+            block,
         }
     }
 }

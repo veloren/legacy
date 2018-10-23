@@ -14,6 +14,7 @@ pub struct Sample {
     pub dry: f64,
     pub temp: f64,
     pub chaos: f64,
+    pub tree_density: f64,
     pub grad_vari: f64,
 
     pub hill: f64,
@@ -28,6 +29,7 @@ pub struct OverworldGen {
     temp_nz: HybridMulti,
     temp_vari_nz: HybridMulti,
     chaos_nz: SuperSimplex,
+    tree_density_nz: HybridMulti,
     grad_vari_nz: SuperSimplex,
 
     hill_nz: HybridMulti,
@@ -54,6 +56,9 @@ impl OverworldGen {
             temp_vari_nz: HybridMulti::new()
                 .set_seed(new_seed())
                 .set_octaves(2),
+            tree_density_nz: HybridMulti::new()
+                .set_seed(new_seed())
+                .set_octaves(3),
             grad_vari_nz: SuperSimplex::new()
                 .set_seed(new_seed()),
 
@@ -92,6 +97,12 @@ impl OverworldGen {
     fn get_chaos(&self, pos: Vec2<f64>, dry: f64) -> f64 {
         let scale = 900.0;
         self.chaos_nz.get(pos.div(scale).into_array()).mul(dry).powf(1.0).mul(1.3).max(0.0).min(1.0)
+    }
+
+    // 0.0 = normal/low, 1.0 = high
+    fn get_tree_density(&self, pos: Vec2<f64>, chaos: f64) -> f64 {
+        let scale = 1000.0;
+        self.tree_density_nz.get(pos.div(scale).into_array()).add(1.0).div(2.0).sub(0.5 * chaos)
     }
 
     // 0.0 = low, 1.0 = high
@@ -153,6 +164,7 @@ impl Gen for OverworldGen {
         let dry = self.get_dry(turb_pos);
         let temp = self.get_temp(pos, dry);
         let chaos = self.get_chaos(pos, dry);
+        let tree_density = self.get_tree_density(pos, chaos);
         let grad_vari = self.get_grad_vari(pos);
 
         let hill = self.get_hill(turb_pos, dry);
@@ -164,6 +176,7 @@ impl Gen for OverworldGen {
             dry,
             temp,
             chaos,
+            tree_density,
             grad_vari,
 
             hill,

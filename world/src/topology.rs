@@ -61,7 +61,7 @@ impl TopologyGen {
     // 0.0 = lowest, height = highest
     fn get_peak(&self, pos: Vec3<f64>, chaos: f64) -> f64 {
         let scale = Vec3::new(300.0, 300.0, 300.0);
-        let height = 75.0;
+        let height = 100.0;
         self.peak_nz.get(pos.div(scale).into_array()).mul(chaos).mul(height)
     }
 
@@ -104,14 +104,19 @@ impl Gen for TopologyGen {
     fn sample(&self, pos: Vec3<i64>) -> Sample {
         // Calculate the surface information
         let (overworld, basic_surf, peak, cliff, mountain, alt_surf, water_surf) = self.get_surf(pos);
+        let overworld_dx = self.overworld_gen.sample(Vec2::from(pos) + Vec2::unit_x() * 5);
+        let overworld_dy = self.overworld_gen.sample(Vec2::from(pos) + Vec2::unit_y() * 5);
+
+        let ridge_norm = Vec3::new(
+            overworld_dx.ridge - overworld.ridge,
+            overworld_dy.ridge - overworld.ridge,
+            5.0,
+        ).normalized();
 
         // Tree
         let tree = self.tree_gen.sample((pos, overworld, basic_surf));
 
         let pos = pos.map(|e| e as f64);
-
-        // 0.0 = flat
-        let surf_angle = peak - self.get_peak(pos - Vec3::unit_z(), overworld.chaos) - 1.0;
 
         // Work out which block we should be using
         let block = if let Some(tree_block) = tree.block {
@@ -136,35 +141,31 @@ impl Gen for TopologyGen {
                 } else {
                     Block::STONE
                 }
-            } else if surf_angle < -0.9 || pos.z < water_surf + 1.0 || cliff > mountain {
+            } else if pos.z < water_surf - 1.0 {
+                Block::EARTH
+            } else if ridge_norm.z > 0.1 {
                 // Near-surface materials
                 if pos.z < alt_surf - 3.5 {
                     Block::EARTH
                 } else {
                     // Surface materials
-                    if pos.z < water_surf - 1.0 {
-                        Block::EARTH
-                    } else if overworld.temp < -0.25 {
+                    if overworld.temp < -0.25 {
                         Block::SNOW
                     } else {
                         Block::gradient3(
                             Block::GRAD3_O_STONE,
                             Block::GRAD3_A_GRASS,
                             Block::GRAD3_B_SAND,
-                            (overworld.temp * 16.0 + overworld.grad_vari * 16.0) as u8,
-                            (64.0 - (pos.z - 40.0) / 2.0 + overworld.grad_vari * 16.0).max(0.0).min(64.0) as u8,
+                            (overworld.temp * 16.0 + overworld.grad_vari * 12.0) as u8,
+                            (ridge_norm.z * 96.0 - 16.0).max(0.0).min(64.0) as u8,
                         )
                     }
                 }
             } else {
                 if cave {
                     Block::AIR
-                } else if surf_angle < -0.75 {
-                    Block::EARTH
-                } else if pos.z < alt_surf - 4.5 {
-                    Block::STONE
                 } else {
-                    Block::AIR
+                    Block::STONE
                 }
             }
         };

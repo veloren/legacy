@@ -49,7 +49,7 @@ impl OverworldGen {
             ),
             dry_nz: HybridMulti::new()
                 .set_seed(new_seed())
-                .set_octaves(4),
+                .set_octaves(3),
             temp_nz: HybridMulti::new()
                 .set_seed(new_seed())
                 .set_octaves(3),
@@ -120,11 +120,10 @@ impl OverworldGen {
 
     // 0.0 = normal/flat, max_depth = deepest
     fn get_river(&self, dry: f64, hill: f64) -> f64 {
-        let depth = 24.0;
-        let max_depth = 8.0 + hill * 0.4;
+        let max_depth = 10.0 + hill.max(0.0).mul(0.45);
 
-        if dry < 0.2 {
-            dry.mul(20.0).cos().mul(max_depth).max(0.0)
+        if dry < 0.23 {
+            dry.mul(12.0).cos().mul(max_depth).max(0.0)
         } else {
             0.0
         }
@@ -133,14 +132,14 @@ impl OverworldGen {
     // 0.0 = lowest, height = highest
     fn get_ridge(&self, pos: Vec2<f64>, chaos: f64) -> f64 {
         let scale = 1500.0;
-        let height = 240.0;
+        let height = 220.0;
         (1.0 - self.ridge_nz.get(pos.div(scale).into_array()).abs()).powf(0.75).mul(chaos).mul(height)
     }
 
     // (1.0 - vari) * height = lowest, 1.0 = avg, (1.0 + vari) * height = highest
     fn get_cliff_height(&self, pos: Vec2<f64>) -> f64 {
         let scale = 800.0;
-        let vari = 0.6;
+        let vari = 0.5;
         let height = 180.0;
 
         self.cliff_height_nz.get(pos.div(scale).into_array()).mul(vari).add(1.0).mul(height)

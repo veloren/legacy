@@ -67,7 +67,7 @@ impl TopologyGen {
 
     // 0.0 = lowest, 1.0 = highest
     fn get_cliff(&self, pos: Vec3<f64>, dry: f64, chaos: f64) -> f64 {
-        let scale = Vec3::new(250.0, 250.0, 2000.0);
+        let scale = Vec3::new(180.0, 180.0, 1400.0);
         let spot_scale = Vec3::new(32.0, 32.0, 48.0);
         let layers = 4.0;
 
@@ -135,36 +135,40 @@ impl Gen for TopologyGen {
             //    self.cave_nz.0.get(pos.div(cave_scale).into_array()).abs() < 0.1 &&
             //    self.cave_nz.1.get(pos.div(cave_scale).into_array()).abs() < 0.1;
 
-            if pos.z < alt_surf - 8.0 {
-                // Underground materials
-                if cave {
-                    Block::AIR
-                } else {
-                    Block::STONE
-                }
+            if cave && pos.z < alt_surf - 8.0 {
+                Block::AIR
             } else if pos.z < water_surf - 1.0 {
                 Block::EARTH
-            } else if ridge_norm.z > 0.1 || overworld.chaos < 0.5 {
-                // Near-surface materials
-                if pos.z < alt_surf - 3.5 {
-                    Block::EARTH
-                // Surface materials
-                } else if overworld.temp < -0.25 {
-                    Block::SNOW
-                } else {
+            } else {
+                if alt_surf - pos.z < 8.0 {
                     Block::gradient3(
-                        Block::GRAD3_O_STONE,
+                        if mountain > cliff + overworld.grad_vari * 4.0 {
+                            Block::GRAD3_O_STONE
+                        } else {
+                            Block::GRAD3_O_EARTH
+                        },
                         Block::GRAD3_A_GRASS,
                         Block::GRAD3_B_SAND,
-                        (overworld.temp * 16.0 + overworld.grad_vari * 12.0) as u8,
-                        (ridge_norm.z * 80.0 - 16.0).max(0.0).min(64.0) as u8,
+                        (overworld.temp * 16.0 + overworld.grad_vari * 12.0)
+                            .max(0.0)
+                            .min(32.0) as u8,
+                        (ridge_norm.z * 64.0)
+                            .min((pos.z - (alt_surf - 6.0)) * 20.0)
+                            .max(0.0)
+                            .min(64.0) as u8,
                     )
-                }
-            } else {
-                if cave {
-                    Block::AIR
                 } else {
-                    Block::STONE
+                    Block::gradient3(
+                        Block::GRAD3_O_EARTH,
+                        Block::GRAD3_A_LIMESTONE,
+                        Block::GRAD3_B_SANDSTONE,
+                        (16.0 + peak * 16.0)
+                            .max(0.0)
+                            .min(32.0) as u8,
+                        ((alt_surf - pos.z - 8.0) * 8.0)
+                            .max(0.0)
+                            .min(64.0) as u8,
+                    )
                 }
             }
         };

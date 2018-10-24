@@ -38,17 +38,17 @@ const uint grad2_b_lut[16] = uint[16](
 
 const uint grad3_o_lut[2] = uint[2](
 	200u, // Dark stone
-	0u
+	98u   // Earth
 );
 
 const uint grad3_a_lut[2] = uint[2](
 	25u, // Dark grass
-	0u
+	201u // Limestone
 );
 
 const uint grad3_b_lut[2] = uint[2](
 	134u, // Dry grass
-	0u
+	113u  // Sandstone
 );
 
 const vec4 col_lut[256] = vec4[256](

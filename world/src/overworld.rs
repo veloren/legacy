@@ -73,7 +73,7 @@ impl OverworldGen {
             cliff_height_nz: HybridMulti::new()
                 .set_seed(new_seed())
                 .set_octaves(3),
-        }, 16)
+        }, 1024)
     }
 
     // 0.0 = wet, 1.0 = dry

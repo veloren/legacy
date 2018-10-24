@@ -32,6 +32,7 @@ use common::terrain::{
 };
 
 // Local
+use overworld::OverworldGen;
 use topology::TopologyGen;
 
 // Generator

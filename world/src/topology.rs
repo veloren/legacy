@@ -67,7 +67,7 @@ impl TopologyGen {
 
     // 0.0 = lowest, 1.0 = highest
     fn get_cliff(&self, pos: Vec3<f64>, dry: f64, chaos: f64) -> f64 {
-        let scale = Vec3::new(180.0, 180.0, 1400.0);
+        let scale = Vec3::new(220.0, 220.0, 1400.0);
         let spot_scale = Vec3::new(32.0, 32.0, 48.0);
         let layers = 4.0;
 
@@ -75,7 +75,7 @@ impl TopologyGen {
             pos.z / 3000.0 +
             chaos.mul(0.3) +
             self.cliff_nz.get(pos.div(scale).into_array()).mul(chaos).mul(0.7) *
-            (0.8 + self.cliff_spot_nz.get(pos.div(spot_scale).into_array()).mul(0.25))
+            (0.8 + self.cliff_spot_nz.get(pos.div(spot_scale).into_array()).mul(0.3))
         ).mul(layers).round().div(layers).max(0.0)
     }
 
@@ -92,7 +92,7 @@ impl TopologyGen {
         let cliff = self.get_cliff(pos, overworld.dry, overworld.chaos) * overworld.cliff_height;
 
         let alt_surf = basic_surf - overworld.river + cliff.max(mountain);
-        let water_surf = (46.0 + overworld.hill * 0.3).min(basic_surf - 2.0);
+        let water_surf = (46.0 + overworld.hill * 0.5).min(basic_surf - 2.0);
 
         (overworld, basic_surf, peak, cliff, mountain, alt_surf, water_surf)
     }
@@ -152,7 +152,7 @@ impl Gen for TopologyGen {
                         (overworld.temp * 16.0 + overworld.grad_vari * 12.0)
                             .max(0.0)
                             .min(32.0) as u8,
-                        (ridge_norm.z * 64.0)
+                        (ridge_norm.z * 96.0 - 24.0)
                             .min((pos.z - (alt_surf - 6.0)) * 20.0)
                             .max(0.0)
                             .min(64.0) as u8,

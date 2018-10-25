@@ -24,6 +24,7 @@ use vek::*;
 
 // Project
 use common::terrain::{
+    Volume,
     Voxel,
     chunk::{
         Chunk,
@@ -58,30 +59,91 @@ impl World {
     pub fn gen_chunk(offs: Vec3<i32>) -> Chunk {
         let chunk_sz = Vec3::from(CHUNK_SZ).map(|e: u32| e as i64);
 
-        let mut voxels = Vec::new();
+        let mut chunk = Chunk::new(
+            chunk_sz,
+            offs.map(|e| e as i64),
+            vec![Block::AIR; chunk_sz.product() as usize],
+        );
 
-        if offs.z < 0 || offs.z > 4 {
-            return Chunk::new(
-                chunk_sz,
-                offs.map(|e| e as i64),
-                vec![Block::AIR; chunk_sz.product() as usize],
-            );
+        if offs.z < 0 || offs.z > 8 {
+            return chunk;
         }
 
-        for x in 0..CHUNK_SZ.0 {
-            for y in 0..CHUNK_SZ.1 {
-                for z in 0..CHUNK_SZ.2 {
-                    let pos = offs.map(|e| e as i64) * chunk_sz + Vec3::new(x, y, z).map(|e| e as i64);
+        // is_homogeneous, block type
+        let mut cblock = (true, None);
 
-                    voxels.push(GENERATOR.sample(pos).block);
+        let mut gen_block_fn = |x, y, z| {
+            let pos = offs.map(|e| e as i64) * chunk_sz + Vec3::new(x, y, z);
+
+            let block = GENERATOR.sample(pos).block;
+
+            match cblock {
+                (true, None) => cblock.1 = Some(block),
+                (true, Some(b)) if b == block => {},
+                (true, Some(b)) => cblock = (false, None),
+                _ => {},
+            }
+
+            chunk.set(
+                Vec3::new(x, y, z),
+                block,
+            );
+        };
+
+        // x faces
+
+        for x in (0..chunk_sz.x).step_by(chunk_sz.x as usize - 1) {
+            for y in 1..chunk_sz.y - 1 {
+                for z in 1..chunk_sz.z - 1 {
+                    gen_block_fn(x, y, z);
                 }
             }
         }
 
-        Chunk::new(
-            chunk_sz,
-            offs.map(|e| e as i64),
-            voxels,
-        )
+        // y faces
+
+        for x in 0..chunk_sz.x {
+            for y in (0..chunk_sz.y).step_by(chunk_sz.y as usize - 1) {
+                for z in 1..chunk_sz.z - 1 {
+                    gen_block_fn(x, y, z);
+                }
+            }
+        }
+
+        // z faces
+
+        for x in 0..chunk_sz.x {
+            for y in 0..chunk_sz.y {
+                for z in (0..chunk_sz.z).step_by(chunk_sz.z as usize - 1) {
+                    gen_block_fn(x, y, z);
+                }
+            }
+        }
+
+        // Can we make broad assumptions about the homogenity of the chunk?
+        match cblock {
+            (true, Some(block)) => return Chunk::new(
+                chunk_sz,
+                offs.map(|e| e as i64),
+                vec![block; chunk_sz.product() as usize],
+            ),
+            _ => {},
+        }
+
+        // Fill in everything else
+        for x in 1..chunk_sz.x - 1 {
+            for y in 1..chunk_sz.y - 1 {
+                for z in 1..chunk_sz.z - 1 {
+                    let pos = offs.map(|e| e as i64) * chunk_sz + Vec3::new(x, y, z);
+
+                    chunk.set(
+                        Vec3::new(x, y, z),
+                        GENERATOR.sample(pos).block,
+                    );
+                }
+            }
+        }
+
+        chunk
     }
 }

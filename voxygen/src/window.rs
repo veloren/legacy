@@ -65,7 +65,7 @@ impl RenderWindow {
 
         let ctx_builder = ContextBuilder::new()
             .with_gl(GlRequest::Specific(OpenGl, (3, 2)))
-            .with_multisampling(8)
+            .with_multisampling(4)
             .with_vsync(true);
 
         let (gl_window, device, factory, color_view, depth_view) =

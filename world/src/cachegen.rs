@@ -29,6 +29,10 @@ impl<T: Gen> CacheGen<T> where T::In: Eq + Hash, T::Out: 'static {
             gen,
         }
     }
+
+    pub fn internal(&self) -> &T {
+        &self.gen
+    }
 }
 
 impl<T: Gen> Gen for CacheGen<T> where T::In: Eq + Hash, T::Out: 'static {

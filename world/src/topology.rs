@@ -58,6 +58,10 @@ impl TopologyGen {
         }
     }
 
+    pub fn overworld_gen(&self) -> &CacheGen<OverworldGen> {
+        &self.overworld_gen
+    }
+
     // 0.0 = lowest, height = highest
     fn get_peak(&self, pos: Vec3<f64>, chaos: f64) -> f64 {
         let scale = Vec3::new(250.0, 250.0, 300.0);
@@ -79,7 +83,7 @@ impl TopologyGen {
         ).mul(layers).round().div(layers).max(0.0)
     }
 
-    fn get_surf(&self, pos: Vec3<i64>) -> (overworld::Sample, f64, f64, f64, f64, f64, f64) {
+    pub fn get_surf(&self, pos: Vec3<i64>) -> (overworld::Sample, f64, f64, f64, f64, f64, f64) {
         let overworld = self.overworld_gen.sample(Vec2::from(pos));
 
         let pos = pos.map(|e| e as f64);
@@ -92,7 +96,7 @@ impl TopologyGen {
         let cliff = self.get_cliff(pos, overworld.dry, overworld.chaos) * overworld.cliff_height;
 
         let alt_surf = basic_surf - overworld.river + cliff.max(mountain);
-        let water_surf = (46.0 + overworld.hill * 0.5).min(basic_surf - 2.0);
+        let water_surf = (basic_surf - 0.1).min(48.0);
 
         (overworld, basic_surf, peak, cliff, mountain, alt_surf, water_surf)
     }

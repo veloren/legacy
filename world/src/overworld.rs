@@ -113,17 +113,17 @@ impl OverworldGen {
 
     // -amp = lowest, amp = highest
     fn get_hill(&self, pos: Vec2<f64>, dry: f64) -> f64 {
-        let scale = 1000.0;
-        let amp = 16.0;
-        self.hill_nz.get(pos.div(scale).into_array()).mul(amp)
+        let scale = 2500.0;
+        let amp = 24.0;
+        self.hill_nz.get(pos.div(scale).into_array()).mul(amp).mul(dry)
     }
 
     // 0.0 = normal/flat, max_depth = deepest
     fn get_river(&self, dry: f64, hill: f64) -> f64 {
-        let max_depth = 10.0 + hill.max(0.0).mul(0.65);
+        let max_depth = 6.0 + hill.max(0.0);
 
-        if dry < 0.08 {
-            dry.mul(25.0).cos().mul(max_depth).max(0.0)
+        if dry < 0.1 {
+            dry.mul(20.0).cos().mul(max_depth).max(0.0)
         } else {
             0.0
         }

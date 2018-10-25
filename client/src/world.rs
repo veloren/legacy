@@ -55,6 +55,10 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<Mu
     }
 }
 
+pub(crate) fn drop_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<P>>>>) {
+
+}
+
 impl<P: Payloads> Client<P> {
     pub(crate) fn load_unload_chunks(&self, mgr: &mut Manager<Self>) {
         self.chunk_mgr().maintain();

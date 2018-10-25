@@ -11,3 +11,4 @@ syrup = "0.1"
 vek = "0.9.5"
 log = "0.4.1"
 pretty_env_logger = "0.2.3"
+parking_lot = { version = "0.6.4", features = ["nightly"] }

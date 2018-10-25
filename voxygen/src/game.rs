@@ -105,6 +105,9 @@ fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads
     }
 }
 
+fn drop_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
+}
+
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: PlayMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
         let window = RenderWindow::new();
@@ -115,7 +118,7 @@ impl Game {
         );
         *RENDERER_INFO.lock() = Some(info);
 
-        let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, view_distance)
+        let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, drop_payload, view_distance)
             .expect("Could not create new client");
 
         // Contruct the UI

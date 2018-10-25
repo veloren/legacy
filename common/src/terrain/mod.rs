@@ -8,7 +8,7 @@ mod chunk_mgr;
 // Reexports
 pub use terrain::{
     entity::Entity,
-    vol_gen::{FnGenFunc, FnPayloadFunc, VolGen},
+    vol_gen::{FnGenFunc, VolGen},
     chunk_mgr::{ChunkMgr},
     vol_pers::VolPers,
 };

@@ -117,8 +117,8 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
 
     pub fn gen(&self, pos: VolumeIdxVec) {
         // this function must work multithreaded
-        let gen_func = self.gen.gen_func.clone();
-        let payload_func = self.gen.payload_func.clone();
+        let gen_vol = self.gen.gen_vol.clone();
+        let gen_payload = self.gen.gen_payload.clone();
         let pen = self.pending.clone();
         let con = Arc::new(Mutex::new(None));
         {
@@ -132,8 +132,8 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         // run expensive operations in own thread
 
         POOL.lock().execute(move || {
-            gen_func(pos, con.clone());
-            payload_func(pos, con.clone());
+            gen_vol(pos, con.clone());
+            gen_payload(pos, con.clone());
         });
     }
 

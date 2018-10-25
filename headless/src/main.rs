@@ -7,15 +7,17 @@ extern crate get_if_addrs;
 extern crate pretty_env_logger;
 extern crate syrup;
 extern crate vek;
+extern crate parking_lot;
 #[macro_use]
 extern crate log;
 
 // Standard
-use std::io;
+use std::{io, sync::Arc};
 
 // Library
 use syrup::Window;
 use vek::*;
+use parking_lot::Mutex;
 
 // Project
 use client::{Client, ClientEvent, PlayMode};
@@ -27,11 +29,10 @@ impl client::Payloads for Payloads {
     type Entity = ();
 }
 
-fn gen_payload(
-    key: VolumeIdxVec,
-    con: &ChunkContainer<<Payloads as client::Payloads>::Chunk>,
-) -> <Payloads as client::Payloads>::Chunk {
-    ()
+fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
+}
+
+fn drop_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
 }
 
 fn main() {
@@ -56,7 +57,7 @@ fn main() {
         alias = default_alias.to_string();
     }
 
-    let client = Client::<Payloads>::new(PlayMode::Headless, alias, &remote_addr.trim(), gen_payload, 0)
+    let client = Client::<Payloads>::new(PlayMode::Headless, alias, &remote_addr.trim(), gen_payload, drop_payload, 0)
         .expect("error when attempting to initiate the client");
 
     let mut win = Window::initscr();

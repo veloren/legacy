@@ -94,7 +94,7 @@ void main() {
 	vec3 sun_illuminance = sun_color * sun_intensity;
 
     float ao = (frag_ao / 3.0);
-	float ambient_intensity = 0.05 + 0.25 * omm; // TODO: have specular ambient so that we don't have to hack this
+	float ambient_intensity = 0.2 + 0.25 * omm; // TODO: have specular ambient so that we don't have to hack this
 	vec3 ambient = col.rgb * ambient_intensity * ao * atmos_color;
 
 	vec3 lighted = ambient + (saturate((diffuse + specular) * NdotL) * sun_illuminance * ao);

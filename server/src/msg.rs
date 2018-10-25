@@ -45,6 +45,7 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
             srv.send_chat_msg(player, "/pos - Display your current position");
             srv.send_chat_msg(player, "/alias <alias> - Change your alias");
             srv.send_chat_msg(player, "/warp <dx> <dy> <dz> - Offset your position");
+			srv.send_chat_msg(player, "/goto <dx> <dy> <dz> - Teleport to specified position");
         }),
         Some("players") => srv.do_for(|srv| {
             // Find a list of player names and format them
@@ -163,6 +164,38 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
             } else {
                 srv.send_chat_msg(player, "You don't have a position!");
                 break 'warp;
+            }
+        }),
+		Some("goto") => srv.do_for_mut(|srv| 'goto: {
+            let mut tensor = [0.0; 3];
+            for i in 0..3 {
+                let arg = if let Some(a) = cmd.next() {
+                    a
+                } else {
+                    srv.send_chat_msg(player, "3 numbers are needed: /goto <dx> <dy> <dz>");
+                    break 'goto;
+                };
+
+                if let Ok(v) = arg.parse() {
+                    tensor[i] = v;
+                } else {
+                    srv.send_chat_msg(
+                        player,
+                        &format!("Invalid value for {}: /goto <x> <y> <z>", ['x', 'y', 'z'][i]),
+                    );
+                    break 'goto;
+                }
+            }
+
+            if let Some(pos) = srv.do_for_comp_mut::<Pos, _, _>(player, |pos_comp| {
+                pos_comp.0 = Vec3::from(tensor);
+                pos_comp.0
+            }) {
+                srv.force_comp::<Pos>(player); // Force clients to update
+                srv.send_chat_msg(player, &format!("teleported to: {}!", pos));
+            } else {
+                srv.send_chat_msg(player, "You don't have a position!");
+                break 'goto;
             }
         }),
         _ => srv.do_for(|srv| srv.send_chat_msg(player, "Unrecognised command!")),

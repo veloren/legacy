@@ -3,13 +3,10 @@ use terrain::chunk::{Block, HomogeneousData, HeterogeneousData, RleData};
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 pub enum Chunk {
-    Homogeneous{
-        homo: Option<HomogeneousData>,
-    },
-    Heterogeneous {
-        hetero: Option<HeterogeneousData>,
-        rle: Option<RleData>,
-    },
+    Homo(HomogeneousData),
+    Hetero(HeterogeneousData),
+    Rle(RleData),
+    HeteroAndRle(HeterogeneousData, RleData),
 }
 
 pub struct ChunkContainer<P> {
@@ -18,9 +15,9 @@ pub struct ChunkContainer<P> {
 }
 
 impl<P> ChunkContainer<P> {
-    pub fn new() -> Self {
+    pub fn new(chunk: Chunk) -> Self {
         ChunkContainer {
-            data: RwLock::new(Chunk::new()),
+            data: RwLock::new(chunk),
             payload: RwLock::new(None),
         }
     }
@@ -43,217 +40,167 @@ impl<P> Container for ChunkContainer<P> {
 impl VolCluster for Chunk {
     type VoxelType = Block;
 
+/*
     fn new() -> Chunk {
         Chunk::Homogeneous {
                 homo: None,
         }
     }
-
+*/
     fn contains(&self, state: PersState) -> bool {
         match self {
-            Chunk::Homogeneous{ homo } => {if state == PersState::Homo {return homo.is_some()}},
-            Chunk::Heterogeneous{ hetero, rle} => {
-                match state {
-                    PersState::Homo => return false,
-                    PersState::Hetero => return hetero.is_some(),
-                    PersState::Rle => return rle.is_some(),
-                }
-            },
+            Chunk::Homo( _ ) => state == PersState::Homo,
+            Chunk::Hetero( _ ) => state == PersState::Hetero,
+            Chunk::Rle( _ ) => state == PersState::Rle,
+            Chunk::HeteroAndRle( _, _ ) => state == PersState::Hetero || state == PersState::Rle,
         }
-        false
     }
 
     fn insert<V: Volume<VoxelType = Block> + AnyVolume>(&mut self, mut vol: V) {
         let homo: Option<&mut HomogeneousData> = vol.as_any_mut().downcast_mut::<HomogeneousData>();
         if let Some(homo) = homo {
-            *self = Chunk::Homogeneous{homo: Some(homo.clone())};
+            *self = Chunk::Homo(homo.clone());
             return;
         }
         let heterodata: Option<&mut HeterogeneousData> = vol.as_any_mut().downcast_mut::<HeterogeneousData>();
         if let Some(heterodata) = heterodata {
-            if let Chunk::Heterogeneous{ref mut hetero, ref mut rle} = self {
-                *hetero = Some(heterodata.clone());
-            } else {
-                *self = Chunk::Heterogeneous{
-                    hetero: Some(heterodata.clone()),
-                    rle: None,
-                };
-            }
-            return;
+            match self {
+                Chunk::HeteroAndRle(ref mut hetero, _) => *hetero = heterodata.clone(),
+                Chunk::Hetero( ref mut hetero ) => *hetero = heterodata.clone(),
+                Chunk::Rle( rle ) => *self = Chunk::HeteroAndRle(heterodata.clone(), rle.clone()/*TODO: optimize clone away*/),
+                _ => *self = Chunk::Hetero(heterodata.clone()),
+            };
         }
         let rledata: Option<&mut RleData> = vol.as_any_mut().downcast_mut::<RleData>();
         if let Some(rledata) = rledata {
-            if let Chunk::Heterogeneous{ref mut hetero, ref mut rle} = self {
-                *rle = Some(rledata.clone());
-            } else {
-                *self = Chunk::Heterogeneous{
-                    hetero: None,
-                    rle: Some(rledata.clone()),
-                };
-            }
-            return;
+            match self {
+                Chunk::HeteroAndRle( _, ref mut rle) => *rle = rledata.clone(),
+                Chunk::Rle( ref mut rle ) => *rle = rledata.clone(),
+                Chunk::Hetero( hetero ) => *self = Chunk::HeteroAndRle(hetero.clone()/*TODO: optimize clone away*/, rledata.clone()),
+                _ => *self = Chunk::Rle(rledata.clone()),
+            };
         }
-        panic!("Cannot Store Vol of this type {:?}: ", vol);
+        panic!("Cannot Store Vol of type {:?}: ", vol);
     }
 
     fn remove(&mut self, state: PersState) {
-        match state {
-            PersState::Homo => {
-                if let Chunk::Homogeneous{ref mut homo} = self {
-                    *homo = None;
-                }
+        match self {
+            Chunk::HeteroAndRle(hetero, rle) => {
+                match state {
+                    PersState::Hetero => *self = Chunk::Rle(rle.clone()/*TODO: optimize clone away*/),
+                    PersState::Rle => *self = Chunk::Hetero(hetero.clone()/*TODO: optimize clone away*/),
+                    _ => panic!("Cannot remove vol of type {:?}: ", state),
+                };
             },
-            PersState::Hetero => {
-                if let Chunk::Heterogeneous{ref mut hetero, ref mut rle} = self {
-                    *hetero = None;
-                }
-            },
-            PersState::Rle => {
-                if let Chunk::Heterogeneous{ref mut hetero, ref mut rle} = self {
-                    *rle = None;
-                }
-            },
-        }
+            _ => panic!("Cannot remove vol of type {:?}: ", state),
+        };
     }
-
-/*
-    fn getty<'a, HeterogeneousData>(&'a self) -> Option<&'a HeterogeneousData> {
-        None,
-    }
-
-    fn getty<'a, RleData>(&'a self) -> Option<&'a RleData> {
-        None,
-    }*/
 
     fn get<'a>(&'a self, state: PersState) -> Option<&'a dyn ReadVolume<VoxelType = Block>> {
-        //TODO: simplify this like below!
-        match state {
+        return match state {
             PersState::Homo => {
-                if let Chunk::Homogeneous{homo} = self {
-                    return homo.as_ref().map(|c| c as &dyn ReadVolume<VoxelType = Block>);
+                match self {
+                    Chunk::Homo( homo ) => Some(homo as &dyn ReadVolume<VoxelType = Block>),
+                    _ => None,
                 }
             },
             PersState::Hetero => {
-                if let Chunk::Heterogeneous{hetero, rle} = self {
-                    return hetero.as_ref().map(|c| c as &dyn ReadVolume<VoxelType = Block>);
+                match self {
+                    Chunk::Hetero( hetero ) => Some(hetero as &dyn ReadVolume<VoxelType = Block>),
+                    Chunk::HeteroAndRle( hetero, _ ) => Some(hetero as &dyn ReadVolume<VoxelType = Block>),
+                    _ => None,
                 }
             },
             PersState::Rle => {
-                if let Chunk::Heterogeneous{hetero, rle} = self {
-                    return rle.as_ref().map(|c| c as &dyn ReadVolume<VoxelType = Block>);
+                match self {
+                    Chunk::Rle( rle ) => Some(rle as &dyn ReadVolume<VoxelType = Block>),
+                    Chunk::HeteroAndRle( _, rle ) => Some(rle as &dyn ReadVolume<VoxelType = Block>),
+                    _ => None,
                 }
             },
-        }
-        /*
-        return match state {
-            PersState::Raw => self.raw.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
-            PersState::Rle => self.rle.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
-            PersState::File => self.file.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
         };
-        */
-        None
     }
 
     fn get_mut<'a>(&'a mut self, state: PersState) -> Option<&'a mut dyn ReadWriteVolume<VoxelType = Block>> {
-        //TODO: simplify this like below!
-        match state {
-            PersState::Homo => return None,
+        return match state {
+            PersState::Homo => None,
             PersState::Hetero => {
-                if let Chunk::Heterogeneous{hetero, rle} = self {
-                    return hetero.as_mut().map(|c| c as &mut dyn ReadWriteVolume<VoxelType = Block>);
+                match self {
+                    Chunk::Hetero( ref mut hetero ) => Some(hetero as &mut dyn ReadWriteVolume<VoxelType = Block>),
+                    Chunk::HeteroAndRle( ref mut hetero, _ ) => Some(hetero as &mut dyn ReadWriteVolume<VoxelType = Block>),
+                    _ => None,
                 }
             },
-            PersState::Rle => return None,
-        }
-        /*
-        return match state {
-            PersState::Raw => self.raw.as_mut().map(|c| c as &mut dyn Volume<VoxelType = Block>),
-            PersState::Rle => self.rle.as_mut().map(|c| c as &mut dyn Volume<VoxelType = Block>),
-            PersState::File => self.file.as_mut().map(|c| c as &mut dyn Volume<VoxelType = Block>),
-        };*/
-        None
+            PersState::Rle => None,
+        };
     }
 
     fn get_vol<'a>(&'a self, state: PersState) -> Option<&'a dyn Volume<VoxelType = Block>> {
-        //TODO: simplify this like below!
-        match state {
+        return match state {
             PersState::Homo => {
-                if let Chunk::Homogeneous{homo} = self {
-                    return homo.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>);
+                match self {
+                    Chunk::Homo( homo ) => Some(homo as &dyn Volume<VoxelType = Block>),
+                    _ => None,
                 }
             },
             PersState::Hetero => {
-                if let Chunk::Heterogeneous{hetero, rle} = self {
-                    return hetero.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>);
+                match self {
+                    Chunk::Hetero( hetero ) => Some(hetero as &dyn Volume<VoxelType = Block>),
+                    Chunk::HeteroAndRle( hetero, _ ) => Some(hetero as &dyn Volume<VoxelType = Block>),
+                    _ => None,
                 }
             },
             PersState::Rle => {
-                if let Chunk::Heterogeneous{hetero, rle} = self {
-                    return rle.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>);
+                match self {
+                    Chunk::Rle( rle ) => Some(rle as &dyn Volume<VoxelType = Block>),
+                    Chunk::HeteroAndRle( _, rle ) => Some(rle as &dyn Volume<VoxelType = Block>),
+                    _ => None,
                 }
             },
-        }
-        /*
-        return match state {
-            PersState::Raw => self.raw.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
-            PersState::Rle => self.rle.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
-            PersState::File => self.file.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
         };
-        */
-        None
     }
 
     fn get_serializeable<'a>(&'a self, state: PersState) -> Option<&'a dyn SerializeVolume<VoxelType = Block>> {
-        //TODO: simplify this like below!
-        match state {
-            PersState::Homo => {
-                if let Chunk::Homogeneous{homo} = self {
-                    return homo.as_ref().map(|c| c as &dyn SerializeVolume<VoxelType = Block>);
-                }
-            },
-            PersState::Hetero => return None,
-            PersState::Rle => {
-                if let Chunk::Heterogeneous{hetero, rle} = self {
-                    return rle.as_ref().map(|c| c as &dyn SerializeVolume<VoxelType = Block>);
-                }
-            },
-        }
-        /*
         return match state {
-            PersState::Raw => self.raw.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
-            PersState::Rle => self.rle.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
-            PersState::File => self.file.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
+            PersState::Homo => {
+                match self {
+                    Chunk::Homo( homo ) => Some(homo as &dyn SerializeVolume<VoxelType = Block>),
+                    _ => None,
+                }
+            },
+            PersState::Hetero => None,
+            PersState::Rle => {
+                match self {
+                    Chunk::Rle( rle ) => Some(rle as &dyn SerializeVolume<VoxelType = Block>),
+                    Chunk::HeteroAndRle( _, rle ) => Some(rle as &dyn SerializeVolume<VoxelType = Block>),
+                    _ => None,
+                }
+            },
         };
-        */
-        None
     }
 
     fn get_any<'a>(&'a self, state: PersState) -> Option<&'a dyn AnyVolume> {
-        //TODO: simplify this like below!
-        match state {
+        return match state {
             PersState::Homo => {
-                if let Chunk::Homogeneous{homo} = self {
-                    return homo.as_ref().map(|c| c as &dyn AnyVolume);
+                match self {
+                    Chunk::Homo( homo ) => Some(homo as &dyn AnyVolume),
+                    _ => None,
                 }
             },
             PersState::Hetero => {
-                if let Chunk::Heterogeneous{hetero, rle} = self {
-                    return hetero.as_ref().map(|c| c as &dyn AnyVolume);
+                match self {
+                    Chunk::Hetero( hetero ) => Some(hetero as &dyn AnyVolume),
+                    Chunk::HeteroAndRle( hetero, _ ) => Some(hetero as &dyn AnyVolume),
+                    _ => None,
                 }
             },
             PersState::Rle => {
-                if let Chunk::Heterogeneous{hetero, rle} = self {
-                    return rle.as_ref().map(|c| c as &dyn AnyVolume);
+                match self {
+                    Chunk::Rle( rle ) => Some(rle as &dyn AnyVolume),
+                    Chunk::HeteroAndRle( _, rle ) => Some(rle as &dyn AnyVolume),
+                    _ => None,
                 }
             },
-        }
-        /*
-        return match state {
-            PersState::Raw => self.raw.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
-            PersState::Rle => self.rle.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
-            PersState::File => self.file.as_ref().map(|c| c as &dyn Volume<VoxelType = Block>),
         };
-        */
-        None
     }
 }

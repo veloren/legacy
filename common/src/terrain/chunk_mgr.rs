@@ -1,5 +1,6 @@
 // Standard
 use std::{collections::{HashSet, HashMap}, sync::Arc, thread, time::Duration};
+use std::ops::Deref;
 
 // Library
 use parking_lot::{Mutex, RwLock, RwLockReadGuard};
@@ -8,7 +9,7 @@ use vek::*;
 
 // Local
 use terrain::{Container, Key, PersState, VoxelRelVec, VoxelAbsVec, VolumeIdxVec, VolPers, VolGen, Volume, ReadVolume, VolCluster, Voxel};
-use terrain::chunk::{ChunkContainer, Block, ChunkSample, Chunk};
+use terrain::chunk::{ChunkContainer, Block, ChunkSample, Chunk, HomogeneousData};
 use terrain;
 
 lazy_static! {
@@ -28,7 +29,7 @@ pub enum ChunkSampleError {
 
 pub struct ChunkMgr<P: Send + Sync + 'static> {
     vol_size: VoxelRelVec,
-    pending: Arc<RwLock<HashSet<VolumeIdxVec>>>,
+    pending: Arc<RwLock<HashMap<VolumeIdxVec, Arc<Mutex<Option<ChunkContainer<P>>>>>>>, // Mutex is only needed for compiler, we dont acces it in multiple threads
     pers: VolPers<VolumeIdxVec, ChunkContainer<P>>,
     gen: VolGen<VolumeIdxVec, ChunkContainer<P>>,
 }
@@ -37,7 +38,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
     pub fn new(vol_size: VoxelRelVec, gen: VolGen<VolumeIdxVec, ChunkContainer<P>>) -> ChunkMgr<P> {
         ChunkMgr {
             vol_size,
-            pending: Arc::new(RwLock::new(HashSet::new())),
+            pending: Arc::new(RwLock::new(HashMap::new())),
             pers: VolPers::new(),
             gen,
         }
@@ -103,13 +104,6 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                             return Err(ChunkSampleError::CannotGetLock);
                         }
                         let v = map.get(&key).unwrap();
-                        let empty = match ***v {
-                            Chunk::Homogeneous{ref homo} => homo.is_none(),
-                            Chunk::Heterogeneous{ref hetero, ref rle} => hetero.is_none() && rle.is_none(),
-                        };
-                        if empty {
-                            return Err(ChunkSampleError::NoContent);
-                        }
                     } else {
                         debug!("Chunk does not exist: {}", &key);
                         return Err(ChunkSampleError::ChunkMissing);
@@ -122,26 +116,55 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
     }
 
     pub fn gen(&self, pos: VolumeIdxVec) {
+        // this function must work multithreaded
         let gen_func = self.gen.gen_func.clone();
         let payload_func = self.gen.payload_func.clone();
         let pen = self.pending.clone();
+        let con = Arc::new(Mutex::new(None));
         {
+            // the lock below guarantees that no 2 threads can generate the same chunk
             let mut pen_lock = pen.write();
             if pen_lock.get(&pos).is_some() {
                 return;
             }
-            pen_lock.insert(pos); // the lock above guarantees that no 2 threads can generate the same chunk
+            pen_lock.insert(pos, con.clone());
         }
-        let con = Arc::new(ChunkContainer::new());
-        self.pers.map_mut().insert(pos, con.clone());
-        // we copied the Arc above and added the blank container to the persistence because those operations are inexpensive
-        // and we can now run the chunk generaton which is expensive in a new thread without locking the whole persistence
+        // run expensive operations in own thread
 
         POOL.lock().execute(move || {
-            gen_func(pos, &con);
-            payload_func(pos, &con);
-            pen.write().remove(&pos);
+            gen_func(pos, con.clone());
+            payload_func(pos, con.clone());
         });
+    }
+
+    // regually call this to copy over generated chunks
+    pub fn maintain(&self) {
+        let mut pen_lock = self.pending.write();
+        let mut map = HashMap::new();
+
+        // move generated to persistency
+        for (pos, con_arc) in pen_lock.drain() {
+            if con_arc.lock().is_some() {
+                let m = Arc::try_unwrap(con_arc);
+                match m {
+                    Ok(m) => {
+                        let opt = m.into_inner();
+                        let arc = Arc::new(opt.unwrap());
+                        self.pers.map_mut().insert(pos, arc);
+                    },
+                    Err(con_arc) => {
+                        map.insert(pos, con_arc);
+                    }
+                }
+            } else {
+                map.insert(pos, con_arc);
+            }
+        }
+
+        // move items back
+        for (pos, con_arc) in map.drain() {
+            pen_lock.insert(pos, con_arc);
+        }
     }
 
     pub fn remove(&self, pos: VolumeIdxVec) -> bool { self.pers.map_mut().remove(&pos).is_some() }

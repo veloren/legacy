@@ -96,26 +96,11 @@ impl<'a> ChunkSample<'a> {
 
     fn access(lock: &RwLockReadGuard<'a, Chunk>, off: VoxelRelVec) -> Block {
         match **lock {
-            Chunk::Homogeneous{ ref homo } => {
-                if let Some(homo) = homo {
-                    return homo.at_unsafe(off);
-                } else {
-                    panic!("No Homo Chunk available");
-                }
-            },
-            Chunk::Heterogeneous{ ref hetero, ref rle} => {
-                // Hetero first, maybe we should make a trait for this ?
-                if let Some(hetero) = hetero {
-                    return hetero.at_unsafe(off);
-                } else {
-                    if let Some(rle) = rle {
-                        return rle.at_unsafe(off);
-                    } else {
-                        panic!("Neither Hetero or Rle Chunk available");
-                    }
-                }
-            },
-        };
+            Chunk::Homo( ref homo ) => homo.at_unsafe(off),
+            Chunk::Hetero( ref hetero ) => hetero.at_unsafe(off),
+            Chunk::Rle( ref rle ) => rle.at_unsafe(off),
+            Chunk::HeteroAndRle( ref hetero, _ ) => hetero.at_unsafe(off),
+        }
     }
 
     pub fn at_abs(&self, off: VoxelAbsVec) -> Option<Block> {

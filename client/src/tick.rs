@@ -35,6 +35,7 @@ impl<P: Payloads> Client<P> {
 
     pub(crate) fn manage_chunks(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
         self.load_unload_chunks(mgr);
+
         thread::sleep(Duration::from_millis(500));
         *self.status() != ClientStatus::Disconnected
     }

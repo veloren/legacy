@@ -2,7 +2,7 @@
 use std::{
     f32::consts::PI,
     net::ToSocketAddrs,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{Arc, atomic::{AtomicBool, Ordering}},
 };
 
 // Library
@@ -82,23 +82,26 @@ pub struct Game {
     other_player_model: voxel::Model,
 }
 
-fn gen_payload(key: VolumeIdxVec, con: &ChunkContainer<<Payloads as client::Payloads>::Chunk>) {
-    if con.data().get(PersState::Hetero).is_none() {
-        //only get mutable lock if no Raw exists
-        //con.data_mut().convert(PersState::Hetero);
-        panic!("To Lazy 2")
-    }
-    if let Some(hetero) = con.data().get_any(PersState::Hetero) {
-        let hetero: &HeterogeneousData = hetero.as_any().downcast_ref::<HeterogeneousData>().expect("Should be Hetero");
-        *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(hetero)));
-    } else {
-        let vols = con.data();
-        panic!(
-            "Hetero chunk {} does not exist, rle: {}, Homo: {}",
-            key,
-            vols.get(PersState::Rle).is_some(),
-            vols.get(PersState::Homo).is_some()
-        );
+fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
+    let conlock = con.lock();
+    if let Some(ref con) = *conlock {
+        if con.data().get(PersState::Hetero).is_none() {
+            //only get mutable lock if no Raw exists
+            //con.data_mut().convert(PersState::Hetero);
+            panic!("To Lazy 2")
+        }
+        if let Some(hetero) = con.data().get_any(PersState::Hetero) {
+            let hetero: &HeterogeneousData = hetero.as_any().downcast_ref::<HeterogeneousData>().expect("Should be Hetero");
+            *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(hetero)));
+        } else {
+            let vols = con.data();
+            panic!(
+                "Hetero chunk {} does not exist, rle: {}, Homo: {}",
+                key,
+                vols.get(PersState::Rle).is_some(),
+                vols.get(PersState::Homo).is_some()
+            );
+        }
     }
 }
 

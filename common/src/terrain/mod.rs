@@ -171,7 +171,7 @@ impl<V: Volume> SerializeVolume for V where V: Serialize + DeserializeOwned {
 pub trait VolCluster: Send + Sync + 'static {
     type VoxelType: Voxel;
 
-    fn new() -> Self;
+    //fn new() -> Self;
     fn contains(&self, state: PersState) -> bool;
     //fn empty(&self) -> bool;
     fn insert<V: Volume<VoxelType = Self::VoxelType> + AnyVolume>(&mut self, vol: V);

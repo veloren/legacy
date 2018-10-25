@@ -1,5 +1,5 @@
 // Standard
-use std::{fs::File, io::prelude::*, path::Path, u8};
+use std::{fs::File, io::prelude::*, path::Path, u8, sync::Arc};
 
 // Library
 use vek::*;
@@ -7,19 +7,20 @@ use vek::*;
 // Project
 use common::{
     terrain::{
-        chunk::{HeterogeneousData, ChunkContainer, HomogeneousData, RleData},
+        chunk::{HeterogeneousData, ChunkContainer, HomogeneousData, RleData, Chunk},
         Container, Key, PersState, VolumeIdxVec, VoxelAbsType, VolumeIdxType, SerializeVolume, VolCluster,
     },
     terrain,
     util::manager::Manager,
 };
+use parking_lot::{Mutex};
 
 // Local
 use Client;
 use Payloads;
 use CHUNK_SIZE;
 
-pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: &ChunkContainer<P>) {
+pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<P>>>>) {
     let filename = pos.print() + ".dat";
     let filepath = "./saves/".to_owned() + &(filename);
     let path = Path::new(&filepath);
@@ -35,27 +36,29 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: &Chunk
             if state == 1 {
                 let vol: Result<HomogeneousData, ()> = SerializeVolume::from_bytes(&content);
                 if let Ok(vol) = vol {
-                    con.data_mut().insert(vol);
+                    *con.lock() = Some(ChunkContainer::<P>::new(Chunk::Homo(vol)));
                     break 'load;
                 }
             } else {
                 let vol: Result<RleData, ()> = SerializeVolume::from_bytes(&content);
                 if let Ok(vol) = vol {
-                    con.data_mut().insert(vol);
+                    *con.lock() = Some(ChunkContainer::<P>::new(Chunk::Rle(vol)));
                     break 'load;
                 }
             }
         }
-        let mut vol = HeterogeneousData::test(
+        let vol = HeterogeneousData::test(
             terrain::volidx_to_voxabs(pos, Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2])),
             Vec3::from_slice(&CHUNK_SIZE),
         );
-        con.data_mut().insert(vol);
+        *con.lock() = Some(ChunkContainer::<P>::new(Chunk::Hetero(vol)));
     }
 }
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn load_unload_chunks(&self, mgr: &mut Manager<Self>) {
+        self.chunk_mgr().maintain();
+
         // Only update chunks if the player exists
         if let Some(player_entity) = self.player_entity() {
             // Find the chunk the player is in

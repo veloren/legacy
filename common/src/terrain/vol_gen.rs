@@ -6,19 +6,20 @@ use std::sync::Arc;
 
 // Library
 use vek::*;
+use parking_lot::{Mutex};
 
-pub trait FnGenFunc<K: Key, C: Container>: Fn(K, &C) + Send + Sync + 'static {
+pub trait FnGenFunc<K: Key, C: Container>: Fn(K, Arc<Mutex<Option<C>>>) + Send + Sync + 'static {
 }
 
-impl<K: Key, C: Container, T: Fn(K, &C)> FnGenFunc<K, C> for T
+impl<K: Key, C: Container, T: Fn(K, Arc<Mutex<Option<C>>>)> FnGenFunc<K, C> for T
     where T: Send + Sync + 'static {
 
 }
 
-pub trait FnPayloadFunc<K: Key, C: Container>: Fn(K, &C) + Send + Sync + 'static {
+pub trait FnPayloadFunc<K: Key, C: Container>: Fn(K, Arc<Mutex<Option<C>>>) + Send + Sync + 'static {
 }
 
-impl<K: Key, C: Container, T: Fn(K, &C)> FnPayloadFunc<K, C> for T
+impl<K: Key, C: Container, T: Fn(K, Arc<Mutex<Option<C>>>)> FnPayloadFunc<K, C> for T
     where T: Send + Sync + 'static {
 
 }

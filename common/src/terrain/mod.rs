@@ -8,8 +8,8 @@ mod chunk_mgr;
 // Reexports
 pub use terrain::{
     entity::Entity,
-    vol_gen::{FnGenFunc, VolGen},
-    chunk_mgr::{ChunkMgr},
+    vol_gen::{FnGenFunc, FnDropFunc, VolGen},
+    chunk_mgr::{BlockLoader, ChunkMgr},
     vol_pers::VolPers,
 };
 
@@ -171,9 +171,7 @@ impl<V: Volume> SerializeVolume for V where V: Serialize + DeserializeOwned {
 pub trait VolCluster: Send + Sync + 'static {
     type VoxelType: Voxel;
 
-    //fn new() -> Self;
     fn contains(&self, state: PersState) -> bool;
-    //fn empty(&self) -> bool;
     fn insert<V: Volume<VoxelType = Self::VoxelType> + AnyVolume>(&mut self, vol: V);
     fn remove(&mut self, state: PersState);
     fn get<'a>(&'a self, state: PersState) -> Option<&'a dyn ReadVolume<VoxelType = Self::VoxelType>>;
@@ -181,11 +179,11 @@ pub trait VolCluster: Send + Sync + 'static {
     fn get_vol<'a>(&'a self, state: PersState) -> Option<&'a dyn Volume<VoxelType = Self::VoxelType>>;
     fn get_serializeable<'a>(&'a self, state: PersState) -> Option<&'a dyn SerializeVolume<VoxelType = Self::VoxelType>>;
     fn get_any<'a>(&'a self, state: PersState) -> Option<&'a dyn AnyVolume>;
-    //fn prefered<'a>(&'a self) -> Option<&'a dyn ReadVolume<VoxelType = Self::VoxelType>>;
-    //fn prefered_mut<'a>(&'a mut self) -> Option<&'a mut dyn ReadWriteVolume<VoxelType = Self::VoxelType>>;
-    //fn prefered_vol<'a>(&'a self) -> Option<&'a dyn Volume<VoxelType = Self::VoxelType>>;
-    //fn prefered_serializeable<'a>(&'a self) -> Option<&'a dyn SerializeVolume<VoxelType = Self::VoxelType>>;
-    //fn prefered_any<'a>(&'a self) -> Option<&'a dyn AnyVolume>;
+    fn prefered<'a>(&'a self) -> Option<&'a dyn ReadVolume<VoxelType = Self::VoxelType>>;
+    fn prefered_mut<'a>(&'a mut self) -> Option<&'a mut dyn ReadWriteVolume<VoxelType = Self::VoxelType>>;
+    fn prefered_vol<'a>(&'a self) -> Option<&'a dyn Volume<VoxelType = Self::VoxelType>>;
+    fn prefered_serializeable<'a>(&'a self) -> Option<&'a dyn SerializeVolume<VoxelType = Self::VoxelType>>;
+    fn prefered_any<'a>(&'a self) -> Option<&'a dyn AnyVolume>;
 }
 
 pub trait PhysicalVolume: Volume {

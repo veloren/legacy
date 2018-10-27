@@ -8,12 +8,12 @@ use vek::*;
 use common::{
     terrain::{
         chunk::{HeterogeneousData, ChunkContainer, HomogeneousData, RleData, Chunk},
-        Container, Key, PersState, VolumeIdxVec, VoxelAbsType, VolumeIdxType, SerializeVolume, VolCluster,
+        BlockLoader, Container, Key, VolumeIdxVec, VoxelAbsType, VolumeIdxType, SerializeVolume, VolCluster,
     },
     terrain,
     util::manager::Manager,
 };
-use parking_lot::{Mutex};
+use parking_lot::{RwLock, Mutex};
 
 // Local
 use Client;
@@ -55,89 +55,41 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<Mu
     }
 }
 
-pub(crate) fn drop_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<P>>>>) {
-
+pub(crate) fn drop_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<ChunkContainer<P>>) {
+    let filename = pos.print() + ".dat";
+    let filepath = "./saves/".to_owned() + &(filename);
+    let path = Path::new(&filepath);
+    'load: {
+        if !path.exists() {
+            let mut content = vec![];
+            let data = con.data_mut();
+            let ser = data.prefered_serializeable();
+            if let Some(ser) = ser {
+                let bytes = ser.to_bytes();
+                if let Ok(bytes) = bytes {
+                    content.extend_from_slice(&bytes);
+                    let mut datfile = File::create(filepath).unwrap();
+                    datfile.write_all(&content).unwrap();
+                    debug!("write to file: {}, bytes: {}", filename, content.len());
+                }
+            }
+        }
+    }
 }
 
 impl<P: Payloads> Client<P> {
-    pub(crate) fn load_unload_chunks(&self, mgr: &mut Manager<Self>) {
-        self.chunk_mgr().maintain();
-
-        // Only update chunks if the player exists
+    pub(crate) fn maintain_chunks(&self, mgr_: &mut Manager<Self>) {
+        let vol_size = Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2]);
         if let Some(player_entity) = self.player_entity() {
             // Find the chunk the player is in
             let player_pos = player_entity.read().pos().map(|e| e as VoxelAbsType);
-            let player_chunk = terrain::voxabs_to_volidx(player_pos, Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2]));
-
-            // Collect chunks around the player
-            const GENERATION_FACTOR: f32 = 1.4;
-            let mut chunks = vec![];
+            const GENERATION_FACTOR: f32 = 1.4; // generate more than you see
             let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as VolumeIdxType;
-            for i in player_chunk.x - view_dist..player_chunk.x + view_dist + 1 {
-                for j in player_chunk.y - view_dist..player_chunk.y + view_dist + 1 {
-                    for k in player_chunk.z - view_dist..player_chunk.z + view_dist + 1 {
-                        let pos = Vec3::new(i, j, k);
-                        let diff = (player_chunk - pos).map(|e| e.abs()).sum();
-                        chunks.push((diff, pos));
-                    }
-                }
-            }
-            chunks.sort_by(|a, b| a.0.cmp(&b.0));
-
-            // Generate chunks around the player
-            const MAX_CHUNKS_IN_QUEUE: usize = 12; // to not overkill the vol_mgr
-            for (_diff, pos) in chunks.iter() {
-                if !self.chunk_mgr().exists_chunk(*pos) {
-                    // generate up to MAX_CHUNKS_IN_QUEUE chunks around the player
-                    if self.chunk_mgr().pending_chunk_cnt() < MAX_CHUNKS_IN_QUEUE {
-                        self.chunk_mgr().gen(*pos);
-                    }
-                }
-            }
-
-            const DIFF_TILL_UNLOAD: VolumeIdxType = 5;
-            //unload chunks that have a distance of 5 or greater that the last rendered chunk, so that we dont unload to fast, e.g. if we go back a chunk
-            let unload_chunk_diff = chunks.last().unwrap().0 + DIFF_TILL_UNLOAD;
-
-            //drop old chunks
-            {
-                /*
-                let chunks = self.chunk_mgr().persistence().hot();
-                for (pos, container) in chunks.iter() {
-                    let diff = (player_chunk - *pos).map(|e| e.abs()).sum();
-                    if diff > unload_chunk_diff {
-                        let mut lock = container.vols_mut();
-                        let state;
-                        if lock.contains(PersState::Homo) {
-                            state = PersState::Homo;
-                        } else {
-                            if !lock.contains(PersState::Rle) {
-                                lock.convert(PersState::Rle);
-                            }
-                            state = PersState::Rle;
-                        }
-                        let filename = pos.print() + ".dat";
-                        let filepath = "./saves/".to_owned() + &(filename);
-                        let mut content = vec![]; /*magic number*/
-                        if state == PersState::Homo {
-                            // This is serialization of PersState, omg, so bad coding. Hate myself for this
-                            content.push(1);
-                        } else {
-                            content.push(2);
-                        }
-                        let ser = lock.get_serializeable(state);
-                        content.extend_from_slice(&ser.to_bytes());
-                        let mut datfile = File::create(filepath).unwrap();
-                        datfile.write_all(&content).unwrap();
-                        debug!("write to file: {}, bytes: {}", filename, content.len());
-
-
-                        *lock.payload_mut() = None;
-                        *lock.remove(state);
-                    }
-                }
-                */
-            }
+            let view_dist_block = terrain::volidx_to_voxabs(Vec3::new(view_dist, view_dist, view_dist), vol_size);
+            let mut bl = self.chunk_mgr().block_loader_mut();
+            bl.clear();
+            bl.push(Arc::new(RwLock::new(BlockLoader{pos: player_pos, size: view_dist_block})));
         }
+        self.chunk_mgr().maintain();
     }
 }

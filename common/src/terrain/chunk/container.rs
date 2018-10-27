@@ -40,13 +40,6 @@ impl<P> Container for ChunkContainer<P> {
 impl VolCluster for Chunk {
     type VoxelType = Block;
 
-/*
-    fn new() -> Chunk {
-        Chunk::Homogeneous {
-                homo: None,
-        }
-    }
-*/
     fn contains(&self, state: PersState) -> bool {
         match self {
             Chunk::Homo( _ ) => state == PersState::Homo,
@@ -202,5 +195,50 @@ impl VolCluster for Chunk {
                 }
             },
         };
+    }
+
+    fn prefered<'a>(&'a self) -> Option<&'a dyn ReadVolume<VoxelType = Block>> {
+        self.get(match self {
+            Chunk::Homo( _ ) => PersState::Homo,
+            Chunk::Hetero( _ ) => PersState::Hetero,
+            Chunk::Rle( _ ) => PersState::Rle,
+            Chunk::HeteroAndRle( _, _ ) => PersState::Hetero,
+        })
+    }
+
+    fn prefered_mut<'a>(&'a mut self) -> Option<&'a mut dyn ReadWriteVolume<VoxelType = Block>> {
+        self.get_mut(match self {
+            Chunk::Homo( _ ) => PersState::Homo,
+            Chunk::Hetero( _ ) => PersState::Hetero,
+            Chunk::Rle( _ ) => PersState::Rle,
+            Chunk::HeteroAndRle( _, _ ) => PersState::Hetero,
+        })
+    }
+
+    fn prefered_vol<'a>(&'a self) -> Option<&'a dyn Volume<VoxelType = Block>> {
+        self.get_vol(match self {
+            Chunk::Homo( _ ) => PersState::Homo,
+            Chunk::Hetero( _ ) => PersState::Hetero,
+            Chunk::Rle( _ ) => PersState::Rle,
+            Chunk::HeteroAndRle( _, _ ) => PersState::Hetero,
+        })
+    }
+
+    fn prefered_serializeable<'a>(&'a self) -> Option<&'a dyn SerializeVolume<VoxelType = Block>> {
+        self.get_serializeable(match self {
+            Chunk::Homo( _ ) => PersState::Homo,
+            Chunk::Hetero( _ ) => PersState::Hetero,
+            Chunk::Rle( _ ) => PersState::Rle,
+            Chunk::HeteroAndRle( _, _ ) => PersState::Rle,
+        })
+    }
+
+    fn prefered_any<'a>(&'a self) -> Option<&'a dyn AnyVolume> {
+        self.get_any(match self {
+            Chunk::Homo( _ ) => PersState::Homo,
+            Chunk::Hetero( _ ) => PersState::Hetero,
+            Chunk::Rle( _ ) => PersState::Rle,
+            Chunk::HeteroAndRle( _, _ ) => PersState::Hetero,
+        })
     }
 }

@@ -3,12 +3,12 @@ use std::{collections::{HashSet, HashMap}, sync::Arc, thread, time::Duration};
 use std::ops::Deref;
 
 // Library
-use parking_lot::{Mutex, RwLock, RwLockReadGuard};
+use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use threadpool::ThreadPool;
 use vek::*;
 
 // Local
-use terrain::{Container, Key, PersState, VoxelRelVec, VoxelAbsVec, VolumeIdxVec, VolPers, VolGen, Volume, ReadVolume, VolCluster, Voxel};
+use terrain::{Container, Key, PersState, VoxelRelVec, VoxelAbsVec, VolumeIdxVec, VolumeIdxType, VoxelAbsType, VolPers, VolGen, Volume, ReadVolume, VolCluster, Voxel};
 use terrain::chunk::{ChunkContainer, Block, ChunkSample, Chunk, HomogeneousData};
 use terrain;
 
@@ -27,11 +27,18 @@ pub enum ChunkSampleError {
   NoContent,
 }
 
+#[derive(Clone)]
+pub struct BlockLoader {
+    pub pos: VoxelAbsVec,
+    pub size: VoxelAbsVec,
+}
+
 pub struct ChunkMgr<P: Send + Sync + 'static> {
     vol_size: VoxelRelVec,
     pending: Arc<RwLock<HashMap<VolumeIdxVec, Arc<Mutex<Option<ChunkContainer<P>>>>>>>, // Mutex is only needed for compiler, we dont acces it in multiple threads
     pers: VolPers<VolumeIdxVec, ChunkContainer<P>>,
     gen: VolGen<VolumeIdxVec, ChunkContainer<P>>,
+    block_loader: RwLock<Vec<Arc<RwLock<BlockLoader>>>>,
 }
 
 impl<P: Send + Sync + 'static> ChunkMgr<P> {
@@ -41,6 +48,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
             pending: Arc::new(RwLock::new(HashMap::new())),
             pers: VolPers::new(),
             gen,
+            block_loader: RwLock::new(Vec::new()),
         }
     }
 
@@ -137,33 +145,123 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         });
     }
 
+    pub fn drop(&self, pos: VolumeIdxVec) {
+        // this function must work multithreaded
+        let drop_vol = self.gen.drop_vol.clone();
+        let drop_payload = self.gen.drop_payload.clone();
+
+        let rem = self.pers.map_mut().remove(&pos);
+        if let Some(rem) = rem {
+            POOL.lock().execute(move || {
+                drop_vol(pos, rem.clone());
+                drop_payload(pos, rem.clone());
+            });
+        }
+    }
+
     // regually call this to copy over generated chunks
     pub fn maintain(&self) {
-        let mut pen_lock = self.pending.write();
-        let mut map = HashMap::new();
+        { // handle new generated chunks
+            let mut pen_lock = self.pending.write();
+            let mut map = HashMap::new();
 
-        // move generated to persistency
-        for (pos, con_arc) in pen_lock.drain() {
-            if con_arc.lock().is_some() {
-                let m = Arc::try_unwrap(con_arc);
-                match m {
-                    Ok(m) => {
-                        let opt = m.into_inner();
-                        let arc = Arc::new(opt.unwrap());
-                        self.pers.map_mut().insert(pos, arc);
-                    },
-                    Err(con_arc) => {
-                        map.insert(pos, con_arc);
+            // move generated to persistency
+            for (pos, con_arc) in pen_lock.drain() {
+                if con_arc.lock().is_some() {
+                    let m = Arc::try_unwrap(con_arc);
+                    match m {
+                        Ok(m) => {
+                            let opt = m.into_inner();
+                            let arc = Arc::new(opt.unwrap());
+                            self.pers.map_mut().insert(pos, arc);
+                        },
+                        Err(con_arc) => {
+                            map.insert(pos, con_arc);
+                        }
                     }
+                } else {
+                    map.insert(pos, con_arc);
                 }
-            } else {
-                map.insert(pos, con_arc);
+            }
+
+            // move items back
+            for (pos, con_arc) in map.drain() {
+                pen_lock.insert(pos, con_arc);
             }
         }
 
-        // move items back
-        for (pos, con_arc) in map.drain() {
-            pen_lock.insert(pos, con_arc);
+        // generate new chunks
+        const GENERATION_FACTOR: f32 = 1.4;
+        let mut chunk_map = HashMap::new();
+        let block_loader: Vec<BlockLoader> = self.block_loader.read().iter().map(|e| (*e.read()).clone()).collect(); // buffer blockloader
+
+        // Collect chunks around the player
+        for bl in block_loader.iter() {
+            let pos = bl.pos;
+            let size = bl.size;
+            let pos_chunk = terrain::voxabs_to_volidx(pos, self.vol_size);
+            let from = terrain::voxabs_to_volidx(pos - size, self.vol_size);
+            let to = terrain::voxabs_to_volidx(pos + size, self.vol_size);
+            for i in from.x .. to.x + 1 {
+                for j in from.y .. to.y + 1 {
+                    for k in from.z .. to.z + 1 {
+                        let ijk = Vec3::new(i, j, k);
+                        let diff = (pos_chunk - ijk).map(|e| e.abs()).sum();
+                        if let Some(old_diff) = chunk_map.get(&ijk) {
+                            if *old_diff < diff {
+                                continue;
+                            }
+                        }
+                        chunk_map.insert(ijk, diff);
+                    }
+                }
+            }
+        }
+        //this is my failed attempt
+        let mut chunks: Vec<(VolumeIdxVec, VolumeIdxType)> = chunk_map.iter().map(|pd| (*pd.0, *pd.1)).collect();
+        chunks.sort_by(|a, b| a.1.cmp(&b.1));
+
+        // Generate chunks around the player
+        const MAX_CHUNKS_IN_QUEUE: usize = 12; // to not overkill the vol_mgr
+        for (pos, _diff) in chunks.iter() {
+            if !self.exists_chunk(*pos) {
+                // generate up to MAX_CHUNKS_IN_QUEUE chunks around the player
+                if self.pending_chunk_cnt() < MAX_CHUNKS_IN_QUEUE {
+                    self.gen(*pos);
+                }
+            }
+        }
+
+        const DIFF_TILL_UNLOAD: VoxelAbsType = 5;
+        // unload all chunks which have a distance of DIFF_TILL_UNLOAD to a loaded area
+
+        // drop old chunks
+        {
+            let mut to_remove = Vec::new(); //needed for lock on pers
+            for (k, _) in self.pers.map().iter() {
+                // skip if exists in HashMap
+                if chunk_map.contains_key(k) {
+                    continue;
+                }
+                let k_mid = terrain::volidx_to_voxabs(*k, self.vol_size) + self.vol_size.map(|e| e as i64 / 2);
+                let mut lowest_dist = DIFF_TILL_UNLOAD + 1; // bigger than DIFF_TILL_UNLOAD
+                // get block distance to nearest blockloader
+                for bl in block_loader.iter() {
+                    let pos = bl.pos;
+                    let size = bl.size;
+                    let pos_chunk = terrain::voxabs_to_volidx(pos, self.vol_size);
+                    let dist = (pos - k_mid).distance_squared(size);
+                    if dist < lowest_dist {
+                        lowest_dist = dist;
+                    }
+                }
+                if lowest_dist > DIFF_TILL_UNLOAD {
+                    to_remove.push(*k);
+                }
+            }
+            for k in to_remove.iter() {
+                self.drop(*k);
+            }
         }
     }
 
@@ -179,5 +277,13 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
             new_map.insert(*k, a.clone());
         }
         return new_map;
+    }
+
+    pub fn block_loader(&self) -> RwLockReadGuard<Vec<Arc<RwLock<BlockLoader>>>> {
+        self.block_loader.read()
+    }
+
+    pub fn block_loader_mut(&self) -> RwLockWriteGuard<Vec<Arc<RwLock<BlockLoader>>>> {
+        self.block_loader.write()
     }
 }

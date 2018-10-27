@@ -34,7 +34,7 @@ use vek::*;
 use common::{
     terrain::{
         chunk::{ChunkContainer},
-        Entity, VolGen, Voxel, ChunkMgr, VolumeIdxVec, VoxelRelType, FnGenFunc,
+        Entity, VolGen, Voxel, ChunkMgr, VolumeIdxVec, VoxelRelType, FnGenFunc, FnDropFunc,
     },
     util::{
         manager::{Managed, Manager},
@@ -89,7 +89,7 @@ pub struct Client<P: Payloads> {
 }
 
 impl<P: Payloads> Client<P> {
-    pub fn new<S: ToSocketAddrs, GP: FnGenFunc<VolumeIdxVec, ChunkContainer<P::Chunk>>, DP: FnGenFunc<VolumeIdxVec, ChunkContainer<P::Chunk>> >(
+    pub fn new<S: ToSocketAddrs, GP: FnGenFunc<VolumeIdxVec, ChunkContainer<P::Chunk>>, DP: FnDropFunc<VolumeIdxVec, ChunkContainer<P::Chunk>> >(
         mode: PlayMode,
         alias: String,
         remote_addr: S,

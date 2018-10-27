@@ -105,7 +105,7 @@ fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads
     }
 }
 
-fn drop_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
+fn drop_payload(key: VolumeIdxVec, con: Arc<ChunkContainer<<Payloads as client::Payloads>::Chunk>>) {
 }
 
 impl Game {

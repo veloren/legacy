@@ -21,7 +21,7 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::{
     terrain::{
-        chunk::{Chunk, ChunkContainer, HeterogeneousData},
+        chunk::{Chunk, ChunkContainer, HeterogeneousData, HomogeneousData},
         Container, PersState, VolumeIdxVec, VolCluster,
     },
     terrain,
@@ -85,21 +85,26 @@ pub struct Game {
 fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
     let conlock = con.lock();
     if let Some(ref con) = *conlock {
-        if con.data().get(PersState::Hetero).is_none() {
-            //only get mutable lock if no Raw exists
+        if con.data().get(PersState::Hetero).is_none() && con.data().get(PersState::Homo).is_none() {
+            //only get mutable lock if neither Hetero or Homo exists
             con.data_mut().convert(PersState::Hetero);
         }
         if let Some(hetero) = con.data().get_any(PersState::Hetero) {
             let hetero: &HeterogeneousData = hetero.as_any().downcast_ref::<HeterogeneousData>().expect("Should be Hetero");
             *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(hetero)));
         } else {
-            let vols = con.data();
-            panic!(
-                "Hetero chunk {} does not exist, rle: {}, Homo: {}",
-                key,
-                vols.get(PersState::Rle).is_some(),
-                vols.get(PersState::Homo).is_some()
-            );
+            if let Some(homo) = con.data().get_any(PersState::Homo) {
+                let homo: &HomogeneousData = homo.as_any().downcast_ref::<HomogeneousData>().expect("Should be Homo");
+                *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(homo)));
+            } else {
+                let vols = con.data();
+                panic!(
+                    "Hetero chunk {} does not exist, rle: {}, Homo: {}",
+                    key,
+                    vols.get(PersState::Rle).is_some(),
+                    vols.get(PersState::Homo).is_some()
+                );
+            }
         }
     }
 }

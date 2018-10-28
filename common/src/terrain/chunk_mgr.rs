@@ -290,7 +290,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                 }
             }
         }
-        info!("number of chunks; hetero {}, rle {}, homo{}, hetero&rle {}", hetero, rle, homo, heteroandrle);
+        info!("number of chunks; hetero {}, rle {}, homo {}, hetero&rle {}", hetero, rle, homo, heteroandrle);
     }
 
     pub fn remove(&self, pos: VolumeIdxVec) -> bool { self.pers.map_mut().remove(&pos).is_some() }

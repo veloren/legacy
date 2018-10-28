@@ -41,7 +41,9 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<Mu
             terrain::volidx_to_voxabs(pos, Vec3::from_slice(&CHUNK_SIZE)),
             Vec3::from_slice(&CHUNK_SIZE),
         );
-        *con.lock() = Some(ChunkContainer::<P>::new(Chunk::Hetero(vol)));
+        let mut c = Chunk::Hetero(vol);
+        c.convert(PersState::Homo); //TODO: not so performant, do check directly in chunk generation
+        *con.lock() = Some(ChunkContainer::<P>::new(c));
     }
 }
 

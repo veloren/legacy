@@ -1,5 +1,5 @@
 use common::terrain::{
-    chunk::{Block, BlockMaterial, Chunk, HeterogeneousData},
+    chunk::{Block, BlockMaterial, Chunk, HeterogeneousData, HomogeneousData},
     figure::{Cell, CellMaterial, Figure},
     Volume, Voxel, ReadVolume, PhysicalVolume,
 };
@@ -62,6 +62,7 @@ impl RenderVoxel for Block {
 }
 
 impl RenderVolume for HeterogeneousData {}
+impl RenderVolume for HomogeneousData {}
 
 impl RenderVoxel for Cell {
     fn get_color(&self) -> u8 {

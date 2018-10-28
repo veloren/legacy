@@ -1,6 +1,6 @@
 use common::terrain::{
-    chunk::{Block, BlockMaterial, HeterogeneousData, HomogeneousData},
-    figure::{Cell, CellMaterial, Figure},
+    chunk::{Block, BlockMaterial},
+    figure::{Cell, CellMaterial},
     PhysicalVolume, ReadVolume, Voxel,
 };
 use voxel::{Material, MaterialKind, RenderMaterial};

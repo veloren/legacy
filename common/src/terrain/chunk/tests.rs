@@ -5,7 +5,7 @@ use vek::*;
 // Local
 use terrain::{
     chunk::{Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, HeterogeneousData, HomogeneousData, RleData},
-    ConstructVolume, Container, PersState, ReadVolume, ReadWriteVolume, VolCluster, VolPers, Volume, Voxel,
+    ConstructVolume, Container, PersState, ReadVolume, ReadWriteVolume, VolCluster, Volume, Voxel,
 };
 
 #[test]

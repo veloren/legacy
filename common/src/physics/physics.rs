@@ -50,24 +50,8 @@ fn get_nearby(
     let (mut low, mut high) = get_bounds(col, grav.map(|e| e * dt));
     let (l2, h2) = get_bounds(col, vel.map(|e| e * dt));
 
-    if l2.x < low.x {
-        low.x = l2.x;
-    }
-    if l2.y < low.y {
-        low.y = l2.y;
-    }
-    if l2.z < low.z {
-        low.z = l2.z;
-    }
-    if h2.x > high.x {
-        high.x = h2.x;
-    }
-    if h2.y > high.y {
-        high.y = h2.y;
-    }
-    if h2.z > high.z {
-        high.z = h2.z;
-    }
+    low = low.map2(l2, |l, l2| if l2 < l { l2 } else { l });
+    high = high.map2(h2, |h, h2| if h2 < h { h2 } else { h });
 
     // Workaround for fall through
     let low = low.map(|e| e - 1);

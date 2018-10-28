@@ -24,8 +24,8 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::{
     terrain::{
-        chunk::{Chunk, ChunkContainer, HeterogeneousData, HomogeneousData, RleData},
-        Container, PersState, VolCluster, VolumeIdxVec,
+        chunk::{Chunk, ChunkContainer},
+        Container, VolumeIdxVec,
     },
     util::manager::Manager,
 };
@@ -331,7 +331,7 @@ impl Game {
             (cam_origin.z as i64).div_euc(CHUNK_SIZE[2] as i64),
         );
 
-        for (pos, con) in self.client.chunk_mgr().map().iter() {
+        for (pos, con) in self.client.chunk_mgr().pers().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
             if (*pos - cam_chunk.map(|e| e as i32)).map(|e| e.abs() as u16).sum()
                 > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE[0]
@@ -469,7 +469,7 @@ impl Game {
         );
 
         // Render each chunk
-        for (pos, con) in self.client.chunk_mgr().map().iter() {
+        for (pos, con) in self.client.chunk_mgr().pers().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
             if (*pos - cam_chunk.map(|e| e as i32)).map(|e| e.abs() as u16).sum()
                 > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE[0]

@@ -10,8 +10,7 @@ use vek::*;
 use terrain::{
     self,
     chunk::{Block, ChunkContainer, ChunkSample},
-    Container, Key, PersState, VolCluster, VolGen, VolPers, VolumeIdxType, VolumeIdxVec, VoxelAbsType, VoxelAbsVec,
-    VoxelRelVec,
+    Container, Key, PersState, VolCluster, VolGen, VolumeIdxType, VolumeIdxVec, VoxelAbsType, VoxelAbsVec, VoxelRelVec,
 };
 
 lazy_static! {
@@ -38,7 +37,7 @@ pub struct BlockLoader {
 pub struct ChunkMgr<P: Send + Sync + 'static> {
     vol_size: VoxelRelVec,
     pending: Arc<RwLock<HashMap<VolumeIdxVec, Arc<Mutex<Option<ChunkContainer<P>>>>>>>, // Mutex is only needed for compiler, we dont acces it in multiple threads
-    pers: VolPers<VolumeIdxVec, ChunkContainer<P>>,
+    pers: RwLock<HashMap<VolumeIdxVec, Arc<ChunkContainer<P>>>>,
     gen: VolGen<VolumeIdxVec, ChunkContainer<P>>,
     block_loader: RwLock<Vec<Arc<RwLock<BlockLoader>>>>,
 }
@@ -48,7 +47,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         ChunkMgr {
             vol_size,
             pending: Arc::new(RwLock::new(HashMap::new())),
-            pers: VolPers::new(),
+            pers: RwLock::new(HashMap::new()),
             gen,
             block_loader: RwLock::new(Vec::new()),
         }
@@ -58,14 +57,12 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         self.exists_chunk(terrain::voxabs_to_volidx(pos, self.vol_size))
     }
 
-    pub fn exists_chunk(&self, pos: VolumeIdxVec) -> bool { self.pers.map().get(&pos).is_some() }
+    pub fn exists_chunk(&self, pos: VolumeIdxVec) -> bool { self.pers.read().get(&pos).is_some() }
 
     pub fn get_block(&self, pos: VoxelAbsVec) -> Option<Block> {
         let chunk = terrain::voxabs_to_volidx(pos, self.vol_size);
         let off = terrain::voxabs_to_voxrel(pos, self.vol_size);
-        let map = self.pers.map();
-        let chunk = map.get(&chunk);
-        if let Some(chunk) = chunk {
+        if let Some(chunk) = self.pers.read().get(&chunk) {
             let lock = chunk.data();
             let hetero = lock.get(PersState::Hetero);
             if let Some(hetero) = hetero {
@@ -100,7 +97,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         let mut map = HashMap::new();
         let chunk_from = terrain::voxabs_to_volidx(from, self.vol_size);
         let chunk_to = terrain::voxabs_to_volidx(to, self.vol_size);
-        let lock = self.pers.map();
+        let lock = self.pers.read();
         for x in chunk_from.x..chunk_to.x + 1 {
             for y in chunk_from.y..chunk_to.y + 1 {
                 for z in chunk_from.z..chunk_to.z + 1 {
@@ -153,8 +150,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         let drop_vol = self.gen.drop_vol.clone();
         let drop_payload = self.gen.drop_payload.clone();
 
-        let rem = self.pers.map_mut().remove(&pos);
-        if let Some(rem) = rem {
+        if let Some(rem) = self.pers.write().remove(&pos) {
             POOL.lock().execute(move || {
                 drop_vol(pos, rem.clone());
                 drop_payload(pos, rem.clone());
@@ -177,7 +173,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                         Ok(m) => {
                             let opt = m.into_inner();
                             let arc = Arc::new(opt.unwrap());
-                            self.pers.map_mut().insert(pos, arc);
+                            self.pers.write().insert(pos, arc);
                         },
                         Err(con_arc) => {
                             map.insert(pos, con_arc);
@@ -239,7 +235,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
 
         // drop old chunks
         let mut to_remove = Vec::new(); //needed for lock on pers
-        for (k, _) in self.pers.map().iter() {
+        for (k, _) in self.pers.read().iter() {
             // skip if exists in HashMap
             if chunk_map.contains_key(k) {
                 continue;
@@ -265,12 +261,11 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
     }
 
     pub fn debug(&self) {
-        let lock = self.pers.map();
         let mut rle = 0;
         let mut homo = 0;
         let mut hetero = 0;
         let mut heteroandrle = 0;
-        for (_, a) in lock.iter() {
+        for (_, a) in self.pers.read().iter() {
             let data = a.data();
             if data.contains(PersState::Homo) {
                 homo += 1;
@@ -296,16 +291,15 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         );
     }
 
-    pub fn remove(&self, pos: VolumeIdxVec) -> bool { self.pers.map_mut().remove(&pos).is_some() }
+    pub fn remove(&self, pos: VolumeIdxVec) -> bool { self.pers.write().remove(&pos).is_some() }
 
     pub fn pending_chunk_cnt(&self) -> usize { self.pending.read().len() }
 
     #[deprecated(since = "0.1.0", note = "find a more elegant solution!")]
-    pub fn map(&self) -> HashMap<VolumeIdxVec, Arc<ChunkContainer<P>>> {
+    pub fn pers(&self) -> HashMap<VolumeIdxVec, Arc<ChunkContainer<P>>> {
         // I just dont want to give access to the real persistency here
-        let lock = self.pers.map();
         let mut new_map = HashMap::new();
-        for (k, a) in lock.iter() {
+        for (k, a) in self.pers.read().iter() {
             new_map.insert(*k, a.clone());
         }
         return new_map;

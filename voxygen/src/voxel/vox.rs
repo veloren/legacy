@@ -5,7 +5,7 @@ use vek::*;
 // Project
 use common::terrain::{
     figure::{Cell, CellMaterial, Figure},
-    ConstructVolume, ReadVolume, ReadWriteVolume, Volume, Voxel,
+    ConstructVolume, ReadWriteVolume, Voxel,
 };
 
 pub fn vox_to_figure(vox: DotVoxData) -> Figure {

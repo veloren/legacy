@@ -7,14 +7,13 @@ extern crate vek;
 // Standard
 
 // Library
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use test::Bencher;
 use vek::*;
 
 // Project
 use common::terrain::{
-    chunk::{Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, HeterogeneousData, HomogeneousData, RleData},
-    ConstructVolume, Container, PersState, ReadVolume, ReadWriteVolume, VolCluster, VolPers, Volume, Voxel,
+    chunk::{Block, BlockMaterial, BlockRle, Chunk, HeterogeneousData, RleData},
+    ConstructVolume, PersState, ReadWriteVolume, VolCluster, Voxel,
 };
 
 /* Reference Chunk
@@ -151,7 +150,7 @@ fn gen_rle() -> RleData {
 
 #[test]
 fn fill_container() {
-    let mut con = Chunk::Hetero(gen_hetero());
+    let con = Chunk::Hetero(gen_hetero());
     assert!(con.contains(PersState::Hetero));
     assert!(!con.contains(PersState::Homo));
     assert!(!con.contains(PersState::Rle));

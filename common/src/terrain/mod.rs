@@ -3,14 +3,12 @@ mod chunk_mgr;
 mod entity;
 pub mod figure;
 mod vol_gen;
-mod vol_pers;
 
 // Reexports
 pub use terrain::{
     chunk_mgr::{BlockLoader, ChunkMgr},
     entity::Entity,
     vol_gen::{FnDropFunc, FnGenFunc, VolGen},
-    vol_pers::VolPers,
 };
 
 // Standard

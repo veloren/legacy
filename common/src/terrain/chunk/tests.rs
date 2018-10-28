@@ -1,26 +1,42 @@
 // Library
 use vek::*;
+use std::fmt::Debug;
 
 // Local
-use super::{raw_chunk::RawChunk, ConstructVolume, ReadVolume, Volume, Voxel, WriteVolume};
+use terrain::{
+    chunk::{Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, HeterogeneousData, RleData, HomogeneousData},
+    Container, PersState, VolPers, Volume, Voxel, ConstructVolume, VolCluster, ReadVolume, ReadWriteVolume,
+};
+
 
 #[test]
-fn test_raw_chunk() {
-    test_volume::<RawChunk>();
-    test_read_volume::<RawChunk>();
-    test_write_volume::<RawChunk>();
+fn test_hetero_chunk() {
+    test_volume::<HeterogeneousData>();
+    test_read_volume::<HeterogeneousData>();
+    test_write_volume::<HeterogeneousData>();
+}
+
+#[test]
+fn test_rle_chunk() {
+    test_volume::<RleData>();
+    test_read_volume::<RleData>();
+}
+
+#[test]
+fn test_homo_chunk() {
+    test_volume::<HomogeneousData>();
+    test_read_volume::<HomogeneousData>();
 }
 
 fn test_volume<V: Volume + ConstructVolume>() {
     let (sizes, offs) = get_sizes_and_offsets();
 
-    assert!(V::Voxel::empty().is_empty());
-    assert!(!V::Voxel::solid().is_empty());
+    assert!(!V::VoxelType::empty().is_solid());
 
     for sz in sizes {
         let vol = V::empty(sz);
 
-        assert_eq!(vol.get_size(), sz);
+        assert_eq!(vol.size(), sz);
     }
 }
 
@@ -35,30 +51,16 @@ fn test_read_volume<V: ReadVolume + ConstructVolume>() {
             let in_bounds = off.x < sz.x && off.y < sz.y && off.z < sz.z;
 
             if in_bounds {
-                assert!(vol.get_at(off).is_some());
-                assert!(vol.get_at(off).unwrap().is_empty());
+                assert!(vol.at(off).is_some());
+                assert!(!vol.at(off).unwrap().is_solid());
             } else {
-                assert!(vol.get_at(off).is_none());
-            }
-        }
-
-        let vol = V::filled(sz, V::Voxel::solid());
-
-        for off in offs.iter() {
-            let off = *off;
-            let in_bounds = off.x < sz.x && off.y < sz.y && off.z < sz.z;
-
-            if in_bounds {
-                assert!(vol.get_at(off).is_some());
-                assert!(!vol.get_at(off).unwrap().is_empty());
-            } else {
-                assert!(vol.get_at(off).is_none());
+                assert!(vol.at(off).is_none());
             }
         }
     }
 }
 
-fn test_write_volume<V: WriteVolume + ConstructVolume>() {
+fn test_write_volume<V: ReadWriteVolume + ConstructVolume>() where V::VoxelType: Debug + PartialEq {
     let (sizes, offs) = get_sizes_and_offsets();
 
     for sz in sizes {
@@ -68,29 +70,19 @@ fn test_write_volume<V: WriteVolume + ConstructVolume>() {
 
             let mut vol = V::empty(sz);
 
-            let vox = vol.replace_at(off, V::Voxel::solid());
+            let vox = vol.replace_at(off, V::VoxelType::empty());
 
             if in_bounds {
-                assert!(vox.unwrap().is_empty());
-                assert!(!vol.is_homo());
-                assert_eq!(vol.get_at(off), Some(V::Voxel::solid()));
+                assert!(!vox.unwrap().is_solid());
+                assert_eq!(vol.at(off), Some(V::VoxelType::empty()));
             } else {
-                assert!(vol.get_at(off).is_none());
-            }
-
-            let vox = vol.replace_at(off, V::Voxel::empty());
-
-            if in_bounds {
-                assert!(!vox.unwrap().is_empty());
-                assert_eq!(vol.get_at(off), Some(V::Voxel::empty()));
-            } else {
-                assert!(vol.get_at(off).is_none());
+                assert!(vol.at(off).is_none());
             }
         }
     }
 }
 
-fn get_sizes_and_offsets() -> (Vec<Vec3<u64>>, Vec<Vec3<u64>>) {
+fn get_sizes_and_offsets() -> (Vec<Vec3<u16>>, Vec<Vec3<u16>>) {
     // Volume sizes to perform the tests in
     let sizes = vec![
         Vec3::new(0, 0, 0),

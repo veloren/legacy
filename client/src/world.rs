@@ -7,8 +7,8 @@ use vek::*;
 // Project
 use common::{
     terrain::{
-        chunk::{HeterogeneousData, ChunkContainer, HomogeneousData, RleData, Chunk},
-        BlockLoader, Container, Key, VolumeIdxVec, VoxelAbsType, VolumeIdxType, SerializeVolume, VolCluster, PersState,
+        chunk::{HeterogeneousData, ChunkContainer, Chunk},
+        BlockLoader, Container, Key, VolumeIdxVec, VoxelAbsType, VolumeIdxType, VolCluster, PersState,
     },
     terrain,
     util::manager::Manager,

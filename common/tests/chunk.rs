@@ -184,6 +184,32 @@ fn convert_rle_to_raw() {
     assert_eq!(correct_hetero, *hetero);
 }
 
+#[test]
+fn read_rle() {
+    let con = Chunk::Rle(gen_rle());
+    let access = con.prefered().unwrap();
+    assert_eq!(access.at(Vec3::new(0,0,0)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(0,1,0)), Some(Block::new(BlockMaterial::Earth)));
+    assert_eq!(access.at(Vec3::new(0,2,0)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(0,3,0)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(0,4,0)), None);
+
+    assert_eq!(access.at(Vec3::new(1,0,3)), Some(Block::new(BlockMaterial::Earth)));
+    assert_eq!(access.at(Vec3::new(1,1,3)), Some(Block::new(BlockMaterial::Earth)));
+    assert_eq!(access.at(Vec3::new(1,2,3)), Some(Block::new(BlockMaterial::Air)));
+    assert_eq!(access.at(Vec3::new(1,3,3)), Some(Block::new(BlockMaterial::Sand)));
+
+    assert_eq!(access.at(Vec3::new(2,2,0)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(2,2,1)), Some(Block::new(BlockMaterial::Air)));
+    assert_eq!(access.at(Vec3::new(2,2,2)), Some(Block::new(BlockMaterial::Air)));
+    assert_eq!(access.at(Vec3::new(2,2,3)), Some(Block::new(BlockMaterial::Air)));
+
+    assert_eq!(access.at(Vec3::new(0,3,0)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(0,3,1)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(0,3,2)), Some(Block::new(BlockMaterial::Earth)));
+    assert_eq!(access.at(Vec3::new(0,3,3)), Some(Block::new(BlockMaterial::Air)));
+}
+
 #[bench]
 fn raw_to_rle_speed(b: &mut Bencher) {
     b.iter(|| {

@@ -204,13 +204,6 @@ impl HeterogeneousData {
         (off.x as usize * self.size.y as usize * self.size.z as usize + off.y as usize * self.size.z as usize + off.z as usize)
     }
 
-    fn new() -> Self {
-        HeterogeneousData {
-            size: Vec3::from((0, 0, 0)),
-            voxels: Vec::new(),
-        }
-    }
-
     pub(crate) fn voxels_mut(&mut self) -> &mut Vec<Block> {
         &mut self.voxels
     }

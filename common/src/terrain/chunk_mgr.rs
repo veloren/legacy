@@ -77,7 +77,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
     // Tries getting a Sample
     pub fn try_get_sample(&self, from: VoxelAbsVec, to: VoxelAbsVec) -> Result<ChunkSample, ChunkSampleError> {
         let mut c = 0;
-        while true {
+        loop {
             match self.get_sample(from, to) {
                  Ok(sample) => return Ok(sample),
                  Err(e) => {
@@ -86,14 +86,13 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                          if c > 10 {
                              warn!("Long waiting chunk sample {}", c)
                          }
-                         thread::sleep(Duration::from_millis(10));
+                         thread::sleep(Duration::from_millis(1));
                      } else {
                          return Err(e);
                      }
                  }
             }
         }
-        panic!("unreachable");
     }
 
     pub fn get_sample(&self, from: VoxelAbsVec, to: VoxelAbsVec) -> Result<ChunkSample, ChunkSampleError> {
@@ -110,7 +109,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                         if cc.data_try().take().map(|value| map.insert(key, Arc::new(value))).is_none() {
                             return Err(ChunkSampleError::CannotGetLock);
                         }
-                        let v = map.get(&key).unwrap();
+                        let _ = map.get(&key).unwrap();
                     } else {
                         debug!("Chunk does not exist: {}", &key);
                         return Err(ChunkSampleError::ChunkMissing);
@@ -190,7 +189,6 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         }
 
         // generate new chunks
-        const GENERATION_FACTOR: f32 = 1.4;
         let mut chunk_map = HashMap::new();
         let block_loader: Vec<BlockLoader> = self.block_loader.read().iter().map(|e| (*e.read()).clone()).collect(); // buffer blockloader
 
@@ -216,7 +214,6 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                 }
             }
         }
-        //this is my failed attempt
         let mut chunks: Vec<(VolumeIdxVec, VolumeIdxType)> = chunk_map.iter().map(|pd| (*pd.0, *pd.1)).collect();
         chunks.sort_by(|a, b| a.1.cmp(&b.1));
 
@@ -235,32 +232,29 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         // unload all chunks which have a distance of DIFF_TILL_UNLOAD to a loaded area
 
         // drop old chunks
-        {
-            let mut to_remove = Vec::new(); //needed for lock on pers
-            for (k, _) in self.pers.map().iter() {
-                // skip if exists in HashMap
-                if chunk_map.contains_key(k) {
-                    continue;
-                }
-                let k_mid = terrain::volidx_to_voxabs(*k, self.vol_size) + self.vol_size.map(|e| e as i64 / 2);
-                let mut lowest_dist = DIFF_TILL_UNLOAD + 1; // bigger than DIFF_TILL_UNLOAD
-                // get block distance to nearest blockloader
-                for bl in block_loader.iter() {
-                    let pos = bl.pos;
-                    let size = bl.size;
-                    let pos_chunk = terrain::voxabs_to_volidx(pos, self.vol_size);
-                    let dist = (pos - k_mid).distance_squared(size);
-                    if dist < lowest_dist {
-                        lowest_dist = dist;
-                    }
-                }
-                if lowest_dist > DIFF_TILL_UNLOAD {
-                    to_remove.push(*k);
+        let mut to_remove = Vec::new(); //needed for lock on pers
+        for (k, _) in self.pers.map().iter() {
+            // skip if exists in HashMap
+            if chunk_map.contains_key(k) {
+                continue;
+            }
+            let k_mid = terrain::volidx_to_voxabs(*k, self.vol_size) + self.vol_size.map(|e| e as i64 / 2);
+            let mut lowest_dist = DIFF_TILL_UNLOAD + 1; // bigger than DIFF_TILL_UNLOAD
+            // get block distance to nearest blockloader
+            for bl in block_loader.iter() {
+                let pos = bl.pos;
+                let size = bl.size;
+                let dist = (pos - k_mid).distance_squared(size);
+                if dist < lowest_dist {
+                    lowest_dist = dist;
                 }
             }
-            for k in to_remove.iter() {
-                self.drop(*k);
+            if lowest_dist > DIFF_TILL_UNLOAD {
+                to_remove.push(*k);
             }
+        }
+        for k in to_remove.iter() {
+            self.drop(*k);
         }
     }
 
@@ -270,7 +264,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         let mut homo = 0;
         let mut hetero = 0;
         let mut heteroandrle = 0;
-        for (k, a) in lock.iter() {
+        for (_, a) in lock.iter() {
             let data = a.data();
             if data.contains(PersState::Homo) {
                 homo += 1;

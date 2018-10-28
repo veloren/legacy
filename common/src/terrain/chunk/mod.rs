@@ -5,6 +5,8 @@ mod sample;
 mod block;
 mod cluster;
 mod container;
+#[cfg(test)]
+mod tests;
 
 // Reexports
 pub use self::{

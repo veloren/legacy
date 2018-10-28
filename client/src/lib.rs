@@ -34,7 +34,7 @@ use vek::*;
 use common::{
     terrain::{
         chunk::{ChunkContainer},
-        Entity, VolGen, Voxel, ChunkMgr, VolumeIdxVec, VoxelRelType, FnGenFunc, FnDropFunc,
+        Entity, VolGen, ChunkMgr, VolumeIdxVec, VoxelRelType, FnGenFunc, FnDropFunc,
     },
     util::{
         manager::{Managed, Manager},

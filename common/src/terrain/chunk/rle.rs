@@ -1,9 +1,6 @@
 // Standard
 use std::{u8};
 
-// Library
-use vek::*;
-
 // Local
 use terrain::{
     chunk::{Block},
@@ -32,13 +29,6 @@ pub struct RleData {
 }
 
 impl RleData {
-    fn new() -> Self {
-        RleData {
-            size: Vec3::from((0, 0, 0)),
-            voxels: vec![],
-        }
-    }
-
     pub(crate) fn voxels_mut(&mut self) -> &mut Vec<Vec<BlockRle>> {
         &mut self.voxels
     }
@@ -56,7 +46,16 @@ impl Volume for RleData {
 
 impl ReadVolume for RleData {
     fn at_unsafe(&self, pos: VoxelRelVec) -> Block {
-        panic!("FEATURE NOT IMPLEMENTED YET: i dont feel like implement this now");
+        let col = &self.voxels[pos.x as usize * self.size.y as usize + pos.y as usize];
+        let mut oldz: u16 = 0;
+        for brle in col {
+            let z: u16 = oldz + brle.num_minus_one as u16 +1;
+            if pos.z >= oldz && pos.z < z {
+                return brle.block;
+            }
+            oldz = z;
+        }
+        Block::empty()
     }
 }
 

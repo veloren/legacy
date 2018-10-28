@@ -65,7 +65,7 @@ impl ReadWriteVolume for Figure {
 
 impl ConstructVolume for Figure {
     fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> Figure {
-        let mut vol = Figure {
+        let vol = Figure {
             size,
             voxels: vec![vox; (size.x * size.y * size.z) as usize],
         };

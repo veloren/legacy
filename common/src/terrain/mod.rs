@@ -66,9 +66,8 @@ pub fn voxabs_to_voxrel(voxabs: VoxelAbsVec, vol_size: VoxelRelVec) -> VoxelRelV
 
 /// Helper function to manually validate a offset of any time and convert it
 fn validate_offset<T: Num + ToPrimitive>(off: Vec3<T>, size: VoxelRelVec) -> Option<VoxelRelVec> {
-    let sz = size;
     let off = off.map(|e| e.to_i64().unwrap());
-    if off.x >= 0 && off.y >= 0 && off.z >= 0 && off.x < sz.x as i64 && off.y < sz.y as i64 && off.z < sz.z as i64 {
+    if off.x >= 0 && off.y >= 0 && off.z >= 0 && off.x < size.x as i64 && off.y < size.y as i64 && off.z < size.z as i64 {
         Some(off.map(|e| e as u16))
     } else {
         None
@@ -86,20 +85,12 @@ pub trait Volume { //Clone + Debug
 pub trait ReadVolume: Volume {
     /// Return a clone of the voxel at the specified offset into the volume.
     fn at(&self, off: VoxelRelVec) -> Option<Self::VoxelType> { // Default implementation
-        if let Some(off) = validate_offset(off, self.size()) {
-            Some(self.at_unsafe(off))
-        } else {
-            None
-        }
+        validate_offset(off, self.size()).map(|off| self.at_unsafe(off))
     }
 
     /// like `at` but acceps i64 instead of VoxelRelType
     fn at_conv(&self, off: Vec3<i64>) -> Option<Self::VoxelType> { // Default implementation
-        if let Some(off) = validate_offset(off, self.size()) {
-            self.at(off)
-        } else {
-            None
-        }
+        validate_offset(off, self.size()).map(|off| self.at_unsafe(off))
     }
 
     /// like `at` but without any checks
@@ -109,11 +100,7 @@ pub trait ReadVolume: Volume {
 pub trait ReadWriteVolume: ReadVolume {
     /// Replace the voxel at the specified offset into the volume, returning the old voxel if any.
     fn replace_at(&mut self, off: VoxelRelVec, vox: Self::VoxelType) -> Option<Self::VoxelType> { // Default implementation
-        if let Some(off) = validate_offset(off, self.size()) {
-            Some(self.replace_at_unsafe(off, vox))
-        } else {
-            None
-        }
+        validate_offset(off, self.size()).map(|off| self.replace_at_unsafe(off, vox))
     }
 
     /// like `replace_at` but without any checks
@@ -164,6 +151,13 @@ impl<V: Volume> SerializeVolume for V where V: Volume + Serialize + DeserializeO
     }
 }
 
+pub trait PhysicalVolume: ReadVolume {
+    fn scale(&self) -> Vec3<f32> {
+        // Default implementation
+        Vec3 { x: 1.0, y: 1.0, z: 1.0 }
+    }
+}
+
 pub trait VolCluster: Send + Sync + 'static {
     type VoxelType: Voxel;
 
@@ -174,22 +168,17 @@ pub trait VolCluster: Send + Sync + 'static {
     fn get<'a>(&'a self, state: PersState) -> Option<&'a dyn ReadVolume<VoxelType = Self::VoxelType>>;
     fn get_mut<'a>(&'a mut self, state: PersState) -> Option<&'a mut dyn ReadWriteVolume<VoxelType = Self::VoxelType>>;
     fn get_vol<'a>(&'a self, state: PersState) -> Option<&'a dyn Volume<VoxelType = Self::VoxelType>>;
+    fn get_physical<'a>(&'a self, state: PersState) -> Option<&'a dyn PhysicalVolume<VoxelType = Self::VoxelType>>;
     fn get_serializeable<'a>(&'a self, state: PersState) -> Option<&'a dyn SerializeVolume<VoxelType = Self::VoxelType>>;
     fn get_any<'a>(&'a self, state: PersState) -> Option<&'a dyn AnyVolume>;
     fn prefered<'a>(&'a self) -> Option<&'a dyn ReadVolume<VoxelType = Self::VoxelType>>;
     fn prefered_mut<'a>(&'a mut self) -> Option<&'a mut dyn ReadWriteVolume<VoxelType = Self::VoxelType>>;
     fn prefered_vol<'a>(&'a self) -> Option<&'a dyn Volume<VoxelType = Self::VoxelType>>;
+    fn prefered_physical<'a>(&'a self) -> Option<&'a dyn PhysicalVolume<VoxelType = Self::VoxelType>>;
     fn prefered_serializeable<'a>(&'a self) -> Option<&'a dyn SerializeVolume<VoxelType = Self::VoxelType>>;
     fn prefered_any<'a>(&'a self) -> Option<&'a dyn AnyVolume>;
     fn to_bytes(&mut self) -> Result<Vec<u8>, ()>;
     fn from_bytes(data: &[u8]) -> Result<Self, ()> where Self: Sized;
-}
-
-pub trait PhysicalVolume: Volume {
-    fn scale(&self) -> Vec3<f32> {
-        // Default implementation
-        Vec3 { x: 1.0, y: 1.0, z: 1.0 }
-    }
 }
 
 pub trait Container {

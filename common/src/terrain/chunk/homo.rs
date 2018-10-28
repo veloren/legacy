@@ -1,6 +1,3 @@
-// Library
-use vek::*;
-
 // Local
 use terrain::{
     chunk::Block,
@@ -14,13 +11,6 @@ pub struct HomogeneousData {
 }
 
 impl HomogeneousData {
-    fn new() -> Self {
-        HomogeneousData {
-            size: Vec3::from((0, 0, 0)),
-            voxel: Block::empty(),
-        }
-    }
-
     pub(crate) fn voxel_mut(&mut self) -> &mut Block {
         &mut self.voxel
     }

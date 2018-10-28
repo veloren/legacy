@@ -1,4 +1,4 @@
-use terrain::{VolCluster, PersState, Volume, ReadVolume, ReadWriteVolume, AnyVolume, SerializeVolume, ConstructVolume, VoxelRelType, Voxel};
+use terrain::{VolCluster, PersState, Volume, ReadVolume, ReadWriteVolume, AnyVolume, PhysicalVolume, SerializeVolume, ConstructVolume, VoxelRelType, Voxel};
 use terrain::chunk::{Block, HomogeneousData, HeterogeneousData, RleData, rle::{BlockRle, BLOCK_RLE_MAX_NUM}};
 use vek::*;
 
@@ -249,6 +249,31 @@ impl VolCluster for Chunk {
         };
     }
 
+    fn get_physical<'a>(&'a self, state: PersState) -> Option<&'a dyn PhysicalVolume<VoxelType = Block>> {
+        return match state {
+            PersState::Homo => {
+                match self {
+                    Chunk::Homo( homo ) => Some(homo as &dyn PhysicalVolume<VoxelType = Block>),
+                    _ => None,
+                }
+            },
+            PersState::Hetero => {
+                match self {
+                    Chunk::Hetero( hetero ) => Some(hetero as &dyn PhysicalVolume<VoxelType = Block>),
+                    Chunk::HeteroAndRle( hetero, _ ) => Some(hetero as &dyn PhysicalVolume<VoxelType = Block>),
+                    _ => None,
+                }
+            },
+            PersState::Rle => {
+                match self {
+                    Chunk::Rle( rle ) => Some(rle as &dyn PhysicalVolume<VoxelType = Block>),
+                    Chunk::HeteroAndRle( _, rle ) => Some(rle as &dyn PhysicalVolume<VoxelType = Block>),
+                    _ => None,
+                }
+            },
+        };
+    }
+
     fn get_serializeable<'a>(&'a self, state: PersState) -> Option<&'a dyn SerializeVolume<VoxelType = Block>> {
         return match state {
             PersState::Homo => {
@@ -313,6 +338,15 @@ impl VolCluster for Chunk {
 
     fn prefered_vol<'a>(&'a self) -> Option<&'a dyn Volume<VoxelType = Block>> {
         self.get_vol(match self {
+            Chunk::Homo( _ ) => PersState::Homo,
+            Chunk::Hetero( _ ) => PersState::Hetero,
+            Chunk::Rle( _ ) => PersState::Rle,
+            Chunk::HeteroAndRle( _, _ ) => PersState::Hetero,
+        })
+    }
+
+    fn prefered_physical<'a>(&'a self) -> Option<&'a dyn PhysicalVolume<VoxelType = Block>> {
+        self.get_physical(match self {
             Chunk::Homo( _ ) => PersState::Homo,
             Chunk::Hetero( _ ) => PersState::Hetero,
             Chunk::Rle( _ ) => PersState::Rle,

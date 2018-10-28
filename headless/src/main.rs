@@ -16,7 +16,6 @@ use std::{io, sync::Arc};
 
 // Library
 use syrup::Window;
-use vek::*;
 use parking_lot::Mutex;
 
 // Project
@@ -29,10 +28,10 @@ impl client::Payloads for Payloads {
     type Entity = ();
 }
 
-fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
+fn gen_payload(_key: VolumeIdxVec, _con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
 }
 
-fn drop_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
+fn drop_payload(_key: VolumeIdxVec, _con: Arc<ChunkContainer<<Payloads as client::Payloads>::Chunk>>) {
 }
 
 fn main() {

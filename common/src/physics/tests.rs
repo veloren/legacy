@@ -8,13 +8,13 @@ use parking_lot::{RwLock, Mutex};
 
 // Parent
 use physics::{
-    collision::{Cuboid, Primitive, ResolutionCol, ResolutionTti},
+    collision::{Primitive, ResolutionCol, ResolutionTti},
     physics,
 };
 use terrain::{
     chunk::{Block, BlockMaterial, Chunk, ChunkContainer, HeterogeneousData},
-    Container, Entity, PersState, VolGen, ChunkMgr, Volume, Voxel, ConstructVolume, ReadVolume, ReadWriteVolume, VolCluster,
-    VoxelAbsVec, VoxelRelVec, VoxelRelType, VolumeIdxVec, VolumeIdxType, AnyVolume, BlockLoader,
+    Container, Entity, VolGen, ChunkMgr, Voxel, ConstructVolume, ReadWriteVolume, VolCluster,
+    VoxelRelType, VolumeIdxVec, BlockLoader,
 };
 use Uid;
 

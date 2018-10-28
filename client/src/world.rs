@@ -1,5 +1,5 @@
 // Standard
-use std::{fs::File, io::prelude::*, path::Path, u8, sync::Arc};
+use std::{fs::File, io::prelude::*, path::Path, sync::Arc, u8};
 
 // Library
 use vek::*;
@@ -7,13 +7,13 @@ use vek::*;
 // Project
 use common::{
     terrain::{
-        chunk::{HeterogeneousData, ChunkContainer, Chunk},
-        BlockLoader, Container, Key, VolumeIdxVec, VoxelAbsType, VolumeIdxType, VolCluster, PersState,
+        self,
+        chunk::{Chunk, ChunkContainer, HeterogeneousData},
+        BlockLoader, Container, Key, PersState, VolCluster, VolumeIdxType, VolumeIdxVec, VoxelAbsType,
     },
-    terrain,
     util::manager::Manager,
 };
-use parking_lot::{RwLock, Mutex};
+use parking_lot::{Mutex, RwLock};
 
 // Local
 use Client;
@@ -81,8 +81,14 @@ impl<P: Payloads> Client<P> {
             let view_dist_block = terrain::volidx_to_voxabs(Vec3::new(view_dist, view_dist, view_dist), vol_size);
             let mut bl = self.chunk_mgr().block_loader_mut();
             bl.clear();
-            bl.push(Arc::new(RwLock::new(BlockLoader{pos: player_pos, size: view_dist_block}))); //player
-            bl.push(Arc::new(RwLock::new(BlockLoader{pos: player_pos + player_vel * 5, size: view_dist_block}))); // player in 5 sec
+            bl.push(Arc::new(RwLock::new(BlockLoader {
+                pos: player_pos,
+                size: view_dist_block,
+            }))); //player
+            bl.push(Arc::new(RwLock::new(BlockLoader {
+                pos: player_pos + player_vel * 5,
+                size: view_dist_block,
+            }))); // player in 5 sec
         }
         self.chunk_mgr().maintain();
         self.chunk_mgr().debug();

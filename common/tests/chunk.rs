@@ -1,20 +1,20 @@
 #![feature(test)]
 
 extern crate common;
+extern crate parking_lot;
 extern crate test;
 extern crate vek;
-extern crate parking_lot;
 // Standard
 
 // Library
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use test::Bencher;
 use vek::*;
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 // Project
 use common::terrain::{
-    chunk::{Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, HeterogeneousData, RleData, HomogeneousData},
-    Container, PersState, VolPers, Volume, Voxel, ConstructVolume, VolCluster, ReadVolume, ReadWriteVolume,
+    chunk::{Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, HeterogeneousData, HomogeneousData, RleData},
+    ConstructVolume, Container, PersState, ReadVolume, ReadWriteVolume, VolCluster, VolPers, Volume, Voxel,
 };
 
 /* Reference Chunk
@@ -178,7 +178,10 @@ fn convert_rle_to_raw() {
     assert!(!con.contains(PersState::Homo));
     assert!(con.contains(PersState::Rle));
     let hetero = con.get_any(PersState::Hetero).unwrap();
-    let hetero: &HeterogeneousData = hetero.as_any().downcast_ref::<HeterogeneousData>().expect("Should be HeterogeneousData");
+    let hetero: &HeterogeneousData = hetero
+        .as_any()
+        .downcast_ref::<HeterogeneousData>()
+        .expect("Should be HeterogeneousData");
     let correct_hetero = gen_hetero();
     // TODO: Set this test up again
     assert_eq!(correct_hetero, *hetero);
@@ -188,26 +191,26 @@ fn convert_rle_to_raw() {
 fn read_rle() {
     let con = Chunk::Rle(gen_rle());
     let access = con.prefered().unwrap();
-    assert_eq!(access.at(Vec3::new(0,0,0)), Some(Block::new(BlockMaterial::Stone)));
-    assert_eq!(access.at(Vec3::new(0,1,0)), Some(Block::new(BlockMaterial::Earth)));
-    assert_eq!(access.at(Vec3::new(0,2,0)), Some(Block::new(BlockMaterial::Stone)));
-    assert_eq!(access.at(Vec3::new(0,3,0)), Some(Block::new(BlockMaterial::Stone)));
-    assert_eq!(access.at(Vec3::new(0,4,0)), None);
+    assert_eq!(access.at(Vec3::new(0, 0, 0)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(0, 1, 0)), Some(Block::new(BlockMaterial::Earth)));
+    assert_eq!(access.at(Vec3::new(0, 2, 0)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(0, 3, 0)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(0, 4, 0)), None);
 
-    assert_eq!(access.at(Vec3::new(1,0,3)), Some(Block::new(BlockMaterial::Earth)));
-    assert_eq!(access.at(Vec3::new(1,1,3)), Some(Block::new(BlockMaterial::Earth)));
-    assert_eq!(access.at(Vec3::new(1,2,3)), Some(Block::new(BlockMaterial::Air)));
-    assert_eq!(access.at(Vec3::new(1,3,3)), Some(Block::new(BlockMaterial::Sand)));
+    assert_eq!(access.at(Vec3::new(1, 0, 3)), Some(Block::new(BlockMaterial::Earth)));
+    assert_eq!(access.at(Vec3::new(1, 1, 3)), Some(Block::new(BlockMaterial::Earth)));
+    assert_eq!(access.at(Vec3::new(1, 2, 3)), Some(Block::new(BlockMaterial::Air)));
+    assert_eq!(access.at(Vec3::new(1, 3, 3)), Some(Block::new(BlockMaterial::Sand)));
 
-    assert_eq!(access.at(Vec3::new(2,2,0)), Some(Block::new(BlockMaterial::Stone)));
-    assert_eq!(access.at(Vec3::new(2,2,1)), Some(Block::new(BlockMaterial::Air)));
-    assert_eq!(access.at(Vec3::new(2,2,2)), Some(Block::new(BlockMaterial::Air)));
-    assert_eq!(access.at(Vec3::new(2,2,3)), Some(Block::new(BlockMaterial::Air)));
+    assert_eq!(access.at(Vec3::new(2, 2, 0)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(2, 2, 1)), Some(Block::new(BlockMaterial::Air)));
+    assert_eq!(access.at(Vec3::new(2, 2, 2)), Some(Block::new(BlockMaterial::Air)));
+    assert_eq!(access.at(Vec3::new(2, 2, 3)), Some(Block::new(BlockMaterial::Air)));
 
-    assert_eq!(access.at(Vec3::new(0,3,0)), Some(Block::new(BlockMaterial::Stone)));
-    assert_eq!(access.at(Vec3::new(0,3,1)), Some(Block::new(BlockMaterial::Stone)));
-    assert_eq!(access.at(Vec3::new(0,3,2)), Some(Block::new(BlockMaterial::Earth)));
-    assert_eq!(access.at(Vec3::new(0,3,3)), Some(Block::new(BlockMaterial::Air)));
+    assert_eq!(access.at(Vec3::new(0, 3, 0)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(0, 3, 1)), Some(Block::new(BlockMaterial::Stone)));
+    assert_eq!(access.at(Vec3::new(0, 3, 2)), Some(Block::new(BlockMaterial::Earth)));
+    assert_eq!(access.at(Vec3::new(0, 3, 3)), Some(Block::new(BlockMaterial::Air)));
 }
 
 #[bench]

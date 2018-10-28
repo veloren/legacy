@@ -1,7 +1,7 @@
 use common::terrain::{
     chunk::{Block, BlockMaterial, HeterogeneousData, HomogeneousData},
     figure::{Cell, CellMaterial, Figure},
-    Voxel, ReadVolume, PhysicalVolume,
+    PhysicalVolume, ReadVolume, Voxel,
 };
 use voxel::{Material, MaterialKind, RenderMaterial};
 
@@ -91,5 +91,5 @@ impl RenderVoxel for Cell {
     fn is_occupied(&self) -> bool { self.get_mat().is_opaque() }
 }
 
-impl<B, V: PhysicalVolume<VoxelType=B> + ReadVolume<VoxelType=B>> RenderVolume for V where B: RenderVoxel {}
+impl<B, V: PhysicalVolume<VoxelType = B> + ReadVolume<VoxelType = B>> RenderVolume for V where B: RenderVoxel {}
 //the trait `voxel::render_volume::RenderVolume` is not implemented for `dyn common::terrain::PhysicalVolume<VoxelType=common::terrain::chunk::Block>`

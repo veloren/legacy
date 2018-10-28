@@ -2,9 +2,9 @@
 use std::{collections::HashMap, sync::Arc, thread, time};
 
 //Library
+use parking_lot::{Mutex, RwLock};
 use rand::prelude::*;
 use vek::*;
-use parking_lot::{RwLock, Mutex};
 
 // Parent
 use physics::{
@@ -13,8 +13,8 @@ use physics::{
 };
 use terrain::{
     chunk::{Block, BlockMaterial, Chunk, ChunkContainer, HeterogeneousData},
-    Container, Entity, VolGen, ChunkMgr, Voxel, ConstructVolume, ReadWriteVolume, VolCluster,
-    VoxelRelType, VolumeIdxVec, BlockLoader,
+    BlockLoader, ChunkMgr, ConstructVolume, Container, Entity, ReadWriteVolume, VolCluster, VolGen, VolumeIdxVec,
+    Voxel, VoxelRelType,
 };
 use Uid;
 
@@ -725,15 +725,17 @@ fn gen_payload(_pos: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<i64>>>>)
     }
 }
 
-fn drop_chunk(_pos: VolumeIdxVec, _con: Arc<ChunkContainer<i64>>) { }
+fn drop_chunk(_pos: VolumeIdxVec, _con: Arc<ChunkContainer<i64>>) {}
 
-fn drop_payload(_pos: VolumeIdxVec, _con: Arc<ChunkContainer<i64>>) { }
-
+fn drop_payload(_pos: VolumeIdxVec, _con: Arc<ChunkContainer<i64>>) {}
 
 #[test]
 fn physics_fall() {
-    let vol_mgr = ChunkMgr::new(Vec3::from_slice(&CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload));
-    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader{
+    let vol_mgr = ChunkMgr::new(
+        Vec3::from_slice(&CHUNK_SIZE),
+        VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload),
+    );
+    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
         pos: Vec3::new(0, 0, 0),
         size: Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2]).map(|e| e as i64 * 10),
     })));
@@ -763,8 +765,11 @@ fn physics_fall() {
 
 #[test]
 fn physics_fallfast() {
-    let vol_mgr = ChunkMgr::new(Vec3::from_slice(&CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload));
-    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader{
+    let vol_mgr = ChunkMgr::new(
+        Vec3::from_slice(&CHUNK_SIZE),
+        VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload),
+    );
+    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
         pos: Vec3::new(0, 0, 0),
         size: Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2]).map(|e| e as i64 * 10),
     })));
@@ -794,8 +799,11 @@ fn physics_fallfast() {
 
 #[test]
 fn physics_jump() {
-    let vol_mgr = ChunkMgr::new(Vec3::from_slice(&CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload));
-    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader{
+    let vol_mgr = ChunkMgr::new(
+        Vec3::from_slice(&CHUNK_SIZE),
+        VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload),
+    );
+    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
         pos: Vec3::new(0, 0, 0),
         size: Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2]).map(|e| e as i64 * 10),
     })));
@@ -834,8 +842,11 @@ fn physics_jump() {
 
 #[test]
 fn physics_walk() {
-    let vol_mgr = ChunkMgr::new(Vec3::from_slice(&CHUNK_SIZE), VolGen::new(gen_chunk_flat_border, gen_payload, drop_chunk, drop_payload));
-    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader{
+    let vol_mgr = ChunkMgr::new(
+        Vec3::from_slice(&CHUNK_SIZE),
+        VolGen::new(gen_chunk_flat_border, gen_payload, drop_chunk, drop_payload),
+    );
+    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
         pos: Vec3::new(0, 0, 0),
         size: Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2]).map(|e| e as i64 * 10),
     })));

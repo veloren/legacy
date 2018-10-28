@@ -4,10 +4,10 @@
 extern crate client;
 extern crate common;
 extern crate get_if_addrs;
+extern crate parking_lot;
 extern crate pretty_env_logger;
 extern crate syrup;
 extern crate vek;
-extern crate parking_lot;
 #[macro_use]
 extern crate log;
 
@@ -15,8 +15,8 @@ extern crate log;
 use std::{io, sync::Arc};
 
 // Library
-use syrup::Window;
 use parking_lot::Mutex;
+use syrup::Window;
 
 // Project
 use client::{Client, ClientEvent, PlayMode};
@@ -28,11 +28,9 @@ impl client::Payloads for Payloads {
     type Entity = ();
 }
 
-fn gen_payload(_key: VolumeIdxVec, _con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
-}
+fn gen_payload(_key: VolumeIdxVec, _con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {}
 
-fn drop_payload(_key: VolumeIdxVec, _con: Arc<ChunkContainer<<Payloads as client::Payloads>::Chunk>>) {
-}
+fn drop_payload(_key: VolumeIdxVec, _con: Arc<ChunkContainer<<Payloads as client::Payloads>::Chunk>>) {}
 
 fn main() {
     info!("Starting headless client...");
@@ -56,8 +54,15 @@ fn main() {
         alias = default_alias.to_string();
     }
 
-    let client = Client::<Payloads>::new(PlayMode::Headless, alias, &remote_addr.trim(), gen_payload, drop_payload, 0)
-        .expect("error when attempting to initiate the client");
+    let client = Client::<Payloads>::new(
+        PlayMode::Headless,
+        alias,
+        &remote_addr.trim(),
+        gen_payload,
+        drop_payload,
+        0,
+    )
+    .expect("error when attempting to initiate the client");
 
     let mut win = Window::initscr();
     win.writeln("Welcome to the Veloren headless client.");

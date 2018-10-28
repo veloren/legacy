@@ -6,7 +6,7 @@ use vek::*;
 // Local
 use terrain::{
     chunk::{Block, BlockMaterial},
-    Volume, ReadVolume, ReadWriteVolume, PhysicalVolume, ConstructVolume, Voxel, VoxelRelVec, VoxelAbsVec,
+    ConstructVolume, PhysicalVolume, ReadVolume, ReadWriteVolume, Volume, Voxel, VoxelAbsVec, VoxelRelVec,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -126,7 +126,8 @@ impl HeterogeneousData {
 
                 for k in 0..size.z {
                     if chunk.at_unsafe(Vec3::new(i, j, k)).material() == BlockMaterial::Earth
-                        && k < size.z-1 && chunk.at_unsafe(Vec3::new(i, j, k + 1)).material() == BlockMaterial::Air
+                        && k < size.z - 1
+                        && chunk.at_unsafe(Vec3::new(i, j, k + 1)).material() == BlockMaterial::Air
                     {
                         if boulder_noise.get((pos2d * 123.573).into_array()) > 0.54 {
                             let mut rng = XorShiftRng::from_seed([
@@ -137,10 +138,7 @@ impl HeterogeneousData {
                                     for kk in -4..5 {
                                         if ii * ii + jj * jj + kk * kk < 25 + rng.next_u32() as i64 % 5 {
                                             let off = Vec3::new(i as i64 + ii, j as i64 + jj, k as i64 + kk);
-                                            chunk.set_at(
-                                                off.map(|e| e as u16),
-                                                Block::new(BlockMaterial::Stone),
-                                            );
+                                            chunk.set_at(off.map(|e| e as u16), Block::new(BlockMaterial::Stone));
                                         }
                                     }
                                 }
@@ -161,19 +159,13 @@ impl HeterogeneousData {
                                 for l in 0..25 + big * 4 {
                                     let inc = v.map(|e| (e * (1.0 - 0.025 * branch as f64) * 0.5 * l as f64) as i64);
                                     let off = Vec3::new(i as i64 + inc.x, j as i64 + inc.y, k as i64 + branch / 2);
-                                    chunk.set_at(
-                                        off.map(|e| e as u16),
-                                        Block::new(BlockMaterial::Leaves),
-                                    );
+                                    chunk.set_at(off.map(|e| e as u16), Block::new(BlockMaterial::Leaves));
                                 }
                             }
 
                             for trunk in 0..6 + big as u16 {
                                 let off = Vec3::new(i, j, k + trunk);
-                                chunk.set_at(
-                                    off,
-                                    Block::new(BlockMaterial::Log),
-                                );
+                                chunk.set_at(off, Block::new(BlockMaterial::Log));
                             }
                         } else {
                             let off = Vec3::new(i, j, k);
@@ -201,12 +193,12 @@ impl HeterogeneousData {
     }
 
     fn calculate_index(&self, off: VoxelRelVec) -> usize {
-        (off.x as usize * self.size.y as usize * self.size.z as usize + off.y as usize * self.size.z as usize + off.z as usize)
+        (off.x as usize * self.size.y as usize * self.size.z as usize
+            + off.y as usize * self.size.z as usize
+            + off.z as usize)
     }
 
-    pub(crate) fn voxels_mut(&mut self) -> &mut Vec<Block> {
-        &mut self.voxels
-    }
+    pub(crate) fn voxels_mut(&mut self) -> &mut Vec<Block> { &mut self.voxels }
 }
 
 impl Volume for HeterogeneousData {
@@ -216,9 +208,7 @@ impl Volume for HeterogeneousData {
 }
 
 impl ReadVolume for HeterogeneousData {
-    fn at_unsafe(&self, off: VoxelRelVec) -> Block {
-        self.voxels[self.calculate_index(off)]
-    }
+    fn at_unsafe(&self, off: VoxelRelVec) -> Block { self.voxels[self.calculate_index(off)] }
 }
 
 impl ReadWriteVolume for HeterogeneousData {
@@ -244,10 +234,7 @@ impl ConstructVolume for HeterogeneousData {
         }
     }
 
-    fn empty(size: VoxelRelVec) -> HeterogeneousData {
-        Self::filled(size, Block::empty())
-    }
+    fn empty(size: VoxelRelVec) -> HeterogeneousData { Self::filled(size, Block::empty()) }
 }
 
-impl PhysicalVolume for HeterogeneousData {
-}
+impl PhysicalVolume for HeterogeneousData {}

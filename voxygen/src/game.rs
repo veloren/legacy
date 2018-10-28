@@ -2,7 +2,10 @@
 use std::{
     f32::consts::PI,
     net::ToSocketAddrs,
-    sync::{Arc, atomic::{AtomicBool, Ordering}},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 
 // Library
@@ -22,7 +25,7 @@ use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::{
     terrain::{
         chunk::{ChunkContainer, HeterogeneousData, HomogeneousData, RleData},
-        Container, PersState, VolumeIdxVec, VolCluster,
+        Container, PersState, VolCluster, VolumeIdxVec,
     },
     util::manager::Manager,
 };
@@ -100,7 +103,10 @@ fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads
             return;
         };
         if let Some(hetero) = con.data().get_any(PersState::Hetero) {
-            let hetero: &HeterogeneousData = hetero.as_any().downcast_ref::<HeterogeneousData>().expect("Should be Hetero");
+            let hetero: &HeterogeneousData = hetero
+                .as_any()
+                .downcast_ref::<HeterogeneousData>()
+                .expect("Should be Hetero");
             *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(hetero)));
             return;
         };
@@ -109,12 +115,13 @@ fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads
             *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(rle)));
             return;
         };
-        panic!("cannot generate Payload, beacuse chunk is neither homo, nor hetero, nor rle. have you added a new type?");
+        panic!(
+            "cannot generate Payload, beacuse chunk is neither homo, nor hetero, nor rle. have you added a new type?"
+        );
     }
 }
 
-fn drop_payload(_key: VolumeIdxVec, _con: Arc<ChunkContainer<<Payloads as client::Payloads>::Chunk>>) {
-}
+fn drop_payload(_key: VolumeIdxVec, _con: Arc<ChunkContainer<<Payloads as client::Payloads>::Chunk>>) {}
 
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: PlayMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {
@@ -126,8 +133,15 @@ impl Game {
         );
         *RENDERER_INFO.lock() = Some(info);
 
-        let client = Client::new(mode, alias.to_string(), remote_addr, gen_payload, drop_payload, view_distance)
-            .expect("Could not create new client");
+        let client = Client::new(
+            mode,
+            alias.to_string(),
+            remote_addr,
+            gen_payload,
+            drop_payload,
+            view_distance,
+        )
+        .expect("Could not create new client");
 
         // Contruct the UI
         let _window_dims = window.get_size();
@@ -344,7 +358,9 @@ impl Game {
 
         for (pos, con) in self.client.chunk_mgr().map().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
-            if (*pos - cam_chunk.map(|e| e as i32)).map(|e| e.abs() as u16).sum() > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE[0] {
+            if (*pos - cam_chunk.map(|e| e as i32)).map(|e| e.abs() as u16).sum()
+                > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE[0]
+            {
                 continue;
             }
             {
@@ -480,7 +496,9 @@ impl Game {
         // Render each chunk
         for (pos, con) in self.client.chunk_mgr().map().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
-            if (*pos - cam_chunk.map(|e| e as i32)).map(|e| e.abs() as u16).sum() > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE[0] {
+            if (*pos - cam_chunk.map(|e| e as i32)).map(|e| e.abs() as u16).sum()
+                > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE[0]
+            {
                 continue;
             }
             // rendering actually does not set the time, but updating does it

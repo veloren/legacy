@@ -32,10 +32,7 @@ use vek::*;
 
 // Project
 use common::{
-    terrain::{
-        chunk::{ChunkContainer},
-        Entity, VolGen, ChunkMgr, VolumeIdxVec, VoxelRelType, FnGenFunc, FnDropFunc,
-    },
+    terrain::{chunk::ChunkContainer, ChunkMgr, Entity, FnDropFunc, FnGenFunc, VolGen, VolumeIdxVec, VoxelRelType},
     util::{
         manager::{Managed, Manager},
         msg::{ClientMsg, ClientPostOffice, ServerMsg, SessionKind},
@@ -89,7 +86,11 @@ pub struct Client<P: Payloads> {
 }
 
 impl<P: Payloads> Client<P> {
-    pub fn new<S: ToSocketAddrs, GP: FnGenFunc<VolumeIdxVec, ChunkContainer<P::Chunk>>, DP: FnDropFunc<VolumeIdxVec, ChunkContainer<P::Chunk>> >(
+    pub fn new<
+        S: ToSocketAddrs,
+        GP: FnGenFunc<VolumeIdxVec, ChunkContainer<P::Chunk>>,
+        DP: FnDropFunc<VolumeIdxVec, ChunkContainer<P::Chunk>>,
+    >(
         mode: PlayMode,
         alias: String,
         remote_addr: S,
@@ -144,9 +145,7 @@ impl<P: Payloads> Client<P> {
         (Vec3::from_slice(&CHUNK_SIZE).map(|e| e as f32) * (self.view_distance as f32)).magnitude()
     }
 
-    pub fn chunk_mgr(&self) -> &ChunkMgr<<P as Payloads>::Chunk> {
-        &self.chunk_mgr
-    }
+    pub fn chunk_mgr(&self) -> &ChunkMgr<<P as Payloads>::Chunk> { &self.chunk_mgr }
 
     pub fn get_events(&self) -> Vec<ClientEvent> {
         let mut events = vec![];

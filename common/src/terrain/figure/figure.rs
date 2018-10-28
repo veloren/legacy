@@ -4,7 +4,7 @@ use vek::*;
 // Local
 use terrain::{
     figure::{Cell, CellMaterial},
-    Volume, Voxel, PhysicalVolume, ReadVolume, ReadWriteVolume, ConstructVolume, VoxelRelVec,
+    ConstructVolume, PhysicalVolume, ReadVolume, ReadWriteVolume, Volume, Voxel, VoxelRelVec,
 };
 
 pub struct Figure {
@@ -24,10 +24,7 @@ impl Figure {
             }
         }
 
-        Figure {
-            size,
-            voxels,
-        }
+        Figure { size, voxels }
     }
 
     fn calculate_index(&self, off: VoxelRelVec) -> usize {
@@ -42,9 +39,7 @@ impl Volume for Figure {
 }
 
 impl ReadVolume for Figure {
-    fn at_unsafe(&self, off: VoxelRelVec) -> Cell {
-        self.voxels[self.calculate_index(off)]
-    }
+    fn at_unsafe(&self, off: VoxelRelVec) -> Cell { self.voxels[self.calculate_index(off)] }
 }
 
 impl ReadWriteVolume for Figure {
@@ -72,15 +67,11 @@ impl ConstructVolume for Figure {
         vol
     }
 
-    fn empty(size: VoxelRelVec) -> Figure {
-        Self::filled(size, Cell::empty())
-    }
+    fn empty(size: VoxelRelVec) -> Figure { Self::filled(size, Cell::empty()) }
 }
 
 impl PhysicalVolume for Figure {
-    fn scale(&self) -> Vec3<f32> {
-        Vec3::new(0.1, 0.1, 0.1)
-    }
+    fn scale(&self) -> Vec3<f32> { Vec3::new(0.1, 0.1, 0.1) }
 }
 
 /*

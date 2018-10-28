@@ -12,7 +12,7 @@ use terrain::{Voxel, VoxelAbsType, VoxelAbsVec};
 use Uid;
 
 // Local
-use terrain::{Entity, ChunkMgr};
+use terrain::{ChunkMgr, Entity};
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 const GROUND_GRAVITY: f32 = -9.81;
@@ -20,7 +20,7 @@ const BLOCK_SIZE_PLUS_SMALL: f32 = 1.0 + PLANCK_LENGTH;
 const BLOCK_HOP_SPEED: f32 = 15.0;
 const BLOCK_HOP_MAX: f32 = 0.34;
 
-fn get_bounds(col: &Primitive, dir: Vec3<f32>) -> (/*low:*/VoxelAbsVec , /*high:*/VoxelAbsVec) {
+fn get_bounds(col: &Primitive, dir: Vec3<f32>) -> (/*low:*/ VoxelAbsVec, /*high:*/ VoxelAbsVec) {
     // get the entity boundrieds and convert them to blocks, then caluclate the entity velocity and adjust it
     // then move the playr up by BLOCK_SIZE_PLUS_SMALL for block hopping
 
@@ -41,7 +41,12 @@ fn get_bounds(col: &Primitive, dir: Vec3<f32>) -> (/*low:*/VoxelAbsVec , /*high:
 }
 
 // estimates the blocks around a entity that are needed during physics calculation.
-fn get_nearby(col: &Primitive, grav: Vec3<f32>, vel: Vec3<f32>, dt: f32) -> (/*low:*/VoxelAbsVec , /*high:*/VoxelAbsVec) {
+fn get_nearby(
+    col: &Primitive,
+    grav: Vec3<f32>,
+    vel: Vec3<f32>,
+    dt: f32,
+) -> (/*low:*/ VoxelAbsVec, /*high:*/ VoxelAbsVec) {
     let (mut low, mut high) = get_bounds(col, grav.map(|e| e * dt));
     let (l2, h2) = get_bounds(col, vel.map(|e| e * dt));
 
@@ -73,8 +78,16 @@ fn get_nearby(col: &Primitive, grav: Vec3<f32>, vel: Vec3<f32>, dt: f32) -> (/*l
 
 fn calc_vel(old_vel: Vec3<f32>, wanted_ctrl_acc: Vec3<f32>, dt: f32, fric_fac: Vec3<f32>) -> Vec3<f32> {
     // Gravity
-    const ENTITY_ACC: Vec3<f32> = Vec3 { x: 32.0 / LENGTH_OF_BLOCK, y: 32.0 / LENGTH_OF_BLOCK, z: 200.0 / LENGTH_OF_BLOCK };
-    const GRAVITY_ACC: Vec3<f32> = Vec3 { x: 0.0 / LENGTH_OF_BLOCK, y: 0.0 / LENGTH_OF_BLOCK, z: GROUND_GRAVITY / LENGTH_OF_BLOCK };
+    const ENTITY_ACC: Vec3<f32> = Vec3 {
+        x: 32.0 / LENGTH_OF_BLOCK,
+        y: 32.0 / LENGTH_OF_BLOCK,
+        z: 200.0 / LENGTH_OF_BLOCK,
+    };
+    const GRAVITY_ACC: Vec3<f32> = Vec3 {
+        x: 0.0 / LENGTH_OF_BLOCK,
+        y: 0.0 / LENGTH_OF_BLOCK,
+        z: GROUND_GRAVITY / LENGTH_OF_BLOCK,
+    };
 
     let wanted_ctrl_acc_length = Vec3::new(wanted_ctrl_acc.x, wanted_ctrl_acc.y, 0.0).magnitude();
     let mut wanted_ctrl_acc = wanted_ctrl_acc;
@@ -106,11 +119,31 @@ pub fn tick<
     dt: f32,
 ) {
     const ENTITY_MIDDLE_OFFSET: Vec3<f32> = Vec3 { x: 0.0, y: 0.0, z: 0.9 };
-    const ENTITY_RADIUS: Vec3<f32> = Vec3 { x: 0.45, y: 0.45, z: 0.9 };
-    const SMALLER_THAN_BLOCK_GOING_DOWN: Vec3<f32> = Vec3 { x: 0.0, y: 0.0, z: -0.1 };
-    const CONTROL_IN_AIR: Vec3<f32> = Vec3 { x: 0.17, y: 0.17, z: 0.0 };
-    const FRICTION_ON_GROUND: Vec3<f32> = Vec3 { x: 0.0015, y: 0.0015, z: 0.0015 };
-    const FRICTION_IN_AIR: Vec3<f32> = Vec3 { x: 0.2, y: 0.2, z: 0.78 };
+    const ENTITY_RADIUS: Vec3<f32> = Vec3 {
+        x: 0.45,
+        y: 0.45,
+        z: 0.9,
+    };
+    const SMALLER_THAN_BLOCK_GOING_DOWN: Vec3<f32> = Vec3 {
+        x: 0.0,
+        y: 0.0,
+        z: -0.1,
+    };
+    const CONTROL_IN_AIR: Vec3<f32> = Vec3 {
+        x: 0.17,
+        y: 0.17,
+        z: 0.0,
+    };
+    const FRICTION_ON_GROUND: Vec3<f32> = Vec3 {
+        x: 0.0015,
+        y: 0.0015,
+        z: 0.0015,
+    };
+    const FRICTION_IN_AIR: Vec3<f32> = Vec3 {
+        x: 0.2,
+        y: 0.2,
+        z: 0.78,
+    };
 
     for (.., entity) in entities {
         let mut entity = entity.write();
@@ -126,7 +159,12 @@ pub fn tick<
         let wanted_ctrl_acc2 = wanted_ctrl_acc1 * CONTROL_IN_AIR;
 
         // apply acc to vel
-        let vel1 = calc_vel(*entity.vel(), wanted_ctrl_acc1, dt, FRICTION_ON_GROUND.map(|e| e.powf(dt)));
+        let vel1 = calc_vel(
+            *entity.vel(),
+            wanted_ctrl_acc1,
+            dt,
+            FRICTION_ON_GROUND.map(|e| e.powf(dt)),
+        );
         let vel2 = calc_vel(*entity.vel(), wanted_ctrl_acc2, dt, FRICTION_IN_AIR.map(|e| e.powf(dt)));
 
         // generate primitives from volsample
@@ -139,7 +177,10 @@ pub fn tick<
         let mut nearby_primitives = Vec::new();
         for (pos, b) in volsample.iter() {
             if b.is_solid() {
-                let entity = Primitive::new_cuboid(pos.map(|e| e as f32) + Vec3::new(0.5, 0.5, 0.5), Vec3::new(0.5, 0.5, 0.5));
+                let entity = Primitive::new_cuboid(
+                    pos.map(|e| e as f32) + Vec3::new(0.5, 0.5, 0.5),
+                    Vec3::new(0.5, 0.5, 0.5),
+                );
                 nearby_primitives.push(entity);
             }
         }
@@ -158,11 +199,7 @@ pub fn tick<
             }
         }
 
-        *entity.vel_mut() = if on_ground {
-            vel1
-        } else {
-            vel2
-        };
+        *entity.vel_mut() = if on_ground { vel1 } else { vel2 };
 
         let mut velocity = *entity.vel() * dt;
         //debug!("velocity: {}", velocity);

@@ -13,19 +13,19 @@ extern crate lazy_static;
 #[macro_use]
 extern crate enum_map;
 extern crate noise;
+extern crate num;
 extern crate parking_lot;
 extern crate rand;
 extern crate specs;
 extern crate threadpool;
 extern crate time;
 extern crate vek;
-extern crate num;
 
 pub mod ecs;
 pub mod item;
 pub mod net;
-pub mod terrain;
 pub mod physics;
+pub mod terrain;
 pub mod util;
 
 pub type Uid = u64;

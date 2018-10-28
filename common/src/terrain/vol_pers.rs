@@ -1,4 +1,4 @@
-use terrain::{Key, PersState, Container, VolCluster};
+use terrain::{Container, Key, PersState, VolCluster};
 
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::{collections::HashMap, sync::Arc};
@@ -33,9 +33,7 @@ impl<K: Key, C: Container> VolPers<K, C> {
 
     pub fn map_mut(&self) -> RwLockWriteGuard<HashMap<K, Arc<C>>> { self.map.write() }
 
-    pub fn get(&self, key: &K) -> Option<Arc<C>> {
-        self.map.read().get(&key).map(|v| v.clone())
-    }
+    pub fn get(&self, key: &K) -> Option<Arc<C>> { self.map.read().get(&key).map(|v| v.clone()) }
 
     pub fn exists(&self, key: &K, state: PersState) -> bool {
         if let Some(entry) = self.map.read().get(&key) {

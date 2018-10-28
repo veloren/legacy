@@ -1,10 +1,15 @@
 // Standard
-use std::{collections::{HashMap, hash_map}, sync::Arc};
+use std::{
+    collections::{hash_map, HashMap},
+    sync::Arc,
+};
 
-use terrain;
-use terrain::{Volume, ReadVolume, VoxelAbsType, VoxelRelType, VoxelRelVec, VoxelAbsVec, VolumeIdxVec};
-use terrain::chunk::{Block, Chunk};
-use parking_lot::{RwLockReadGuard};
+use parking_lot::RwLockReadGuard;
+use terrain::{
+    self,
+    chunk::{Block, Chunk},
+    ReadVolume, Volume, VolumeIdxVec, VoxelAbsType, VoxelAbsVec, VoxelRelType, VoxelRelVec,
+};
 
 /// a ChunkSample is no real chunk, but like a pointer to real blocks
 /// The ChunkSample can access blocks over multiple chunks like it's one coherent structure
@@ -34,7 +39,7 @@ impl<'a> Iterator for ChunkSampleIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         if self.chunkiteritem.is_none() {
             self.chunkiteritem = self.chunkiter.next();
-            self.block_rel = VoxelRelVec::new(0,0,0);
+            self.block_rel = VoxelRelVec::new(0, 0, 0);
         }
         if let Some((key, item)) = self.chunkiteritem {
             let abs = terrain::volidx_to_voxabs(*key, self.owner.vol_size) + self.block_rel.map(|e| e as VoxelAbsType);
@@ -73,33 +78,33 @@ impl<'a> ChunkSample<'a> {
         vol_size: VoxelRelVec,
         block_from_abs: VoxelAbsVec,
         block_to_abs: VoxelAbsVec,
-        map: HashMap<VolumeIdxVec, Arc<RwLockReadGuard<'a, Chunk>>>
+        map: HashMap<VolumeIdxVec, Arc<RwLockReadGuard<'a, Chunk>>>,
     ) -> Self {
-        ChunkSample{
+        ChunkSample {
             vol_size,
             block_from_abs,
             block_from_rel: terrain::voxabs_to_voxrel(block_from_abs, vol_size),
-            block_length: block_to_abs - block_from_abs + VoxelAbsVec::new(1,1,1),
+            block_length: block_to_abs - block_from_abs + VoxelAbsVec::new(1, 1, 1),
             block_to_abs,
             map: map,
         }
     }
 
     pub fn iter(&'a self) -> ChunkSampleIter<'a> {
-        ChunkSampleIter{
+        ChunkSampleIter {
             owner: &self,
             chunkiter: self.map.iter(),
             chunkiteritem: None,
-            block_rel: VoxelRelVec::new(0,0,0),
+            block_rel: VoxelRelVec::new(0, 0, 0),
         }
     }
 
     fn access(lock: &RwLockReadGuard<'a, Chunk>, off: VoxelRelVec) -> Block {
         match **lock {
-            Chunk::Homo( ref homo ) => homo.at_unsafe(off),
-            Chunk::Hetero( ref hetero ) => hetero.at_unsafe(off),
-            Chunk::Rle( ref rle ) => rle.at_unsafe(off),
-            Chunk::HeteroAndRle( ref hetero, _ ) => hetero.at_unsafe(off),
+            Chunk::Homo(ref homo) => homo.at_unsafe(off),
+            Chunk::Hetero(ref hetero) => hetero.at_unsafe(off),
+            Chunk::Rle(ref rle) => rle.at_unsafe(off),
+            Chunk::HeteroAndRle(ref hetero, _) => hetero.at_unsafe(off),
         }
     }
 
@@ -123,9 +128,7 @@ impl<'a> ChunkSample<'a> {
         panic!("off not inside VolSample: {}, chunkidx: {}", off, chunkidx);
     }
 
-    pub fn size_blocks(&self) -> VoxelAbsVec {
-        self.block_length
-    }
+    pub fn size_blocks(&self) -> VoxelAbsVec { self.block_length }
 }
 
 impl<'a> Volume for ChunkSample<'a> {

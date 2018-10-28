@@ -8,7 +8,7 @@ use vek::*;
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
-use common::terrain::{Voxel, PhysicalVolume};
+use common::terrain::{PhysicalVolume, Voxel};
 
 // Local
 use voxel::{Material, MaterialKind, RenderVolume, RenderVoxel};
@@ -201,7 +201,11 @@ where
             ]
         };
         vecs.iter().fold(0, |acc, v| {
-            acc + if self.at((pos + *v).map(|e| e as u16)).unwrap_or_else(V::VoxelType::empty).is_opaque() {
+            acc + if self
+                .at((pos + *v).map(|e| e as u16))
+                .unwrap_or_else(V::VoxelType::empty)
+                .is_opaque()
+            {
                 0
             } else {
                 1

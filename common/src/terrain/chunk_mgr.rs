@@ -7,9 +7,12 @@ use threadpool::ThreadPool;
 use vek::*;
 
 // Local
-use terrain::{Container, Key, PersState, VoxelRelVec, VoxelAbsVec, VolumeIdxVec, VolumeIdxType, VoxelAbsType, VolPers, VolGen, VolCluster};
-use terrain::chunk::{ChunkContainer, Block, ChunkSample};
-use terrain;
+use terrain::{
+    self,
+    chunk::{Block, ChunkContainer, ChunkSample},
+    Container, Key, PersState, VolCluster, VolGen, VolPers, VolumeIdxType, VolumeIdxVec, VoxelAbsType, VoxelAbsVec,
+    VoxelRelVec,
+};
 
 lazy_static! {
     static ref POOL: Mutex<ThreadPool> = Mutex::new(ThreadPool::new(2));
@@ -21,9 +24,9 @@ impl Key for VolumeIdxVec {
 
 #[derive(Debug, PartialEq)]
 pub enum ChunkSampleError {
-  ChunkMissing,
-  CannotGetLock,
-  NoContent,
+    ChunkMissing,
+    CannotGetLock,
+    NoContent,
 }
 
 #[derive(Clone)]
@@ -55,9 +58,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         self.exists_chunk(terrain::voxabs_to_volidx(pos, self.vol_size))
     }
 
-    pub fn exists_chunk(&self, pos: VolumeIdxVec) -> bool {
-        self.pers.map().get(&pos).is_some()
-    }
+    pub fn exists_chunk(&self, pos: VolumeIdxVec) -> bool { self.pers.map().get(&pos).is_some() }
 
     pub fn get_block(&self, pos: VoxelAbsVec) -> Option<Block> {
         let chunk = terrain::voxabs_to_volidx(pos, self.vol_size);
@@ -68,7 +69,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
             let lock = chunk.data();
             let hetero = lock.get(PersState::Hetero);
             if let Some(hetero) = hetero {
-                return hetero.at(off)
+                return hetero.at(off);
             }
         }
         None
@@ -79,18 +80,18 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         let mut c = 0;
         loop {
             match self.get_sample(from, to) {
-                 Ok(sample) => return Ok(sample),
-                 Err(e) => {
-                     if e == ChunkSampleError::CannotGetLock {
-                         c += 1;
-                         if c > 10 {
-                             warn!("Long waiting chunk sample {}", c)
-                         }
-                         thread::sleep(Duration::from_millis(1));
-                     } else {
-                         return Err(e);
-                     }
-                 }
+                Ok(sample) => return Ok(sample),
+                Err(e) => {
+                    if e == ChunkSampleError::CannotGetLock {
+                        c += 1;
+                        if c > 10 {
+                            warn!("Long waiting chunk sample {}", c)
+                        }
+                        thread::sleep(Duration::from_millis(1));
+                    } else {
+                        return Err(e);
+                    }
+                },
             }
         }
     }
@@ -100,13 +101,18 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         let chunk_from = terrain::voxabs_to_volidx(from, self.vol_size);
         let chunk_to = terrain::voxabs_to_volidx(to, self.vol_size);
         let lock = self.pers.map();
-        for x in chunk_from.x .. chunk_to.x + 1 {
-            for y in chunk_from.y .. chunk_to.y + 1 {
-                for z in chunk_from.z .. chunk_to.z + 1 {
-                    let key = Vec3::new(x,y,z);
+        for x in chunk_from.x..chunk_to.x + 1 {
+            for y in chunk_from.y..chunk_to.y + 1 {
+                for z in chunk_from.z..chunk_to.z + 1 {
+                    let key = Vec3::new(x, y, z);
                     let cc = lock.get(&key).map(|v| v.clone());
                     if let Some(cc) = cc {
-                        if cc.data_try().take().map(|value| map.insert(key, Arc::new(value))).is_none() {
+                        if cc
+                            .data_try()
+                            .take()
+                            .map(|value| map.insert(key, Arc::new(value)))
+                            .is_none()
+                        {
                             return Err(ChunkSampleError::CannotGetLock);
                         }
                         let _ = map.get(&key).unwrap();
@@ -114,7 +120,6 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                         debug!("Chunk does not exist: {}", &key);
                         return Err(ChunkSampleError::ChunkMissing);
                     }
-
                 }
             }
         }
@@ -159,7 +164,8 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
 
     // regually call this to copy over generated chunks
     pub fn maintain(&self) {
-        { // handle new generated chunks
+        {
+            // handle new generated chunks
             let mut pen_lock = self.pending.write();
             let mut map = HashMap::new();
 
@@ -175,7 +181,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                         },
                         Err(con_arc) => {
                             map.insert(pos, con_arc);
-                        }
+                        },
                     }
                 } else {
                     map.insert(pos, con_arc);
@@ -199,9 +205,9 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
             let pos_chunk = terrain::voxabs_to_volidx(pos, self.vol_size);
             let from = terrain::voxabs_to_volidx(pos - size, self.vol_size);
             let to = terrain::voxabs_to_volidx(pos + size, self.vol_size);
-            for i in from.x .. to.x + 1 {
-                for j in from.y .. to.y + 1 {
-                    for k in from.z .. to.z + 1 {
+            for i in from.x..to.x + 1 {
+                for j in from.y..to.y + 1 {
+                    for k in from.z..to.z + 1 {
                         let ijk = Vec3::new(i, j, k);
                         let diff = (pos_chunk - ijk).map(|e| e.abs()).sum();
                         if let Some(old_diff) = chunk_map.get(&ijk) {
@@ -240,7 +246,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
             }
             let k_mid = terrain::volidx_to_voxabs(*k, self.vol_size) + self.vol_size.map(|e| e as i64 / 2);
             let mut lowest_dist = DIFF_TILL_UNLOAD + 1; // bigger than DIFF_TILL_UNLOAD
-            // get block distance to nearest blockloader
+                                                        // get block distance to nearest blockloader
             for bl in block_loader.iter() {
                 let pos = bl.pos;
                 let size = bl.size;
@@ -284,14 +290,17 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                 }
             }
         }
-        info!("number of chunks; hetero {}, rle {}, homo {}, hetero&rle {}", hetero, rle, homo, heteroandrle);
+        info!(
+            "number of chunks; hetero {}, rle {}, homo {}, hetero&rle {}",
+            hetero, rle, homo, heteroandrle
+        );
     }
 
     pub fn remove(&self, pos: VolumeIdxVec) -> bool { self.pers.map_mut().remove(&pos).is_some() }
 
     pub fn pending_chunk_cnt(&self) -> usize { self.pending.read().len() }
 
-    #[deprecated(since="0.1.0", note="find a more elegant solution!")]
+    #[deprecated(since = "0.1.0", note = "find a more elegant solution!")]
     pub fn map(&self) -> HashMap<VolumeIdxVec, Arc<ChunkContainer<P>>> {
         // I just dont want to give access to the real persistency here
         let lock = self.pers.map();
@@ -302,11 +311,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         return new_map;
     }
 
-    pub fn block_loader(&self) -> RwLockReadGuard<Vec<Arc<RwLock<BlockLoader>>>> {
-        self.block_loader.read()
-    }
+    pub fn block_loader(&self) -> RwLockReadGuard<Vec<Arc<RwLock<BlockLoader>>>> { self.block_loader.read() }
 
-    pub fn block_loader_mut(&self) -> RwLockWriteGuard<Vec<Arc<RwLock<BlockLoader>>>> {
-        self.block_loader.write()
-    }
+    pub fn block_loader_mut(&self) -> RwLockWriteGuard<Vec<Arc<RwLock<BlockLoader>>>> { self.block_loader.write() }
 }

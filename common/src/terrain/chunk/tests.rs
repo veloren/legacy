@@ -1,13 +1,12 @@
 // Library
-use vek::*;
 use std::fmt::Debug;
+use vek::*;
 
 // Local
 use terrain::{
-    chunk::{Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, HeterogeneousData, RleData, HomogeneousData},
-    Container, PersState, VolPers, Volume, Voxel, ConstructVolume, VolCluster, ReadVolume, ReadWriteVolume,
+    chunk::{Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, HeterogeneousData, HomogeneousData, RleData},
+    ConstructVolume, Container, PersState, ReadVolume, ReadWriteVolume, VolCluster, VolPers, Volume, Voxel,
 };
-
 
 #[test]
 fn test_hetero_chunk() {
@@ -60,7 +59,10 @@ fn test_read_volume<V: ReadVolume + ConstructVolume>() {
     }
 }
 
-fn test_write_volume<V: ReadWriteVolume + ConstructVolume>() where V::VoxelType: Debug + PartialEq {
+fn test_write_volume<V: ReadWriteVolume + ConstructVolume>()
+where
+    V::VoxelType: Debug + PartialEq,
+{
     let (sizes, offs) = get_sizes_and_offsets();
 
     for sz in sizes {

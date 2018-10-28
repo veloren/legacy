@@ -1,8 +1,5 @@
 // Local
-use terrain::{
-    chunk::Block,
-    Volume, ReadVolume, ConstructVolume, PhysicalVolume, Voxel, VoxelRelVec,
-};
+use terrain::{chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, Volume, Voxel, VoxelRelVec};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct HomogeneousData {
@@ -11,9 +8,7 @@ pub struct HomogeneousData {
 }
 
 impl HomogeneousData {
-    pub(crate) fn voxel_mut(&mut self) -> &mut Block {
-        &mut self.voxel
-    }
+    pub(crate) fn voxel_mut(&mut self) -> &mut Block { &mut self.voxel }
 }
 
 impl Volume for HomogeneousData {
@@ -23,23 +18,13 @@ impl Volume for HomogeneousData {
 }
 
 impl ReadVolume for HomogeneousData {
-    fn at_unsafe(&self, _off: VoxelRelVec) -> Block {
-        self.voxel
-    }
+    fn at_unsafe(&self, _off: VoxelRelVec) -> Block { self.voxel }
 }
 
 impl ConstructVolume for HomogeneousData {
-    fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> HomogeneousData {
-        HomogeneousData{
-            size,
-            voxel: vox,
-        }
-    }
+    fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> HomogeneousData { HomogeneousData { size, voxel: vox } }
 
-    fn empty(size: VoxelRelVec) -> HomogeneousData {
-        Self::filled(size, Block::empty())
-    }
+    fn empty(size: VoxelRelVec) -> HomogeneousData { Self::filled(size, Block::empty()) }
 }
 
-impl PhysicalVolume for HomogeneousData {
-}
+impl PhysicalVolume for HomogeneousData {}

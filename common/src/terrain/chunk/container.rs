@@ -1,6 +1,5 @@
-use terrain::Container;
-use terrain::chunk::Chunk;
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use terrain::{chunk::Chunk, Container};
 
 pub struct ChunkContainer<P> {
     data: RwLock<Chunk>,

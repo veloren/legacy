@@ -1,11 +1,8 @@
 // Standard
-use std::{u8};
+use std::u8;
 
 // Local
-use terrain::{
-    chunk::{Block},
-    Volume, ReadVolume, ConstructVolume, PhysicalVolume, Voxel, VoxelRelVec,
-};
+use terrain::{chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, Volume, Voxel, VoxelRelVec};
 
 //TODO: optimizations:
 // currently even empty blocks generate a BlockRle, one could say that if the 3rd vector is empty that all blocks are empty
@@ -29,13 +26,9 @@ pub struct RleData {
 }
 
 impl RleData {
-    pub(crate) fn voxels_mut(&mut self) -> &mut Vec<Vec<BlockRle>> {
-        &mut self.voxels
-    }
+    pub(crate) fn voxels_mut(&mut self) -> &mut Vec<Vec<BlockRle>> { &mut self.voxels }
 
-    pub fn voxels_mut_internal(&mut self) -> &mut Vec<Vec<BlockRle>> {
-        &mut self.voxels
-    }
+    pub fn voxels_mut_internal(&mut self) -> &mut Vec<Vec<BlockRle>> { &mut self.voxels }
 }
 
 impl Volume for RleData {
@@ -49,7 +42,7 @@ impl ReadVolume for RleData {
         let col = &self.voxels[pos.x as usize * self.size.y as usize + pos.y as usize];
         let mut oldz: u16 = 0;
         for brle in col {
-            let z: u16 = oldz + brle.num_minus_one as u16 +1;
+            let z: u16 = oldz + brle.num_minus_one as u16 + 1;
             if pos.z >= oldz && pos.z < z {
                 return brle.block;
             }
@@ -61,7 +54,7 @@ impl ReadVolume for RleData {
 
 impl ConstructVolume for RleData {
     fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> RleData {
-        let mut rle = RleData{
+        let mut rle = RleData {
             size,
             voxels: vec![Vec::new(); size.x as usize * size.y as usize],
         };
@@ -69,18 +62,15 @@ impl ConstructVolume for RleData {
         let lastsize = size.z % (BLOCK_RLE_MAX_NUM);
 
         for xy in rle.voxels.iter_mut() {
-            xy.resize(high+1, BlockRle::new(vox, 0));
-            xy.iter_mut().map(|e| e.num_minus_one = (BLOCK_RLE_MAX_NUM-1) as u8);
+            xy.resize(high + 1, BlockRle::new(vox, 0));
+            xy.iter_mut().map(|e| e.num_minus_one = (BLOCK_RLE_MAX_NUM - 1) as u8);
             xy.last_mut().unwrap().num_minus_one = lastsize as u8;
-        };
+        }
 
         rle
     }
 
-    fn empty(size: VoxelRelVec) -> RleData {
-        Self::filled(size, Block::empty())
-    }
+    fn empty(size: VoxelRelVec) -> RleData { Self::filled(size, Block::empty()) }
 }
 
-impl PhysicalVolume for RleData {
-}
+impl PhysicalVolume for RleData {}

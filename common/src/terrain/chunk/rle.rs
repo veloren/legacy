@@ -18,13 +18,13 @@ pub struct BlockRle {
     pub block: Block,
     pub num_minus_one: u8, // num_minus_one = 0 --> num is 1 and 255->256
 }
-pub const BLOCK_RLE_MAX_CNT: u8 = u8::MAX;
+pub const BLOCK_RLE_MAX_NUM: u16 = u8::MAX as u16 + 1;
 
 impl BlockRle {
     pub fn new(block: Block, num_minus_one: u8) -> Self { BlockRle { block, num_minus_one } }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct RleData {
     //per x and y coord store the z coord rle
     size: VoxelRelVec,
@@ -32,18 +32,18 @@ pub struct RleData {
 }
 
 impl RleData {
-    pub fn new() -> Self {
+    fn new() -> Self {
         RleData {
             size: Vec3::from((0, 0, 0)),
             voxels: vec![],
         }
     }
 
-    pub fn mut_size(&mut self) -> &mut VoxelRelVec {
-        &mut self.size
+    pub(crate) fn voxels_mut(&mut self) -> &mut Vec<Vec<BlockRle>> {
+        &mut self.voxels
     }
 
-    pub fn mut_voxel(&mut self) -> &mut Vec<Vec<BlockRle>> {
+    pub fn voxels_mut_internal(&mut self) -> &mut Vec<Vec<BlockRle>> {
         &mut self.voxels
     }
 }
@@ -62,10 +62,20 @@ impl ReadVolume for RleData {
 
 impl ConstructVolume for RleData {
     fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> RleData {
-        RleData{
+        let mut rle = RleData{
             size,
-            voxels: vec![Vec::new(); (size.x * size.y) as usize],
-        }
+            voxels: vec![Vec::new(); size.x as usize * size.y as usize],
+        };
+        let high = ((size.z as u16) / (BLOCK_RLE_MAX_NUM)) as usize;
+        let lastsize = size.z % (BLOCK_RLE_MAX_NUM);
+
+        for xy in rle.voxels.iter_mut() {
+            xy.resize(high+1, BlockRle::new(vox, 0));
+            xy.iter_mut().map(|e| e.num_minus_one = (BLOCK_RLE_MAX_NUM-1) as u8);
+            xy.last_mut().unwrap().num_minus_one = lastsize as u8;
+        };
+
+        rle
     }
 
     fn empty(size: VoxelRelVec) -> RleData {

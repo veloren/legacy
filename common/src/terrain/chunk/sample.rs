@@ -2,9 +2,9 @@
 use std::{collections::{HashMap, hash_map}, sync::Arc};
 
 use terrain;
-use terrain::{Volume, Voxel, ReadVolume, VoxelAbsType, VoxelRelType, VoxelRelVec, VoxelAbsVec, VolumeIdxVec};
-use terrain::chunk::{ChunkContainer, Block, Chunk};
-use parking_lot::{RwLock, RwLockReadGuard};
+use terrain::{Volume, ReadVolume, VoxelAbsType, VoxelRelType, VoxelRelVec, VoxelAbsVec, VolumeIdxVec};
+use terrain::chunk::{Block, Chunk};
+use parking_lot::{RwLockReadGuard};
 
 /// a ChunkSample is no real chunk, but like a pointer to real blocks
 /// The ChunkSample can access blocks over multiple chunks like it's one coherent structure

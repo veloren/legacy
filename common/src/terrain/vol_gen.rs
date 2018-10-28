@@ -5,7 +5,6 @@ use terrain::{Container, Key};
 use std::sync::Arc;
 
 // Library
-use vek::*;
 use parking_lot::{Mutex};
 
 pub trait FnGenFunc<K: Key, C: Container>: Fn(K, Arc<Mutex<Option<C>>>) + Send + Sync + 'static {

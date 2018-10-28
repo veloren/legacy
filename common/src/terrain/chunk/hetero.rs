@@ -2,7 +2,6 @@
 use noise::{NoiseFn, OpenSimplex, Seedable};
 use rand::{prng::XorShiftRng, RngCore, SeedableRng};
 use vek::*;
-use num::{Num, ToPrimitive};
 
 // Local
 use terrain::{
@@ -10,7 +9,7 @@ use terrain::{
     Volume, ReadVolume, ReadWriteVolume, PhysicalVolume, ConstructVolume, Voxel, VoxelRelVec, VoxelAbsVec,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct HeterogeneousData {
     size: VoxelRelVec,
     voxels: Vec<Block>,
@@ -202,21 +201,17 @@ impl HeterogeneousData {
     }
 
     fn calculate_index(&self, off: VoxelRelVec) -> usize {
-        (off.x * self.size.y * self.size.z + off.y * self.size.z + off.z) as usize
+        (off.x as usize * self.size.y as usize * self.size.z as usize + off.y as usize * self.size.z as usize + off.z as usize)
     }
 
-    pub fn new() -> Self {
+    fn new() -> Self {
         HeterogeneousData {
             size: Vec3::from((0, 0, 0)),
             voxels: Vec::new(),
         }
     }
 
-    pub fn mut_size(&mut self) -> &mut VoxelRelVec {
-        &mut self.size
-    }
-
-    pub fn mut_voxel(&mut self) -> &mut Vec<Block> {
+    pub(crate) fn voxels_mut(&mut self) -> &mut Vec<Block> {
         &mut self.voxels
     }
 }
@@ -252,7 +247,7 @@ impl ConstructVolume for HeterogeneousData {
     fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> HeterogeneousData {
         HeterogeneousData {
             size,
-            voxels: vec![vox; size.product() as usize],
+            voxels: vec![vox; size.map(|e| e as usize).product()],
         }
     }
 

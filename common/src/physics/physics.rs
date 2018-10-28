@@ -6,14 +6,13 @@ use parking_lot::RwLock;
 use vek::*;
 
 // Project
-use physics::collision::{Collider, Primitive, ResolutionTti, PLANCK_LENGTH};
-use terrain::chunk::{Chunk};
-use terrain::{Voxel, VoxelAbsType, VoxelRelType, VoxelRelVec, VoxelAbsVec, VolumeIdxVec};
+use physics::collision::{Primitive, ResolutionTti, PLANCK_LENGTH};
+use terrain::{Voxel, VoxelAbsType, VoxelAbsVec};
 
 use Uid;
 
 // Local
-use terrain::{Entity, PersState, ChunkMgr};
+use terrain::{Entity, ChunkMgr};
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 const GROUND_GRAVITY: f32 = -9.81;
@@ -104,7 +103,6 @@ pub fn tick<
 >(
     entities: I,
     chunk_mgr: &ChunkMgr<CP>,
-    chunk_size: VoxelRelVec,
     dt: f32,
 ) {
     const ENTITY_MIDDLE_OFFSET: Vec3<f32> = Vec3 { x: 0.0, y: 0.0, z: 0.9 };

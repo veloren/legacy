@@ -22,7 +22,7 @@ use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::{
     terrain::{
         chunk::{Chunk, ChunkContainer, HeterogeneousData},
-        Container, PersState, ConvertVolume, VolumeIdxVec, VolCluster,
+        Container, PersState, VolumeIdxVec, VolCluster,
     },
     terrain,
     util::manager::Manager,
@@ -87,8 +87,7 @@ fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads
     if let Some(ref con) = *conlock {
         if con.data().get(PersState::Hetero).is_none() {
             //only get mutable lock if no Raw exists
-            //con.data_mut().convert(PersState::Hetero);
-            panic!("To Lazy 2")
+            con.data_mut().convert(PersState::Hetero);
         }
         if let Some(hetero) = con.data().get_any(PersState::Hetero) {
             let hetero: &HeterogeneousData = hetero.as_any().downcast_ref::<HeterogeneousData>().expect("Should be Hetero");

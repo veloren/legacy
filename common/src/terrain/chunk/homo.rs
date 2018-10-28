@@ -7,25 +7,21 @@ use terrain::{
     Volume, ReadVolume, ConstructVolume, PhysicalVolume, Voxel, VoxelRelVec,
 };
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct HomogeneousData {
     size: VoxelRelVec,
     voxel: Block,
 }
 
 impl HomogeneousData {
-    pub fn new() -> Self {
+    fn new() -> Self {
         HomogeneousData {
             size: Vec3::from((0, 0, 0)),
             voxel: Block::empty(),
         }
     }
 
-    pub fn mut_size(&mut self) -> &mut VoxelRelVec {
-        &mut self.size
-    }
-
-    pub fn mut_voxel(&mut self) -> &mut Block {
+    pub(crate) fn voxel_mut(&mut self) -> &mut Block {
         &mut self.voxel
     }
 }

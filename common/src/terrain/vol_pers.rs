@@ -1,7 +1,7 @@
 use terrain::{Key, PersState, Container, VolCluster};
 
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
-use std::{collections::HashMap, marker::PhantomData, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 /*
  How persistence works:
@@ -50,49 +50,8 @@ impl<K: Key, C: Container> VolPers<K, C> {
             let contains = lock.contains(state.clone());
             if !contains {
                 info!("generate from persistence key: {:?} state: {:?}", key, state);
-                panic!("to lazy");
-                /*
-                if lock.contains(PersState::Homo) {
-                    lock.get(PersState::Homo).covert(lock, state);
-                }
-                lock.convert(state);*/
+                lock.convert(state);
             }
         }
     }
-/*
-    pub fn try_cold_offload(&self) {
-        let h = self.map.try_write();
-        if let Some(mut h) = h {
-            let mut c = self.cold.try_write();
-            if let Some(ref mut c) = c {
-                let mut remove_from_c = vec![];
-                for (key, container) in c.iter() {
-                    let v = container.vols_try();
-                    if let Some(v) = v {
-                        if v.contains(PersState::Raw) || v.contains(PersState::Rle) {
-                            h.insert(*key, container.clone());
-                            remove_from_c.push(key.clone());
-                        }
-                    }
-                }
-                for key in remove_from_c.iter() {
-                    c.remove(key);
-                }
-                let mut remove_from_h = vec![];
-                for (key, container) in h.iter() {
-                    let v = container.vols_try();
-                    if let Some(v) = v {
-                        if !v.contains(PersState::Raw) && !v.contains(PersState::Rle) {
-                            c.insert(*key, container.clone());
-                            remove_from_h.push(key.clone());
-                        }
-                    }
-                }
-                for key in remove_from_h.iter() {
-                    h.remove(key);
-                }
-            }
-        }
-    }
-*/
 }

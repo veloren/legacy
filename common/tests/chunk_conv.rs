@@ -3,18 +3,18 @@
 extern crate common;
 extern crate test;
 extern crate vek;
-
+extern crate parking_lot;
 // Standard
-use std::any::Any;
 
 // Library
 use test::Bencher;
 use vek::*;
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 // Project
 use common::terrain::{
-    chunk::{Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, ChunkConverter, ChunkRle},
-    Container, PersState, VolContainer, VolConverter, VolPers, Volume, Voxel,
+    chunk::{Block, BlockMaterial, BlockRle, Chunk, ChunkContainer, HeterogeneousData, RleData, HomogeneousData},
+    Container, PersState, VolPers, Volume, Voxel, ConstructVolume, VolCluster, ReadVolume, ReadWriteVolume,
 };
 
 /* Reference Chunk
@@ -50,59 +50,55 @@ z:3
 
 */
 
-fn gen_raw() -> Chunk {
-    let mut result = Chunk::new();
-    result.set_size(Vec3::new(4, 4, 4));
-    result.fill(Block::empty());
-    result.set(Vec3::new(0, 0, 0), Block::new(BlockMaterial::Stone));
-    result.set(Vec3::new(0, 1, 0), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(0, 2, 0), Block::new(BlockMaterial::Stone));
-    result.set(Vec3::new(0, 3, 0), Block::new(BlockMaterial::Stone));
-    result.set(Vec3::new(1, 0, 0), Block::new(BlockMaterial::Stone));
-    result.set(Vec3::new(1, 1, 0), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(1, 2, 0), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(1, 3, 0), Block::new(BlockMaterial::Stone));
-    result.set(Vec3::new(2, 1, 0), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(2, 2, 0), Block::new(BlockMaterial::Stone));
-    result.set(Vec3::new(2, 3, 0), Block::new(BlockMaterial::Sand));
-    result.set(Vec3::new(3, 3, 0), Block::new(BlockMaterial::Stone));
+fn gen_hetero() -> HeterogeneousData {
+    let mut result = HeterogeneousData::empty(Vec3::new(4, 4, 4));
+    result.replace_at_unsafe(Vec3::new(0, 0, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unsafe(Vec3::new(0, 1, 0), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(0, 2, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unsafe(Vec3::new(0, 3, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unsafe(Vec3::new(1, 0, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unsafe(Vec3::new(1, 1, 0), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(1, 2, 0), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(1, 3, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unsafe(Vec3::new(2, 1, 0), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(2, 2, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unsafe(Vec3::new(2, 3, 0), Block::new(BlockMaterial::Sand));
+    result.replace_at_unsafe(Vec3::new(3, 3, 0), Block::new(BlockMaterial::Stone));
 
-    result.set(Vec3::new(0, 0, 1), Block::new(BlockMaterial::Stone));
-    result.set(Vec3::new(0, 1, 1), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(0, 2, 1), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(0, 3, 1), Block::new(BlockMaterial::Stone));
-    result.set(Vec3::new(1, 2, 1), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(1, 3, 1), Block::new(BlockMaterial::Sand));
-    result.set(Vec3::new(2, 3, 1), Block::new(BlockMaterial::Sand));
+    result.replace_at_unsafe(Vec3::new(0, 0, 1), Block::new(BlockMaterial::Stone));
+    result.replace_at_unsafe(Vec3::new(0, 1, 1), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(0, 2, 1), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(0, 3, 1), Block::new(BlockMaterial::Stone));
+    result.replace_at_unsafe(Vec3::new(1, 2, 1), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(1, 3, 1), Block::new(BlockMaterial::Sand));
+    result.replace_at_unsafe(Vec3::new(2, 3, 1), Block::new(BlockMaterial::Sand));
 
-    result.set(Vec3::new(0, 0, 2), Block::new(BlockMaterial::Stone));
-    result.set(Vec3::new(0, 2, 2), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(0, 3, 2), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(1, 0, 2), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(1, 3, 2), Block::new(BlockMaterial::Sand));
-    result.set(Vec3::new(2, 3, 2), Block::new(BlockMaterial::Sand));
+    result.replace_at_unsafe(Vec3::new(0, 0, 2), Block::new(BlockMaterial::Stone));
+    result.replace_at_unsafe(Vec3::new(0, 2, 2), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(0, 3, 2), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(1, 0, 2), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(1, 3, 2), Block::new(BlockMaterial::Sand));
+    result.replace_at_unsafe(Vec3::new(2, 3, 2), Block::new(BlockMaterial::Sand));
 
-    result.set(Vec3::new(0, 0, 3), Block::new(BlockMaterial::Stone));
-    result.set(Vec3::new(0, 1, 3), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(0, 2, 3), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(1, 0, 3), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(1, 1, 3), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(1, 3, 3), Block::new(BlockMaterial::Sand));
-    result.set(Vec3::new(2, 0, 3), Block::new(BlockMaterial::Sand));
-    result.set(Vec3::new(2, 3, 3), Block::new(BlockMaterial::Sand));
-    result.set(Vec3::new(3, 1, 3), Block::new(BlockMaterial::Earth));
-    result.set(Vec3::new(3, 2, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(0, 0, 3), Block::new(BlockMaterial::Stone));
+    result.replace_at_unsafe(Vec3::new(0, 1, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(0, 2, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(1, 0, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(1, 1, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(1, 3, 3), Block::new(BlockMaterial::Sand));
+    result.replace_at_unsafe(Vec3::new(2, 0, 3), Block::new(BlockMaterial::Sand));
+    result.replace_at_unsafe(Vec3::new(2, 3, 3), Block::new(BlockMaterial::Sand));
+    result.replace_at_unsafe(Vec3::new(3, 1, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unsafe(Vec3::new(3, 2, 3), Block::new(BlockMaterial::Earth));
 
     return result;
 }
 
-fn gen_rle() -> ChunkRle {
-    let mut result = ChunkRle::new();
-    result.set_size(Vec3::new(4, 4, 4));
-    result.fill(Block::empty());
+fn gen_rle() -> RleData {
+    let mut result = RleData::empty(Vec3::new(4, 4, 4));
     let dummy = BlockRle::new(Block::new(BlockMaterial::Air), 3);
     {
-        let ref mut voxels = result.voxels_mut();
+        let ref mut voxels = result.voxels_mut_internal();
         voxels[0 * 4 + 0].resize(1, dummy);
         voxels[0 * 4 + 0][0] = BlockRle::new(Block::new(BlockMaterial::Stone), 3);
         voxels[0 * 4 + 1].resize(3, dummy);
@@ -155,53 +151,51 @@ fn gen_rle() -> ChunkRle {
 
 #[test]
 fn fill_container() {
-    let mut con = ChunkContainer::new();
-    con.insert(gen_raw(), PersState::Raw);
-    assert!(con.contains(PersState::Raw));
-    assert!(!con.contains(PersState::File));
+    let mut con = Chunk::Hetero(gen_hetero());
+    assert!(con.contains(PersState::Hetero));
+    assert!(!con.contains(PersState::Homo));
     assert!(!con.contains(PersState::Rle));
 }
 
 #[test]
 fn convert_raw_to_rle() {
-    let mut con = ChunkContainer::new();
-    con.insert(gen_raw(), PersState::Raw);
-    ChunkConverter::convert(&Vec3::<i64>::new(0, 0, 0), &mut con, PersState::Rle);
-    assert!(con.contains(PersState::Raw));
-    assert!(!con.contains(PersState::File));
+    let mut con = Chunk::Hetero(gen_hetero());
+    con.convert(PersState::Rle);
+    assert!(con.contains(PersState::Hetero));
+    assert!(!con.contains(PersState::Homo));
     assert!(con.contains(PersState::Rle));
-    let rle = con.get_mut(PersState::Rle).unwrap();
-    let rle: &ChunkRle = rle.as_any().downcast_ref::<ChunkRle>().expect("Should be ChunkRle");
+    let rle = con.get_any(PersState::Rle).unwrap();
+    let rle: &RleData = rle.as_any().downcast_ref::<RleData>().expect("Should be RleData");
     let correct_rle = gen_rle();
-    // TODO: Set this test up again
-    //assert_eq!(correct_rle, *rle);
+    assert_eq!(correct_rle, *rle);
 }
 
 #[test]
 fn convert_rle_to_raw() {
-    let mut con = ChunkContainer::new();
-    con.insert(gen_rle(), PersState::Rle);
-    ChunkConverter::convert(&Vec3::<i64>::new(0, 0, 0), &mut con, PersState::Raw);
-    assert!(con.contains(PersState::Raw));
-    assert!(!con.contains(PersState::File));
+    let mut con = Chunk::Rle(gen_rle());
+    con.convert(PersState::Hetero);
+    assert!(con.contains(PersState::Hetero));
+    assert!(!con.contains(PersState::Homo));
     assert!(con.contains(PersState::Rle));
-    let raw = con.get_mut(PersState::Raw).unwrap();
-    let raw: &Chunk = raw.as_any().downcast_ref::<Chunk>().expect("Should be Chunk");
-    let correct_raw = gen_raw();
+    let hetero = con.get_any(PersState::Hetero).unwrap();
+    let hetero: &HeterogeneousData = hetero.as_any().downcast_ref::<HeterogeneousData>().expect("Should be HeterogeneousData");
+    let correct_hetero = gen_hetero();
     // TODO: Set this test up again
-    //assert_eq!(correct_raw, *raw);
+    assert_eq!(correct_hetero, *hetero);
 }
 
 #[bench]
 fn raw_to_rle_speed(b: &mut Bencher) {
-    let mut con = ChunkContainer::new();
-    con.insert(gen_raw(), PersState::Raw);
-    b.iter(|| ChunkConverter::convert(&Vec3::<i64>::new(0, 0, 0), &mut con, PersState::Rle));
+    b.iter(|| {
+        let mut con = Chunk::Hetero(gen_hetero());
+        con.convert(PersState::Rle);
+    });
 }
 
 #[bench]
 fn rle_to_raw_speed(b: &mut Bencher) {
-    let mut con = ChunkContainer::new();
-    con.insert(gen_rle(), PersState::Rle);
-    b.iter(|| ChunkConverter::convert(&Vec3::<i64>::new(0, 0, 0), &mut con, PersState::Raw));
+    b.iter(|| {
+        let mut con = Chunk::Rle(gen_rle());
+        con.convert(PersState::Hetero);
+    });
 }

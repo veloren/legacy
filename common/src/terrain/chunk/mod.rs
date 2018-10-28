@@ -3,15 +3,16 @@ mod homo;
 mod rle;
 mod sample;
 mod block;
+mod cluster;
 mod container;
-mod conv;
 
 // Reexports
 pub use self::{
     block::{Block, BlockMaterial},
-    container::{Chunk, ChunkContainer},
+    container::ChunkContainer,
+    cluster::Chunk,
     hetero::HeterogeneousData,
     homo::HomogeneousData,
     sample::ChunkSample,
-    rle::{BlockRle, RleData, BLOCK_RLE_MAX_CNT},
+    rle::{BlockRle, RleData, BLOCK_RLE_MAX_NUM},
 };

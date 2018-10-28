@@ -1,6 +1,5 @@
 // Standard
-use std::{collections::{HashSet, HashMap}, sync::Arc, thread, time::Duration};
-use std::ops::Deref;
+use std::{collections::HashMap, sync::Arc, thread, time::Duration};
 
 // Library
 use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
@@ -8,8 +7,8 @@ use threadpool::ThreadPool;
 use vek::*;
 
 // Local
-use terrain::{Container, Key, PersState, VoxelRelVec, VoxelAbsVec, VolumeIdxVec, VolumeIdxType, VoxelAbsType, VolPers, VolGen, Volume, ReadVolume, VolCluster, Voxel};
-use terrain::chunk::{ChunkContainer, Block, ChunkSample, Chunk, HomogeneousData};
+use terrain::{Container, Key, PersState, VoxelRelVec, VoxelAbsVec, VolumeIdxVec, VolumeIdxType, VoxelAbsType, VolPers, VolGen, VolCluster};
+use terrain::chunk::{ChunkContainer, Block, ChunkSample};
 use terrain;
 
 lazy_static! {
@@ -265,10 +264,40 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         }
     }
 
+    pub fn debug(&self) {
+        let lock = self.pers.map();
+        let mut rle = 0;
+        let mut homo = 0;
+        let mut hetero = 0;
+        let mut heteroandrle = 0;
+        for (k, a) in lock.iter() {
+            let data = a.data();
+            if data.contains(PersState::Homo) {
+                homo += 1;
+            }
+            if data.contains(PersState::Rle) {
+                if data.contains(PersState::Hetero) {
+                    heteroandrle += 1;
+                } else {
+                    rle += 1;
+                }
+            }
+            if data.contains(PersState::Hetero) {
+                if data.contains(PersState::Rle) {
+                    heteroandrle += 1;
+                } else {
+                    hetero += 1;
+                }
+            }
+        }
+        info!("number of chunks; hetero {}, rle {}, homo{}, hetero&rle {}", hetero, rle, homo, heteroandrle);
+    }
+
     pub fn remove(&self, pos: VolumeIdxVec) -> bool { self.pers.map_mut().remove(&pos).is_some() }
 
     pub fn pending_chunk_cnt(&self) -> usize { self.pending.read().len() }
 
+    #[deprecated(since="0.1.0", note="find a more elegant solution!")]
     pub fn map(&self) -> HashMap<VolumeIdxVec, Arc<ChunkContainer<P>>> {
         // I just dont want to give access to the real persistency here
         let lock = self.pers.map();

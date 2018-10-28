@@ -1,9 +1,6 @@
 // Standard
 use std::{thread, time::Duration};
 
-// Library
-use vek::*;
-
 // Project
 use common::{physics::physics, util::manager::Manager};
 
@@ -11,7 +8,6 @@ use common::{physics::physics, util::manager::Manager};
 use Client;
 use ClientStatus;
 use Payloads;
-use CHUNK_SIZE;
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn tick(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
@@ -21,7 +17,7 @@ impl<P: Payloads> Client<P> {
         {
             // Take the physics lock to sync client and frontend updates
             let _ = self.take_phys_lock();
-            physics::tick(entities.iter(), &self.chunk_mgr, Vec3::from_slice(&CHUNK_SIZE), dt);
+            physics::tick(entities.iter(), &self.chunk_mgr, dt);
         }
 
         self.update_server();

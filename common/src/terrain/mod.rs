@@ -19,7 +19,7 @@ use std::{any::Any, cmp::Eq, fmt::Debug, hash::Hash};
 // Library
 use num::{Num, ToPrimitive};
 use vek::*;
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use parking_lot::{RwLockReadGuard, RwLockWriteGuard};
 use bincode;
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -151,10 +151,6 @@ impl<V: Any + Debug> AnyVolume for V where V: Clone {
     fn as_any(&self) -> &Any { self }
 }
 
-pub trait ConvertVolume: Volume + Clone + Debug {
-    fn convert<VC: VolCluster<VoxelType = Self::VoxelType>>(&self, state: PersState, con: &mut VC);
-}
-
 pub trait SerializeVolume: Volume {
     fn to_bytes(&self) -> Result<Vec<u8>, ()>;
     fn from_bytes(data: &[u8]) -> Result<Self, ()> where Self: Sized;
@@ -172,6 +168,7 @@ pub trait VolCluster: Send + Sync + 'static {
     type VoxelType: Voxel;
 
     fn contains(&self, state: PersState) -> bool;
+    fn convert(&mut self, state: PersState);
     fn insert<V: Volume<VoxelType = Self::VoxelType> + AnyVolume>(&mut self, vol: V);
     fn remove(&mut self, state: PersState);
     fn get<'a>(&'a self, state: PersState) -> Option<&'a dyn ReadVolume<VoxelType = Self::VoxelType>>;

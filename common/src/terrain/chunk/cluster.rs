@@ -337,4 +337,49 @@ impl VolCluster for Chunk {
             Chunk::HeteroAndRle( _, _ ) => PersState::Hetero,
         })
     }
+
+    fn to_bytes(&mut self) -> Result<Vec<u8>, ()> {
+        let mut content = vec![];
+        let mut ser = self.prefered_serializeable();
+        if ser.is_none() {
+            self.convert(PersState::Rle);
+            ser = self.prefered_serializeable();
+        }
+        if let Some(ser) = ser {
+            let mut bytes = Vec::<u8>::new();
+            if self.contains(PersState::Rle) {
+                bytes.push(2);
+            } else {
+                if self.contains(PersState::Homo) {
+                    bytes.push(1);
+                } else {
+                    panic!("what the heck!, this state wasnt planed!")
+                }
+            }
+            let to_bytes = ser.to_bytes();
+            if let Ok(to_bytes) = to_bytes {
+                bytes.extend(&to_bytes);
+                content.extend_from_slice(&bytes);
+                return Ok(content);
+            }
+        }
+        Err(())
+    }
+
+    fn from_bytes(data: &[u8]) -> Result<Self, ()>{
+        let state = data[0];
+
+        if state == 1 {
+            let vol: Result<HomogeneousData, ()> = SerializeVolume::from_bytes(&data[1..]);
+            if let Ok(vol) = vol {
+                return Ok(Chunk::Homo(vol));
+            }
+        } else {
+            let vol: Result<RleData, ()> = SerializeVolume::from_bytes(&data[1..]);
+            if let Ok(vol) = vol {
+                return Ok(Chunk::Rle(vol));
+            }
+        }
+        Err(())
+    }
 }

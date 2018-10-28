@@ -31,20 +31,10 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<Mu
             datfile
                 .read_to_end(&mut content)
                 .expect(&format!("read of file {} failed", &filepath));
-            let state = content.remove(0);
-
-            if state == 1 {
-                let vol: Result<HomogeneousData, ()> = SerializeVolume::from_bytes(&content);
-                if let Ok(vol) = vol {
-                    *con.lock() = Some(ChunkContainer::<P>::new(Chunk::Homo(vol)));
-                    break 'load;
-                }
-            } else {
-                let vol: Result<RleData, ()> = SerializeVolume::from_bytes(&content);
-                if let Ok(vol) = vol {
-                    *con.lock() = Some(ChunkContainer::<P>::new(Chunk::Rle(vol)));
-                    break 'load;
-                }
+            let cc = Chunk::from_bytes(&content);
+            if let Ok(cc) = cc {
+                *con.lock() = Some(ChunkContainer::<P>::new(cc));
+                break 'load;
             }
         }
         let vol = HeterogeneousData::test(
@@ -61,32 +51,12 @@ pub(crate) fn drop_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<C
     let path = Path::new(&filepath);
     'load: {
         if !path.exists() {
-            let mut content = vec![];
             let mut data = con.data_mut();
-            let mut ser = data.prefered_serializeable();
-            if ser.is_none() {
-                data.convert(PersState::Rle);
-                ser = data.prefered_serializeable();
-            }
-            if let Some(ser) = ser {
-                let mut bytes = Vec::<u8>::new();
-                if data.contains(PersState::Rle) {
-                    bytes.push(2);
-                } else {
-                    if data.contains(PersState::Homo) {
-                        bytes.push(1);
-                    } else {
-                        panic!("what the heck!, this state wasnt planed!")
-                    }
-                }
-                let to_bytes = ser.to_bytes();
-                if let Ok(to_bytes) = to_bytes {
-                    bytes.extend(&to_bytes);
-                    content.extend_from_slice(&bytes);
-                    let mut datfile = File::create(filepath).unwrap();
-                    datfile.write_all(&content).unwrap();
-                    debug!("write to file: {}, bytes: {}", filename, content.len());
-                }
+            let bytes = data.to_bytes();
+            if let Ok(bytes) = bytes {
+                let mut datfile = File::create(filepath).unwrap();
+                datfile.write_all(&bytes).unwrap();
+                debug!("write to file: {}, bytes: {}", filename, bytes.len());
             }
         }
     }

@@ -156,7 +156,7 @@ pub trait SerializeVolume: Volume {
     fn from_bytes(data: &[u8]) -> Result<Self, ()> where Self: Sized;
 }
 
-impl<V: Volume> SerializeVolume for V where V: Serialize + DeserializeOwned {
+impl<V: Volume> SerializeVolume for V where V: Volume + Serialize + DeserializeOwned {
     fn to_bytes(&self) -> Result<Vec<u8>, ()> { bincode::serialize(&self).map_err(|_e| ()) }
 
     fn from_bytes(data: &[u8]) -> Result<Self, ()> where Self: Sized {
@@ -181,6 +181,8 @@ pub trait VolCluster: Send + Sync + 'static {
     fn prefered_vol<'a>(&'a self) -> Option<&'a dyn Volume<VoxelType = Self::VoxelType>>;
     fn prefered_serializeable<'a>(&'a self) -> Option<&'a dyn SerializeVolume<VoxelType = Self::VoxelType>>;
     fn prefered_any<'a>(&'a self) -> Option<&'a dyn AnyVolume>;
+    fn to_bytes(&mut self) -> Result<Vec<u8>, ()>;
+    fn from_bytes(data: &[u8]) -> Result<Self, ()> where Self: Sized;
 }
 
 pub trait PhysicalVolume: Volume {

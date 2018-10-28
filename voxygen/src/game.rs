@@ -24,7 +24,7 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::{
     terrain::{
-        chunk::{ChunkContainer, HeterogeneousData, HomogeneousData, RleData},
+        chunk::{Chunk, ChunkContainer, HeterogeneousData, HomogeneousData, RleData},
         Container, PersState, VolCluster, VolumeIdxVec,
     },
     util::manager::Manager,
@@ -87,37 +87,12 @@ pub struct Game {
 fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
     let conlock = con.lock();
     if let Some(ref con) = *conlock {
-        /* Does not work yet
-        let x = con.data().prefered_physical();
-        if let Some(x) = x {
-            *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(x)));
-        }*/
-        if con.data().prefered_physical().is_none() {
-            //only get mutable lock if neither Hetero or Homo exists
-            con.data_mut().convert(PersState::Hetero);
-        }
-        // THis is currently needed, because we cannot match on a dyn type yet.
-        if let Some(homo) = con.data().get_any(PersState::Homo) {
-            let homo: &HomogeneousData = homo.as_any().downcast_ref::<HomogeneousData>().expect("Should be Homo");
-            *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(homo)));
-            return;
-        };
-        if let Some(hetero) = con.data().get_any(PersState::Hetero) {
-            let hetero: &HeterogeneousData = hetero
-                .as_any()
-                .downcast_ref::<HeterogeneousData>()
-                .expect("Should be Hetero");
-            *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(hetero)));
-            return;
-        };
-        if let Some(rle) = con.data().get_any(PersState::Rle) {
-            let rle: &RleData = rle.as_any().downcast_ref::<RleData>().expect("Should be Rle");
-            *con.payload_mut() = Some(ChunkPayload::Meshes(voxel::Mesh::from(rle)));
-            return;
-        };
-        panic!(
-            "cannot generate Payload, beacuse chunk is neither homo, nor hetero, nor rle. have you added a new type?"
-        );
+        *con.payload_mut() = Some(ChunkPayload::Meshes(match *con.data() {
+            Chunk::Homo(ref homo) => voxel::Mesh::from(homo),
+            Chunk::Hetero(ref hetero) => voxel::Mesh::from(hetero),
+            Chunk::Rle(ref rle) => voxel::Mesh::from(rle),
+            Chunk::HeteroAndRle(ref hetero, _) => voxel::Mesh::from(hetero),
+        }));
     }
 }
 

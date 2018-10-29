@@ -37,10 +37,7 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<Mu
                 break 'load;
             }
         }
-        let vol = HeterogeneousData::test(
-            terrain::volidx_to_voxabs(pos, Vec3::from_slice(&CHUNK_SIZE)),
-            Vec3::from_slice(&CHUNK_SIZE),
-        );
+        let vol = HeterogeneousData::test(terrain::volidx_to_voxabs(pos, CHUNK_SIZE), CHUNK_SIZE);
         let mut c = Chunk::Hetero(vol);
         c.convert(PersState::Homo); //TODO: not so performant, do check directly in chunk generation
         *con.lock() = Some(ChunkContainer::<P>::new(c));
@@ -66,7 +63,6 @@ pub(crate) fn drop_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<C
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn maintain_chunks(&self, _mgr: &mut Manager<Self>) {
-        let vol_size = Vec3::from_slice(&CHUNK_SIZE);
         if let Some(player_entity) = self.player_entity() {
             // Find the chunk the player is in
             let (player_pos, player_vel);
@@ -78,7 +74,7 @@ impl<P: Payloads> Client<P> {
 
             const GENERATION_FACTOR: f32 = 1.4; // generate more than you see
             let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as VolumeIdxType;
-            let view_dist_block = terrain::volidx_to_voxabs(Vec3::new(view_dist, view_dist, view_dist), vol_size);
+            let view_dist_block = terrain::volidx_to_voxabs(Vec3::new(view_dist, view_dist, view_dist), CHUNK_SIZE);
             let mut bl = self.chunk_mgr().block_loader_mut();
             bl.clear();
             bl.push(Arc::new(RwLock::new(BlockLoader {

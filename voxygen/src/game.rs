@@ -325,6 +325,7 @@ impl Game {
         let mut renderer = self.window.renderer_mut();
         // Find the chunk the camera is in
         let cam_origin = *self.camera.lock().get_pos();
+        //let cam_chunk = cam_origin.map2(CHUNK_SIZE, |e,s| (e as i64).div_euc(s as i64));
         let cam_chunk = Vec3::<i64>::new(
             (cam_origin.x as i64).div_euc(CHUNK_SIZE[0] as i64),
             (cam_origin.y as i64).div_euc(CHUNK_SIZE[1] as i64),
@@ -334,7 +335,7 @@ impl Game {
         for (pos, con) in self.client.chunk_mgr().pers().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
             if (*pos - cam_chunk.map(|e| e as i32)).map(|e| e.abs() as u16).sum()
-                > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE[0]
+                > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE.x
             {
                 continue;
             }
@@ -346,9 +347,9 @@ impl Game {
                         if let ChunkPayload::Meshes(ref mut mesh) = payload {
                             // Calculate chunk mode matrix
                             let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
-                                (pos.x * CHUNK_SIZE[0] as i32) as f32,
-                                (pos.y * CHUNK_SIZE[1] as i32) as f32,
-                                (pos.z * CHUNK_SIZE[2] as i32) as f32,
+                                (pos.x * CHUNK_SIZE.x as i32) as f32,
+                                (pos.y * CHUNK_SIZE.y as i32) as f32,
+                                (pos.z * CHUNK_SIZE.z as i32) as f32,
                             ))
                             .to_homogeneous();
 
@@ -462,6 +463,7 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Find the chunk the camera is in
+        //let cam_chunk = cam_origin.map2(CHUNK_SIZE, |e,s| (e as i64).div_euc(s as i64));
         let cam_chunk = Vec3::<i64>::new(
             (cam_origin.x as i64).div_euc(CHUNK_SIZE[0] as i64),
             (cam_origin.y as i64).div_euc(CHUNK_SIZE[1] as i64),

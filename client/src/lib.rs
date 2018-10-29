@@ -45,12 +45,12 @@ use error::Error;
 use player::Player;
 
 // Constants
-pub const CHUNK_SIZE: [VoxelRelType; 3] = [32, 32, 32];
-pub const CHUNK_MID: [f32; 3] = [
-    CHUNK_SIZE[0] as f32 / 2.0,
-    CHUNK_SIZE[1] as f32 / 2.0,
-    CHUNK_SIZE[2] as f32 / 2.0,
-];
+pub const CHUNK_SIZE: Vec3<VoxelRelType> = Vec3 { x: 32, y: 32, z: 32 };
+pub const CHUNK_MID: Vec3<f32> = Vec3 {
+    x: CHUNK_SIZE.x as f32 / 2.0,
+    y: CHUNK_SIZE.y as f32 / 2.0,
+    z: CHUNK_SIZE.z as f32 / 2.0,
+};
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Copy, Clone, PartialEq)]
@@ -120,7 +120,7 @@ impl<P: Payloads> Client<P> {
                 phys_lock: Mutex::new(()),
 
                 chunk_mgr: ChunkMgr::new(
-                    Vec3::from_slice(&CHUNK_SIZE),
+                    CHUNK_SIZE,
                     VolGen::new(world::gen_chunk, gen_payload, world::drop_chunk, drop_payload),
                 ),
 
@@ -141,9 +141,7 @@ impl<P: Payloads> Client<P> {
 
     pub fn send_cmd(&self, args: Vec<String>) { self.postoffice.send_one(ClientMsg::Cmd { args }); }
 
-    pub fn view_distance(&self) -> f32 {
-        (Vec3::from_slice(&CHUNK_SIZE).map(|e| e as f32) * (self.view_distance as f32)).magnitude()
-    }
+    pub fn view_distance(&self) -> f32 { (CHUNK_SIZE.map(|e| e as f32) * (self.view_distance as f32)).magnitude() }
 
     pub fn chunk_mgr(&self) -> &ChunkMgr<<P as Payloads>::Chunk> { &self.chunk_mgr }
 
@@ -217,7 +215,7 @@ impl<P: Payloads> Managed for Client<P> {
         // Tick2 worker
         Manager::add_worker(manager, |client, running, mut mgr| {
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
-                client.manage_chunks(500.0 / 1000.0, &mut mgr);
+                client.manage_chunks(200.0 / 1000.0, &mut mgr);
             }
         });
     }

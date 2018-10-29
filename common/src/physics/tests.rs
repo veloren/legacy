@@ -680,17 +680,18 @@ fn tti_diagonal_in_to_dirs_negative() {
     checkTouching!(m1.time_to_impact(&m2, &vel), normal);
 }
 
-const CHUNK_SIZE: [VoxelRelType; 3] = [64; 3];
-const CHUNK_MID: [f32; 3] = [
-    CHUNK_SIZE[0] as f32 / 2.0,
-    CHUNK_SIZE[1] as f32 / 2.0,
-    CHUNK_SIZE[2] as f32 / 2.0,
-];
+// Constants
+pub const CHUNK_SIZE: Vec3<VoxelRelType> = Vec3 { x: 64, y: 64, z: 64 };
+pub const CHUNK_MID: Vec3<f32> = Vec3 {
+    x: CHUNK_SIZE.x as f32 / 2.0,
+    y: CHUNK_SIZE.y as f32 / 2.0,
+    z: CHUNK_SIZE.z as f32 / 2.0,
+};
 
 fn gen_chunk_flat(_pos: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<i64>>>>) {
-    let mut c = HeterogeneousData::empty(Vec3::from(CHUNK_SIZE));
-    for x in 0..CHUNK_SIZE[0] {
-        for y in 0..CHUNK_SIZE[1] {
+    let mut c = HeterogeneousData::empty(CHUNK_SIZE);
+    for x in 0..CHUNK_SIZE.x {
+        for y in 0..CHUNK_SIZE.y {
             c.replace_at_unsafe(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
         }
     }
@@ -698,22 +699,22 @@ fn gen_chunk_flat(_pos: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<i64>>
 }
 
 fn gen_chunk_flat_border(_pos: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<i64>>>>) {
-    let mut c = HeterogeneousData::empty(Vec3::from(CHUNK_SIZE));
-    for x in 0..CHUNK_SIZE[0] {
-        for y in 0..CHUNK_SIZE[1] {
+    let mut c = HeterogeneousData::empty(CHUNK_SIZE);
+    for x in 0..CHUNK_SIZE.x {
+        for y in 0..CHUNK_SIZE.y {
             c.replace_at_unsafe(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
         }
     }
-    for i in 0..CHUNK_SIZE[0] {
+    for i in 0..CHUNK_SIZE.x {
         c.replace_at_unsafe(Vec3::new(i, 0, 3), Block::new(BlockMaterial::Stone));
-        c.replace_at_unsafe(Vec3::new(i, CHUNK_SIZE[0] - 1, 3), Block::new(BlockMaterial::Stone));
+        c.replace_at_unsafe(Vec3::new(i, CHUNK_SIZE.x - 1, 3), Block::new(BlockMaterial::Stone));
         c.replace_at_unsafe(Vec3::new(0, i, 3), Block::new(BlockMaterial::Stone));
-        c.replace_at_unsafe(Vec3::new(CHUNK_SIZE[0] - 1, i, 3), Block::new(BlockMaterial::Stone));
+        c.replace_at_unsafe(Vec3::new(CHUNK_SIZE.x - 1, i, 3), Block::new(BlockMaterial::Stone));
 
         c.replace_at_unsafe(Vec3::new(i, 0, 4), Block::new(BlockMaterial::Stone));
-        c.replace_at_unsafe(Vec3::new(i, CHUNK_SIZE[0] - 1, 4), Block::new(BlockMaterial::Stone));
+        c.replace_at_unsafe(Vec3::new(i, CHUNK_SIZE.x - 1, 4), Block::new(BlockMaterial::Stone));
         c.replace_at_unsafe(Vec3::new(0, i, 4), Block::new(BlockMaterial::Stone));
-        c.replace_at_unsafe(Vec3::new(CHUNK_SIZE[0] - 1, i, 4), Block::new(BlockMaterial::Stone));
+        c.replace_at_unsafe(Vec3::new(CHUNK_SIZE.x - 1, i, 4), Block::new(BlockMaterial::Stone));
     }
     *con.lock() = Some(ChunkContainer::<i64>::new(Chunk::Hetero(c)));
 }
@@ -732,12 +733,12 @@ fn drop_payload(_pos: VolumeIdxVec, _con: Arc<ChunkContainer<i64>>) {}
 #[test]
 fn physics_fall() {
     let vol_mgr = ChunkMgr::new(
-        Vec3::from_slice(&CHUNK_SIZE),
+        CHUNK_SIZE,
         VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload),
     );
     vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
         pos: Vec3::new(0, 0, 0),
-        size: Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2]).map(|e| e as i64 * 10),
+        size: CHUNK_SIZE.map(|e| e as i64 * 10),
     })));
     vol_mgr.gen(Vec3::new(0, 0, 0));
     vol_mgr.gen(Vec3::new(0, 0, -1));
@@ -748,7 +749,7 @@ fn physics_fall() {
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(
-            Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 10.0),
+            Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 10.0),
             Vec3::new(0.0, 0.0, 0.0),
             Vec3::new(0.0, 0.0, 0.0),
             Vec2::new(0.0, 0.0),
@@ -758,7 +759,7 @@ fn physics_fall() {
         physics::tick(ent.iter(), &vol_mgr, 0.1)
     }
     let p = ent.get(&1);
-    let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 3.0);
+    let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
     println!("{}, physics_fall {}", d.magnitude(), *p.unwrap().read().pos());
     assert!(d.magnitude() < 0.01);
 }
@@ -766,12 +767,12 @@ fn physics_fall() {
 #[test]
 fn physics_fallfast() {
     let vol_mgr = ChunkMgr::new(
-        Vec3::from_slice(&CHUNK_SIZE),
+        CHUNK_SIZE,
         VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload),
     );
     vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
         pos: Vec3::new(0, 0, 0),
-        size: Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2]).map(|e| e as i64 * 10),
+        size: CHUNK_SIZE.map(|e| e as i64 * 10),
     })));
     vol_mgr.gen(Vec3::new(0, 0, 0));
     vol_mgr.gen(Vec3::new(0, 0, -1));
@@ -782,7 +783,7 @@ fn physics_fallfast() {
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(
-            Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 10.0),
+            Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 10.0),
             Vec3::new(0.0, 0.0, -100.0),
             Vec3::new(0.0, 0.0, 0.0),
             Vec2::new(0.0, 0.0),
@@ -792,7 +793,7 @@ fn physics_fallfast() {
         physics::tick(ent.iter(), &vol_mgr, 0.1)
     }
     let p = ent.get(&1);
-    let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 3.0);
+    let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
     println!("{}, physics_fallfast {}", d.magnitude(), *p.unwrap().read().pos());
     assert!(d.magnitude() < 0.01);
 }
@@ -800,12 +801,12 @@ fn physics_fallfast() {
 #[test]
 fn physics_jump() {
     let vol_mgr = ChunkMgr::new(
-        Vec3::from_slice(&CHUNK_SIZE),
+        CHUNK_SIZE,
         VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload),
     );
     vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
         pos: Vec3::new(0, 0, 0),
-        size: Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2]).map(|e| e as i64 * 10),
+        size: CHUNK_SIZE.map(|e| e as i64 * 10),
     })));
     vol_mgr.gen(Vec3::new(0, 0, 0));
     vol_mgr.gen(Vec3::new(0, 0, -1));
@@ -816,7 +817,7 @@ fn physics_jump() {
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(
-            Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 10.0),
+            Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 10.0),
             Vec3::new(0.0, 0.0, 5.0),
             Vec3::new(0.0, 0.0, 0.0),
             Vec2::new(0.0, 0.0),
@@ -834,7 +835,7 @@ fn physics_jump() {
     }
     {
         let p = ent.get(&1);
-        let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 3.0);
+        let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
         //println!("{}", d.magnitude());
         assert!(d.magnitude() < 0.01);
     }
@@ -843,12 +844,12 @@ fn physics_jump() {
 #[test]
 fn physics_walk() {
     let vol_mgr = ChunkMgr::new(
-        Vec3::from_slice(&CHUNK_SIZE),
+        CHUNK_SIZE,
         VolGen::new(gen_chunk_flat_border, gen_payload, drop_chunk, drop_payload),
     );
     vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
         pos: Vec3::new(0, 0, 0),
-        size: Vec3::new(CHUNK_SIZE[0], CHUNK_SIZE[1], CHUNK_SIZE[2]).map(|e| e as i64 * 10),
+        size: CHUNK_SIZE.map(|e| e as i64 * 10),
     })));
     vol_mgr.gen(Vec3::new(0, 0, 0));
     vol_mgr.gen(Vec3::new(0, 0, -1));
@@ -861,7 +862,7 @@ fn physics_walk() {
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(
-            Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 3.1),
+            Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.1),
             Vec3::new(3.0, 0.0, 0.0),
             Vec3::new(1.0, 0.0, 0.0),
             Vec2::new(0.0, 0.0),
@@ -872,7 +873,7 @@ fn physics_walk() {
     }
     {
         let p = ent.get(&1);
-        let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0]*2.0-1.0 - /*player size*/0.45, CHUNK_MID[1], 3.0);
+        let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x*2.0-1.0 - /*player size*/0.45, CHUNK_MID.y, 3.0);
         println!("{}, physics_walk {}", d.magnitude(), *p.unwrap().read().pos());
         assert!(d.magnitude() < 0.01);
     }

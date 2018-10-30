@@ -1,4 +1,4 @@
-#![feature(nll, euclidean_division)]
+#![feature(nll, euclidean_division, duration_as_u128)]
 
 // Crates
 extern crate common;
@@ -105,12 +105,12 @@ impl<P: Payloads> Client<P> {
         });
 
         // Was the handshake successful?
-        if let ServerMsg::Connected { player_uid } = pb.recv_timeout(CONNECT_TIMEOUT)? {
+        if let ServerMsg::Connected { player_uid, time } = pb.recv_timeout(CONNECT_TIMEOUT)? {
             let client = Manager::init(Client {
                 status: RwLock::new(ClientStatus::Connected),
                 postoffice,
 
-                time: RwLock::new(0.0),
+                time: RwLock::new(time),
                 player: RwLock::new(Player::new(alias)),
                 entities: RwLock::new(HashMap::new()),
                 phys_lock: Mutex::new(()),
@@ -208,7 +208,8 @@ impl<P: Payloads> Managed for Client<P> {
         // Tick worker
         Manager::add_worker(manager, |client, running, mut mgr| {
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
-                client.tick(40.0 / 1000.0, &mut mgr);
+                let dt = Duration::from_millis(50);
+                client.tick(dt, &mut mgr);
             }
         });
 

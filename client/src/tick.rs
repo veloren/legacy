@@ -14,7 +14,7 @@ use Payloads;
 use CHUNK_SIZE;
 
 impl<P: Payloads> Client<P> {
-    pub(crate) fn tick(&self, dt: f32, _mgr: &mut Manager<Self>) -> bool {
+    pub(crate) fn tick(&self, dt: Duration, _mgr: &mut Manager<Self>) -> bool {
         let entities = self.entities.read();
 
         // Physics tick
@@ -26,7 +26,7 @@ impl<P: Payloads> Client<P> {
 
         self.update_server();
 
-        *self.time.write() += dt as f64;
+        *self.time.write() += dt.as_millis() as f64 / 1000.0;
 
         thread::sleep(Duration::from_millis(40));
 

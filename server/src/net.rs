@@ -289,7 +289,7 @@ impl<P: Payloads> Server<P> {
 
         //Sync time with the client
         if self.time_ms > self.next_time_sync.load(Ordering::Relaxed) {
-            self.broadcast_net_msg(ServerMsg::TimeUpdate(self.time_ms));
+            self.broadcast_net_msg(ServerMsg::TimeUpdate(self.time_ms as f64 / 1000.0));
             self.next_time_sync.store(self.time_ms + 60000, Ordering::Relaxed);
         }
         

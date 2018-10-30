@@ -29,7 +29,7 @@ pub fn tick<
     entities: I,
     chunk_mgr: &VolMgr<Chunk, ChunkContainer, ChunkConverter, CP>,
     chunk_size: Vec3<i64>,
-    dt: f32
+    dt: f32,
 ) {
     // TODO: use const support once we use Vek
     let ENTITY_MIDDLE_OFFSET: Vec3<f32> = Vec3::new(0.0, 0.0, 0.9);

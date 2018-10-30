@@ -51,44 +51,44 @@ z:3
 
 fn gen_hetero() -> HeterogeneousData {
     let mut result = HeterogeneousData::empty(Vec3::new(4, 4, 4));
-    result.replace_at_unsafe(Vec3::new(0, 0, 0), Block::new(BlockMaterial::Stone));
-    result.replace_at_unsafe(Vec3::new(0, 1, 0), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(0, 2, 0), Block::new(BlockMaterial::Stone));
-    result.replace_at_unsafe(Vec3::new(0, 3, 0), Block::new(BlockMaterial::Stone));
-    result.replace_at_unsafe(Vec3::new(1, 0, 0), Block::new(BlockMaterial::Stone));
-    result.replace_at_unsafe(Vec3::new(1, 1, 0), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(1, 2, 0), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(1, 3, 0), Block::new(BlockMaterial::Stone));
-    result.replace_at_unsafe(Vec3::new(2, 1, 0), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(2, 2, 0), Block::new(BlockMaterial::Stone));
-    result.replace_at_unsafe(Vec3::new(2, 3, 0), Block::new(BlockMaterial::Sand));
-    result.replace_at_unsafe(Vec3::new(3, 3, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unchecked(Vec3::new(0, 0, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unchecked(Vec3::new(0, 1, 0), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(0, 2, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unchecked(Vec3::new(0, 3, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unchecked(Vec3::new(1, 0, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unchecked(Vec3::new(1, 1, 0), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(1, 2, 0), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(1, 3, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unchecked(Vec3::new(2, 1, 0), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(2, 2, 0), Block::new(BlockMaterial::Stone));
+    result.replace_at_unchecked(Vec3::new(2, 3, 0), Block::new(BlockMaterial::Sand));
+    result.replace_at_unchecked(Vec3::new(3, 3, 0), Block::new(BlockMaterial::Stone));
 
-    result.replace_at_unsafe(Vec3::new(0, 0, 1), Block::new(BlockMaterial::Stone));
-    result.replace_at_unsafe(Vec3::new(0, 1, 1), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(0, 2, 1), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(0, 3, 1), Block::new(BlockMaterial::Stone));
-    result.replace_at_unsafe(Vec3::new(1, 2, 1), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(1, 3, 1), Block::new(BlockMaterial::Sand));
-    result.replace_at_unsafe(Vec3::new(2, 3, 1), Block::new(BlockMaterial::Sand));
+    result.replace_at_unchecked(Vec3::new(0, 0, 1), Block::new(BlockMaterial::Stone));
+    result.replace_at_unchecked(Vec3::new(0, 1, 1), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(0, 2, 1), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(0, 3, 1), Block::new(BlockMaterial::Stone));
+    result.replace_at_unchecked(Vec3::new(1, 2, 1), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(1, 3, 1), Block::new(BlockMaterial::Sand));
+    result.replace_at_unchecked(Vec3::new(2, 3, 1), Block::new(BlockMaterial::Sand));
 
-    result.replace_at_unsafe(Vec3::new(0, 0, 2), Block::new(BlockMaterial::Stone));
-    result.replace_at_unsafe(Vec3::new(0, 2, 2), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(0, 3, 2), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(1, 0, 2), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(1, 3, 2), Block::new(BlockMaterial::Sand));
-    result.replace_at_unsafe(Vec3::new(2, 3, 2), Block::new(BlockMaterial::Sand));
+    result.replace_at_unchecked(Vec3::new(0, 0, 2), Block::new(BlockMaterial::Stone));
+    result.replace_at_unchecked(Vec3::new(0, 2, 2), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(0, 3, 2), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(1, 0, 2), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(1, 3, 2), Block::new(BlockMaterial::Sand));
+    result.replace_at_unchecked(Vec3::new(2, 3, 2), Block::new(BlockMaterial::Sand));
 
-    result.replace_at_unsafe(Vec3::new(0, 0, 3), Block::new(BlockMaterial::Stone));
-    result.replace_at_unsafe(Vec3::new(0, 1, 3), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(0, 2, 3), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(1, 0, 3), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(1, 1, 3), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(1, 3, 3), Block::new(BlockMaterial::Sand));
-    result.replace_at_unsafe(Vec3::new(2, 0, 3), Block::new(BlockMaterial::Sand));
-    result.replace_at_unsafe(Vec3::new(2, 3, 3), Block::new(BlockMaterial::Sand));
-    result.replace_at_unsafe(Vec3::new(3, 1, 3), Block::new(BlockMaterial::Earth));
-    result.replace_at_unsafe(Vec3::new(3, 2, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(0, 0, 3), Block::new(BlockMaterial::Stone));
+    result.replace_at_unchecked(Vec3::new(0, 1, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(0, 2, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(1, 0, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(1, 1, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(1, 3, 3), Block::new(BlockMaterial::Sand));
+    result.replace_at_unchecked(Vec3::new(2, 0, 3), Block::new(BlockMaterial::Sand));
+    result.replace_at_unchecked(Vec3::new(2, 3, 3), Block::new(BlockMaterial::Sand));
+    result.replace_at_unchecked(Vec3::new(3, 1, 3), Block::new(BlockMaterial::Earth));
+    result.replace_at_unchecked(Vec3::new(3, 2, 3), Block::new(BlockMaterial::Earth));
 
     return result;
 }

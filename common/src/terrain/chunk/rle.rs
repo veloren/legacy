@@ -1,8 +1,11 @@
 // Standard
 use std::u8;
 
+// Library
+use vek::*;
+
 // Local
-use terrain::{chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, Volume, Voxel, VoxelRelVec};
+use terrain::{chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, Volume, VoxRel, Voxel};
 
 //TODO: optimizations:
 // currently even empty blocks generate a BlockRle, one could say that if the 3rd vector is empty that all blocks are empty
@@ -21,7 +24,7 @@ impl BlockRle {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct RleData {
     //per x and y coord store the z coord rle
-    size: VoxelRelVec,
+    size: Vec3<VoxRel>,
     voxels: Vec<Vec<BlockRle>>,
 }
 
@@ -34,11 +37,11 @@ impl RleData {
 impl Volume for RleData {
     type VoxelType = Block;
 
-    fn size(&self) -> VoxelRelVec { self.size }
+    fn size(&self) -> Vec3<VoxRel> { self.size }
 }
 
 impl ReadVolume for RleData {
-    fn at_unsafe(&self, pos: VoxelRelVec) -> Block {
+    fn at_unchecked(&self, pos: Vec3<VoxRel>) -> Block {
         let col = &self.voxels[pos.x as usize * self.size.y as usize + pos.y as usize];
         let mut oldz: u16 = 0;
         for brle in col {
@@ -53,7 +56,7 @@ impl ReadVolume for RleData {
 }
 
 impl ConstructVolume for RleData {
-    fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> RleData {
+    fn filled(size: Vec3<VoxRel>, vox: Self::VoxelType) -> RleData {
         let mut rle = RleData {
             size,
             voxels: vec![Vec::new(); size.x as usize * size.y as usize],
@@ -70,7 +73,7 @@ impl ConstructVolume for RleData {
         rle
     }
 
-    fn empty(size: VoxelRelVec) -> RleData { Self::filled(size, Block::empty()) }
+    fn empty(size: Vec3<VoxRel>) -> RleData { Self::filled(size, Block::empty()) }
 }
 
 impl PhysicalVolume for RleData {}

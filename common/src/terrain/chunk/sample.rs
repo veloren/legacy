@@ -4,11 +4,15 @@ use std::{
     sync::Arc,
 };
 
+// Library
 use parking_lot::RwLockReadGuard;
+use vek::*;
+
+// Local
 use terrain::{
     self,
     chunk::{Block, Chunk},
-    ReadVolume, Volume, VolumeIdxVec, VoxelAbsType, VoxelAbsVec, VoxelRelType, VoxelRelVec,
+    ReadVolume, VolOffs, Volume, VoxAbs, VoxRel,
 };
 
 /// a ChunkSample is no real chunk, but like a pointer to real blocks
@@ -16,33 +20,33 @@ use terrain::{
 /// It should be used when accessing blocks over chunk boundries because it can optimize the locking and read access
 
 pub struct ChunkSample<'a> {
-    vol_size: VoxelRelVec, // blocks in chunk, e.g. (16,16,16)
-    block_from_abs: VoxelAbsVec,
-    block_from_rel: VoxelRelVec,
-    block_length: VoxelAbsVec,
-    block_to_abs: VoxelAbsVec,
+    vol_size: Vec3<VoxRel>, // blocks in chunk, e.g. (16,16,16)
+    block_from_abs: Vec3<VoxAbs>,
+    block_from_rel: Vec3<VoxRel>,
+    block_length: Vec3<VoxAbs>,
+    block_to_abs: Vec3<VoxAbs>,
 
     // Store the absolute Chunk Index and the correct lock which is used inside ChunkSample
-    map: HashMap<VolumeIdxVec, Arc<RwLockReadGuard<'a, Chunk>>>,
+    map: HashMap<Vec3<VolOffs>, Arc<RwLockReadGuard<'a, Chunk>>>,
 }
 
 pub struct ChunkSampleIter<'a> {
     owner: &'a ChunkSample<'a>,
-    chunkiter: hash_map::Iter<'a, VolumeIdxVec, Arc<RwLockReadGuard<'a, Chunk>>>,
-    chunkiteritem: Option<(&'a VolumeIdxVec, &'a Arc<RwLockReadGuard<'a, Chunk>>)>,
-    block_rel: VoxelRelVec,
+    chunkiter: hash_map::Iter<'a, Vec3<VolOffs>, Arc<RwLockReadGuard<'a, Chunk>>>,
+    chunkiteritem: Option<(&'a Vec3<VolOffs>, &'a Arc<RwLockReadGuard<'a, Chunk>>)>,
+    block_rel: Vec3<VoxRel>,
 }
 
 impl<'a> Iterator for ChunkSampleIter<'a> {
-    type Item = (VoxelAbsVec, Block);
+    type Item = (Vec3<VoxAbs>, Block);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.chunkiteritem.is_none() {
             self.chunkiteritem = self.chunkiter.next();
-            self.block_rel = VoxelRelVec::new(0, 0, 0);
+            self.block_rel = Vec3::new(0, 0, 0);
         }
         if let Some((key, item)) = self.chunkiteritem {
-            let abs = terrain::volidx_to_voxabs(*key, self.owner.vol_size) + self.block_rel.map(|e| e as VoxelAbsType);
+            let abs = terrain::volidx_to_voxabs(*key, self.owner.vol_size) + self.block_rel.map(|e| e as VoxAbs);
             if abs.x < self.owner.block_from_abs.x {
                 self.block_rel.x = self.owner.block_from_rel.x;
             }
@@ -75,16 +79,16 @@ impl<'a> Iterator for ChunkSampleIter<'a> {
 
 impl<'a> ChunkSample<'a> {
     pub(crate) fn new_internal(
-        vol_size: VoxelRelVec,
-        block_from_abs: VoxelAbsVec,
-        block_to_abs: VoxelAbsVec,
-        map: HashMap<VolumeIdxVec, Arc<RwLockReadGuard<'a, Chunk>>>,
+        vol_size: Vec3<VoxRel>,
+        block_from_abs: Vec3<VoxAbs>,
+        block_to_abs: Vec3<VoxAbs>,
+        map: HashMap<Vec3<VolOffs>, Arc<RwLockReadGuard<'a, Chunk>>>,
     ) -> Self {
         ChunkSample {
             vol_size,
             block_from_abs,
             block_from_rel: terrain::voxabs_to_voxrel(block_from_abs, vol_size),
-            block_length: block_to_abs - block_from_abs + VoxelAbsVec::new(1, 1, 1),
+            block_length: block_to_abs - block_from_abs + Vec3::new(1, 1, 1),
             block_to_abs,
             map: map,
         }
@@ -95,20 +99,20 @@ impl<'a> ChunkSample<'a> {
             owner: &self,
             chunkiter: self.map.iter(),
             chunkiteritem: None,
-            block_rel: VoxelRelVec::new(0, 0, 0),
+            block_rel: Vec3::new(0, 0, 0),
         }
     }
 
-    fn access(lock: &RwLockReadGuard<'a, Chunk>, off: VoxelRelVec) -> Block {
+    fn access(lock: &RwLockReadGuard<'a, Chunk>, off: Vec3<VoxRel>) -> Block {
         match **lock {
-            Chunk::Homo(ref homo) => homo.at_unsafe(off),
-            Chunk::Hetero(ref hetero) => hetero.at_unsafe(off),
-            Chunk::Rle(ref rle) => rle.at_unsafe(off),
-            Chunk::HeteroAndRle(ref hetero, _) => hetero.at_unsafe(off),
+            Chunk::Homo(ref homo) => homo.at_unchecked(off),
+            Chunk::Hetero(ref hetero) => hetero.at_unchecked(off),
+            Chunk::Rle(ref rle) => rle.at_unchecked(off),
+            Chunk::HeteroAndRle(ref hetero, _) => hetero.at_unchecked(off),
         }
     }
 
-    pub fn at_abs(&self, off: VoxelAbsVec) -> Option<Block> {
+    pub fn at_abs(&self, off: Vec3<VoxAbs>) -> Option<Block> {
         let size = self.size();
         let chunkidx = terrain::voxabs_to_volidx(off, size);
         let blockrel = terrain::voxabs_to_voxrel(off, size);
@@ -118,7 +122,7 @@ impl<'a> ChunkSample<'a> {
         None
     }
 
-    pub fn at_abs_unsafe(&self, off: VoxelAbsVec) -> Block {
+    pub fn at_abs_unchecked(&self, off: Vec3<VoxAbs>) -> Block {
         let size = self.size();
         let chunkidx = terrain::voxabs_to_volidx(off, size);
         let blockrel = terrain::voxabs_to_voxrel(off, size);
@@ -128,21 +132,21 @@ impl<'a> ChunkSample<'a> {
         panic!("off not inside VolSample: {}, chunkidx: {}", off, chunkidx);
     }
 
-    pub fn size_blocks(&self) -> VoxelAbsVec { self.block_length }
+    pub fn size_blocks(&self) -> Vec3<VoxAbs> { self.block_length }
 }
 
 impl<'a> Volume for ChunkSample<'a> {
     type VoxelType = Block;
 
-    fn size(&self) -> VoxelRelVec {
+    fn size(&self) -> Vec3<VoxRel> {
         //TODO: This conversion is potentialy DANGEROUS! because we say mix implementaton with interface here, thing about it carefully.Will make problems when sampling over 4096 chunks for now!
-        self.block_length.map(|e| e as VoxelRelType)
+        self.block_length.map(|e| e as VoxRel)
     }
 }
 
 impl<'a> ReadVolume for ChunkSample<'a> {
-    fn at_unsafe(&self, pos: VoxelRelVec) -> Block {
-        let abs = self.block_from_abs + pos.map(|e| e as VoxelAbsType);
-        self.at_abs_unsafe(abs)
+    fn at_unchecked(&self, pos: Vec3<VoxRel>) -> Block {
+        let abs = self.block_from_abs + pos.map(|e| e as VoxAbs);
+        self.at_abs_unchecked(abs)
     }
 }

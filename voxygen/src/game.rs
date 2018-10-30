@@ -25,7 +25,7 @@ use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::{
     terrain::{
         chunk::{Chunk, ChunkContainer},
-        Container, VolumeIdxVec,
+        Container, VolOffs,
     },
     util::manager::Manager,
 };
@@ -84,7 +84,7 @@ pub struct Game {
     other_player_model: voxel::Model,
 }
 
-fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
+fn gen_payload(key: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
     let conlock = con.lock();
     if let Some(ref con) = *conlock {
         *con.payload_mut() = Some(ChunkPayload::Meshes(match *con.data() {
@@ -96,7 +96,7 @@ fn gen_payload(key: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<<Payloads
     }
 }
 
-fn drop_payload(_key: VolumeIdxVec, _con: Arc<ChunkContainer<<Payloads as client::Payloads>::Chunk>>) {}
+fn drop_payload(_key: Vec3<VolOffs>, _con: Arc<ChunkContainer<<Payloads as client::Payloads>::Chunk>>) {}
 
 impl Game {
     pub fn new<R: ToSocketAddrs>(mode: PlayMode, alias: &str, remote_addr: R, view_distance: i64) -> Game {

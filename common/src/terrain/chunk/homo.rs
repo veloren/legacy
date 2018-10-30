@@ -1,9 +1,12 @@
+// Library
+use vek::*;
+
 // Local
-use terrain::{chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, Volume, Voxel, VoxelRelVec};
+use terrain::{chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, Volume, VoxRel, Voxel};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct HomogeneousData {
-    size: VoxelRelVec,
+    size: Vec3<VoxRel>,
     voxel: Block,
 }
 
@@ -14,17 +17,17 @@ impl HomogeneousData {
 impl Volume for HomogeneousData {
     type VoxelType = Block;
 
-    fn size(&self) -> VoxelRelVec { self.size }
+    fn size(&self) -> Vec3<VoxRel> { self.size }
 }
 
 impl ReadVolume for HomogeneousData {
-    fn at_unsafe(&self, _off: VoxelRelVec) -> Block { self.voxel }
+    fn at_unchecked(&self, _off: Vec3<VoxRel>) -> Block { self.voxel }
 }
 
 impl ConstructVolume for HomogeneousData {
-    fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> HomogeneousData { HomogeneousData { size, voxel: vox } }
+    fn filled(size: Vec3<VoxRel>, vox: Self::VoxelType) -> HomogeneousData { HomogeneousData { size, voxel: vox } }
 
-    fn empty(size: VoxelRelVec) -> HomogeneousData { Self::filled(size, Block::empty()) }
+    fn empty(size: Vec3<VoxRel>) -> HomogeneousData { Self::filled(size, Block::empty()) }
 }
 
 impl PhysicalVolume for HomogeneousData {}

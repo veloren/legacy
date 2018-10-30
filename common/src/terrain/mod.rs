@@ -40,30 +40,27 @@ pub trait Voxel: Copy + Clone + Any {
     fn material(&self) -> Self::Material;
 }
 
-pub type VoxelRelType = u16;
-pub type VoxelAbsType = i64;
-pub type VolumeIdxType = i32;
 /// Relative VoxelId inside a volume (e.g. chunk), only posiive values
-pub type VoxelRelVec = Vec3<VoxelRelType>;
+pub type VoxRel = u16;
 /// Absolute VoxelId, this is unique for every Voxel (e.g. Block) - signed int
-pub type VoxelAbsVec = Vec3<VoxelAbsType>;
+pub type VoxAbs = i64;
 /// Key of every Chunk - signed int
-pub type VolumeIdxVec = Vec3<VolumeIdxType>;
+pub type VolOffs = i32;
 
-pub fn volidx_to_voxabs(volidx: VolumeIdxVec, vol_size: VoxelRelVec) -> VoxelAbsVec {
+pub fn volidx_to_voxabs(volidx: Vec3<VolOffs>, vol_size: Vec3<VoxRel>) -> Vec3<VoxAbs> {
     volidx.map(|e| e as i64) * vol_size.map(|e| e as i64)
 }
 
-pub fn voxabs_to_volidx(voxabs: VoxelAbsVec, vol_size: VoxelRelVec) -> VolumeIdxVec {
+pub fn voxabs_to_volidx(voxabs: Vec3<VoxAbs>, vol_size: Vec3<VoxRel>) -> Vec3<VolOffs> {
     voxabs.map2(vol_size, |a, s| a.div_euc(s as i64) as i32)
 }
 
-pub fn voxabs_to_voxrel(voxabs: VoxelAbsVec, vol_size: VoxelRelVec) -> VoxelRelVec {
+pub fn voxabs_to_voxrel(voxabs: Vec3<VoxAbs>, vol_size: Vec3<VoxRel>) -> Vec3<VoxRel> {
     voxabs.map2(vol_size, |a, s| a.mod_euc(s as i64) as u16)
 }
 
 /// Helper function to manually validate a offset of any time and convert it
-fn validate_offset<T: Num + ToPrimitive>(off: Vec3<T>, size: VoxelRelVec) -> Option<VoxelRelVec> {
+fn validate_offset<T: Num + ToPrimitive>(off: Vec3<T>, size: Vec3<VoxRel>) -> Option<Vec3<VoxRel>> {
     let off = off.map(|e| e.to_i64().unwrap());
     if off.x >= 0 && off.y >= 0 && off.z >= 0 && off.x < size.x as i64 && off.y < size.y as i64 && off.z < size.z as i64
     {
@@ -79,46 +76,46 @@ pub trait Volume {
     type VoxelType: Voxel;
 
     /// Return the size of the volume (i.e: the number of voxels on each edge).
-    fn size(&self) -> VoxelRelVec;
+    fn size(&self) -> Vec3<VoxRel>;
 }
 
 pub trait ReadVolume: Volume {
     /// Return a clone of the voxel at the specified offset into the volume.
-    fn at(&self, off: VoxelRelVec) -> Option<Self::VoxelType> {
+    fn at(&self, off: Vec3<VoxRel>) -> Option<Self::VoxelType> {
         // Default implementation
-        validate_offset(off, self.size()).map(|off| self.at_unsafe(off))
+        validate_offset(off, self.size()).map(|off| self.at_unchecked(off))
     }
 
-    /// like `at` but acceps i64 instead of VoxelRelType
+    /// like `at` but acceps i64 instead of VoxRel
     fn at_conv(&self, off: Vec3<i64>) -> Option<Self::VoxelType> {
         // Default implementation
-        validate_offset(off, self.size()).map(|off| self.at_unsafe(off))
+        validate_offset(off, self.size()).map(|off| self.at_unchecked(off))
     }
 
     /// like `at` but without any checks
-    fn at_unsafe(&self, off: VoxelRelVec) -> Self::VoxelType;
+    fn at_unchecked(&self, off: Vec3<VoxRel>) -> Self::VoxelType;
 }
 
 pub trait ReadWriteVolume: ReadVolume {
     /// Replace the voxel at the specified offset into the volume, returning the old voxel if any.
-    fn replace_at(&mut self, off: VoxelRelVec, vox: Self::VoxelType) -> Option<Self::VoxelType> {
+    fn replace_at(&mut self, off: Vec3<VoxRel>, vox: Self::VoxelType) -> Option<Self::VoxelType> {
         // Default implementation
-        validate_offset(off, self.size()).map(|off| self.replace_at_unsafe(off, vox))
+        validate_offset(off, self.size()).map(|off| self.replace_at_unchecked(off, vox))
     }
 
     /// like `replace_at` but without any checks
-    fn replace_at_unsafe(&mut self, off: VoxelRelVec, vox: Self::VoxelType) -> Self::VoxelType;
+    fn replace_at_unchecked(&mut self, off: Vec3<VoxRel>, vox: Self::VoxelType) -> Self::VoxelType;
 
     /// Set the voxel at the specified offset into the volume
-    fn set_at(&mut self, off: VoxelRelVec, vox: Self::VoxelType) {
+    fn set_at(&mut self, off: Vec3<VoxRel>, vox: Self::VoxelType) {
         // Default implementation
         let _ = self.replace_at(off, vox);
     }
 
     /// like `set_at` but without any checks
-    fn set_at_unsafe(&mut self, off: VoxelRelVec, vox: Self::VoxelType) {
+    fn set_at_unchecked(&mut self, off: Vec3<VoxRel>, vox: Self::VoxelType) {
         // Default implementation
-        let _ = self.replace_at_unsafe(off, vox);
+        let _ = self.replace_at_unchecked(off, vox);
     }
 
     /// Set every voxel, empty or otherwise, to the given voxel type.
@@ -127,10 +124,10 @@ pub trait ReadWriteVolume: ReadVolume {
 
 pub trait ConstructVolume: Volume {
     /// Construct a new empty volume with the given size.
-    fn empty(size: VoxelRelVec) -> Self;
+    fn empty(size: Vec3<VoxRel>) -> Self;
 
     /// Construct a new volume with the given size, filled with clones of the given voxel.
-    fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> Self;
+    fn filled(size: Vec3<VoxRel>, vox: Self::VoxelType) -> Self;
 }
 
 pub trait AnyVolume: Any + Debug {

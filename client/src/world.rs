@@ -9,7 +9,7 @@ use common::{
     terrain::{
         self,
         chunk::{Chunk, ChunkContainer, HeterogeneousData},
-        BlockLoader, Container, Key, PersState, VolCluster, VolumeIdxType, VolumeIdxVec, VoxelAbsType,
+        BlockLoader, Container, Key, PersState, VolCluster, VolOffs, VoxAbs,
     },
     util::manager::Manager,
 };
@@ -20,7 +20,7 @@ use Client;
 use Payloads;
 use CHUNK_SIZE;
 
-pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<P>>>>) {
+pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<P>>>>) {
     let filename = pos.print() + ".dat";
     let filepath = "./saves/".to_owned() + &(filename);
     let path = Path::new(&filepath);
@@ -44,7 +44,7 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<Mu
     }
 }
 
-pub(crate) fn drop_chunk<P: Send + Sync + 'static>(pos: VolumeIdxVec, con: Arc<ChunkContainer<P>>) {
+pub(crate) fn drop_chunk<P: Send + Sync + 'static>(pos: Vec3<VolOffs>, con: Arc<ChunkContainer<P>>) {
     let filename = pos.print() + ".dat";
     let filepath = "./saves/".to_owned() + &(filename);
     let path = Path::new(&filepath);
@@ -68,12 +68,12 @@ impl<P: Payloads> Client<P> {
             let (player_pos, player_vel);
             {
                 let player = player_entity.read();
-                player_pos = player.pos().map(|e| e as VoxelAbsType);
-                player_vel = player.vel().map(|e| e as VoxelAbsType);
+                player_pos = player.pos().map(|e| e as VoxAbs);
+                player_vel = player.vel().map(|e| e as VoxAbs);
             }
 
             const GENERATION_FACTOR: f32 = 1.4; // generate more than you see
-            let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as VolumeIdxType;
+            let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as VolOffs;
             let view_dist_block = terrain::volidx_to_voxabs(Vec3::new(view_dist, view_dist, view_dist), CHUNK_SIZE);
             let mut bl = self.chunk_mgr().block_loader_mut();
             bl.clear();

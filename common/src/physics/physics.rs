@@ -7,7 +7,7 @@ use vek::*;
 
 // Project
 use physics::collision::{Primitive, ResolutionTti, PLANCK_LENGTH};
-use terrain::{Voxel, VoxelAbsType, VoxelAbsVec};
+use terrain::{VoxAbs, Voxel};
 
 use Uid;
 
@@ -20,7 +20,7 @@ const BLOCK_SIZE_PLUS_SMALL: f32 = 1.0 + PLANCK_LENGTH;
 const BLOCK_HOP_SPEED: f32 = 15.0;
 const BLOCK_HOP_MAX: f32 = 0.34;
 
-fn get_bounds(col: &Primitive, dir: Vec3<f32>) -> (/*low:*/ VoxelAbsVec, /*high:*/ VoxelAbsVec) {
+fn get_bounds(col: &Primitive, dir: Vec3<f32>) -> (/*low:*/ Vec3<VoxAbs>, /*high:*/ Vec3<VoxAbs>) {
     // get the entity boundrieds and convert them to blocks, then caluclate the entity velocity and adjust it
     // then move the playr up by BLOCK_SIZE_PLUS_SMALL for block hopping
 
@@ -34,8 +34,8 @@ fn get_bounds(col: &Primitive, dir: Vec3<f32>) -> (/*low:*/ VoxelAbsVec, /*high:
     // apply Hop correction to high
     high.z += BLOCK_SIZE_PLUS_SMALL;
     // ceil the low and floor the high for dat performance improve
-    let low = low.map(|e| e.ceil() as VoxelAbsType);
-    let high = high.map(|e| (e.floor() as VoxelAbsType) + 1); // +1 is for the for loop
+    let low = low.map(|e| e.ceil() as VoxAbs);
+    let high = high.map(|e| (e.floor() as VoxAbs) + 1); // +1 is for the for loop
 
     (low, high)
 }
@@ -46,7 +46,7 @@ fn get_nearby(
     grav: Vec3<f32>,
     vel: Vec3<f32>,
     dt: f32,
-) -> (/*low:*/ VoxelAbsVec, /*high:*/ VoxelAbsVec) {
+) -> (/*low:*/ Vec3<VoxAbs>, /*high:*/ Vec3<VoxAbs>) {
     let (mut low, mut high) = get_bounds(col, grav.map(|e| e * dt));
     let (l2, h2) = get_bounds(col, vel.map(|e| e * dt));
 
@@ -281,7 +281,7 @@ pub fn tick<
             }
         }
 
-        let cd = entity_prim.col_center().map(|e| e as VoxelAbsType);
+        let cd = entity_prim.col_center().map(|e| e as VoxAbs);
         if !chunk_mgr.exists_block(cd) {
             *entity.vel_mut() = Vec3::broadcast(0.0);
             continue; //skip applying

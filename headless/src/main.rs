@@ -17,10 +17,11 @@ use std::{io, sync::Arc};
 // Library
 use parking_lot::Mutex;
 use syrup::Window;
+use vek::*;
 
 // Project
 use client::{Client, ClientEvent, PlayMode};
-use common::terrain::{chunk::ChunkContainer, VolumeIdxVec};
+use common::terrain::{chunk::ChunkContainer, VolOffs};
 
 struct Payloads {}
 impl client::Payloads for Payloads {
@@ -28,9 +29,9 @@ impl client::Payloads for Payloads {
     type Entity = ();
 }
 
-fn gen_payload(_key: VolumeIdxVec, _con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {}
+fn gen_payload(_key: Vec3<VolOffs>, _con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {}
 
-fn drop_payload(_key: VolumeIdxVec, _con: Arc<ChunkContainer<<Payloads as client::Payloads>::Chunk>>) {}
+fn drop_payload(_key: Vec3<VolOffs>, _con: Arc<ChunkContainer<<Payloads as client::Payloads>::Chunk>>) {}
 
 fn main() {
     info!("Starting headless client...");

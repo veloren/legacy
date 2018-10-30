@@ -32,7 +32,7 @@ use vek::*;
 
 // Project
 use common::{
-    terrain::{chunk::ChunkContainer, ChunkMgr, Entity, FnDropFunc, FnGenFunc, VolGen, VolumeIdxVec, VoxelRelType},
+    terrain::{chunk::ChunkContainer, ChunkMgr, Entity, FnDropFunc, FnGenFunc, VolGen, VolOffs, VoxRel},
     util::{
         manager::{Managed, Manager},
         msg::{ClientMsg, ClientPostOffice, ServerMsg, SessionKind},
@@ -45,7 +45,7 @@ use error::Error;
 use player::Player;
 
 // Constants
-pub const CHUNK_SIZE: Vec3<VoxelRelType> = Vec3 { x: 32, y: 32, z: 32 };
+pub const CHUNK_SIZE: Vec3<VoxRel> = Vec3 { x: 32, y: 32, z: 32 };
 pub const CHUNK_MID: Vec3<f32> = Vec3 {
     x: CHUNK_SIZE.x as f32 / 2.0,
     y: CHUNK_SIZE.y as f32 / 2.0,
@@ -88,8 +88,8 @@ pub struct Client<P: Payloads> {
 impl<P: Payloads> Client<P> {
     pub fn new<
         S: ToSocketAddrs,
-        GP: FnGenFunc<VolumeIdxVec, ChunkContainer<P::Chunk>>,
-        DP: FnDropFunc<VolumeIdxVec, ChunkContainer<P::Chunk>>,
+        GP: FnGenFunc<Vec3<VolOffs>, ChunkContainer<P::Chunk>>,
+        DP: FnDropFunc<Vec3<VolOffs>, ChunkContainer<P::Chunk>>,
     >(
         mode: PlayMode,
         alias: String,

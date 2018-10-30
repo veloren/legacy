@@ -4,16 +4,16 @@ use vek::*;
 // Local
 use terrain::{
     figure::{Cell, CellMaterial},
-    ConstructVolume, PhysicalVolume, ReadVolume, ReadWriteVolume, Volume, Voxel, VoxelRelVec,
+    ConstructVolume, PhysicalVolume, ReadVolume, ReadWriteVolume, Volume, VoxRel, Voxel,
 };
 
 pub struct Figure {
-    size: VoxelRelVec,
+    size: Vec3<VoxRel>,
     voxels: Vec<Cell>,
 }
 
 impl Figure {
-    pub fn test(offset: Vec3<i64>, size: VoxelRelVec) -> Figure {
+    pub fn test(offset: Vec3<i64>, size: Vec3<VoxRel>) -> Figure {
         let mut voxels = Vec::new();
 
         for _i in 0..size.x {
@@ -27,7 +27,7 @@ impl Figure {
         Figure { size, voxels }
     }
 
-    fn calculate_index(&self, off: VoxelRelVec) -> usize {
+    fn calculate_index(&self, off: Vec3<VoxRel>) -> usize {
         (off.x * self.size.y * self.size.z + off.y * self.size.z + off.z) as usize
     }
 }
@@ -35,15 +35,15 @@ impl Figure {
 impl Volume for Figure {
     type VoxelType = Cell;
 
-    fn size(&self) -> VoxelRelVec { self.size }
+    fn size(&self) -> Vec3<VoxRel> { self.size }
 }
 
 impl ReadVolume for Figure {
-    fn at_unsafe(&self, off: VoxelRelVec) -> Cell { self.voxels[self.calculate_index(off)] }
+    fn at_unchecked(&self, off: Vec3<VoxRel>) -> Cell { self.voxels[self.calculate_index(off)] }
 }
 
 impl ReadWriteVolume for Figure {
-    fn replace_at_unsafe(&mut self, off: VoxelRelVec, vox: Self::VoxelType) -> Self::VoxelType {
+    fn replace_at_unchecked(&mut self, off: Vec3<VoxRel>, vox: Self::VoxelType) -> Self::VoxelType {
         let i = self.calculate_index(off);
         let r = self.voxels[i];
         self.voxels[i] = vox;
@@ -59,7 +59,7 @@ impl ReadWriteVolume for Figure {
 }
 
 impl ConstructVolume for Figure {
-    fn filled(size: VoxelRelVec, vox: Self::VoxelType) -> Figure {
+    fn filled(size: Vec3<VoxRel>, vox: Self::VoxelType) -> Figure {
         let vol = Figure {
             size,
             voxels: vec![vox; (size.x * size.y * size.z) as usize],
@@ -67,7 +67,7 @@ impl ConstructVolume for Figure {
         vol
     }
 
-    fn empty(size: VoxelRelVec) -> Figure { Self::filled(size, Cell::empty()) }
+    fn empty(size: Vec3<VoxRel>) -> Figure { Self::filled(size, Cell::empty()) }
 }
 
 impl PhysicalVolume for Figure {

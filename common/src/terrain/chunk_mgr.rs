@@ -10,14 +10,14 @@ use vek::*;
 use terrain::{
     self,
     chunk::{Block, ChunkContainer, ChunkSample},
-    Container, Key, PersState, VolCluster, VolGen, VolumeIdxType, VolumeIdxVec, VoxelAbsType, VoxelAbsVec, VoxelRelVec,
+    Container, Key, PersState, VolCluster, VolGen, VolOffs, VoxAbs, VoxRel,
 };
 
 lazy_static! {
     static ref POOL: Mutex<ThreadPool> = Mutex::new(ThreadPool::new(2));
 }
 
-impl Key for VolumeIdxVec {
+impl Key for Vec3<VolOffs> {
     fn print(&self) -> String { return format!("c{},{},{}", self.x, self.y, self.z).to_string(); }
 }
 
@@ -30,20 +30,20 @@ pub enum ChunkSampleError {
 
 #[derive(Clone)]
 pub struct BlockLoader {
-    pub pos: VoxelAbsVec,
-    pub size: VoxelAbsVec,
+    pub pos: Vec3<VoxAbs>,
+    pub size: Vec3<VoxAbs>,
 }
 
 pub struct ChunkMgr<P: Send + Sync + 'static> {
-    vol_size: VoxelRelVec,
-    pending: Arc<RwLock<HashMap<VolumeIdxVec, Arc<Mutex<Option<ChunkContainer<P>>>>>>>, // Mutex is only needed for compiler, we dont acces it in multiple threads
-    pers: RwLock<HashMap<VolumeIdxVec, Arc<ChunkContainer<P>>>>,
-    gen: VolGen<VolumeIdxVec, ChunkContainer<P>>,
+    vol_size: Vec3<VoxRel>,
+    pending: Arc<RwLock<HashMap<Vec3<VolOffs>, Arc<Mutex<Option<ChunkContainer<P>>>>>>>, // Mutex is only needed for compiler, we dont acces it in multiple threads
+    pers: RwLock<HashMap<Vec3<VolOffs>, Arc<ChunkContainer<P>>>>,
+    gen: VolGen<Vec3<VolOffs>, ChunkContainer<P>>,
     block_loader: RwLock<Vec<Arc<RwLock<BlockLoader>>>>,
 }
 
 impl<P: Send + Sync + 'static> ChunkMgr<P> {
-    pub fn new(vol_size: VoxelRelVec, gen: VolGen<VolumeIdxVec, ChunkContainer<P>>) -> ChunkMgr<P> {
+    pub fn new(vol_size: Vec3<VoxRel>, gen: VolGen<Vec3<VolOffs>, ChunkContainer<P>>) -> ChunkMgr<P> {
         ChunkMgr {
             vol_size,
             pending: Arc::new(RwLock::new(HashMap::new())),
@@ -53,13 +53,13 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         }
     }
 
-    pub fn exists_block(&self, pos: VoxelAbsVec) -> bool {
+    pub fn exists_block(&self, pos: Vec3<VoxAbs>) -> bool {
         self.exists_chunk(terrain::voxabs_to_volidx(pos, self.vol_size))
     }
 
-    pub fn exists_chunk(&self, pos: VolumeIdxVec) -> bool { self.pers.read().get(&pos).is_some() }
+    pub fn exists_chunk(&self, pos: Vec3<VolOffs>) -> bool { self.pers.read().get(&pos).is_some() }
 
-    pub fn get_block(&self, pos: VoxelAbsVec) -> Option<Block> {
+    pub fn get_block(&self, pos: Vec3<VoxAbs>) -> Option<Block> {
         let chunk = terrain::voxabs_to_volidx(pos, self.vol_size);
         let off = terrain::voxabs_to_voxrel(pos, self.vol_size);
         if let Some(chunk) = self.pers.read().get(&chunk) {
@@ -73,7 +73,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
     }
 
     // Tries getting a Sample
-    pub fn try_get_sample(&self, from: VoxelAbsVec, to: VoxelAbsVec) -> Result<ChunkSample, ChunkSampleError> {
+    pub fn try_get_sample(&self, from: Vec3<VoxAbs>, to: Vec3<VoxAbs>) -> Result<ChunkSample, ChunkSampleError> {
         let mut c = 0;
         loop {
             match self.get_sample(from, to) {
@@ -93,7 +93,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         }
     }
 
-    pub fn get_sample(&self, from: VoxelAbsVec, to: VoxelAbsVec) -> Result<ChunkSample, ChunkSampleError> {
+    pub fn get_sample(&self, from: Vec3<VoxAbs>, to: Vec3<VoxAbs>) -> Result<ChunkSample, ChunkSampleError> {
         let mut map = HashMap::new();
         let chunk_from = terrain::voxabs_to_volidx(from, self.vol_size);
         let chunk_to = terrain::voxabs_to_volidx(to, self.vol_size);
@@ -123,7 +123,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         Ok(ChunkSample::new_internal(self.vol_size, from, to, map))
     }
 
-    pub fn gen(&self, pos: VolumeIdxVec) {
+    pub fn gen(&self, pos: Vec3<VolOffs>) {
         // this function must work multithreaded
         let gen_vol = self.gen.gen_vol.clone();
         let gen_payload = self.gen.gen_payload.clone();
@@ -145,7 +145,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         });
     }
 
-    pub fn drop(&self, pos: VolumeIdxVec) {
+    pub fn drop(&self, pos: Vec3<VolOffs>) {
         // this function must work multithreaded
         let drop_vol = self.gen.drop_vol.clone();
         let drop_payload = self.gen.drop_payload.clone();
@@ -216,7 +216,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                 }
             }
         }
-        let mut chunks: Vec<(VolumeIdxVec, VolumeIdxType)> = chunk_map.iter().map(|pd| (*pd.0, *pd.1)).collect();
+        let mut chunks: Vec<(Vec3<VolOffs>, VolOffs)> = chunk_map.iter().map(|pd| (*pd.0, *pd.1)).collect();
         chunks.sort_by(|a, b| a.1.cmp(&b.1));
 
         // Generate chunks around the player
@@ -230,7 +230,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
             }
         }
 
-        const DIFF_TILL_UNLOAD: VoxelAbsType = 5;
+        const DIFF_TILL_UNLOAD: VoxAbs = 5;
         // unload all chunks which have a distance of DIFF_TILL_UNLOAD to a loaded area
 
         // drop old chunks
@@ -291,12 +291,12 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         );
     }
 
-    pub fn remove(&self, pos: VolumeIdxVec) -> bool { self.pers.write().remove(&pos).is_some() }
+    pub fn remove(&self, pos: Vec3<VolOffs>) -> bool { self.pers.write().remove(&pos).is_some() }
 
     pub fn pending_chunk_cnt(&self) -> usize { self.pending.read().len() }
 
     #[deprecated(since = "0.1.0", note = "find a more elegant solution!")]
-    pub fn pers(&self) -> HashMap<VolumeIdxVec, Arc<ChunkContainer<P>>> {
+    pub fn pers(&self) -> HashMap<Vec3<VolOffs>, Arc<ChunkContainer<P>>> {
         // I just dont want to give access to the real persistency here
         let mut new_map = HashMap::new();
         for (k, a) in self.pers.read().iter() {

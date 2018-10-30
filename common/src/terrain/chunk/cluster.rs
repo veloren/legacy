@@ -4,7 +4,7 @@ use terrain::{
         Block, HeterogeneousData, HomogeneousData, RleData,
     },
     AnyVolume, ConstructVolume, PersState, PhysicalVolume, ReadVolume, ReadWriteVolume, SerializeVolume, VolCluster,
-    Volume, Voxel, VoxelRelType,
+    Volume, VoxRel, Voxel,
 };
 use vek::*;
 
@@ -33,7 +33,7 @@ impl VolCluster for Chunk {
                 match self {
                     Chunk::Homo(_) => return,
                     Chunk::Hetero(hetero) => {
-                        let t = hetero.at_unsafe(Vec3::new(0, 0, 0));
+                        let t = hetero.at_unchecked(Vec3::new(0, 0, 0));
                         // check if possible!
                         for e in hetero.voxels_mut().iter() {
                             if *e != t {
@@ -44,7 +44,7 @@ impl VolCluster for Chunk {
                         self.insert(homo);
                     },
                     Chunk::Rle(rle) | Chunk::HeteroAndRle(_, rle) => {
-                        let t = rle.at_unsafe(Vec3::new(0, 0, 0));
+                        let t = rle.at_unchecked(Vec3::new(0, 0, 0));
                         for e in rle.voxels_mut().iter() {
                             for e in e.iter() {
                                 if e.block != t {
@@ -61,7 +61,7 @@ impl VolCluster for Chunk {
             PersState::Hetero => {
                 match self {
                     Chunk::Homo(homo) => {
-                        let hetero = HeterogeneousData::filled(homo.size(), homo.at_unsafe(Vec3::new(0, 0, 0)));
+                        let hetero = HeterogeneousData::filled(homo.size(), homo.at_unchecked(Vec3::new(0, 0, 0)));
                         self.insert(hetero);
                     },
                     Chunk::Hetero(_) | Chunk::HeteroAndRle(_, _) => return,
@@ -72,19 +72,19 @@ impl VolCluster for Chunk {
                         //unfold Rle into Raw format
                         for x in 0..size.x {
                             for y in 0..size.y {
-                                let mut old_z: VoxelRelType = 0;
+                                let mut old_z: VoxRel = 0;
                                 let ref stack = voxels[(x * size.y + y) as usize];
                                 for b in stack {
-                                    let new_z = old_z + (b.num_minus_one + 1) as VoxelRelType;
+                                    let new_z = old_z + (b.num_minus_one + 1) as VoxRel;
                                     for z in old_z..new_z {
                                         let pos = Vec3::new(x, y, z);
-                                        hetero.replace_at_unsafe(pos, b.block);
+                                        hetero.replace_at_unchecked(pos, b.block);
                                     }
                                     old_z = new_z;
                                 }
                                 for z in old_z..size.z {
                                     let pos = Vec3::new(x, y, z);
-                                    hetero.replace_at_unsafe(pos, Block::empty());
+                                    hetero.replace_at_unchecked(pos, Block::empty());
                                 }
                             }
                         }
@@ -95,7 +95,7 @@ impl VolCluster for Chunk {
             PersState::Rle => {
                 match self {
                     Chunk::Homo(homo) => {
-                        let rle = RleData::filled(homo.size(), homo.at_unsafe(Vec3::new(0, 0, 0)));
+                        let rle = RleData::filled(homo.size(), homo.at_unchecked(Vec3::new(0, 0, 0)));
                         self.insert(rle);
                     },
                     Chunk::Hetero(hetero) => {
@@ -104,17 +104,17 @@ impl VolCluster for Chunk {
                         let ref mut voxels = rle.voxels_mut();
                         for x in 0..size.x {
                             for y in 0..size.y {
-                                let mut old_z: VoxelRelType = 0;
+                                let mut old_z: VoxRel = 0;
                                 let ref mut xy = voxels[(x * size.y + y) as usize];
                                 xy.clear();
-                                let mut last_block = hetero.at_unsafe(Vec3::new(x, y, 0)).material();
+                                let mut last_block = hetero.at_unchecked(Vec3::new(x, y, 0)).material();
                                 //start converting the pillar x,y
                                 for z in 1..size.z + 1 {
                                     let lastelem = z == size.z;
                                     let block = if lastelem {
-                                        hetero.at_unsafe(Vec3::new(x, y, z - 1)).material()
+                                        hetero.at_unchecked(Vec3::new(x, y, z - 1)).material()
                                     } else {
-                                        hetero.at_unsafe(Vec3::new(x, y, z)).material()
+                                        hetero.at_unchecked(Vec3::new(x, y, z)).material()
                                     };
                                     // check the block if its the same like the last one or a diffrernt one, if its a different one, we need to save the last one
 

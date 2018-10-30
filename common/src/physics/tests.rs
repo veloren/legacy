@@ -13,8 +13,8 @@ use physics::{
 };
 use terrain::{
     chunk::{Block, BlockMaterial, Chunk, ChunkContainer, HeterogeneousData},
-    BlockLoader, ChunkMgr, ConstructVolume, Container, Entity, ReadWriteVolume, VolCluster, VolGen, VolumeIdxVec,
-    Voxel, VoxelRelType,
+    BlockLoader, ChunkMgr, ConstructVolume, Container, Entity, ReadWriteVolume, VolCluster, VolGen, VolOffs, VoxRel,
+    Voxel,
 };
 use Uid;
 
@@ -681,54 +681,54 @@ fn tti_diagonal_in_to_dirs_negative() {
 }
 
 // Constants
-pub const CHUNK_SIZE: Vec3<VoxelRelType> = Vec3 { x: 64, y: 64, z: 64 };
+pub const CHUNK_SIZE: Vec3<VoxRel> = Vec3 { x: 64, y: 64, z: 64 };
 pub const CHUNK_MID: Vec3<f32> = Vec3 {
     x: CHUNK_SIZE.x as f32 / 2.0,
     y: CHUNK_SIZE.y as f32 / 2.0,
     z: CHUNK_SIZE.z as f32 / 2.0,
 };
 
-fn gen_chunk_flat(_pos: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<i64>>>>) {
+fn gen_chunk_flat(_pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<i64>>>>) {
     let mut c = HeterogeneousData::empty(CHUNK_SIZE);
     for x in 0..CHUNK_SIZE.x {
         for y in 0..CHUNK_SIZE.y {
-            c.replace_at_unsafe(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
+            c.replace_at_unchecked(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
         }
     }
     *con.lock() = Some(ChunkContainer::<i64>::new(Chunk::Hetero(c)));
 }
 
-fn gen_chunk_flat_border(_pos: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<i64>>>>) {
+fn gen_chunk_flat_border(_pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<i64>>>>) {
     let mut c = HeterogeneousData::empty(CHUNK_SIZE);
     for x in 0..CHUNK_SIZE.x {
         for y in 0..CHUNK_SIZE.y {
-            c.replace_at_unsafe(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
+            c.replace_at_unchecked(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
         }
     }
     for i in 0..CHUNK_SIZE.x {
-        c.replace_at_unsafe(Vec3::new(i, 0, 3), Block::new(BlockMaterial::Stone));
-        c.replace_at_unsafe(Vec3::new(i, CHUNK_SIZE.x - 1, 3), Block::new(BlockMaterial::Stone));
-        c.replace_at_unsafe(Vec3::new(0, i, 3), Block::new(BlockMaterial::Stone));
-        c.replace_at_unsafe(Vec3::new(CHUNK_SIZE.x - 1, i, 3), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(i, 0, 3), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(i, CHUNK_SIZE.x - 1, 3), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(0, i, 3), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(CHUNK_SIZE.x - 1, i, 3), Block::new(BlockMaterial::Stone));
 
-        c.replace_at_unsafe(Vec3::new(i, 0, 4), Block::new(BlockMaterial::Stone));
-        c.replace_at_unsafe(Vec3::new(i, CHUNK_SIZE.x - 1, 4), Block::new(BlockMaterial::Stone));
-        c.replace_at_unsafe(Vec3::new(0, i, 4), Block::new(BlockMaterial::Stone));
-        c.replace_at_unsafe(Vec3::new(CHUNK_SIZE.x - 1, i, 4), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(i, 0, 4), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(i, CHUNK_SIZE.x - 1, 4), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(0, i, 4), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(CHUNK_SIZE.x - 1, i, 4), Block::new(BlockMaterial::Stone));
     }
     *con.lock() = Some(ChunkContainer::<i64>::new(Chunk::Hetero(c)));
 }
 
-fn gen_payload(_pos: VolumeIdxVec, con: Arc<Mutex<Option<ChunkContainer<i64>>>>) {
+fn gen_payload(_pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<i64>>>>) {
     let conlock = con.lock();
     if let Some(ref con) = *conlock {
         *con.payload_mut() = Some(42);
     }
 }
 
-fn drop_chunk(_pos: VolumeIdxVec, _con: Arc<ChunkContainer<i64>>) {}
+fn drop_chunk(_pos: Vec3<VolOffs>, _con: Arc<ChunkContainer<i64>>) {}
 
-fn drop_payload(_pos: VolumeIdxVec, _con: Arc<ChunkContainer<i64>>) {}
+fn drop_payload(_pos: Vec3<VolOffs>, _con: Arc<ChunkContainer<i64>>) {}
 
 #[test]
 fn physics_fall() {

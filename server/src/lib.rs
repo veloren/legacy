@@ -22,7 +22,6 @@ pub use error::Error;
 use std::{
     net::{TcpListener, ToSocketAddrs},
     sync::atomic::Ordering,
-    sync::atomic::AtomicU64,
     thread,
     time::Duration,
 };
@@ -64,8 +63,8 @@ pub trait Payloads: Send + Sync + 'static {
 
 pub struct Server<P: Payloads> {
     listener: TcpListener,
-    time_ms: u64,
-    next_time_sync: AtomicU64,
+    time: f64,
+    next_time_sync: RwLock<f64>,
     world: World,
     payload: P,
 }
@@ -88,8 +87,8 @@ impl<P: Payloads> Server<P> {
 
         Ok(Manager::init(Wrapper(RwLock::new(Server {
             listener: TcpListener::bind(bind_addr)?,
-            time_ms: 0,
-            next_time_sync: AtomicU64::new(0),
+            time: 0.0,
+            next_time_sync: RwLock::new(0.0),
             world,
             payload,
         }))))

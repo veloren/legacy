@@ -115,7 +115,7 @@ pub(crate) fn auth_client<P: Payloads>(
     });
 
     // Inform the client that they've successfully connected
-    let _ = session.postbox.send(ServerMsg::Connected { player_uid, time: srv.do_for(|srv| srv.time_ms) as f64});
+    let _ = session.postbox.send(ServerMsg::Connected { player_uid, time: srv.do_for(|srv| srv.time)});
 
     Ok(player)
 }
@@ -284,14 +284,13 @@ impl<P: Payloads> Server<P> {
             self.notify_comp::<Pos>(entity);
             self.notify_comp::<Vel>(entity);
             self.notify_comp::<Dir>(entity);
-            
+
         }
 
         //Sync time with the client every 60 seconds.
-        if self.time_ms > self.next_time_sync.load(Ordering::Relaxed) {
-            self.broadcast_net_msg(ServerMsg::TimeUpdate(self.time_ms as f64));
-            self.next_time_sync.store(self.time_ms + 60000, Ordering::Relaxed);
+        if self.time > *self.next_time_sync.read() {
+            self.broadcast_net_msg(ServerMsg::TimeUpdate(self.time));
+            *self.next_time_sync.write() = self.time + 60.0;
         }
-        
     }
 }

@@ -79,6 +79,11 @@ impl<P: Payloads> Client<P> {
                 Incoming::Msg(ServerMsg::EntityDeleted { uid }) => {
                     self.remove_entity(uid);
                 },
+
+                Incoming::Msg(ServerMsg::TimeUpdate(time)) => {
+                    *self.time.write() = time;
+                },
+
                 Incoming::Msg(_) => {},
 
                 // End

@@ -150,16 +150,16 @@ impl Game {
         let skybox_model = skybox::Model::new(&mut window.renderer_mut(), &skybox_mesh);
 
         info!("trying to load model files");
-        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player3.vox")
-            .expect("cannot find model 3.vox. Make sure to start voxygen from its folder");
+        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player6.vox")
+            .expect("cannot find model player6.vox. Make sure to start voxygen from its folder");
         let voxmodel = voxel::vox_to_figure(vox);
 
         let player_meshes = voxel::Mesh::from_with_offset(&voxmodel, Vec3::new(-10.0, -4.0, 0.0));
 
         let player_model = voxel::Model::new(&mut window.renderer_mut(), &player_meshes);
 
-        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player5.vox")
-            .expect("cannot find model 5.vox. Make sure to start voxygen from its folder");
+        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player7.vox")
+            .expect("cannot find model player7.vox. Make sure to start voxygen from its folder");
         let voxmodel = voxel::vox_to_figure(vox);
 
         let other_player_meshes = voxel::Mesh::from(&voxmodel);

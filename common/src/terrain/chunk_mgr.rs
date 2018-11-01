@@ -54,13 +54,13 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
     }
 
     pub fn exists_block(&self, pos: Vec3<VoxAbs>) -> bool {
-        self.exists_chunk(terrain::voxabs_to_volidx(pos, self.vol_size))
+        self.exists_chunk(terrain::voxabs_to_voloffs(pos, self.vol_size))
     }
 
     pub fn exists_chunk(&self, pos: Vec3<VolOffs>) -> bool { self.pers.read().get(&pos).is_some() }
 
     pub fn get_block(&self, pos: Vec3<VoxAbs>) -> Option<Block> {
-        let chunk = terrain::voxabs_to_volidx(pos, self.vol_size);
+        let chunk = terrain::voxabs_to_voloffs(pos, self.vol_size);
         let off = terrain::voxabs_to_voxrel(pos, self.vol_size);
         if let Some(chunk) = self.pers.read().get(&chunk) {
             let lock = chunk.data();
@@ -95,8 +95,8 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
 
     pub fn get_sample(&self, from: Vec3<VoxAbs>, to: Vec3<VoxAbs>) -> Result<ChunkSample, ChunkSampleError> {
         let mut map = HashMap::new();
-        let chunk_from = terrain::voxabs_to_volidx(from, self.vol_size);
-        let chunk_to = terrain::voxabs_to_volidx(to, self.vol_size);
+        let chunk_from = terrain::voxabs_to_voloffs(from, self.vol_size);
+        let chunk_to = terrain::voxabs_to_voloffs(to, self.vol_size);
         let lock = self.pers.read();
         for x in chunk_from.x..chunk_to.x + 1 {
             for y in chunk_from.y..chunk_to.y + 1 {
@@ -198,9 +198,9 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         for bl in block_loader.iter() {
             let pos = bl.pos;
             let size = bl.size;
-            let pos_chunk = terrain::voxabs_to_volidx(pos, self.vol_size);
-            let from = terrain::voxabs_to_volidx(pos - size, self.vol_size);
-            let to = terrain::voxabs_to_volidx(pos + size, self.vol_size);
+            let pos_chunk = terrain::voxabs_to_voloffs(pos, self.vol_size);
+            let from = terrain::voxabs_to_voloffs(pos - size, self.vol_size);
+            let to = terrain::voxabs_to_voloffs(pos + size, self.vol_size);
             for i in from.x..to.x + 1 {
                 for j in from.y..to.y + 1 {
                     for k in from.z..to.z + 1 {
@@ -240,7 +240,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
             if chunk_map.contains_key(k) {
                 continue;
             }
-            let k_mid = terrain::volidx_to_voxabs(*k, self.vol_size) + self.vol_size.map(|e| e as i64 / 2);
+            let k_mid = terrain::voloffs_to_voxabs(*k, self.vol_size) + self.vol_size.map(|e| e as i64 / 2);
             let mut lowest_dist = DIFF_TILL_UNLOAD + 1; // bigger than DIFF_TILL_UNLOAD
                                                         // get block distance to nearest blockloader
             for bl in block_loader.iter() {

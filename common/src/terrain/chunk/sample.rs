@@ -46,7 +46,7 @@ impl<'a> Iterator for ChunkSampleIter<'a> {
             self.block_rel = Vec3::new(0, 0, 0);
         }
         if let Some((key, item)) = self.chunkiteritem {
-            let abs = terrain::volidx_to_voxabs(*key, self.owner.vol_size) + self.block_rel.map(|e| e as VoxAbs);
+            let abs = terrain::voloffs_to_voxabs(*key, self.owner.vol_size) + self.block_rel.map(|e| e as VoxAbs);
             if abs.x < self.owner.block_from_abs.x {
                 self.block_rel.x = self.owner.block_from_rel.x;
             }
@@ -114,7 +114,7 @@ impl<'a> ChunkSample<'a> {
 
     pub fn at_abs(&self, off: Vec3<VoxAbs>) -> Option<Block> {
         let size = self.size();
-        let chunkidx = terrain::voxabs_to_volidx(off, size);
+        let chunkidx = terrain::voxabs_to_voloffs(off, size);
         let blockrel = terrain::voxabs_to_voxrel(off, size);
         let _ = self.map.get(&chunkidx).map(|lock| {
             return Some(ChunkSample::<'a>::access(&lock, blockrel));
@@ -124,7 +124,7 @@ impl<'a> ChunkSample<'a> {
 
     pub fn at_abs_unchecked(&self, off: Vec3<VoxAbs>) -> Block {
         let size = self.size();
-        let chunkidx = terrain::voxabs_to_volidx(off, size);
+        let chunkidx = terrain::voxabs_to_voloffs(off, size);
         let blockrel = terrain::voxabs_to_voxrel(off, size);
         let _ = self.map.get(&chunkidx).map(|lock| {
             return ChunkSample::<'a>::access(&lock, blockrel);

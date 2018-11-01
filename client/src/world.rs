@@ -37,7 +37,7 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<VolOffs>, con: Arc<M
                 break 'load;
             }
         }
-        let vol = HeterogeneousData::test(terrain::volidx_to_voxabs(pos, CHUNK_SIZE), CHUNK_SIZE);
+        let vol = HeterogeneousData::test(terrain::voloffs_to_voxabs(pos, CHUNK_SIZE), CHUNK_SIZE);
         let mut c = Chunk::Hetero(vol);
         c.convert(PersState::Homo); //TODO: not so performant, do check directly in chunk generation
         *con.lock() = Some(ChunkContainer::<P>::new(c));
@@ -74,7 +74,7 @@ impl<P: Payloads> Client<P> {
 
             const GENERATION_FACTOR: f32 = 1.4; // generate more than you see
             let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as VolOffs;
-            let view_dist_block = terrain::volidx_to_voxabs(Vec3::new(view_dist, view_dist, view_dist), CHUNK_SIZE);
+            let view_dist_block = terrain::voloffs_to_voxabs(Vec3::new(view_dist, view_dist, view_dist), CHUNK_SIZE);
             let mut bl = self.chunk_mgr().block_loader_mut();
             bl.clear();
             bl.push(Arc::new(RwLock::new(BlockLoader {

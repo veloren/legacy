@@ -47,11 +47,11 @@ pub type VoxAbs = i64;
 /// Key of every Chunk - signed int
 pub type VolOffs = i32;
 
-pub fn volidx_to_voxabs(volidx: Vec3<VolOffs>, vol_size: Vec3<VoxRel>) -> Vec3<VoxAbs> {
+pub fn voloffs_to_voxabs(volidx: Vec3<VolOffs>, vol_size: Vec3<VoxRel>) -> Vec3<VoxAbs> {
     volidx.map(|e| e as i64) * vol_size.map(|e| e as i64)
 }
 
-pub fn voxabs_to_volidx(voxabs: Vec3<VoxAbs>, vol_size: Vec3<VoxRel>) -> Vec3<VolOffs> {
+pub fn voxabs_to_voloffs(voxabs: Vec3<VoxAbs>, vol_size: Vec3<VoxRel>) -> Vec3<VolOffs> {
     voxabs.map2(vol_size, |a, s| a.div_euc(s as i64) as i32)
 }
 

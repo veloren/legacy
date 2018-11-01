@@ -339,7 +339,7 @@ impl Game {
         let mut renderer = self.window.renderer_mut();
         // Find the chunk the camera is in
         let cam_origin = self.camera.lock().get_pos(None);
-        let cam_chunk = terrain::voxabs_to_volidx(cam_origin.map(|e| e as i64), CHUNK_SIZE);
+        let cam_chunk = terrain::voxabs_to_voloffs(cam_origin.map(|e| e as i64), CHUNK_SIZE);
 
         for (pos, con) in self.client.chunk_mgr().pers().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
@@ -467,7 +467,7 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Find the chunk the camera is in
-        let cam_chunk = terrain::voxabs_to_volidx(cam_origin.map(|e| e as i64), CHUNK_SIZE);
+        let cam_chunk = terrain::voxabs_to_voloffs(cam_origin.map(|e| e as i64), CHUNK_SIZE);
 
         // Render each chunk
         for (pos, con) in self.client.chunk_mgr().pers().iter() {

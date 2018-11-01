@@ -26,16 +26,22 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<VolOffs>, con: Arc<M
     let path = Path::new(&filepath);
     'load: {
         if path.exists() {
-            let mut datfile = File::open(&filepath).unwrap();
-            let mut content = Vec::<u8>::new();
-            datfile
-                .read_to_end(&mut content)
-                .expect(&format!("read of file {} failed", &filepath));
-            let cc = Chunk::from_bytes(&content);
-            if let Ok(cc) = cc {
-                *con.lock() = Some(ChunkContainer::<P>::new(cc));
-                break 'load;
+            let datfile = File::open(&filepath);
+            if let Ok(mut datfile) = datfile {
+                let mut content = Vec::<u8>::new();
+                datfile
+                    .read_to_end(&mut content)
+                    .expect(&format!("read of file {} failed", &filepath));
+                let cc = Chunk::from_bytes(&content);
+                if let Ok(cc) = cc {
+                    *con.lock() = Some(ChunkContainer::<P>::new(cc));
+                    break 'load;
+                }
             }
+            warn!(
+                "there was a problem reading a chunk {} from file, it was newly generated",
+                pos
+            );
         }
         let vol = HeterogeneousData::test(terrain::voloffs_to_voxabs(pos, CHUNK_SIZE), CHUNK_SIZE);
         let mut c = Chunk::Hetero(vol);
@@ -53,9 +59,15 @@ pub(crate) fn drop_chunk<P: Send + Sync + 'static>(pos: Vec3<VolOffs>, con: Arc<
             let mut data = con.data_mut();
             let bytes = data.to_bytes();
             if let Ok(bytes) = bytes {
-                let mut datfile = File::create(filepath).unwrap();
-                datfile.write_all(&bytes).unwrap();
-                debug!("write to file: {}, bytes: {}", filename, bytes.len());
+                let datfile = File::create(filepath);
+                if let Ok(mut datfile) = datfile {
+                    match datfile.write_all(&bytes) {
+                        Ok(_) => debug!("write to file: {}, bytes: {}", filename, bytes.len()),
+                        Err(_) => warn!("problem writing chunk {} to file, ignoring it", pos),
+                    };
+                } else {
+                    warn!("problem creating file for chunk {}, ignoring it", pos)
+                }
             }
         }
     }
@@ -87,6 +99,7 @@ impl<P: Payloads> Client<P> {
                 size: view_dist_block,
             }))); // player in 5 sec
         }
+        //TODO: maybe remove this from CHUNMGR, and just pass it here
         self.chunk_mgr().maintain();
     }
 }

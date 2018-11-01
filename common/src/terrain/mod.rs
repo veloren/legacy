@@ -48,23 +48,28 @@ pub type VoxAbs = i64;
 pub type VolOffs = i32;
 
 pub fn voloffs_to_voxabs(volidx: Vec3<VolOffs>, vol_size: Vec3<VoxRel>) -> Vec3<VoxAbs> {
-    volidx.map(|e| e as i64) * vol_size.map(|e| e as i64)
+    volidx.map(|e| e as VoxAbs) * vol_size.map(|e| e as VoxAbs)
 }
 
 pub fn voxabs_to_voloffs(voxabs: Vec3<VoxAbs>, vol_size: Vec3<VoxRel>) -> Vec3<VolOffs> {
-    voxabs.map2(vol_size, |a, s| a.div_euc(s as i64) as i32)
+    voxabs.map2(vol_size, |a, s| a.div_euc(s as VoxAbs) as VolOffs)
 }
 
 pub fn voxabs_to_voxrel(voxabs: Vec3<VoxAbs>, vol_size: Vec3<VoxRel>) -> Vec3<VoxRel> {
-    voxabs.map2(vol_size, |a, s| a.mod_euc(s as i64) as u16)
+    voxabs.map2(vol_size, |a, s| a.mod_euc(s as VoxAbs) as VoxRel)
 }
 
 /// Helper function to manually validate a offset of any time and convert it
 fn validate_offset<T: Num + ToPrimitive>(off: Vec3<T>, size: Vec3<VoxRel>) -> Option<Vec3<VoxRel>> {
     let off = off.map(|e| e.to_i64().unwrap());
-    if off.x >= 0 && off.y >= 0 && off.z >= 0 && off.x < size.x as i64 && off.y < size.y as i64 && off.z < size.z as i64
+    if off.x >= 0
+        && off.y >= 0
+        && off.z >= 0
+        && off.x < size.x as VoxAbs
+        && off.y < size.y as VoxAbs
+        && off.z < size.z as VoxAbs
     {
-        Some(off.map(|e| e as u16))
+        Some(off.map(|e| e as VoxRel))
     } else {
         None
     }

@@ -5,19 +5,20 @@ use vek::*;
 // Project
 use common::terrain::{
     figure::{Cell, CellMaterial, Figure},
-    ConstructVolume, ReadWriteVolume, Voxel,
+    ConstructVolume, ReadWriteVolume, VoxRel, Voxel,
 };
 
 pub fn vox_to_figure(vox: DotVoxData) -> Figure {
     let model = vox.models.first().unwrap();
 
-    let mut figure = Figure::filled(
-        Vec3::new(model.size.x as u16, model.size.y as u16, model.size.z as u16),
-        Cell::empty(),
-    );
+    let mut figure = Figure::empty(Vec3::new(
+        model.size.x as VoxRel,
+        model.size.y as VoxRel,
+        model.size.z as VoxRel,
+    ));
     for ref v in vox.models.first().unwrap().voxels.iter() {
-        figure.replace_at(
-            Vec3::new(v.x as u16, v.y as u16, v.z as u16),
+        figure.set_at(
+            Vec3::new(v.x as VoxRel, v.y as VoxRel, v.z as VoxRel),
             Cell::new(CellMaterial::MatteSmooth(v.i)),
         );
     }

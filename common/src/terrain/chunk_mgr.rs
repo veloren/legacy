@@ -39,7 +39,7 @@ pub struct ChunkMgr<P: Send + Sync + 'static> {
     pending: Arc<RwLock<HashMap<Vec3<VolOffs>, Arc<Mutex<Option<ChunkContainer<P>>>>>>>, // Mutex is only needed for compiler, we dont acces it in multiple threads
     pers: RwLock<HashMap<Vec3<VolOffs>, Arc<ChunkContainer<P>>>>,
     gen: VolGen<Vec3<VolOffs>, ChunkContainer<P>>,
-    block_loader: RwLock<Vec<Arc<RwLock<BlockLoader>>>>,
+    block_loader: RwLock<Vec<Arc<RwLock<BlockLoader>>>>, //TODO: maybe remove this from CHUNMGR, and just pass it
 }
 
 impl<P: Send + Sync + 'static> ChunkMgr<P> {

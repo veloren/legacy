@@ -23,10 +23,10 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::{
     terrain::{
+        self,
         chunk::{Chunk, ChunkContainer},
         Container, VolOffs,
     },
-    terrain,
     util::manager::Manager,
 };
 
@@ -94,7 +94,7 @@ fn to_4x4(v: &Mat4<f32>) -> [[f32; 4]; 4] {
     out
 }
 
-fn gen_payload(key: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
+fn gen_payload(_key: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
     let conlock = con.lock();
     if let Some(ref con) = *conlock {
         *con.payload_mut() = Some(ChunkPayload::Meshes(match *con.data() {
@@ -338,42 +338,44 @@ impl Game {
     pub fn update_chunks(&self) {
         let mut renderer = self.window.renderer_mut();
         // Find the chunk the camera is in
-        let cam_origin = self.camera.lock().get_pos(None);
-        let cam_chunk = terrain::voxabs_to_voloffs(cam_origin.map(|e| e as i64), CHUNK_SIZE);
+        let player_pos = self
+            .client
+            .player_entity()
+            .map(|p| *p.read().pos())
+            .unwrap_or(Vec3::new(0.0, 0.0, 0.0));
+        let player_chunk = terrain::voxabs_to_voloffs(player_pos.map(|e| e as i64), CHUNK_SIZE);
+        let squared_view_distance = (self.client.view_distance() / CHUNK_SIZE.x as f32 + 1.0).powi(2) as i32; // view_distance is vox based, but its needed vol based here
 
-        for (pos, con) in self.client.chunk_mgr().pers().iter() {
-            // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
-            if (*pos - cam_chunk.map(|e| e as i32)).map(|e| e.abs() as u16).sum()
-                > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE.x
-            {
-                continue;
-            }
-            {
-                let trylock = &mut con.payload_try_mut(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
-                if let Some(ref mut lock) = trylock {
-                    //sometimes persistence does not exist, dont render then
-                    if let Some(ref mut payload) = **lock {
-                        if let ChunkPayload::Meshes(ref mut mesh) = payload {
-                            // Calculate chunk mode matrix
-                            let model_mat = Mat4::<f32>::translation_3d(pos.map2(CHUNK_SIZE, |p, s| (p * s as i32) as f32));
+        for (pos, con) in self
+            .client
+            .chunk_mgr()
+            .pers(|chunk_offs| player_chunk.distance_squared(*chunk_offs) < squared_view_distance)
+            .iter()
+        {
+            let trylock = &mut con.payload_try_mut(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
+            if let Some(ref mut lock) = trylock {
+                //sometimes payload does not exist, dont render then
+                if let Some(ref mut payload) = **lock {
+                    if let ChunkPayload::Meshes(ref mut mesh) = payload {
+                        // Calculate chunk mode matrix
+                        let model_mat = Mat4::<f32>::translation_3d(pos.map2(CHUNK_SIZE, |p, s| (p * s as i32) as f32));
 
-                            // Create set new model constants
-                            let model_consts = ConstHandle::new(&mut renderer);
+                        // Create set new model constants
+                        let model_consts = ConstHandle::new(&mut renderer);
 
-                            // Update chunk model constants
-                            model_consts.update(
-                                &mut renderer,
-                                voxel::ModelConsts {
-                                    model_mat: to_4x4(&model_mat),
-                                },
-                            );
+                        // Update chunk model constants
+                        model_consts.update(
+                            &mut renderer,
+                            voxel::ModelConsts {
+                                model_mat: to_4x4(&model_mat),
+                            },
+                        );
 
-                            // Update the chunk payload
-                            *payload = ChunkPayload::Model {
-                                model: voxel::Model::new(&mut renderer, mesh),
-                                model_consts,
-                            };
-                        }
+                        // Update the chunk payload
+                        *payload = ChunkPayload::Model {
+                            model: voxel::Model::new(&mut renderer, mesh),
+                            model_consts,
+                        };
                     }
                 }
             }
@@ -437,12 +439,12 @@ impl Game {
         // Calculate frame constants
         let camera_mats = self.camera.lock().get_mats();
         let cam_origin = self.camera.lock().get_pos(Some(&camera_mats));
-        let play_origin = self
+        let player_pos = self
             .client
             .player_entity()
             .map(|p| *p.read().pos())
             .unwrap_or(Vec3::new(0.0, 0.0, 0.0));
-        let play_origin = [play_origin.x, play_origin.y, play_origin.z, 1.0];
+        let play_origin = [player_pos.x, player_pos.y, player_pos.z, 1.0];
         let time = self.client.time() as f32;
 
         // Begin rendering, don't clear the frame
@@ -467,15 +469,16 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Find the chunk the camera is in
-        let cam_chunk = terrain::voxabs_to_voloffs(cam_origin.map(|e| e as i64), CHUNK_SIZE);
+        let player_chunk = terrain::voxabs_to_voloffs(player_pos.map(|e| e as i64), CHUNK_SIZE);
+        let squared_view_distance = (self.client.view_distance() / CHUNK_SIZE.x as f32 + 1.0).powi(2) as i32; // view_distance is vox based, but its needed vol based here
 
         // Render each chunk
-        for (pos, con) in self.client.chunk_mgr().pers().iter() {
-            // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
-            if (*pos - cam_chunk).sum() > (self.client.view_distance() as i32 * 2) / CHUNK_SIZE.x as i32 {
-                continue;
-            }
-            // rendering actually does not set the time, but updating does it
+        for (_pos, con) in self
+            .client
+            .chunk_mgr()
+            .pers(|chunk_offs| player_chunk.distance_squared(*chunk_offs) < squared_view_distance)
+            .iter()
+        {
             let trylock = &con.payload_try(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
             if let Some(ref lock) = trylock {
                 if let Some(ref payload) = **lock {

@@ -295,12 +295,16 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
 
     pub fn pending_chunk_cnt(&self) -> usize { self.pending.read().len() }
 
-    #[deprecated(since = "0.1.0", note = "find a more elegant solution!")]
-    pub fn pers(&self) -> HashMap<Vec3<VolOffs>, Arc<ChunkContainer<P>>> {
-        // I just dont want to give access to the real persistency here
+    pub fn pers<F>(&self, filter: F) -> HashMap<Vec3<VolOffs>, Arc<ChunkContainer<P>>>
+    where
+        F: Fn(&Vec3<VolOffs>) -> bool,
+    {
+        //dont give access to the real persistency lock here
         let mut new_map = HashMap::new();
         for (k, a) in self.pers.read().iter() {
-            new_map.insert(*k, a.clone());
+            if filter(k) {
+                new_map.insert(*k, a.clone());
+            }
         }
         return new_map;
     }

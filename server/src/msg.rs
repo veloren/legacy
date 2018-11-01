@@ -45,7 +45,7 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
             srv.send_chat_msg(player, "/pos - Display your current position");
             srv.send_chat_msg(player, "/alias <alias> - Change your alias");
             srv.send_chat_msg(player, "/warp <dx> <dy> <dz> - Offset your position");
-			srv.send_chat_msg(player, "/goto <dx> <dy> <dz> - Teleport to specified position");
+            srv.send_chat_msg(player, "/goto <dx> <dy> <dz> - Teleport to specified position");
         }),
         Some("players") => srv.do_for(|srv| {
             // Find a list of player names and format them
@@ -166,7 +166,7 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
                 break 'warp;
             }
         }),
-		Some("goto") => srv.do_for_mut(|srv| 'goto: {
+        Some("goto") => srv.do_for_mut(|srv| 'goto: {
             let mut tensor = [0.0; 3];
             for i in 0..3 {
                 let arg = if let Some(a) = cmd.next() {

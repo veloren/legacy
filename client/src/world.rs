@@ -87,6 +87,5 @@ impl<P: Payloads> Client<P> {
             }))); // player in 5 sec
         }
         self.chunk_mgr().maintain();
-        self.chunk_mgr().debug();
     }
 }

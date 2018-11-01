@@ -212,10 +212,17 @@ impl<P: Payloads> Managed for Client<P> {
             }
         });
 
-        // Tick2 worker
+        // Chunkmgr worker
         Manager::add_worker(manager, |client, running, mut mgr| {
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
                 client.manage_chunks(200.0 / 1000.0, &mut mgr);
+            }
+        });
+
+        // Debug worker
+        Manager::add_worker(manager, |client, running, mut mgr| {
+            while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
+                client.debug(5000.0 / 1000.0, &mut mgr);
             }
         });
     }

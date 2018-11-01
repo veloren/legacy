@@ -35,4 +35,11 @@ impl<P: Payloads> Client<P> {
         thread::sleep(Duration::from_millis(200));
         *self.status() != ClientStatus::Disconnected
     }
+
+    pub(crate) fn debug(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
+        self.chunk_mgr().debug();
+
+        thread::sleep(Duration::from_millis(5000));
+        *self.status() != ClientStatus::Disconnected
+    }
 }

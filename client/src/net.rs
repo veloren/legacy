@@ -40,7 +40,7 @@ impl<P: Payloads> Client<P> {
 
                                 loop {
                                     thread::sleep(PING_FREQ);
-                                    pb.send(ClientMsg::Ping);
+                                    let _ = pb.send(ClientMsg::Ping);
 
                                     match pb.recv_timeout(PING_TIMEOUT) {
                                         Ok(ServerMsg::Ping) => {},
@@ -79,6 +79,11 @@ impl<P: Payloads> Client<P> {
                 Incoming::Msg(ServerMsg::EntityDeleted { uid }) => {
                     self.remove_entity(uid);
                 },
+
+                Incoming::Msg(ServerMsg::TimeUpdate(time)) => {
+                    *self.time.write() = time;
+                },
+
                 Incoming::Msg(_) => {},
 
                 // End
@@ -93,7 +98,7 @@ impl<P: Payloads> Client<P> {
     pub(crate) fn update_server(&self) {
         if let Some(player_entity) = self.player_entity() {
             let player_entity = player_entity.read();
-            self.postoffice.send_one(ClientMsg::PlayerEntityUpdate {
+            let _ = self.postoffice.send_one(ClientMsg::PlayerEntityUpdate {
                 pos: *player_entity.pos(),
                 vel: *player_entity.vel(),
                 dir: *player_entity.look_dir(),

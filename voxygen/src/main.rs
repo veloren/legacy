@@ -14,7 +14,6 @@ extern crate lyon;
 
 // Mathematics
 extern crate alga;
-extern crate nalgebra;
 extern crate vek;
 
 // File loading
@@ -30,6 +29,7 @@ extern crate pretty_env_logger;
 // Utility
 #[macro_use]
 extern crate serde_derive;
+extern crate serde;
 #[macro_use]
 extern crate enum_map;
 extern crate fnv;

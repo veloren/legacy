@@ -1,4 +1,4 @@
-#![feature(nll, euclidean_division, label_break_value)]
+#![feature(nll, euclidean_division, duration_as_u128, label_break_value)]
 
 // Crates
 extern crate common;
@@ -103,18 +103,18 @@ impl<P: Payloads> Client<P> {
 
         // Initiate a connection handshake
         let pb = postoffice.create_postbox(SessionKind::Connect);
-        pb.send(ClientMsg::Connect {
+        let _ = pb.send(ClientMsg::Connect {
             alias: alias.clone(),
             mode,
         });
 
         // Was the handshake successful?
-        if let ServerMsg::Connected { player_uid } = pb.recv_timeout(CONNECT_TIMEOUT)? {
+        if let ServerMsg::Connected { player_uid, time } = pb.recv_timeout(CONNECT_TIMEOUT)? {
             let client = Manager::init(Client {
                 status: RwLock::new(ClientStatus::Connected),
                 postoffice,
 
-                time: RwLock::new(0.0),
+                time: RwLock::new(time),
                 player: RwLock::new(Player::new(alias)),
                 entities: RwLock::new(HashMap::new()),
                 phys_lock: Mutex::new(()),
@@ -137,9 +137,9 @@ impl<P: Payloads> Client<P> {
         }
     }
 
-    pub fn send_chat_msg(&self, text: String) { self.postoffice.send_one(ClientMsg::ChatMsg { text }); }
+    pub fn send_chat_msg(&self, text: String) { let _ = self.postoffice.send_one(ClientMsg::ChatMsg { text }); }
 
-    pub fn send_cmd(&self, args: Vec<String>) { self.postoffice.send_one(ClientMsg::Cmd { args }); }
+    pub fn send_cmd(&self, args: Vec<String>) { let _ = self.postoffice.send_one(ClientMsg::Cmd { args }); }
 
     pub fn view_distance(&self) -> f32 { (CHUNK_SIZE.map(|e| e as f32) * (self.view_distance as f32)).magnitude() }
 
@@ -197,7 +197,7 @@ impl<P: Payloads> Managed for Client<P> {
             }
 
             // Send a disconnect message to the server
-            client
+            let _ = client
                 .postoffice
                 .create_postbox(SessionKind::Disconnect)
                 .send(ClientMsg::Disconnect {
@@ -208,7 +208,8 @@ impl<P: Payloads> Managed for Client<P> {
         // Tick worker
         Manager::add_worker(manager, |client, running, mut mgr| {
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
-                client.tick(40.0 / 1000.0, &mut mgr);
+                let dt = Duration::from_millis(50);
+                client.tick(dt, &mut mgr);
             }
         });
 

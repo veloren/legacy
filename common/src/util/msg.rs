@@ -35,6 +35,7 @@ pub enum ServerMsg {
     // SessionKind::Connect
     Connected {
         player_uid: Option<u64>,
+        time: f64,
     },
 
     // SessionKind::Disconnect
@@ -57,6 +58,8 @@ pub enum ServerMsg {
         uid: u64,
         store: CompStore,
     },
+
+    TimeUpdate(f64),
 }
 
 impl Message for ServerMsg {}

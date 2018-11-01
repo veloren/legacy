@@ -10,19 +10,19 @@ use ClientStatus;
 use Payloads;
 
 impl<P: Payloads> Client<P> {
-    pub(crate) fn tick(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
+    pub(crate) fn tick(&self, dt: Duration, _mgr: &mut Manager<Self>) -> bool {
         let entities = self.entities.read();
 
         // Physics tick
         {
             // Take the physics lock to sync client and frontend updates
             let _ = self.take_phys_lock();
-            physics::tick(entities.iter(), &self.chunk_mgr, dt);
+            physics::tick(entities.iter(), &self.chunk_mgr, dt.as_millis() as f32 / 1000.0);
         }
 
         self.update_server();
 
-        *self.time.write() += dt as f64;
+        *self.time.write() += dt.as_millis() as f64 / 1000.0;
 
         thread::sleep(Duration::from_millis(40));
 

@@ -14,9 +14,8 @@ use fnv::FnvBuildHasher;
 use fps_counter::FPSCounter;
 use glutin::ElementState;
 use indexmap::IndexMap;
-use nalgebra::{Rotation3, Translation3, Vector2, Vector3};
 use parking_lot::Mutex;
-use vek::*;
+use vek::{Mat4, Vec2, Vec3};
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
@@ -27,6 +26,7 @@ use common::{
         chunk::{Chunk, ChunkContainer},
         Container, VolOffs,
     },
+    terrain,
     util::manager::Manager,
 };
 
@@ -35,7 +35,7 @@ use camera::Camera;
 use consts::{ConstHandle, GlobalConsts};
 use hud::{Hud, HudEvent};
 use key_state::KeyState;
-use keybinds::Keybinds;
+use keybinds::{Keybinds, VKeyCode};
 use pipeline::Pipeline;
 use shader::Shader;
 use skybox;
@@ -82,6 +82,16 @@ pub struct Game {
     skybox_model: skybox::Model,
     player_model: voxel::Model,
     other_player_model: voxel::Model,
+}
+
+fn to_4x4(v: &Mat4<f32>) -> [[f32; 4]; 4] {
+    let mut out = [[0.0; 4]; 4];
+    for i in 0..4 {
+        for j in 0..4 {
+            out[i][j] = v[(j, i)];
+        }
+    }
+    out
 }
 
 fn gen_payload(key: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {
@@ -145,16 +155,16 @@ impl Game {
         let skybox_model = skybox::Model::new(&mut window.renderer_mut(), &skybox_mesh);
 
         info!("trying to load model files");
-        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player3.vox")
-            .expect("cannot find model 3.vox. Make sure to start voxygen from its folder");
+        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player6.vox")
+            .expect("cannot find model player6.vox. Make sure to start voxygen from its folder");
         let voxmodel = voxel::vox_to_figure(vox);
 
         let player_meshes = voxel::Mesh::from_with_offset(&voxmodel, Vec3::new(-10.0, -4.0, 0.0));
 
         let player_model = voxel::Model::new(&mut window.renderer_mut(), &player_meshes);
 
-        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player5.vox")
-            .expect("cannot find model 5.vox. Make sure to start voxygen from its folder");
+        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player7.vox")
+            .expect("cannot find model player7.vox. Make sure to start voxygen from its folder");
         let voxmodel = voxel::vox_to_figure(vox);
 
         let other_player_meshes = voxel::Mesh::from(&voxmodel);
@@ -201,7 +211,7 @@ impl Game {
                     if self.window.cursor_trapped().load(Ordering::Relaxed) {
                         self.camera
                             .lock()
-                            .rotate_by(Vector2::new(dx as f32 * 0.002, dy as f32 * 0.002));
+                            .rotate_by(Vec2::new(dx as f32 * 0.002, dy as f32 * 0.002));
                     }
                 },
                 Event::MouseWheel { dy, .. } => {
@@ -209,58 +219,62 @@ impl Game {
                 },
                 Event::KeyboardInput { i, .. } => {
                     // Helper function to determine scancode equality
-                    fn keypress_eq(key: &Option<u32>, scancode: u32) -> bool {
-                        key.map(|sc| sc == scancode).unwrap_or(false)
+                    fn keypress_eq(key: &Option<VKeyCode>, input: Option<glutin::VirtualKeyCode>) -> bool {
+                        if let (Some(i), Some(k)) = (input, key) {
+                            k.code() == i
+                        } else {
+                            false
+                        }
                     }
 
                     // Helper variables to clean up code. Add any new input modes here.
                     let general = &self.keys.general;
 
                     // General inputs -------------------------------------------------------------
-                    if keypress_eq(&general.pause, i.scancode) {
+                    if keypress_eq(&general.pause, i.virtual_keycode) {
                         // Default: Escape (free cursor)
                         self.window.untrap_cursor();
-                    } else if keypress_eq(&general.use_item, i.scancode) {
+                    } else if keypress_eq(&general.use_item, i.virtual_keycode) {
                         // Default: Ctrl+Q (quit) (temporary)
                         if i.modifiers.ctrl {
                             self.running.store(false, Ordering::Relaxed);
                         }
-                    } else if keypress_eq(&general.chat, i.scancode) && i.state == ElementState::Released {
+                    } else if keypress_eq(&general.chat, i.virtual_keycode) && i.state == ElementState::Released {
                         //self.ui.borrow_mut().set_show_chat(!show_chat);
                     }
 
                     // TODO: Remove this check
-                    if keypress_eq(&general.forward, i.scancode) {
+                    if keypress_eq(&general.forward, i.virtual_keycode) {
                         self.key_state.lock().up = match i.state {
                             // Default: W (up)
                             ElementState::Pressed => true,
                             ElementState::Released => false,
                         }
-                    } else if keypress_eq(&general.left, i.scancode) {
+                    } else if keypress_eq(&general.left, i.virtual_keycode) {
                         self.key_state.lock().left = match i.state {
                             // Default: A (left)
                             ElementState::Pressed => true,
                             ElementState::Released => false,
                         }
-                    } else if keypress_eq(&general.back, i.scancode) {
+                    } else if keypress_eq(&general.back, i.virtual_keycode) {
                         self.key_state.lock().down = match i.state {
                             // Default: S (down)
                             ElementState::Pressed => true,
                             ElementState::Released => false,
                         }
-                    } else if keypress_eq(&general.right, i.scancode) {
+                    } else if keypress_eq(&general.right, i.virtual_keycode) {
                         self.key_state.lock().right = match i.state {
                             // Default: D (right)
                             ElementState::Pressed => true,
                             ElementState::Released => false,
                         }
-                    } else if keypress_eq(&general.jump, i.scancode) {
+                    } else if keypress_eq(&general.jump, i.virtual_keycode) {
                         self.key_state.lock().jump = match i.state {
                             // Default: Space (fly)
                             ElementState::Pressed => true,
                             ElementState::Released => false,
                         }
-                    } else if keypress_eq(&general.crouch, i.scancode) {
+                    } else if keypress_eq(&general.crouch, i.virtual_keycode) {
                         // self.key_state.lock().fall = match i.state { // Default: Shift (fall)
                         //     ElementState::Pressed => true,
                         //     ElementState::Released => false,
@@ -286,8 +300,8 @@ impl Game {
         // Calculate movement player movement vector
         let ori = *self.camera.lock().ori();
         let unit_vecs = (
-            Vector2::new(ori.x.cos(), -ori.x.sin()),
-            Vector2::new(ori.x.sin(), ori.x.cos()),
+            Vec2::new(ori.x.cos(), -ori.x.sin()),
+            Vec2::new(ori.x.sin(), ori.x.cos()),
         );
         let dir_vec = self.key_state.lock().dir_vec();
         let mov_vec = unit_vecs.0 * dir_vec.x + unit_vecs.1 * dir_vec.y;
@@ -324,13 +338,8 @@ impl Game {
     pub fn update_chunks(&self) {
         let mut renderer = self.window.renderer_mut();
         // Find the chunk the camera is in
-        let cam_origin = *self.camera.lock().get_pos();
-        //let cam_chunk = cam_origin.map2(CHUNK_SIZE, |e,s| (e as i64).div_euc(s as i64));
-        let cam_chunk = Vec3::<i64>::new(
-            (cam_origin.x as i64).div_euc(CHUNK_SIZE[0] as i64),
-            (cam_origin.y as i64).div_euc(CHUNK_SIZE[1] as i64),
-            (cam_origin.z as i64).div_euc(CHUNK_SIZE[2] as i64),
-        );
+        let cam_origin = self.camera.lock().get_pos(None);
+        let cam_chunk = terrain::voxabs_to_volidx(cam_origin.map(|e| e as i64), CHUNK_SIZE);
 
         for (pos, con) in self.client.chunk_mgr().pers().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
@@ -346,12 +355,7 @@ impl Game {
                     if let Some(ref mut payload) = **lock {
                         if let ChunkPayload::Meshes(ref mut mesh) = payload {
                             // Calculate chunk mode matrix
-                            let model_mat = &Translation3::<f32>::from_vector(Vector3::<f32>::new(
-                                (pos.x * CHUNK_SIZE.x as i32) as f32,
-                                (pos.y * CHUNK_SIZE.y as i32) as f32,
-                                (pos.z * CHUNK_SIZE.z as i32) as f32,
-                            ))
-                            .to_homogeneous();
+                            let model_mat = Mat4::<f32>::translation_3d(pos.map2(CHUNK_SIZE, |p, s| (p * s as i32) as f32));
 
                             // Create set new model constants
                             let model_consts = ConstHandle::new(&mut renderer);
@@ -360,7 +364,7 @@ impl Game {
                             model_consts.update(
                                 &mut renderer,
                                 voxel::ModelConsts {
-                                    model_mat: *model_mat.as_ref(),
+                                    model_mat: to_4x4(&model_mat),
                                 },
                             );
 
@@ -399,7 +403,7 @@ impl Game {
         // Set camera focus to the player's head
         if let Some(player_entity) = self.client.player_entity() {
             let player_entity = player_entity.read();
-            self.camera.lock().set_focus(Vector3::<f32>::from(
+            self.camera.lock().set_focus(Vec3::<f32>::from(
                 (*player_entity.pos() + Vec3::new(0.0, 0.0, 1.75)).into_array(),
             ));
         }
@@ -411,9 +415,9 @@ impl Game {
             let mut entity = entity.write();
 
             // Calculate entity model matrix
-            let model_mat = &Translation3::from_vector(Vector3::from(entity.pos().into_array())).to_homogeneous()
-                * Rotation3::new(Vector3::new(0.0, 0.0, PI - entity.look_dir().x)).to_homogeneous()
-                * Rotation3::new(Vector3::new(entity.look_dir().y, 0.0, 0.0)).to_homogeneous();
+            let model_mat = Mat4::<f32>::translation_3d(Vec3::from(entity.pos().into_array()))
+                * Mat4::rotation_z(PI - entity.look_dir().x)
+                * Mat4::rotation_x(entity.look_dir().y);
 
             // Update the model const buffer (its payload)
             // TODO: Put the model into the payload so we can have per-entity models!
@@ -423,7 +427,7 @@ impl Game {
                 .update(
                     &mut renderer,
                     voxel::ModelConsts {
-                        model_mat: *model_mat.as_ref(),
+                        model_mat: to_4x4(&model_mat),
                     },
                 );
         }
@@ -432,7 +436,7 @@ impl Game {
     pub fn render_frame(&mut self) {
         // Calculate frame constants
         let camera_mats = self.camera.lock().get_mats();
-        let cam_origin = *self.camera.lock().get_pos();
+        let cam_origin = self.camera.lock().get_pos(Some(&camera_mats));
         let play_origin = self
             .client
             .player_entity()
@@ -449,8 +453,8 @@ impl Game {
         self.global_consts.update(
             &mut renderer,
             GlobalConsts {
-                view_mat: *camera_mats.0.as_ref(),
-                proj_mat: *camera_mats.1.as_ref(),
+                view_mat: to_4x4(&camera_mats.0),
+                proj_mat: to_4x4(&camera_mats.1),
                 cam_origin: [cam_origin.x, cam_origin.y, cam_origin.z, 1.0],
                 play_origin,
                 view_distance: [self.client.view_distance(); 4],
@@ -463,19 +467,12 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Find the chunk the camera is in
-        //let cam_chunk = cam_origin.map2(CHUNK_SIZE, |e,s| (e as i64).div_euc(s as i64));
-        let cam_chunk = Vec3::<i64>::new(
-            (cam_origin.x as i64).div_euc(CHUNK_SIZE[0] as i64),
-            (cam_origin.y as i64).div_euc(CHUNK_SIZE[1] as i64),
-            (cam_origin.z as i64).div_euc(CHUNK_SIZE[2] as i64),
-        );
+        let cam_chunk = terrain::voxabs_to_volidx(cam_origin.map(|e| e as i64), CHUNK_SIZE);
 
         // Render each chunk
         for (pos, con) in self.client.chunk_mgr().pers().iter() {
             // TODO: Fix this View Distance which only take .x into account and describe the algorithm what it should do exactly!
-            if (*pos - cam_chunk.map(|e| e as i32)).map(|e| e.abs() as u16).sum()
-                > (self.client.view_distance() as u16 * 2) / CHUNK_SIZE[0]
-            {
+            if (*pos - cam_chunk).sum() > (self.client.view_distance() as i32 * 2) / CHUNK_SIZE.x as i32 {
                 continue;
             }
             // rendering actually does not set the time, but updating does it

@@ -70,6 +70,11 @@ impl RenderWindow {
         let (gl_window, device, factory, color_view, depth_view) =
             gfx_window_glutin::init::<ColorFormat, DepthFormat>(win_builder, ctx_builder, &events_loop.read());
 
+        // Workaround for rendering issue on OSX.
+        // https://github.com/tomaka/glutin/issues/1069
+        events_loop.write().poll_events(|_| {});
+        gl_window.resize(glutin::dpi::PhysicalSize::new(800.0, 500.0));
+
         let size: (u32, u32) = gl_window
             .get_inner_size()
             .unwrap()

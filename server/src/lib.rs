@@ -63,7 +63,8 @@ pub trait Payloads: Send + Sync + 'static {
 
 pub struct Server<P: Payloads> {
     listener: TcpListener,
-    time_ms: u64,
+    time: f64,
+    next_time_sync: RwLock<f64>,
     world: World,
     payload: P,
 }
@@ -86,7 +87,8 @@ impl<P: Payloads> Server<P> {
 
         Ok(Manager::init(Wrapper(RwLock::new(Server {
             listener: TcpListener::bind(bind_addr)?,
-            time_ms: 0,
+            time: 0.0,
+            next_time_sync: RwLock::new(0.0),
             world,
             payload,
         }))))

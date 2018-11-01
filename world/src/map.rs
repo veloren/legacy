@@ -30,7 +30,7 @@ impl Tract {
 }
 
 pub struct Map {
-    seed: u32,
+    _seed: u32,
     gen: Generator,
 
     time: f64,
@@ -56,7 +56,7 @@ impl Map {
         }
 
         Map {
-            seed,
+            _seed: seed,
             gen,
             time: 0.0,
             size,

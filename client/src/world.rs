@@ -1,5 +1,5 @@
 // Standard
-use std::path::Path;
+use std::{fs::File, io::prelude::*, path::Path, sync::Arc, u8};
 
 // Library
 use vek::*;
@@ -7,101 +7,99 @@ use vek::*;
 // Project
 use common::{
     terrain::{
-        chunk::{Chunk, ChunkContainer, ChunkConverter, ChunkFile},
-        Container, Key, PersState, VolContainer, VolConverter,
+        self,
+        chunk::{Chunk, ChunkContainer, HeterogeneousData},
+        BlockLoader, Container, Key, PersState, VolCluster, VolOffs, VoxAbs,
     },
     util::manager::Manager,
 };
+use parking_lot::{Mutex, RwLock};
 
 // Local
 use Client;
 use Payloads;
 use CHUNK_SIZE;
 
-pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<i64>, con: &Container<ChunkContainer, P>) {
+pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<P>>>>) {
     let filename = pos.print() + ".dat";
     let filepath = "./saves/".to_owned() + &(filename);
     let path = Path::new(&filepath);
-    if path.exists() {
-        let mut vol = ChunkFile::new(Vec3::from_slice(&CHUNK_SIZE));
-        *vol.file_mut() = filepath;
-        con.vols_mut().insert(vol, PersState::File);
-    } else {
-        let vol = Chunk::test(
-            Vec3::new(pos.x * CHUNK_SIZE[0], pos.y * CHUNK_SIZE[1], pos.z * CHUNK_SIZE[2]),
-            Vec3::from_slice(&CHUNK_SIZE),
-        );
-        con.vols_mut().insert(vol, PersState::Raw);
+    'load: {
+        if path.exists() {
+            let datfile = File::open(&filepath);
+            if let Ok(mut datfile) = datfile {
+                let mut content = Vec::<u8>::new();
+                datfile
+                    .read_to_end(&mut content)
+                    .expect(&format!("read of file {} failed", &filepath));
+                let cc = Chunk::from_bytes(&content);
+                if let Ok(cc) = cc {
+                    *con.lock() = Some(ChunkContainer::<P>::new(cc));
+                    break 'load;
+                }
+            }
+            warn!(
+                "there was a problem reading a chunk {} from file, it was newly generated",
+                pos
+            );
+        }
+        let vol = HeterogeneousData::test(terrain::voloffs_to_voxabs(pos, CHUNK_SIZE), CHUNK_SIZE);
+        let mut c = Chunk::Hetero(vol);
+        c.convert(PersState::Homo); //TODO: not so performant, do check directly in chunk generation
+        *con.lock() = Some(ChunkContainer::<P>::new(c));
+    }
+}
+
+pub(crate) fn drop_chunk<P: Send + Sync + 'static>(pos: Vec3<VolOffs>, con: Arc<ChunkContainer<P>>) {
+    let filename = pos.print() + ".dat";
+    let filepath = "./saves/".to_owned() + &(filename);
+    let path = Path::new(&filepath);
+    'load: {
+        if !path.exists() {
+            let mut data = con.data_mut();
+            let bytes = data.to_bytes();
+            if let Ok(bytes) = bytes {
+                let datfile = File::create(filepath);
+                if let Ok(mut datfile) = datfile {
+                    match datfile.write_all(&bytes) {
+                        Ok(_) => debug!("write to file: {}, bytes: {}", filename, bytes.len()),
+                        Err(_) => warn!("problem writing chunk {} to file, ignoring it", pos),
+                    };
+                } else {
+                    warn!("problem creating file for chunk {}, ignoring it", pos)
+                }
+            }
+        }
     }
 }
 
 impl<P: Payloads> Client<P> {
-    pub(crate) fn load_unload_chunks(&self, _mgr: &mut Manager<Self>) {
-        // Only update chunks if the player exists
+    pub(crate) fn maintain_chunks(&self, _mgr: &mut Manager<Self>) {
         if let Some(player_entity) = self.player_entity() {
             // Find the chunk the player is in
-            let player_chunk = player_entity.read().pos().map(|e| e as i64);
-
-            let player_chunk = Vec3::new(
-                player_chunk.x.div_euc(CHUNK_SIZE[0]),
-                player_chunk.y.div_euc(CHUNK_SIZE[1]),
-                player_chunk.z.div_euc(CHUNK_SIZE[2]),
-            );
-
-            // Collect chunks around the player
-            const GENERATION_FACTOR: f32 = 1.4;
-            let mut chunks = vec![];
-            let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as i64;
-            for i in player_chunk.x - view_dist..player_chunk.x + view_dist + 1 {
-                for j in player_chunk.y - view_dist..player_chunk.y + view_dist + 1 {
-                    for k in player_chunk.z - view_dist..player_chunk.z + view_dist + 1 {
-                        let pos = Vec3::new(i, j, k);
-                        let diff = (player_chunk - pos).map(|e| e.abs()).sum();
-                        chunks.push((diff, pos));
-                    }
-                }
-            }
-            chunks.sort_by(|a, b| a.0.cmp(&b.0));
-
-            // Generate chunks around the player
-            const MAX_CHUNKS_IN_QUEUE: u64 = 12; // to not overkill the vol_mgr
-            for (_diff, pos) in chunks.iter() {
-                if !self.chunk_mgr().contains(*pos) {
-                    // generate up to MAX_CHUNKS_IN_QUEUE chunks around the player
-                    if self.chunk_mgr().pending_cnt() < MAX_CHUNKS_IN_QUEUE as usize {
-                        self.chunk_mgr().gen(*pos);
-                    }
-                } else {
-                    // check if payloads does not exist, and then generate it because its dropped below
-                    if self.chunk_mgr().loaded(*pos) {
-                        self.chunk_mgr().persistence().generate(&pos, PersState::Raw);
-                        if let Some(con) = self.chunk_mgr().persistence().get(&pos) {
-                            if con.payload().is_none() {
-                                self.chunk_mgr().gen_payload(*pos);
-                            }
-                        }
-                    }
-                }
-            }
-
-            const DIFF_TILL_UNLOAD: i64 = 5;
-            //unload chunks that have a distance of 5 or greater that the last rendered chunk, so that we dont unload to fast, e.g. if we go back a chunk
-            let unload_chunk_diff = chunks.last().unwrap().0 + DIFF_TILL_UNLOAD;
-
-            //drop old chunks
+            let (player_pos, player_vel);
             {
-                let chunks = self.chunk_mgr().persistence().hot();
-                for (pos, container) in chunks.iter() {
-                    let diff = (player_chunk - *pos).map(|e| e.abs()).sum();
-                    if diff > unload_chunk_diff {
-                        let mut lock = container.vols_mut();
-                        ChunkConverter::convert(pos, &mut lock, PersState::File);
-                        lock.remove(PersState::Raw);
-                        lock.remove(PersState::Rle);
-                        *container.payload_mut() = None;
-                    }
-                }
+                let player = player_entity.read();
+                player_pos = player.pos().map(|e| e as VoxAbs);
+                player_vel = player.vel().map(|e| e as VoxAbs);
             }
+
+            const GENERATION_FACTOR: f32 = 1.7; // generate more than you see
+            const GENERATION_SUMMAND: VolOffs = 3; // generate more than you see
+            let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as VolOffs + GENERATION_SUMMAND;
+            let view_dist_block = terrain::voloffs_to_voxabs(Vec3::new(view_dist, view_dist, view_dist), CHUNK_SIZE);
+            let mut bl = self.chunk_mgr().block_loader_mut();
+            bl.clear();
+            bl.push(Arc::new(RwLock::new(BlockLoader {
+                pos: player_pos,
+                size: view_dist_block,
+            }))); //player
+            bl.push(Arc::new(RwLock::new(BlockLoader {
+                pos: player_pos + player_vel * 5,
+                size: view_dist_block,
+            }))); // player in 5 sec
         }
+        //TODO: maybe remove this from CHUNMGR, and just pass it here
+        self.chunk_mgr().maintain();
     }
 }

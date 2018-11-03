@@ -201,7 +201,11 @@ where
             ]
         };
         vecs.iter().fold(0, |acc, v| {
-            acc + if self.at(pos + *v).unwrap_or_else(V::VoxelType::empty).is_opaque() {
+            acc + if self
+                .at((pos + *v).map(|e| e as u16))
+                .unwrap_or_else(V::VoxelType::empty)
+                .is_opaque()
+            {
                 0
             } else {
                 1
@@ -265,13 +269,12 @@ impl Mesh {
     {
         let mut map = FnvIndexMap::with_capacity_and_hasher(4, Default::default());
         let scale = vol.scale();
-        let scale = Vec3::new(scale.x as f32, scale.y as f32, scale.z as f32);
 
-        for x in 0..vol.size().x {
-            for y in 0..vol.size().y {
-                for z in 0..vol.size().z {
+        for x in 0i64..vol.size().x as i64 {
+            for y in 0i64..vol.size().y as i64 {
+                for z in 0i64..vol.size().z as i64 {
                     let vox = vol
-                        .at(Vec3::new(x, y, z))
+                        .at_conv(Vec3::new(x, y, z))
                         .expect("Attempted to mesh voxel outside volume");
                     let offset = Vec3::new(
                         (x as f32 + offs.x) * scale.x,
@@ -289,7 +292,7 @@ impl Mesh {
                         let opaque = vox.is_opaque();
                         // +x
                         if vol
-                            .at(Vec3::new(x + 1, y, z))
+                            .at_conv(Vec3::new(x + 1, y, z))
                             .unwrap_or(V::VoxelType::empty())
                             .should_add(opaque)
                         {
@@ -307,7 +310,7 @@ impl Mesh {
                         }
                         // -x
                         if vol
-                            .at(Vec3::new(x - 1, y, z))
+                            .at_conv(Vec3::new(x - 1, y, z))
                             .unwrap_or_else(V::VoxelType::empty)
                             .should_add(opaque)
                         {
@@ -325,7 +328,7 @@ impl Mesh {
                         }
                         // +y
                         if vol
-                            .at(Vec3::new(x, y + 1, z))
+                            .at_conv(Vec3::new(x, y + 1, z))
                             .unwrap_or_else(V::VoxelType::empty)
                             .should_add(opaque)
                         {
@@ -343,7 +346,7 @@ impl Mesh {
                         }
                         // -y
                         if vol
-                            .at(Vec3::new(x, y - 1, z))
+                            .at_conv(Vec3::new(x, y - 1, z))
                             .unwrap_or(V::VoxelType::empty())
                             .should_add(opaque)
                         {
@@ -361,7 +364,7 @@ impl Mesh {
                         }
                         // +z
                         if vol
-                            .at(Vec3::new(x, y, z + 1))
+                            .at_conv(Vec3::new(x, y, z + 1))
                             .unwrap_or(V::VoxelType::empty())
                             .should_add(opaque)
                         {
@@ -379,7 +382,7 @@ impl Mesh {
                         }
                         // -z
                         if vol
-                            .at(Vec3::new(x, y, z - 1))
+                            .at_conv(Vec3::new(x, y, z - 1))
                             .unwrap_or(V::VoxelType::empty())
                             .should_add(opaque)
                         {

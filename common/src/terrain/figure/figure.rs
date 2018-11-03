@@ -1,25 +1,19 @@
-// Standard
-use std::any::Any;
-
 // Library
 use vek::*;
 
 // Local
 use terrain::{
     figure::{Cell, CellMaterial},
-    Volume, Voxel,
+    ConstructVolume, PhysicalVolume, ReadVolume, ReadWriteVolume, Volume, VoxRel, Voxel,
 };
 
 pub struct Figure {
-    size: Vec3<i64>,
-    offset: Vec3<i64>,
-    ori: Vec3<f32>,
-    scale: Vec3<f32>,
+    size: Vec3<VoxRel>,
     voxels: Vec<Cell>,
 }
 
 impl Figure {
-    pub fn test(offset: Vec3<i64>, size: Vec3<i64>) -> Figure {
+    pub fn test(offset: Vec3<i64>, size: Vec3<VoxRel>) -> Figure {
         let mut voxels = Vec::new();
 
         for _i in 0..size.x {
@@ -30,80 +24,61 @@ impl Figure {
             }
         }
 
-        Figure {
-            size,
-            offset,
-            voxels,
-            ori: Vec3::new(0.0, 0.0, 0.0),
-            scale: Vec3::new(1.0, 1.0, 1.0),
-        }
+        Figure { size, voxels }
     }
 
-    fn pos_to_index(&self, pos: Vec3<i64>) -> usize {
-        (pos.x * self.size.y * self.size.z + pos.y * self.size.z + pos.z) as usize
+    fn calculate_index(&self, off: Vec3<VoxRel>) -> usize {
+        (off.x * self.size.y * self.size.z + off.y * self.size.z + off.z) as usize
     }
-
-    pub fn set_ori(&mut self, ori: Vec3<f32>) { self.ori = ori; }
-
-    pub fn set_scale(&mut self, scale: Vec3<f32>) { self.scale = scale; }
 }
 
 impl Volume for Figure {
     type VoxelType = Cell;
 
-    fn fill(&mut self, cell: Cell) {
+    fn size(&self) -> Vec3<VoxRel> { self.size }
+}
+
+impl ReadVolume for Figure {
+    fn at_unchecked(&self, off: Vec3<VoxRel>) -> Cell { self.voxels[self.calculate_index(off)] }
+}
+
+impl ReadWriteVolume for Figure {
+    fn replace_at_unchecked(&mut self, off: Vec3<VoxRel>, vox: Self::VoxelType) -> Self::VoxelType {
+        let i = self.calculate_index(off);
+        let r = self.voxels[i];
+        self.voxels[i] = vox;
+        r
+    }
+
+    fn fill(&mut self, vox: Self::VoxelType) {
+        // Default implementation
         for v in self.voxels.iter_mut() {
-            *v = cell;
+            *v = vox;
         }
     }
+}
 
-    fn size(&self) -> Vec3<i64> { self.size }
-
-    fn offset(&self) -> Vec3<i64> { self.offset }
-
-    fn ori(&self) -> Vec3<f32> { self.ori }
-
-    fn scale(&self) -> Vec3<f32> { self.scale }
-
-    fn set_size(&mut self, size: Vec3<i64>) {
-        self.size = size;
-        self.voxels.resize(
-            (size.x * size.y * size.z) as usize,
-            Cell::new(CellMaterial::MatteSmooth(0)),
-        );
+impl ConstructVolume for Figure {
+    fn filled(size: Vec3<VoxRel>, vox: Self::VoxelType) -> Figure {
+        let vol = Figure {
+            size,
+            voxels: vec![vox; (size.x * size.y * size.z) as usize],
+        };
+        vol
     }
 
-    fn set_offset(&mut self, offset: Vec3<i64>) { self.offset = offset; }
+    fn empty(size: Vec3<VoxRel>) -> Figure { Self::filled(size, Cell::empty()) }
+}
 
-    fn at(&self, pos: Vec3<i64>) -> Option<Cell> {
-        if pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= self.size.x || pos.y >= self.size.y || pos.z >= self.size.z {
-            None
-        } else {
-            Some(self.voxels[self.pos_to_index(pos)])
-        }
-    }
-
-    fn set(&mut self, pos: Vec3<i64>, vt: Cell) {
-        if pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= self.size.x || pos.y >= self.size.y || pos.z >= self.size.z {
-        } else {
-            let i = self.pos_to_index(pos);
-            self.voxels[i] = vt;
-        }
-    }
-
-    fn as_any_mut(&mut self) -> &mut Any { self }
-
-    fn as_any(&self) -> &Any { self }
+impl PhysicalVolume for Figure {
+    fn scale(&self) -> Vec3<f32> { Vec3::new(0.1, 0.1, 0.1) }
 }
 
 impl Figure {
     pub fn new() -> Self {
         Figure {
             size: Vec3::from((0, 0, 0)),
-            offset: Vec3::from((0, 0, 0)),
             voxels: Vec::new(),
-            ori: Vec3::new(0.0, 0.0, 0.0),
-            scale: Vec3::new(1.0, 1.0, 1.0),
         }
     }
 }

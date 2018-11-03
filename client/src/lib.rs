@@ -1,9 +1,11 @@
-#![feature(nll, euclidean_division, duration_as_u128)]
+#![feature(nll, euclidean_division, duration_as_u128, label_break_value)]
 
 // Crates
 extern crate common;
 extern crate parking_lot;
 extern crate vek;
+#[macro_use]
+extern crate log;
 
 // Modules
 mod error;
@@ -30,10 +32,7 @@ use vek::*;
 
 // Project
 use common::{
-    terrain::{
-        chunk::{Chunk, ChunkContainer, ChunkConverter},
-        Entity, FnPayloadFunc, VolGen, VolMgr,
-    },
+    terrain::{chunk::ChunkContainer, ChunkMgr, Entity, FnDropFunc, FnGenFunc, VolGen, VolOffs, VoxRel},
     util::{
         manager::{Managed, Manager},
         msg::{ClientMsg, ClientPostOffice, ServerMsg, SessionKind},
@@ -46,12 +45,12 @@ use error::Error;
 use player::Player;
 
 // Constants
-pub const CHUNK_SIZE: [i64; 3] = [32, 32, 32];
-pub const CHUNK_MID: [f32; 3] = [
-    CHUNK_SIZE[0] as f32 / 2.0,
-    CHUNK_SIZE[1] as f32 / 2.0,
-    CHUNK_SIZE[2] as f32 / 2.0,
-];
+pub const CHUNK_SIZE: Vec3<VoxRel> = Vec3 { x: 32, y: 32, z: 32 };
+pub const CHUNK_MID: Vec3<f32> = Vec3 {
+    x: CHUNK_SIZE.x as f32 / 2.0,
+    y: CHUNK_SIZE.y as f32 / 2.0,
+    z: CHUNK_SIZE.z as f32 / 2.0,
+};
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Copy, Clone, PartialEq)]
@@ -79,7 +78,7 @@ pub struct Client<P: Payloads> {
     entities: RwLock<HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>>,
     phys_lock: Mutex<()>,
 
-    chunk_mgr: VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk>,
+    chunk_mgr: ChunkMgr<<P as Payloads>::Chunk>,
 
     events: Mutex<Vec<ClientEvent>>,
 
@@ -87,11 +86,16 @@ pub struct Client<P: Payloads> {
 }
 
 impl<P: Payloads> Client<P> {
-    pub fn new<S: ToSocketAddrs, GF: FnPayloadFunc<Chunk, ChunkContainer, P::Chunk>>(
+    pub fn new<
+        S: ToSocketAddrs,
+        GP: FnGenFunc<Vec3<VolOffs>, ChunkContainer<P::Chunk>>,
+        DP: FnDropFunc<Vec3<VolOffs>, ChunkContainer<P::Chunk>>,
+    >(
         mode: PlayMode,
         alias: String,
         remote_addr: S,
-        gen_payload: GF,
+        gen_payload: GP,
+        drop_payload: DP,
         view_distance: i64,
     ) -> Result<Manager<Client<P>>, Error> {
         // Attempt to connect to the server
@@ -115,9 +119,9 @@ impl<P: Payloads> Client<P> {
                 entities: RwLock::new(HashMap::new()),
                 phys_lock: Mutex::new(()),
 
-                chunk_mgr: VolMgr::new(
-                    Vec3::from_slice(&CHUNK_SIZE),
-                    VolGen::new(world::gen_chunk, gen_payload),
+                chunk_mgr: ChunkMgr::new(
+                    CHUNK_SIZE,
+                    VolGen::new(world::gen_chunk, gen_payload, world::drop_chunk, drop_payload),
                 ),
 
                 events: Mutex::new(vec![]),
@@ -137,13 +141,9 @@ impl<P: Payloads> Client<P> {
 
     pub fn send_cmd(&self, args: Vec<String>) { let _ = self.postoffice.send_one(ClientMsg::Cmd { args }); }
 
-    pub fn view_distance(&self) -> f32 {
-        (Vec3::from_slice(&CHUNK_SIZE).map(|e| e as f32) * (self.view_distance as f32)).magnitude()
-    }
+    pub fn view_distance(&self) -> f32 { (CHUNK_SIZE.map(|e| e as f32) * (self.view_distance as f32)).magnitude() }
 
-    pub fn chunk_mgr(&self) -> &VolMgr<Chunk, ChunkContainer, ChunkConverter, <P as Payloads>::Chunk> {
-        &self.chunk_mgr
-    }
+    pub fn chunk_mgr(&self) -> &ChunkMgr<<P as Payloads>::Chunk> { &self.chunk_mgr }
 
     pub fn get_events(&self) -> Vec<ClientEvent> {
         let mut events = vec![];
@@ -213,10 +213,17 @@ impl<P: Payloads> Managed for Client<P> {
             }
         });
 
-        // Tick2 worker
+        // Chunkmgr worker
         Manager::add_worker(manager, |client, running, mut mgr| {
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
-                client.manage_chunks(500.0 / 1000.0, &mut mgr);
+                client.manage_chunks(200.0 / 1000.0, &mut mgr);
+            }
+        });
+
+        // Debug worker
+        Manager::add_worker(manager, |client, running, mut mgr| {
+            while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
+                client.debug(5000.0 / 1000.0, &mut mgr);
             }
         });
     }

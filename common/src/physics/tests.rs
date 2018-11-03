@@ -2,7 +2,7 @@
 use std::{collections::HashMap, sync::Arc, thread, time};
 
 //Library
-use parking_lot::RwLock;
+use parking_lot::{Mutex, RwLock};
 use rand::prelude::*;
 use vek::*;
 
@@ -12,8 +12,9 @@ use physics::{
     physics,
 };
 use terrain::{
-    chunk::{Block, BlockMaterial, Chunk, ChunkContainer},
-    Container, Entity, PersState, VolContainer, VolGen, VolMgr, Volume, Voxel,
+    chunk::{Block, BlockMaterial, Chunk, ChunkContainer, HeterogeneousData},
+    BlockLoader, ChunkMgr, ConstructVolume, Container, Entity, ReadWriteVolume, VolCluster, VolGen, VolOffs, VoxRel,
+    Voxel,
 };
 use Uid;
 
@@ -291,8 +292,8 @@ fn tti_simple() {
 macro_rules! checkWillCollide {
     ($x:expr, $tti2:expr, $normal2:expr) => {
         let res = $x;
-        println!("EXPT: {:?} {:?}", $tti2, $normal2);
-        println!("{:?}", res);
+        //println!("EXPT: {:?} {:?}", $tti2, $normal2);
+        //println!("{:?}", res);
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
         if let ResolutionTti::WillCollide { tti, normal } = res {
@@ -308,8 +309,8 @@ macro_rules! checkWillCollide {
 macro_rules! checkTouching {
     ($x:expr, $normal2:expr) => {
         let res = $x;
-        println!("EXPT: {:?}", $normal2);
-        println!("{:?}", res);
+        //println!("EXPT: {:?}", $normal2);
+        //println!("{:?}", res);
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
         if let ResolutionTti::Touching { normal } = res {
@@ -323,8 +324,8 @@ macro_rules! checkTouching {
 macro_rules! checkOverlapping {
     ($x:expr, $since2:expr) => {
         let res = $x;
-        println!("EXPT: {:?}", $since2);
-        println!("{:?}", res);
+        //println!("EXPT: {:?}", $since2);
+        //println!("{:?}", res);
         assert!(res.is_some());
         let res = res.expect("Does not collide ever");
         if let ResolutionTti::Overlapping { since } = res {
@@ -339,7 +340,7 @@ macro_rules! checkOverlapping {
 macro_rules! checkNone {
     ($x:expr) => {
         let res = $x;
-        println!("{:?}", res);
+        //println!("{:?}", res);
         assert!(res.is_none());
     };
 }
@@ -679,127 +680,162 @@ fn tti_diagonal_in_to_dirs_negative() {
     checkTouching!(m1.time_to_impact(&m2, &vel), normal);
 }
 
-const CHUNK_SIZE: [i64; 3] = [64; 3];
-const CHUNK_MID: [f32; 3] = [
-    CHUNK_SIZE[0] as f32 / 2.0,
-    CHUNK_SIZE[1] as f32 / 2.0,
-    CHUNK_SIZE[2] as f32 / 2.0,
-];
+// Constants
+pub const CHUNK_SIZE: Vec3<VoxRel> = Vec3 { x: 64, y: 64, z: 64 };
+pub const CHUNK_MID: Vec3<f32> = Vec3 {
+    x: CHUNK_SIZE.x as f32 / 2.0,
+    y: CHUNK_SIZE.y as f32 / 2.0,
+    z: CHUNK_SIZE.z as f32 / 2.0,
+};
 
-fn gen_chunk_flat(pos: Vec3<i64>, con: &Container<ChunkContainer, i64>) {
-    let mut c = Chunk::new();
-    c.set_size(Vec3::from(CHUNK_SIZE));
-    c.set_offset(pos * Vec3::from(CHUNK_SIZE));
-    for x in 0..CHUNK_SIZE[0] {
-        for y in 0..CHUNK_SIZE[1] {
-            c.set(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
+fn gen_chunk_flat(_pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<i64>>>>) {
+    let mut c = HeterogeneousData::empty(CHUNK_SIZE);
+    for x in 0..CHUNK_SIZE.x {
+        for y in 0..CHUNK_SIZE.y {
+            c.replace_at_unchecked(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
         }
     }
-    con.vols_mut().insert(c, PersState::Raw);
+    *con.lock() = Some(ChunkContainer::<i64>::new(Chunk::Hetero(c)));
 }
 
-fn gen_chunk_flat_border(pos: Vec3<i64>, con: &Container<ChunkContainer, i64>) {
-    gen_chunk_flat(pos, con);
-    let mut vols = con.vols_mut();
-    if let Some(c) = vols.get_mut(PersState::Raw) {
-        let c: &mut Chunk = c.as_any_mut().downcast_mut::<Chunk>().expect("Should be Chunk");
-        c.set_size(Vec3::from(CHUNK_SIZE));
-        c.set_offset(pos * Vec3::from(CHUNK_SIZE));
-        for i in 0..CHUNK_SIZE[0] {
-            c.set(Vec3::new(i, 0, 3), Block::new(BlockMaterial::Stone));
-            c.set(Vec3::new(i, CHUNK_SIZE[0] - 1, 3), Block::new(BlockMaterial::Stone));
-            c.set(Vec3::new(0, i, 3), Block::new(BlockMaterial::Stone));
-            c.set(Vec3::new(CHUNK_SIZE[0] - 1, i, 3), Block::new(BlockMaterial::Stone));
-
-            c.set(Vec3::new(i, 0, 4), Block::new(BlockMaterial::Stone));
-            c.set(Vec3::new(i, CHUNK_SIZE[0] - 1, 4), Block::new(BlockMaterial::Stone));
-            c.set(Vec3::new(0, i, 4), Block::new(BlockMaterial::Stone));
-            c.set(Vec3::new(CHUNK_SIZE[0] - 1, i, 4), Block::new(BlockMaterial::Stone));
+fn gen_chunk_flat_border(_pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<i64>>>>) {
+    let mut c = HeterogeneousData::empty(CHUNK_SIZE);
+    for x in 0..CHUNK_SIZE.x {
+        for y in 0..CHUNK_SIZE.y {
+            c.replace_at_unchecked(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
         }
+    }
+    for i in 0..CHUNK_SIZE.x {
+        c.replace_at_unchecked(Vec3::new(i, 0, 3), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(i, CHUNK_SIZE.x - 1, 3), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(0, i, 3), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(CHUNK_SIZE.x - 1, i, 3), Block::new(BlockMaterial::Stone));
+
+        c.replace_at_unchecked(Vec3::new(i, 0, 4), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(i, CHUNK_SIZE.x - 1, 4), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(0, i, 4), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(CHUNK_SIZE.x - 1, i, 4), Block::new(BlockMaterial::Stone));
+    }
+    *con.lock() = Some(ChunkContainer::<i64>::new(Chunk::Hetero(c)));
+}
+
+fn gen_payload(_pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<i64>>>>) {
+    let conlock = con.lock();
+    if let Some(ref con) = *conlock {
+        *con.payload_mut() = Some(42);
     }
 }
 
-fn gen_payload(pos: Vec3<i64>, con: &Container<ChunkContainer, i64>) { *con.payload_mut() = Some(42); }
+fn drop_chunk(_pos: Vec3<VolOffs>, _con: Arc<ChunkContainer<i64>>) {}
+
+fn drop_payload(_pos: Vec3<VolOffs>, _con: Arc<ChunkContainer<i64>>) {}
 
 #[test]
 fn physics_fall() {
-    let vol_mgr = VolMgr::new(Vec3::from(CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload));
+    let vol_mgr = ChunkMgr::new(
+        CHUNK_SIZE,
+        VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload),
+    );
+    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
+        pos: Vec3::new(0, 0, 0),
+        size: CHUNK_SIZE.map(|e| e as i64 * 10),
+    })));
     vol_mgr.gen(Vec3::new(0, 0, 0));
-    thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
+    vol_mgr.gen(Vec3::new(0, 0, -1));
+    thread::sleep(time::Duration::from_millis(200)); // because this spawns a thread :/
                                                      //touch
+    vol_mgr.maintain();
     let mut ent: HashMap<Uid, Arc<RwLock<Entity<()>>>> = HashMap::new();
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(
-            Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 10.0),
+            Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 10.0),
             Vec3::new(0.0, 0.0, 0.0),
             Vec3::new(0.0, 0.0, 0.0),
             Vec2::new(0.0, 0.0),
         ))),
     );
     for _ in 0..40 {
-        physics::tick(ent.iter(), &vol_mgr, Vec3::from(CHUNK_SIZE), 0.1)
+        physics::tick(ent.iter(), &vol_mgr, 0.1)
     }
     let p = ent.get(&1);
-    let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 3.0);
-    //println!("{}", d.magnitude());
+    let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
+    println!("{}, physics_fall {}", d.magnitude(), *p.unwrap().read().pos());
     assert!(d.magnitude() < 0.01);
 }
 
 #[test]
 fn physics_fallfast() {
-    let vol_mgr = VolMgr::new(Vec3::from(CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload));
+    let vol_mgr = ChunkMgr::new(
+        CHUNK_SIZE,
+        VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload),
+    );
+    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
+        pos: Vec3::new(0, 0, 0),
+        size: CHUNK_SIZE.map(|e| e as i64 * 10),
+    })));
     vol_mgr.gen(Vec3::new(0, 0, 0));
-    thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
+    vol_mgr.gen(Vec3::new(0, 0, -1));
+    thread::sleep(time::Duration::from_millis(200)); // because this spawns a thread :/
                                                      //touch
+    vol_mgr.maintain();
     let mut ent: HashMap<Uid, Arc<RwLock<Entity<()>>>> = HashMap::new();
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(
-            Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 10.0),
+            Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 10.0),
             Vec3::new(0.0, 0.0, -100.0),
             Vec3::new(0.0, 0.0, 0.0),
             Vec2::new(0.0, 0.0),
         ))),
     );
     for _ in 0..100 {
-        physics::tick(ent.iter(), &vol_mgr, Vec3::from(CHUNK_SIZE), 0.1)
+        physics::tick(ent.iter(), &vol_mgr, 0.1)
     }
     let p = ent.get(&1);
-    let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 3.0);
-    println!("{}", d.magnitude());
+    let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
+    println!("{}, physics_fallfast {}", d.magnitude(), *p.unwrap().read().pos());
     assert!(d.magnitude() < 0.01);
 }
 
 #[test]
 fn physics_jump() {
-    let vol_mgr = VolMgr::new(Vec3::from(CHUNK_SIZE), VolGen::new(gen_chunk_flat, gen_payload));
+    let vol_mgr = ChunkMgr::new(
+        CHUNK_SIZE,
+        VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload),
+    );
+    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
+        pos: Vec3::new(0, 0, 0),
+        size: CHUNK_SIZE.map(|e| e as i64 * 10),
+    })));
     vol_mgr.gen(Vec3::new(0, 0, 0));
-    thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
+    vol_mgr.gen(Vec3::new(0, 0, -1));
+    thread::sleep(time::Duration::from_millis(200)); // because this spawns a thread :/
                                                      //touch
+    vol_mgr.maintain();
     let mut ent: HashMap<Uid, Arc<RwLock<Entity<()>>>> = HashMap::new();
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(
-            Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 10.0),
+            Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 10.0),
             Vec3::new(0.0, 0.0, 5.0),
             Vec3::new(0.0, 0.0, 0.0),
             Vec2::new(0.0, 0.0),
         ))),
     );
     for _ in 0..3 {
-        physics::tick(ent.iter(), &vol_mgr, Vec3::from(CHUNK_SIZE), 0.04)
+        physics::tick(ent.iter(), &vol_mgr, 0.04)
     }
     {
         let p = ent.get(&1);
         assert!(p.unwrap().read().pos().z > 10.2);
     }
     for _ in 0..50 {
-        physics::tick(ent.iter(), &vol_mgr, Vec3::from(CHUNK_SIZE), 0.1)
+        physics::tick(ent.iter(), &vol_mgr, 0.1)
     }
     {
         let p = ent.get(&1);
-        let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 3.0);
+        let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
         //println!("{}", d.magnitude());
         assert!(d.magnitude() < 0.01);
     }
@@ -807,27 +843,38 @@ fn physics_jump() {
 
 #[test]
 fn physics_walk() {
-    let vol_mgr = VolMgr::new(Vec3::from(CHUNK_SIZE), VolGen::new(gen_chunk_flat_border, gen_payload));
+    let vol_mgr = ChunkMgr::new(
+        CHUNK_SIZE,
+        VolGen::new(gen_chunk_flat_border, gen_payload, drop_chunk, drop_payload),
+    );
+    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
+        pos: Vec3::new(0, 0, 0),
+        size: CHUNK_SIZE.map(|e| e as i64 * 10),
+    })));
     vol_mgr.gen(Vec3::new(0, 0, 0));
-    thread::sleep(time::Duration::from_millis(100)); // because this spawns a thread :/
+    vol_mgr.gen(Vec3::new(0, 0, -1));
+    vol_mgr.gen(Vec3::new(1, 0, 0));
+    vol_mgr.gen(Vec3::new(1, 0, -1));
+    thread::sleep(time::Duration::from_millis(200)); // because this spawns a thread :/
                                                      //touch
+    vol_mgr.maintain();
     let mut ent: HashMap<Uid, Arc<RwLock<Entity<()>>>> = HashMap::new();
     ent.insert(
         1,
         Arc::new(RwLock::new(Entity::new(
-            Vec3::new(CHUNK_MID[0], CHUNK_MID[1], 3.1),
+            Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.1),
             Vec3::new(3.0, 0.0, 0.0),
             Vec3::new(1.0, 0.0, 0.0),
             Vec2::new(0.0, 0.0),
         ))),
     );
     for _ in 0..80 {
-        physics::tick(ent.iter(), &vol_mgr, Vec3::from(CHUNK_SIZE), 0.5)
+        physics::tick(ent.iter(), &vol_mgr, 0.5)
     }
     {
         let p = ent.get(&1);
-        let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID[0]*2.0-1.0 - /*player size*/0.45, CHUNK_MID[1], 3.0);
-        println!("length {}", d.magnitude());
+        let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x*2.0-1.0 - /*player size*/0.45, CHUNK_MID.y, 3.0);
+        println!("{}, physics_walk {}", d.magnitude(), *p.unwrap().read().pos());
         assert!(d.magnitude() < 0.01);
     }
 }

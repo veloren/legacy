@@ -1,4 +1,4 @@
-#![feature(nll, specialization, option_replace, euclidean_division, integer_atomics)]
+#![feature(nll, specialization, euclidean_division, integer_atomics)]
 
 extern crate bincode;
 extern crate get_if_addrs;
@@ -13,6 +13,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate enum_map;
 extern crate noise;
+extern crate num;
 extern crate parking_lot;
 extern crate rand;
 extern crate specs;

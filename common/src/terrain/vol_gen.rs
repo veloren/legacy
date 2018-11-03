@@ -1,58 +1,39 @@
 // Local
-use terrain::{Container, VolContainer, Volume};
+use terrain::{Container, Key};
 
 // Standard
 use std::sync::Arc;
 
 // Library
-use vek::*;
+use parking_lot::Mutex;
 
-pub trait FnGenFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:
-    Fn(Vec3<i64>, &Container<C, P>) + Send + Sync + 'static
-{
-}
-impl<
-        V: Volume,
-        C: VolContainer<VoxelType = V::VoxelType>,
-        P: Send + Sync + 'static,
-        T: Fn(Vec3<i64>, &Container<C, P>),
-    > FnGenFunc<V, C, P> for T
-where
-    T: Send + Sync + 'static,
-{}
+pub trait FnGenFunc<K: Key, C: Container>: Fn(K, Arc<Mutex<Option<C>>>) + Send + Sync + 'static {}
 
-pub trait FnPayloadFunc<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static>:
-    Fn(Vec3<i64>, &Container<C, P>) + Send + Sync + 'static
-{
-}
-impl<
-        V: Volume,
-        C: VolContainer<VoxelType = V::VoxelType>,
-        P: Send + Sync + 'static,
-        T: Fn(Vec3<i64>, &Container<C, P>),
-    > FnPayloadFunc<V, C, P> for T
-where
-    T: Send + Sync + 'static,
-{}
+impl<K: Key, C: Container, T: Fn(K, Arc<Mutex<Option<C>>>)> FnGenFunc<K, C> for T where T: Send + Sync + 'static {}
 
-pub struct VolGen<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static> {
-    pub gen_func: Arc<FnGenFunc<V, C, P, Output = ()> + Send + Sync + 'static>,
-    pub payload_func: Arc<FnPayloadFunc<V, C, P, Output = ()>>,
+pub trait FnDropFunc<K: Key, C: Container>: Fn(K, Arc<C>) + Send + Sync + 'static {}
+
+impl<K: Key, C: Container, T: Fn(K, Arc<C>)> FnDropFunc<K, C> for T where T: Send + Sync + 'static {}
+
+pub struct VolGen<K: Key, C: Container> {
+    pub gen_vol: Arc<FnGenFunc<K, C, Output = ()>>,
+    pub gen_payload: Arc<FnGenFunc<K, C, Output = ()>>,
+    pub drop_vol: Arc<FnDropFunc<K, C, Output = ()>>,
+    pub drop_payload: Arc<FnDropFunc<K, C, Output = ()>>,
 }
 
-impl<V: Volume, C: VolContainer<VoxelType = V::VoxelType>, P: Send + Sync + 'static> VolGen<V, C, P> {
-    pub fn new<GF: FnGenFunc<V, C, P> + Send + Sync + 'static, PF: FnPayloadFunc<V, C, P>>(
-        gen_func: GF,
-        payload_func: PF,
-    ) -> VolGen<V, C, P> {
+impl<K: Key, C: Container> VolGen<K, C> {
+    pub fn new<GV: FnGenFunc<K, C>, GP: FnGenFunc<K, C>, DV: FnDropFunc<K, C>, DP: FnDropFunc<K, C>>(
+        gen_vol: GV,
+        gen_payload: GP,
+        drop_vol: DV,
+        drop_payload: DP,
+    ) -> VolGen<K, C> {
         VolGen {
-            gen_func: Arc::new(gen_func),
-            payload_func: Arc::new(payload_func),
+            gen_vol: Arc::new(gen_vol),
+            gen_payload: Arc::new(gen_payload),
+            drop_vol: Arc::new(drop_vol),
+            drop_payload: Arc::new(drop_payload),
         }
     }
 }
-
-/*
-  - offload
-  -  gen
-*/

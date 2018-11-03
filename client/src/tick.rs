@@ -1,9 +1,6 @@
 // Standard
 use std::{thread, time::Duration};
 
-// Library
-use vek::*;
-
 // Project
 use common::{physics::physics, util::manager::Manager};
 
@@ -11,7 +8,6 @@ use common::{physics::physics, util::manager::Manager};
 use Client;
 use ClientStatus;
 use Payloads;
-use CHUNK_SIZE;
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn tick(&self, dt: Duration, _mgr: &mut Manager<Self>) -> bool {
@@ -21,7 +17,7 @@ impl<P: Payloads> Client<P> {
         {
             // Take the physics lock to sync client and frontend updates
             let _ = self.take_phys_lock();
-            physics::tick(entities.iter(), &self.chunk_mgr, Vec3::from_slice(&CHUNK_SIZE), dt.as_millis() as f32 / 1000.0);
+            physics::tick(entities.iter(), &self.chunk_mgr, dt.as_millis() as f32 / 1000.0);
         }
 
         self.update_server();
@@ -33,11 +29,17 @@ impl<P: Payloads> Client<P> {
         *self.status() != ClientStatus::Disconnected
     }
 
-    pub(crate) fn manage_chunks(&self, _dt: f32, mgr: &mut Manager<Self>) -> bool {
-        self.load_unload_chunks(mgr);
-        self.chunk_mgr().persistence().try_cold_offload();
-        self.chunk_mgr().persistence().debug();
-        thread::sleep(Duration::from_millis(500));
+    pub(crate) fn manage_chunks(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
+        self.maintain_chunks(mgr);
+
+        thread::sleep(Duration::from_millis(200));
+        *self.status() != ClientStatus::Disconnected
+    }
+
+    pub(crate) fn debug(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
+        self.chunk_mgr().debug();
+
+        thread::sleep(Duration::from_millis(5000));
         *self.status() != ClientStatus::Disconnected
     }
 }

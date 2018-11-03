@@ -1,6 +1,9 @@
 // Standard
 use std::time::Duration;
 
+// Library
+use vek::*;
+
 // Project
 use common::{physics::physics, util::manager::Manager};
 
@@ -8,6 +11,7 @@ use common::{physics::physics, util::manager::Manager};
 use Client;
 use ClientStatus;
 use Payloads;
+use CHUNK_SIZE;
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn tick(&self, dt: Duration, _mgr: &mut Manager<Self>) -> bool {
@@ -22,7 +26,7 @@ impl<P: Payloads> Client<P> {
             // TODO: Fix this
             if let Some(entity) = self.player_entity() {
                 let e = [entity.clone()];
-                physics::tick(e.into_iter(), &self.chunk_mgr, Vec3::from_slice(&CHUNK_SIZE), dt);
+                physics::tick(e.into_iter(), &self.chunk_mgr, dt);
             }
         }
 

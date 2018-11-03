@@ -17,7 +17,7 @@ use physics::{
     physics,
 };
 use terrain::{
-    chunk::{Block, BlockMaterial, Chunk, ChunkContainer, HeterogeneousData},
+    chunk::{Block, Chunk, ChunkContainer, HeterogeneousData},
     BlockLoader, ChunkMgr, ConstructVolume, Container, Entity, ReadWriteVolume, VolCluster, VolGen, VolOffs, VoxRel,
     Voxel,
 };
@@ -697,7 +697,7 @@ fn gen_chunk_flat(_pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<i64>
     let mut c = HeterogeneousData::empty(CHUNK_SIZE);
     for x in 0..CHUNK_SIZE.x {
         for y in 0..CHUNK_SIZE.y {
-            c.replace_at_unchecked(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
+            c.replace_at_unchecked(Vec3::new(x, y, 2), Block::STONE);
         }
     }
     *con.lock() = Some(ChunkContainer::<i64>::new(Chunk::Hetero(c)));
@@ -707,19 +707,19 @@ fn gen_chunk_flat_border(_pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContain
     let mut c = HeterogeneousData::empty(CHUNK_SIZE);
     for x in 0..CHUNK_SIZE.x {
         for y in 0..CHUNK_SIZE.y {
-            c.replace_at_unchecked(Vec3::new(x, y, 2), Block::new(BlockMaterial::Stone));
+            c.replace_at_unchecked(Vec3::new(x, y, 2), Block::STONE);
         }
     }
     for i in 0..CHUNK_SIZE.x {
-        c.replace_at_unchecked(Vec3::new(i, 0, 3), Block::new(BlockMaterial::Stone));
-        c.replace_at_unchecked(Vec3::new(i, CHUNK_SIZE.x - 1, 3), Block::new(BlockMaterial::Stone));
-        c.replace_at_unchecked(Vec3::new(0, i, 3), Block::new(BlockMaterial::Stone));
-        c.replace_at_unchecked(Vec3::new(CHUNK_SIZE.x - 1, i, 3), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(i, 0, 3), Block::STONE);
+        c.replace_at_unchecked(Vec3::new(i, CHUNK_SIZE.x - 1, 3), Block::STONE);
+        c.replace_at_unchecked(Vec3::new(0, i, 3), Block::STONE);
+        c.replace_at_unchecked(Vec3::new(CHUNK_SIZE.x - 1, i, 3), Block::STONE);
 
-        c.replace_at_unchecked(Vec3::new(i, 0, 4), Block::new(BlockMaterial::Stone));
-        c.replace_at_unchecked(Vec3::new(i, CHUNK_SIZE.x - 1, 4), Block::new(BlockMaterial::Stone));
-        c.replace_at_unchecked(Vec3::new(0, i, 4), Block::new(BlockMaterial::Stone));
-        c.replace_at_unchecked(Vec3::new(CHUNK_SIZE.x - 1, i, 4), Block::new(BlockMaterial::Stone));
+        c.replace_at_unchecked(Vec3::new(i, 0, 4), Block::STONE);
+        c.replace_at_unchecked(Vec3::new(i, CHUNK_SIZE.x - 1, 4), Block::STONE);
+        c.replace_at_unchecked(Vec3::new(0, i, 4), Block::STONE);
+        c.replace_at_unchecked(Vec3::new(CHUNK_SIZE.x - 1, i, 4), Block::STONE);
     }
     *con.lock() = Some(ChunkContainer::<i64>::new(Chunk::Hetero(c)));
 }
@@ -761,7 +761,11 @@ fn physics_fall() {
         ))),
     );
     for _ in 0..40 {
+<<<<<<< HEAD
         physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(100))
+=======
+        physics::tick(ent.values(), &vol_mgr, 0.1)
+>>>>>>> Fixed u16 overflow errors by moving to u32 for voxel sizes
     }
     let p = ent.get(&1);
     let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
@@ -795,7 +799,7 @@ fn physics_fallfast() {
         ))),
     );
     for _ in 0..100 {
-        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(100))
+        physics::tick(ent.values(), &vol_mgr, Duration::from_millis(100))
     }
     let p = ent.get(&1);
     let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
@@ -829,14 +833,14 @@ fn physics_jump() {
         ))),
     );
     for _ in 0..3 {
-        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(40))
+        physics::tick(ent.values(), &vol_mgr, Duration::from_millis(40))
     }
     {
         let p = ent.get(&1);
         assert!(p.unwrap().read().pos().z > 10.2);
     }
     for _ in 0..50 {
-        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(100))
+        physics::tick(ent.values(), &vol_mgr, Duration::from_millis(100))
     }
     {
         let p = ent.get(&1);
@@ -874,7 +878,7 @@ fn physics_walk() {
         ))),
     );
     for _ in 0..80 {
-        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(50))
+        physics::tick(ent.values(), &vol_mgr, Duration::from_millis(50))
     }
     {
         let p = ent.get(&1);

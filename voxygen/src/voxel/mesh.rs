@@ -203,7 +203,7 @@ where
         };
         vecs.iter().fold(0, |acc, v| {
             acc + if self
-                .at((pos + *v).map(|e| e as u16))
+                .at((pos + *v).map(|e| e as u32))
                 .unwrap_or_else(V::VoxelType::empty)
                 .is_opaque()
             {

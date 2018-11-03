@@ -1,11 +1,10 @@
 // Library
 use noise::{NoiseFn, SuperSimplex, HybridMulti, Seedable, MultiFractal};
 use vek::*;
-use dot_vox::DotVoxData;
 
 // Local
 use terrain::{
-    chunk::{Block, BlockMaterial},
+    chunk::{Block, BlockMat},
     ConstructVolume, PhysicalVolume, ReadVolume, ReadWriteVolume, Volume, VoxAbs, VoxRel, Voxel,
 };
 
@@ -15,40 +14,11 @@ pub struct HeterogeneousData {
     voxels: Vec<Block>,
 }
 
-impl From<DotVoxData> for Chunk {
-    fn from(vox: DotVoxData) -> Chunk {
-        match vox.models.first() {
-            Some(model) => {
-                let size = Vec3::new(model.size.x, model.size.y, model.size.z).map(|e| e as i64);
-                let mut voxels = vec![Block::empty(); (size.x * size.y * size.z) as usize];
-                let mut chunk = Chunk {
-                    size,
-                    offset: Vec3::new(0, 0, 0),
-                    voxels,
-                };
-
-                for ref v in model.voxels.iter() {
-                    let pos = Vec3::new(v.x as i64, v.y as i64, v.z as i64);
-                    chunk.set(pos, Block::from_byte(v.i));
-                }
-
-                chunk
-            },
-            None => Chunk {
-                size: Vec3::new(1, 1, 1),
-                offset: Vec3::new(0, 0, 0),
-                voxels: vec![Block::empty()]
-            },
-        }
-    }
-}
-
-impl Chunk {
-    pub fn empty() -> Self {
+impl HeterogeneousData {
+    pub fn empty(size: Vec3<VoxRel>) -> Self {
         Self {
-            size: Vec3::new(0, 0, 0),
-            offset: Vec3::new(0, 0, 0),
-            voxels: vec![],
+            size,
+            voxels: vec![Block::empty(); size.product() as usize],
         }
     }
 
@@ -60,10 +30,9 @@ impl Chunk {
 
     pub(crate) fn voxels_mut(&mut self) -> &mut Vec<Block> { &mut self.voxels }
 
-    pub fn new(size: Vec3<i64>, offset: Vec3<i64>, voxels: Vec<Block>) -> Self {
-        Chunk {
+    pub fn new(size: Vec3<VoxRel>, voxels: Vec<Block>) -> Self {
+        Self {
             size,
-            offset,
             voxels,
         }
     }

@@ -29,7 +29,11 @@ use common::terrain::{
     chunk::{
         Chunk,
         Block,
+        HeterogeneousData,
+        HomogeneousData,
     },
+    ConstructVolume,
+    ReadWriteVolume,
 };
 
 // Local
@@ -47,7 +51,11 @@ pub trait Gen {
 
 // World
 
-const CHUNK_SZ: (u32, u32, u32) = (64, 64, 64);
+const CHUNK_SZ: Vec3<u32> = Vec3 {
+    x: 64,
+    y: 64,
+    z: 64,
+};
 
 lazy_static! {
     static ref GENERATOR: TopologyGen = TopologyGen::new();
@@ -57,23 +65,20 @@ pub struct World;
 
 impl World {
     pub fn gen_chunk(offs: Vec3<i32>) -> Chunk {
-        let chunk_sz = Vec3::from(CHUNK_SZ).map(|e: u32| e as i64);
-
-        let mut chunk = Chunk::new(
-            chunk_sz,
-            offs.map(|e| e as i64),
-            vec![Block::AIR; chunk_sz.product() as usize],
-        );
-
+        // If the chunk is out of bounds, just generate air
         if offs.z < 0 || offs.z > 8 {
-            return chunk;
+            return Chunk::Homo(
+                HomogeneousData::filled(CHUNK_SZ, Block::AIR)
+            );
         }
+
+        let mut chunk_data = HeterogeneousData::empty(CHUNK_SZ);
 
         // is_homogeneous, block type
         let mut cblock = (true, None);
 
         let mut gen_block_fn = |x, y, z| {
-            let pos = offs.map(|e| e as i64) * chunk_sz + Vec3::new(x, y, z);
+            let pos = offs.map(|e| e as i64) * CHUNK_SZ.map(|e| e as i64) + Vec3::new(x, y, z).map(|e| e as i64);
 
             let block = GENERATOR.sample(pos).block;
 
@@ -84,7 +89,7 @@ impl World {
                 _ => {},
             }
 
-            chunk.set(
+            chunk_data.set_at(
                 Vec3::new(x, y, z),
                 block,
             );
@@ -92,9 +97,9 @@ impl World {
 
         // x faces
 
-        for x in (0..chunk_sz.x).step_by(chunk_sz.x as usize - 1) {
-            for y in 1..chunk_sz.y - 1 {
-                for z in 1..chunk_sz.z - 1 {
+        for x in (0..CHUNK_SZ.x).step_by(CHUNK_SZ.x as usize - 1) {
+            for y in 1..CHUNK_SZ.y - 1 {
+                for z in 1..CHUNK_SZ.z - 1 {
                     gen_block_fn(x, y, z);
                 }
             }
@@ -102,9 +107,9 @@ impl World {
 
         // y faces
 
-        for x in 0..chunk_sz.x {
-            for y in (0..chunk_sz.y).step_by(chunk_sz.y as usize - 1) {
-                for z in 1..chunk_sz.z - 1 {
+        for x in 0..CHUNK_SZ.x {
+            for y in (0..CHUNK_SZ.y).step_by(CHUNK_SZ.y as usize - 1) {
+                for z in 1..CHUNK_SZ.z - 1 {
                     gen_block_fn(x, y, z);
                 }
             }
@@ -112,9 +117,9 @@ impl World {
 
         // z faces
 
-        for x in 0..chunk_sz.x {
-            for y in 0..chunk_sz.y {
-                for z in (0..chunk_sz.z).step_by(chunk_sz.z as usize - 1) {
+        for x in 0..CHUNK_SZ.x {
+            for y in 0..CHUNK_SZ.y {
+                for z in (0..CHUNK_SZ.z).step_by(CHUNK_SZ.z as usize - 1) {
                     gen_block_fn(x, y, z);
                 }
             }
@@ -122,21 +127,19 @@ impl World {
 
         // Can we make broad assumptions about the homogenity of the chunk?
         match cblock {
-            (true, Some(block)) => return Chunk::new(
-                chunk_sz,
-                offs.map(|e| e as i64),
-                vec![block; chunk_sz.product() as usize],
+            (true, Some(block)) => return Chunk::Homo(
+                HomogeneousData::filled(CHUNK_SZ, block)
             ),
             _ => {},
         }
 
         // Fill in everything else
-        for x in 1..chunk_sz.x - 1 {
-            for y in 1..chunk_sz.y - 1 {
-                for z in 1..chunk_sz.z - 1 {
-                    let pos = offs.map(|e| e as i64) * chunk_sz + Vec3::new(x, y, z);
+        for x in 1..CHUNK_SZ.x - 1 {
+            for y in 1..CHUNK_SZ.y - 1 {
+                for z in 1..CHUNK_SZ.z - 1 {
+                    let pos = offs.map(|e| e as i64) * CHUNK_SZ.map(|e| e as i64) + Vec3::new(x, y, z).map(|e| e as i64);
 
-                    chunk.set(
+                    chunk_data.set_at(
                         Vec3::new(x, y, z),
                         GENERATOR.sample(pos).block,
                     );
@@ -144,6 +147,6 @@ impl World {
             }
         }
 
-        chunk
+        Chunk::Hetero(chunk_data)
     }
 }

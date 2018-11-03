@@ -41,7 +41,7 @@ pub trait Voxel: Copy + Clone + Any {
 }
 
 /// Relative VoxelId inside a volume (e.g. chunk), only posiive values
-pub type VoxRel = u16;
+pub type VoxRel = u32;
 /// Absolute VoxelId, this is unique for every Voxel (e.g. Block) - signed int
 pub type VoxAbs = i64;
 /// Key of every Chunk - signed int

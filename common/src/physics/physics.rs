@@ -1,5 +1,5 @@
 // Standard
-use std::{clone::Clone, sync::Arc};
+use std::{clone::Clone, sync::Arc, time::Duration};
 
 // Library
 use parking_lot::RwLock;
@@ -65,7 +65,7 @@ fn calc_vel(old_vel: Vec3<f32>, wanted_ctrl_acc: Vec3<f32>, dt: f32, fric_fac: V
     const ENTITY_ACC: Vec3<f32> = Vec3 {
         x: 32.0 / LENGTH_OF_BLOCK,
         y: 32.0 / LENGTH_OF_BLOCK,
-        z: 200.0 / LENGTH_OF_BLOCK,
+        z: 350.0 / LENGTH_OF_BLOCK,
     };
     const GRAVITY_ACC: Vec3<f32> = Vec3 {
         x: 0.0 / LENGTH_OF_BLOCK,
@@ -100,7 +100,7 @@ pub fn tick<
 >(
     entities: I,
     chunk_mgr: &ChunkMgr<CP>,
-    dt: f32,
+    dt: Duration,
 ) {
     const ENTITY_MIDDLE_OFFSET: Vec3<f32> = Vec3 { x: 0.0, y: 0.0, z: 0.9 };
     const ENTITY_RADIUS: Vec3<f32> = Vec3 {
@@ -128,6 +128,8 @@ pub fn tick<
         y: 0.2,
         z: 0.78,
     };
+
+    let dt = dt.as_float_secs() as f32;
 
     for (.., entity) in entities {
         let mut entity = entity.write();

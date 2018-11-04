@@ -34,6 +34,7 @@ use vek::*;
 use common::{
     terrain::{chunk::ChunkContainer, ChunkMgr, Entity, FnDropFunc, FnGenFunc, VolGen, VolOffs, VoxRel},
     util::{
+        clock::Clock,
         manager::{Managed, Manager},
         msg::{ClientMsg, ClientPostOffice, ServerMsg, SessionKind},
     },
@@ -73,7 +74,8 @@ pub struct Client<P: Payloads> {
     status: RwLock<ClientStatus>,
     postoffice: Manager<ClientPostOffice>,
 
-    time: RwLock<f64>,
+    clock: RwLock<Clock>,
+    clock_tick_time: RwLock<Duration>,
     player: RwLock<Player>,
     entities: RwLock<HashMap<Uid, Arc<RwLock<Entity<<P as Payloads>::Entity>>>>>,
     phys_lock: Mutex<()>,
@@ -114,7 +116,8 @@ impl<P: Payloads> Client<P> {
                 status: RwLock::new(ClientStatus::Connected),
                 postoffice,
 
-                time: RwLock::new(time),
+                clock: RwLock::new(Clock::new(Duration::from_millis(20))),
+                clock_tick_time: RwLock::new(time),
                 player: RwLock::new(Player::new(alias)),
                 entities: RwLock::new(HashMap::new()),
                 phys_lock: Mutex::new(()),
@@ -153,7 +156,7 @@ impl<P: Payloads> Client<P> {
 
     pub fn status<'a>(&'a self) -> RwLockReadGuard<'a, ClientStatus> { self.status.read() }
 
-    pub fn time(&self) -> f64 { *self.time.read() }
+    pub fn time(&self) -> Duration { *self.clock_tick_time.read() }
 
     pub fn player<'a>(&'a self) -> RwLockReadGuard<'a, Player> { self.player.read() }
     pub fn player_mut<'a>(&'a self) -> RwLockWriteGuard<'a, Player> { self.player.write() }
@@ -208,22 +211,28 @@ impl<P: Payloads> Managed for Client<P> {
         // Tick worker
         Manager::add_worker(manager, |client, running, mut mgr| {
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
-                let dt = Duration::from_millis(50);
-                client.tick(dt, &mut mgr);
+                let mut clocklock = client.clock.write();
+                client.tick(clocklock.reference_duration(), &mut mgr);
+                clocklock.tick();
+                *client.clock_tick_time.write() += clocklock.reference_duration();
             }
         });
 
         // Chunkmgr worker
         Manager::add_worker(manager, |client, running, mut mgr| {
+            let mut clock = Clock::new(Duration::from_millis(200));
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
-                client.manage_chunks(200.0 / 1000.0, &mut mgr);
+                client.manage_chunks(&mut mgr);
+                clock.tick();
             }
         });
 
         // Debug worker
         Manager::add_worker(manager, |client, running, mut mgr| {
+            let mut clock = Clock::new(Duration::from_millis(5000));
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
-                client.debug(5000.0 / 1000.0, &mut mgr);
+                client.debug(&mut mgr);
+                clock.tick();
             }
         });
     }

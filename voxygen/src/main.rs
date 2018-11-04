@@ -1,4 +1,4 @@
-#![feature(nll, euclidean_division, arbitrary_self_types)]
+#![feature(nll, euclidean_division, arbitrary_self_types, duration_float)]
 
 // Graphics
 #[macro_use]

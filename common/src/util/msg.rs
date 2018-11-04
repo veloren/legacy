@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 // Library
 use vek::*;
 
@@ -35,7 +37,7 @@ pub enum ServerMsg {
     // SessionKind::Connect
     Connected {
         player_uid: Option<u64>,
-        time: f64,
+        time: Duration,
     },
 
     // SessionKind::Disconnect
@@ -59,7 +61,7 @@ pub enum ServerMsg {
         store: CompStore,
     },
 
-    TimeUpdate(f64),
+    TimeUpdate(Duration),
 }
 
 impl Message for ServerMsg {}

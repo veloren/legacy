@@ -1,5 +1,5 @@
 // Standard
-use std::{thread, time::Duration};
+use std::time::Duration;
 
 // Project
 use common::{physics::physics, util::manager::Manager};
@@ -17,29 +17,21 @@ impl<P: Payloads> Client<P> {
         {
             // Take the physics lock to sync client and frontend updates
             let _ = self.take_phys_lock();
-            physics::tick(entities.iter(), &self.chunk_mgr, dt.as_millis() as f32 / 1000.0);
+            physics::tick(entities.iter(), &self.chunk_mgr, dt);
         }
 
         self.update_server();
 
-        *self.time.write() += dt.as_millis() as f64 / 1000.0;
-
-        thread::sleep(Duration::from_millis(40));
-
         *self.status() != ClientStatus::Disconnected
     }
 
-    pub(crate) fn manage_chunks(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
+    pub(crate) fn manage_chunks(&self, mgr: &mut Manager<Self>) -> bool {
         self.maintain_chunks(mgr);
-
-        thread::sleep(Duration::from_millis(200));
         *self.status() != ClientStatus::Disconnected
     }
 
-    pub(crate) fn debug(&self, dt: f32, mgr: &mut Manager<Self>) -> bool {
+    pub(crate) fn debug(&self, _mgr: &mut Manager<Self>) -> bool {
         self.chunk_mgr().debug();
-
-        thread::sleep(Duration::from_millis(5000));
         *self.status() != ClientStatus::Disconnected
     }
 }

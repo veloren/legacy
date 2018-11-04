@@ -22,7 +22,6 @@ pub use error::Error;
 use std::{
     net::{TcpListener, ToSocketAddrs},
     sync::atomic::Ordering,
-    thread,
     time::Duration,
 };
 
@@ -33,7 +32,7 @@ use specs::{Entity, World};
 // Project
 use common::{
     ecs,
-    util::{manager::Managed, msg::ServerPostOffice},
+    util::{clock::Clock, manager::Managed, msg::ServerPostOffice},
 };
 
 // Local
@@ -63,8 +62,7 @@ pub trait Payloads: Send + Sync + 'static {
 
 pub struct Server<P: Payloads> {
     listener: TcpListener,
-    time: f64,
-    next_time_sync: RwLock<f64>,
+    clock_tick_time: Duration,
     world: World,
     payload: P,
 }
@@ -87,8 +85,7 @@ impl<P: Payloads> Server<P> {
 
         Ok(Manager::init(Wrapper(RwLock::new(Server {
             listener: TcpListener::bind(bind_addr)?,
-            time: 0.0,
-            next_time_sync: RwLock::new(0.0),
+            clock_tick_time: Duration::from_millis(0),
             world,
             payload,
         }))))
@@ -115,10 +112,20 @@ impl<P: Payloads> Managed for Wrapper<Server<P>> {
 
         // Tick workers
         Manager::add_worker(mgr, |srv, running, _| {
+            let mut clock = Clock::new(Duration::from_millis(20));
             while running.load(Ordering::Relaxed) {
-                let dt = Duration::from_millis(50);
-                thread::sleep(dt);
-                srv.do_for_mut(|srv| srv.tick_once(dt));
+                srv.do_for_mut(|srv| srv.tick_once(clock.reference_duration()));
+                clock.tick();
+                srv.do_for_mut(|srv| srv.clock_tick_time += clock.reference_duration());
+            }
+        });
+
+        // Sync Time worker
+        Manager::add_worker(mgr, |srv, running, _| {
+            let mut clock = Clock::new(Duration::from_millis(60000));
+            while running.load(Ordering::Relaxed) {
+                srv.do_for_mut(|srv| srv.tick_time());
+                clock.tick();
             }
         });
     }

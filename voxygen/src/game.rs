@@ -445,7 +445,7 @@ impl Game {
             .map(|p| *p.read().pos())
             .unwrap_or(Vec3::new(0.0, 0.0, 0.0));
         let play_origin = [player_pos.x, player_pos.y, player_pos.z, 1.0];
-        let time = self.client.time() as f32;
+        let time = self.client.time().as_float_secs() as f32;
 
         // Begin rendering, don't clear the frame
         let mut renderer = self.window.renderer_mut();

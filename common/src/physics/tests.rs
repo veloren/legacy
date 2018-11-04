@@ -1,5 +1,10 @@
 // Standard
-use std::{collections::HashMap, sync::Arc, thread, time};
+use std::{
+    collections::HashMap,
+    sync::Arc,
+    thread,
+    time::{self, Duration},
+};
 
 //Library
 use parking_lot::{Mutex, RwLock};
@@ -756,7 +761,7 @@ fn physics_fall() {
         ))),
     );
     for _ in 0..40 {
-        physics::tick(ent.iter(), &vol_mgr, 0.1)
+        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(100))
     }
     let p = ent.get(&1);
     let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
@@ -790,7 +795,7 @@ fn physics_fallfast() {
         ))),
     );
     for _ in 0..100 {
-        physics::tick(ent.iter(), &vol_mgr, 0.1)
+        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(100))
     }
     let p = ent.get(&1);
     let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
@@ -824,14 +829,14 @@ fn physics_jump() {
         ))),
     );
     for _ in 0..3 {
-        physics::tick(ent.iter(), &vol_mgr, 0.04)
+        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(40))
     }
     {
         let p = ent.get(&1);
         assert!(p.unwrap().read().pos().z > 10.2);
     }
     for _ in 0..50 {
-        physics::tick(ent.iter(), &vol_mgr, 0.1)
+        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(100))
     }
     {
         let p = ent.get(&1);
@@ -869,7 +874,7 @@ fn physics_walk() {
         ))),
     );
     for _ in 0..80 {
-        physics::tick(ent.iter(), &vol_mgr, 0.5)
+        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(50))
     }
     {
         let p = ent.get(&1);

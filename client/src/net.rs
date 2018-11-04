@@ -81,7 +81,8 @@ impl<P: Payloads> Client<P> {
                 },
 
                 Incoming::Msg(ServerMsg::TimeUpdate(time)) => {
-                    *self.time.write() = time;
+                    *self.clock_tick_time.write() = time;
+                    self.clock.write().reset();
                 },
 
                 Incoming::Msg(_) => {},

@@ -1,4 +1,4 @@
-#![feature(nll, specialization, euclidean_division, integer_atomics)]
+#![feature(nll, specialization, euclidean_division, integer_atomics, duration_float)]
 
 extern crate bincode;
 extern crate get_if_addrs;

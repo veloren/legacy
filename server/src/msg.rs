@@ -1,5 +1,5 @@
 // Standard
-use std::mem;
+use std::{mem, time};
 
 // Library
 use specs::prelude::*;
@@ -46,6 +46,7 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
             srv.send_chat_msg(player, "/alias <alias> - Change your alias");
             srv.send_chat_msg(player, "/warp <dx> <dy> <dz> - Offset your position");
             srv.send_chat_msg(player, "/goto <dx> <dy> <dz> - Teleport to specified position");
+            srv.send_chat_msg(player, "/settime <t> - Set time to t [seconds]");
         }),
         Some("players") => srv.do_for(|srv| {
             // Find a list of player names and format them
@@ -198,6 +199,40 @@ pub(crate) fn process_cmd<'a, P: Payloads>(
                 break 'goto;
             }
         }),
+        Some("settime") => 'settime: {
+            let t = match cmd.next() {
+                Some(t) => match t.parse::<u64>() {
+                    Ok(s) => s,
+                    _ => {
+                        srv.do_for(|srv| {
+                            srv.send_chat_msg(player, "Specified time is invalid");
+                        });
+                        break 'settime;
+                    },
+                },
+                _ => {
+                    srv.do_for(|srv| {
+                        srv.send_chat_msg(player, "A second argument is needed /settime t");
+                    });
+
+                    break 'settime;
+                },
+            };
+
+            //we have a time to set the server to
+            srv.do_for_mut(|srv| {
+                srv.clock_tick_time = time::Duration::from_secs(t);
+            });
+
+            srv.do_for(|srv| {
+                srv.sync_player_time();
+                srv.send_chat_msg(player, &format!("Set time to {}", t));
+                if let Some(palias) = srv.do_for_comp::<Player, _, _>(player, |player_comp| player_comp.alias.clone()) {
+                    //This *should* always happen since the command *should* be sent by players only
+                    srv.broadcast_chat_msg(&format!("[{} set time to {}s]", palias, t));
+                }
+            });
+        },
         _ => srv.do_for(|srv| srv.send_chat_msg(player, "Unrecognised command!")),
     }
 }

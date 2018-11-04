@@ -218,6 +218,11 @@ impl<P: Payloads> Server<P> {
         self.world.write_storage::<T>().get_mut(entity).map(|c| f(c))
     }
 
+    /// Retrieve component immutably. If the component does not exist, this operation will not occur.
+    pub(crate) fn do_for_comp<T: NetComp + Clone, R, F: FnOnce(&T) -> R>(&self, entity: Entity, f: F) -> Option<R> {
+        self.world.read_storage::<T>().get(entity).map(|c| f(c))
+    }
+
     /// Update clients of a component's value, excepting those clients for whom that component is attributed
     /// (e.g: a client won't get it's own player position sent back to it)
     #[allow(dead_code)]

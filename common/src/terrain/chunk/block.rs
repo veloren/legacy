@@ -36,9 +36,8 @@ impl Block {
     pub const GRAD3_O_STONE: u8 = 0;
     pub const GRAD3_O_EARTH: u8 = 1;
     pub const GRAD3_A_GRASS: u8 = 0;
-    pub const GRAD3_A_LIMESTONE: u8 = 1;
     pub const GRAD3_B_SAND: u8 = 0;
-    pub const GRAD3_B_SANDSTONE: u8 = 1;
+    pub const GRAD3_B_SNOW: u8 = 1;
 
     pub fn gradient2(idx_a: u8, idx_b: u8, grad: u8) -> Self {
         Self {

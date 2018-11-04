@@ -1,4 +1,4 @@
-#![feature(nll, fn_traits, associated_type_defaults, self_struct_ctor, euclidean_division)]
+#![feature(nll, fn_traits, associated_type_defaults, self_struct_ctor, euclidean_division, integer_atomics)]
 
 extern crate common;
 extern crate vek;
@@ -12,12 +12,20 @@ extern crate parking_lot;
 
 mod util;
 mod cachegen;
-mod overworld;
-mod topology;
-mod tree;
+mod blockgen;
+mod overworldgen;
+mod biomegen;
+
+//mod overworld;
+//mod topology;
+//mod tree;
 
 // Standard
-use std::{mem, hash::Hash};
+use std::{
+    mem,
+    hash::Hash,
+    sync::atomic::{AtomicU32, Ordering},
+};
 
 // Library
 use vek::*;
@@ -37,16 +45,16 @@ use common::terrain::{
 };
 
 // Local
-use overworld::OverworldGen;
-use topology::TopologyGen;
+use blockgen::BlockGen;
 
 // Generator
 
 pub trait Gen {
     type In: Clone;
+    type Supp;
     type Out: Clone;
 
-    fn sample(&self, i: Self::In) -> Self::Out;
+    fn sample<'a>(&'a self, i: Self::In, supplement: &'a Self::Supp) -> Self::Out;
 }
 
 // World
@@ -57,8 +65,14 @@ const CHUNK_SZ: Vec3<u32> = Vec3 {
     z: 64,
 };
 
+// Seed - used during worldgen initiation
+static seed: AtomicU32 = AtomicU32::new(0);
+pub fn new_seed() -> u32 {
+    seed.fetch_add(1, Ordering::Relaxed)
+}
+
 lazy_static! {
-    static ref GENERATOR: TopologyGen = TopologyGen::new();
+    static ref GENERATOR: BlockGen = BlockGen::new();
 }
 
 pub struct World;
@@ -73,6 +87,7 @@ impl World {
         }
 
         let mut chunk_data = HeterogeneousData::empty(CHUNK_SZ);
+        let generator = &GENERATOR; // Create a temporary for the generator here to avoid atomic operations for every block
 
         // is_homogeneous, block type
         let mut cblock = (true, None);
@@ -80,7 +95,7 @@ impl World {
         let mut gen_block_fn = |x, y, z| {
             let pos = offs.map(|e| e as i64) * CHUNK_SZ.map(|e| e as i64) + Vec3::new(x, y, z).map(|e| e as i64);
 
-            let block = GENERATOR.sample(pos).block;
+            let block = generator.sample(pos, &());
 
             match cblock {
                 (true, None) => cblock.1 = Some(block),
@@ -141,7 +156,7 @@ impl World {
 
                     chunk_data.set_at(
                         Vec3::new(x, y, z),
-                        GENERATOR.sample(pos).block,
+                        generator.sample(pos, &()),
                     );
                 }
             }

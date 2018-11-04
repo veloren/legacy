@@ -10,7 +10,7 @@ pub trait RenderVoxel: Voxel {
     fn get_mat(&self) -> RenderMaterial;
     fn is_opaque(&self) -> bool;
     fn is_occupied(&self) -> bool;
-    fn should_add(&self, other_opaque: bool) -> bool { !self.is_occupied() || !self.is_opaque() && other_opaque }
+    fn should_add(&self, other_opaque: bool) -> bool { !self.is_occupied() || (!self.is_opaque() && other_opaque) }
 }
 
 pub trait RenderVolume: ReadVolume + PhysicalVolume
@@ -62,7 +62,7 @@ impl RenderVoxel for Block {
         */
 
         match self.material() {
-            BlockMat { grad: 0xFF, index: 206 } => RenderMaterial::new(Material::Water as u8, MaterialKind::Water),
+            BlockMat { grad: 0x80, index: 206 } => RenderMaterial::new(Material::Water as u8, MaterialKind::Water),
             m => RenderMaterial::new(Material::MatteSmooth as u8, MaterialKind::Solid),
         }
     }

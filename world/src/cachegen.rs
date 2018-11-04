@@ -37,9 +37,10 @@ impl<T: Gen> CacheGen<T> where T::In: Eq + Hash, T::Out: 'static {
 
 impl<T: Gen> Gen for CacheGen<T> where T::In: Eq + Hash, T::Out: 'static {
     type In = T::In;
+    type Supp = T::Supp;
     type Out = T::Out;
 
-    fn sample(&self, i: Self::In) -> Self::Out {
+    fn sample<'a>(&'a self, i: Self::In, supplement: &'a Self::Supp) -> Self::Out {
         let mut hasher = FnvHasher::with_key(0);
         i.hash(&mut hasher);
 
@@ -51,7 +52,7 @@ impl<T: Gen> Gen for CacheGen<T> where T::In: Eq + Hash, T::Out: 'static {
         })) {
             o
         } else {
-            let samp = self.gen.sample(i.clone());
+            let samp = self.gen.sample(i.clone(), supplement);
             self.cache.get(idx).map(|c| *c.write() = Some((i, samp.clone())));
             samp
         }

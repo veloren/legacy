@@ -43,16 +43,16 @@ float interp(float v1, float v2, float v3, float r1, float r2, float r3, float r
 
 ////// Main gradient params://////
 // Noon
-const vec3 noon_top_col = vec3(0.02, 0.3, 0.8);
+const vec3 noon_top_col = vec3(0.06, 0.3, 0.8);
 const float noon_top_strength = 20000.0;
-const vec3 noon_mid_col = vec3(0.2, 0.5, 1.0);
+const vec3 noon_mid_col = vec3(0.35, 0.5, 1.0);
 const float noon_mid_strength = 20000.0;
-const vec3 noon_bot_col = vec3(0.03, 0.15, 0.4);
+const vec3 noon_bot_col = vec3(0.07, 0.15, 0.4);
 const float noon_bot_strength = 15000.0;
 // Sunset
 const vec3 sunset_top_col = vec3(0.15, 0.1, 0.175);
 const float sunset_top_strength = 6000;
-const vec3 sunset_mid_col = vec3(1.0, 0.2, 0.025);
+const vec3 sunset_mid_col = vec3(1.0, 0.4, 0.225);
 const float sunset_mid_strength = 2000;
 const vec3 sunset_bot_col = vec3(0.075, 0.05, 0.1);
 const float sunset_bot_strength = 1900;
@@ -72,8 +72,8 @@ const float sunset_sun_strength = 100000.0 * 0.25;
 // Midnight
 const float midnight_sun_strength = 0.0;
 // Universal
-const float sun_size = 0.017; // 2 deg ang diameter
-const float sun_bloom = 1;
+const float sun_size = 0.03; // 3.5 deg ang diameter
+const float sun_bloom = 1.5;
 
 ////// Sun halo params: ///////
 // Midday

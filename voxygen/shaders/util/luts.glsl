@@ -37,7 +37,7 @@ const uint grad2_b_lut[16] = uint[16](
 );
 
 const uint grad3_o_lut[2] = uint[2](
-	200u, // Dark stone
+	154u, // Dark stone
 	98u   // Earth
 );
 
@@ -47,7 +47,7 @@ const uint grad3_a_lut[2] = uint[2](
 );
 
 const uint grad3_b_lut[2] = uint[2](
-	134u, // Dry grass
+	95u, // Dry grass
 	7u    // Snow
 );
 

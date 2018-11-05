@@ -42,13 +42,13 @@ const uint grad3_o_lut[2] = uint[2](
 );
 
 const uint grad3_a_lut[2] = uint[2](
-	25u, // Dark grass
+	26u, // Dark grass
 	0u
 );
 
 const uint grad3_b_lut[2] = uint[2](
-	95u, // Dry grass
-	7u    // Snow
+	127u, // Sand
+	7u   // Snow
 );
 
 const vec4 col_lut[256] = vec4[256](
@@ -352,7 +352,7 @@ const Material mat_lut[15] = Material[15](
     Material( //MatteRough
         0.2,
         0.0,
-        0.2,
+        0.1,
         0.0,
         1.0
     ),

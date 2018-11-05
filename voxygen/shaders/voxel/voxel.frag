@@ -147,8 +147,8 @@ void main() {
     float ambient_intensity = 2.0 * omm; // TODO: have specular ambient so that we don't have to hack this
 	vec3 ambient = col.rgb * ambient_intensity * atmos_color;
 
-	//vec3 lighted = ambient + (saturate((diffuse + specular) * NdotL) * sun_illuminance * ao);
-	vec3 lighted = (ambient + (diffuse + specular) * sun_illuminance) * ao;
+	vec3 lighted = ambient * ao + (saturate((diffuse + specular) * NdotL) * sun_illuminance * ao);
+	//vec3 lighted = ambient + ((diffuse + specular) * sun_illuminance) * ao;
 
 	// Mist
 	float mist_start = view_distance.x * 0.7;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;

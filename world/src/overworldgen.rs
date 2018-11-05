@@ -13,7 +13,12 @@ pub struct OverworldGen {
     land_nz: HybridMulti,
     dry_nz: HybridMulti,
     temp_nz: HybridMulti,
+
+    hill_nz: HybridMulti,
+
     temp_vari_nz: SuperSimplex,
+    alt_vari_nz: SuperSimplex,
+
     warp_vari_nz_x: SuperSimplex,
     warp_vari_nz_y: SuperSimplex,
     warp_vari_nz_z: SuperSimplex,
@@ -25,7 +30,10 @@ pub struct Out {
     pub dry: f64,
     pub temp: f64,
 
+    pub z_hill: f64,
+
     pub temp_vari: f64,
+    pub alt_vari: f64,
 
     pub z_alt: f64,
     pub z_water: f64,
@@ -35,6 +43,7 @@ pub struct Out {
 impl OverworldGen {
     pub fn new() -> Self {
         Self {
+            // Large-scale
             land_nz: HybridMulti::new()
                 .set_seed(new_seed())
                 .set_octaves(8),
@@ -44,8 +53,17 @@ impl OverworldGen {
             temp_nz: HybridMulti::new()
                 .set_seed(new_seed())
                 .set_octaves(8),
+
+            // Small-scale
+            hill_nz: HybridMulti::new()
+                .set_seed(new_seed())
+                .set_octaves(2),
+
             temp_vari_nz: SuperSimplex::new()
                 .set_seed(new_seed()),
+            alt_vari_nz: SuperSimplex::new()
+                .set_seed(new_seed()),
+
             warp_vari_nz_x: SuperSimplex::new()
                 .set_seed(new_seed()),
             warp_vari_nz_y: SuperSimplex::new()
@@ -79,6 +97,13 @@ impl OverworldGen {
         self.temp_nz.get(pos.div(scale).into_array()).add(1.0).div(2.0)
     }
 
+    // 0 = lowest, 1 = highest
+    fn get_hill(&self, pos: Vec2<f64>) -> f64 {
+        let scale = 256.0;
+
+        self.hill_nz.get(pos.div(scale).into_array()).add(1.0).div(2.0)
+    }
+
     // 0 = no river, 1 = deep river
     fn get_river(&self, dry: f64) -> f64 {
         let frac = 0.002;
@@ -103,12 +128,15 @@ impl Gen for OverworldGen {
         let temp = self.get_temp(pos_f64);
         let river = self.get_river(dry);
 
+        let hill = self.get_hill(pos_f64);
+        let z_hill = hill * 16.0 * dry * land.mul(5.0).min(1.0).max(0.0);
+
         let z_base = 126.0;
         let z_sea = 118.0;
 
         let z_land = z_base + land * 32.0;
         let z_height = z_land + dry * 192.0 * (1.0 - temp).mul(2.0).min(1.0).max(0.1) * (land * 2.0).min(1.0).max(0.2);
-        let z_alt = z_height - river * 8.0;
+        let z_alt = z_height + z_hill - river * 8.0;
         let z_water = (z_height - 3.0).max(z_sea);
 
         Out {
@@ -116,7 +144,10 @@ impl Gen for OverworldGen {
             dry,
             temp,
 
-            temp_vari: self.temp_vari_nz.get(pos_f64.div(64.0).into_array()) * 0.3,
+            z_hill,
+
+            temp_vari: self.temp_vari_nz.get(pos_f64.div(32.0).into_array()) * 0.15,
+            alt_vari: self.alt_vari_nz.get(pos_f64.div(16.0).into_array()) * 0.15,
 
             z_alt,
             z_water,

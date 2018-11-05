@@ -15,6 +15,7 @@ mod cachegen;
 mod blockgen;
 mod overworldgen;
 mod biomegen;
+mod treegen;
 
 //mod overworld;
 //mod topology;
@@ -95,7 +96,7 @@ impl World {
         let mut gen_block_fn = |x, y, z| {
             let pos = offs.map(|e| e as i64) * CHUNK_SZ.map(|e| e as i64) + Vec3::new(x, y, z).map(|e| e as i64);
 
-            let block = generator.sample(pos, &());
+            let block = generator.sample(pos, &generator.get_invariant_z(Vec2::from(pos)));
 
             match cblock {
                 (true, None) => cblock.1 = Some(block),
@@ -151,12 +152,15 @@ impl World {
         // Fill in everything else
         for x in 1..CHUNK_SZ.x - 1 {
             for y in 1..CHUNK_SZ.y - 1 {
+                let pos2d = Vec2::from(offs.map(|e| e as i64)) * Vec2::from(CHUNK_SZ.map(|e| e as i64)) + Vec2::new(x, y).map(|e| e as i64);
+                let invariant_z = generator.get_invariant_z(pos2d);
+
                 for z in 1..CHUNK_SZ.z - 1 {
                     let pos = offs.map(|e| e as i64) * CHUNK_SZ.map(|e| e as i64) + Vec3::new(x, y, z).map(|e| e as i64);
 
                     chunk_data.set_at(
                         Vec3::new(x, y, z),
-                        generator.sample(pos, &()),
+                        generator.sample(pos, &invariant_z),
                     );
                 }
             }

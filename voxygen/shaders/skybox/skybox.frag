@@ -19,6 +19,6 @@ out vec4 target;
 
 void main() {
 	float tod = get_time_of_day(time.x);
-	target = vec4(get_skybox(normalize(frag_pos), tod) * 3.0, 1.0);
+	target = vec4(get_skybox(normalize(frag_pos), tod), 1.0);
 	// target = vec4(vec3(0.5), 1.0);
 }

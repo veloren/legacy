@@ -76,8 +76,8 @@ void main() {
 	float VdotH = clamp(dot(V, H), 0.0, 1.0);
 	float NdotH = clamp(dot(N, H), 0.0, 0.99999995);// fix artifact
 
-	vec3 sky_chroma = get_sky_chroma(-V, time_of_day);
-	vec3 atmos_color = get_sky_chroma(N, time_of_day);
+	vec3 sky_chroma = get_sky(-V, time_of_day, true);
+	vec3 atmos_color = get_sky(N, time_of_day, true);
 	atmos_color.r *= 0.5 + 0.5 * clamp(sunrise_anticycle(1, 0.9, time_of_day), 0, 1); // TODO: make less janky
 
 	float ao = (frag_ao / 3.0);

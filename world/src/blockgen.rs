@@ -29,7 +29,7 @@ impl BlockGen {
 
             warp_nz: HybridMulti::new()
                 .set_seed(new_seed())
-                .set_octaves(4),
+                .set_octaves(6),
         }
     }
 
@@ -39,13 +39,13 @@ impl BlockGen {
 
     fn get_warp(&self, pos: Vec3<f64>, dry: f64, land: f64) -> f64 {
         let scale = Vec3::new(
-            512.0,
-            512.0,
-            375.0,
+            400.0,
+            400.0,
+            300.0,
         );
 
-        if dry > 0.25 && dry < 0.75 {
-            self.warp_nz.get(pos.div(scale).into_array()).abs().mul(1.0 - dry.sub(0.5).abs().mul(4.0)).mul(land).max(0.0)
+        if dry > 0.15 && dry < 0.85 {
+            self.warp_nz.get(pos.div(scale).into_array()).abs().mul(1.0 - dry.sub(0.5).abs().mul(2.0 / 0.7)).mul(land).max(0.0)
         } else {
             0.0
         }
@@ -60,14 +60,16 @@ impl Gen for BlockGen {
     fn sample<'a>(&'a self, pos: Vec3<i64>, overworld: &Self::Supp) -> Block {
         let pos_f64 = pos.map(|e| e as f64) * 1.0;
 
-        let z_warp = self.get_warp(pos_f64, overworld.dry, overworld.land).mul(128.0);
+        let z_warp = self.get_warp(pos_f64, overworld.dry, overworld.land).mul(100.0);
 
         let z_alt = overworld.z_alt + z_warp;
+
+        const GRASS_DEPTH: f64 = 3.5;
 
         if pos_f64.z < z_alt {
             if pos_f64.z < overworld.z_water - 1.0 {
                 Block::EARTH
-            } else {
+            } else if pos_f64.z > z_alt - GRASS_DEPTH {
                 if overworld.temp > 0.0 {
                     Block::gradient3(
                         Block::GRAD3_O_STONE,
@@ -107,6 +109,8 @@ impl Gen for BlockGen {
                             .mul(64.0) as u8,
                     )
                 }
+            } else {
+                Block::STONE
             }
         } else {
             if pos_f64.z < overworld.z_water {

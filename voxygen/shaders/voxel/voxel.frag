@@ -106,7 +106,7 @@ void main() {
 	float LdotH = saturate(dot(L, H));
 	float NdotH = clamp(dot(N, H), 0.0, 0.99999995);// fix artifact
 
-	vec3 atmos_color = get_sky_chroma(N, time_of_day);
+	vec3 atmos_color = get_sky(N, time_of_day, false);
 
 	vec3 col_noise = vec3(0,0,0);
 

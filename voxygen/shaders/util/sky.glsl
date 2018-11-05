@@ -43,11 +43,11 @@ float interp(float v1, float v2, float v3, float r1, float r2, float r3, float r
 
 ////// Main gradient params://////
 // Noon
-const vec3 noon_top_col = vec3(0.06, 0.3, 0.8);
+const vec3 noon_top_col = vec3(0.45, 0.45, 0.5);
 const float noon_top_strength = 20000.0;
-const vec3 noon_mid_col = vec3(0.35, 0.5, 1.0);
+const vec3 noon_mid_col = vec3(0.7, 0.7, 0.8);
 const float noon_mid_strength = 20000.0;
-const vec3 noon_bot_col = vec3(0.07, 0.15, 0.4);
+const vec3 noon_bot_col = vec3(0.25, 0.25, 0.3);
 const float noon_bot_strength = 15000.0;
 // Sunset
 const vec3 sunset_top_col = vec3(0.15, 0.1, 0.175);
@@ -193,9 +193,9 @@ vec3 get_sky(vec3 dir, float time, bool sun) {
 }
 
 vec3 get_sky_chroma(vec3 dir, float time) {
-	return get_sky(dir, time, false);
+	return get_sky(dir, time, false) * 3.0 * vec3(0.4, 0.65, 1.5);
 }
 
 vec3 get_skybox(vec3 dir, float time) {
-	return get_sky(dir, time, true);
+	return get_sky(dir, time, true) * 3.0 * vec3(0.4, 0.65, 1.5);
 }

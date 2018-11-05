@@ -57,8 +57,8 @@ const mat3 ACESOutput = mat3 (
 // Currently this just desaturates reds slightly
 const mat3 ColorGrade = mat3 (
      0.95000,  0.00000,  0.00000,
-     0.02500,  1.00000,  0.00000,
-     0.02500,  0.00000,  1.00000
+     0.05000,  1.00000,  0.00000,
+     0.00000,  0.00000,  1.00000
 );
 
 vec3 lumCoeff = vec3( 0.212600, 0.715200, 0.0722000);

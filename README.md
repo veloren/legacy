@@ -26,6 +26,13 @@ See here for a list of Veloren's features and what we're working on right now.
 
 See here for information about Veloren's development roadmap.
 
+### Other
+
+- [Official Website](https://veloren.net/)
+- [Discord Chat](https://discord.gg/kjwJwjK)
+- [Wiki](https://wiki.veloren.net/wiki/Main_Page)
+- [Reddit](https://www.reddit.com/r/Veloren/)
+
 ### How To Contribute - TODO
 
 ~~See here for information on how you can get involved in shaping Veloren's future. You don't have to know how to program to contribute!~~

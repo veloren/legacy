@@ -90,7 +90,7 @@ impl Gen<OverworldOut> for BlockGen {
                             .max(0.0)
                             .min(1.0)
                             .mul(32.0) as u8,
-                        ((256.0 - (overworld.z_alt - overworld.z_sea)).div(256.0)).max(0.0)
+                        ((200.0 - (overworld.z_alt - overworld.z_sea)).div(256.0)).max(0.0)
                             .min(1.0)
                             .add(overworld.alt_vari)
                             .max(0.0)
@@ -109,7 +109,7 @@ impl Gen<OverworldOut> for BlockGen {
                             .max(0.0)
                             .min(1.0)
                             .mul(32.0) as u8,
-                        ((256.0 - (overworld.z_alt - overworld.z_sea)).div(256.0)).max(0.0)
+                        ((200.0 - (overworld.z_alt - overworld.z_sea)).div(256.0)).max(0.0)
                             .min(1.0)
                             .add(overworld.alt_vari)
                             .max(0.0)

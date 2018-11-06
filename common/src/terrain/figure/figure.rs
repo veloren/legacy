@@ -71,7 +71,7 @@ impl ConstructVolume for Figure {
 }
 
 impl PhysicalVolume for Figure {
-    fn scale(&self) -> Vec3<f32> { Vec3::new(0.1, 0.1, 0.1) }
+    fn scale(&self) -> Vec3<f32> { Vec3::new(0.085, 0.085, 0.085) }
 }
 
 impl Figure {

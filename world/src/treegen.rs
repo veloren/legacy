@@ -14,6 +14,7 @@ use util::structure::{StructureGen, dist_by_euc, dist_by_axis};
 use overworldgen::OverworldGen;
 use cachegen::CacheGen;
 use Gen;
+use new_seed;
 
 // <--- BEGIN MESS --->
 
@@ -77,23 +78,6 @@ fn load_trees() -> Vec<HeterogeneousData> {
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Willows/1.vox").unwrap()));
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Willows/2.vox").unwrap()));
 
-    /*
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Tree Variations Autumn/Tree12Brown.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Tree Variations Autumn/Tree12Brown2.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Tree Variations Autumn/Tree12Green2.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Tree Variations Autumn/Tree12Green3.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Tree Variations Autumn/Tree12Orange.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Tree Variations Autumn/Tree12Orange2.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Tree Variations Autumn/Tree12Yellow.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Tree Variations Autumn/Tree12yellow2.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Tree Variations Autumn/Tree12Red.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Tree Variations Autumn/Tree12Red2.vox").unwrap()));
-    */
-
-    //trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/5R.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq4.vox").unwrap()));
-    //trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue3.vox").unwrap()));
-
     trees
 }
 
@@ -103,8 +87,11 @@ lazy_static! {
 
 // <--- END MESS --->
 
+// TODO: Call this file forestgen.rs
+type TreeGenOut = Option<(Vec3<i64>, usize)>;
+
 pub struct TreeGen {
-    gen: CacheGen<StructureGen<Option<(Vec3<i64>, usize)>, OverworldGen>>,
+    gen: CacheGen<StructureGen, Vec2<i64>, TreeGenOut>,
 }
 
 impl TreeGen {
@@ -112,33 +99,31 @@ impl TreeGen {
         Self {
             gen: CacheGen::new(StructureGen::new(
                 64, // freq
-                64, // warp
-                0, // seed
+                48, // warp
+                new_seed(), // seed
                 dist_by_axis, // distance function
-                |this: &StructureGen<Option<(Vec3<i64>, usize)>, OverworldGen>, pos, overworld_gen| {
-                    let overworld = overworld_gen.sample(pos, &());
-
-                    if overworld.land > 0.0 && overworld.dry > 0.012 && overworld.dry < 0.4 {
-                        Some((
-                            Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 1),
-                            this.throw_dice(pos, 0) as usize % TREES.len(),
-                        ))
-                    } else {
-                        None
-                    }
-                },
-            ), 256),
+            ), 4096),
         }
     }
 }
 
-impl Gen for TreeGen {
+impl Gen<OverworldGen> for TreeGen {
     type In = Vec3<i64>;
-    type Supp = OverworldGen;
     type Out = Option<Block>;
 
     fn sample<'a>(&'a self, pos: Vec3<i64>, overworld: &'a OverworldGen) -> Option<Block> {
-        if let Some((tree_pos, tree_idx)) = self.gen.sample(Vec2::from(pos), overworld) {
+        if let Some((tree_pos, tree_idx)) = self.gen.sample(Vec2::from(pos), &(overworld, |this: &StructureGen, pos, overworld_gen: &OverworldGen| {
+            let overworld = overworld_gen.sample(pos, &());
+
+            if overworld.land > 0.0 && overworld.dry > 0.012 && overworld.dry < 0.4 {
+                Some((
+                    Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 1),
+                    this.throw_dice(pos, 0) as usize % TREES.len(),
+                ))
+            } else {
+                None
+            }
+        })) {
             let tree = &TREES[tree_idx];
 
             let rel_pos = (Vec2::from(pos) - tree_pos) + Vec2::from(tree.size()).map(|e: u32| e as i64) / 2;

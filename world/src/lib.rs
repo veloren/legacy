@@ -14,9 +14,10 @@ mod util;
 mod cachegen;
 mod blockgen;
 mod overworldgen;
-mod biomegen;
 mod treegen;
+mod towngen;
 
+//mod biomegen;
 //mod overworld;
 //mod topology;
 //mod tree;
@@ -50,12 +51,11 @@ use blockgen::BlockGen;
 
 // Generator
 
-pub trait Gen {
+pub trait Gen<S> {
     type In: Clone;
-    type Supp;
     type Out: Clone;
 
-    fn sample<'a>(&'a self, i: Self::In, supplement: &'a Self::Supp) -> Self::Out;
+    fn sample<'a>(&'a self, i: Self::In, supplement: &'a S) -> Self::Out;
 }
 
 // World

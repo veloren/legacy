@@ -65,7 +65,7 @@ fn calc_vel(old_vel: Vec3<f32>, wanted_ctrl_acc: Vec3<f32>, dt: f32, fric_fac: V
     const ENTITY_ACC: Vec3<f32> = Vec3 {
         x: 32.0 / LENGTH_OF_BLOCK,
         y: 32.0 / LENGTH_OF_BLOCK,
-        z: 350.0 / LENGTH_OF_BLOCK,
+        z: 200.0 / LENGTH_OF_BLOCK,
     };
     const GRAVITY_ACC: Vec3<f32> = Vec3 {
         x: 0.0 / LENGTH_OF_BLOCK,

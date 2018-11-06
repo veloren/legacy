@@ -23,11 +23,14 @@ impl Block {
     pub const SAND: Block  = Block::from_byte(159);
     pub const EARTH: Block = Block::from_byte(98);
     pub const STONE: Block = Block::from_byte(1);
-    pub const WATER: Block = Block::from_byte(206);
+    pub const WATER: Block = Block::from_byte(3);
     pub const SNOW: Block  = Block::from_byte(7);
     pub const LOG: Block   = Block::from_byte(77);
     pub const LEAF: Block  = Block::from_byte(34);
     pub const GOLD: Block  = Block::from_byte(95);
+    pub const LIGHT_COBBLE: Block  = Block::from_byte(109);
+    pub const MID_COBBLE: Block  = Block::from_byte(83);
+    pub const DARK_COBBLE: Block  = Block::from_byte(163);
 
     pub const GRAD2_A_GRASS: u8 = 0;
     pub const GRAD2_B_STONE: u8 = 0;

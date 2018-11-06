@@ -30,14 +30,13 @@ pub struct Out {
     pub dry: f64,
     pub temp: f64,
 
-    pub z_hill: f64,
-
     pub temp_vari: f64,
     pub alt_vari: f64,
 
     pub z_alt: f64,
     pub z_water: f64,
     pub z_sea: f64,
+    pub z_hill: f64,
 }
 
 impl OverworldGen {
@@ -115,9 +114,8 @@ impl OverworldGen {
     }
 }
 
-impl Gen for OverworldGen {
+impl Gen<()> for OverworldGen {
     type In = Vec2<i64>;
-    type Supp = ();
     type Out = Out;
 
     fn sample(&self, pos: Vec2<i64>, _: &()) -> Out {
@@ -129,14 +127,14 @@ impl Gen for OverworldGen {
         let river = self.get_river(dry);
 
         let hill = self.get_hill(pos_f64);
-        let z_hill = hill * 16.0 * dry * land.mul(5.0).min(1.0).max(0.0);
+        let z_hill = hill * 16.0 * (dry.min(land) * 10.0).min(1.0).max(0.15);
 
         let z_base = 126.0;
         let z_sea = 118.0;
 
         let z_land = z_base + land * 32.0;
-        let z_height = z_land + dry * 192.0 * (1.0 - temp).mul(2.0).min(1.0).max(0.1) * (land * 2.0).min(1.0).max(0.2);
-        let z_alt = z_height + z_hill - river * 8.0;
+        let z_height = z_land + dry * 192.0 * (1.0 - temp).mul(2.0).min(1.0).max(0.3) * (land * 2.0).min(1.0).max(0.2) + z_hill;
+        let z_alt = z_height - river * 8.0;
         let z_water = (z_height - 3.0).max(z_sea);
 
         Out {
@@ -144,14 +142,13 @@ impl Gen for OverworldGen {
             dry,
             temp,
 
-            z_hill,
-
             temp_vari: self.temp_vari_nz.get(pos_f64.div(32.0).into_array()) * 0.15,
             alt_vari: self.alt_vari_nz.get(pos_f64.div(16.0).into_array()) * 0.15,
 
             z_alt,
             z_water,
             z_sea,
+            z_hill,
         }
     }
 }

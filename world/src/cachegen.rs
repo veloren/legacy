@@ -12,12 +12,12 @@ use parking_lot::RwLock;
 // Local
 use Gen;
 
-pub struct CacheGen<T: Gen> where T::In: Eq + Hash, T::Out: 'static {
-    cache: Vec<RwLock<Option<(T::In, T::Out)>>>,
+pub struct CacheGen<T, I, O> where I: Eq + Hash, O: 'static {
+    cache: Vec<RwLock<Option<(I, O)>>>,
     gen: T,
 }
 
-impl<T: Gen> CacheGen<T> where T::In: Eq + Hash, T::Out: 'static {
+impl<T, I, O> CacheGen<T, I, O> where I: Eq + Hash, O: 'static {
     pub fn new(gen: T, cache_size: usize) -> Self {
         let mut cache = vec![];
         for _ in 0..cache_size {
@@ -35,12 +35,11 @@ impl<T: Gen> CacheGen<T> where T::In: Eq + Hash, T::Out: 'static {
     }
 }
 
-impl<T: Gen> Gen for CacheGen<T> where T::In: Eq + Hash, T::Out: 'static {
+impl<S, T: Gen<S>> Gen<S> for CacheGen<T, T::In, T::Out> where T::In: Eq + Hash, T::Out: 'static {
     type In = T::In;
-    type Supp = T::Supp;
     type Out = T::Out;
 
-    fn sample<'a>(&'a self, i: Self::In, supplement: &'a Self::Supp) -> Self::Out {
+    fn sample<'a>(&'a self, i: Self::In, supplement: &'a S) -> Self::Out {
         let mut hasher = FnvHasher::with_key(0);
         i.hash(&mut hasher);
 

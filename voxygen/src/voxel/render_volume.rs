@@ -62,7 +62,7 @@ impl RenderVoxel for Block {
         */
 
         match self.material() {
-            BlockMat { grad: 0x80, index: 206 } => RenderMaterial::new(Material::Water as u8, MaterialKind::Water),
+            BlockMat { grad: 0x80, index: 3 } => RenderMaterial::new(Material::Water as u8, MaterialKind::Water),
             m => RenderMaterial::new(Material::MatteSmooth as u8, MaterialKind::Solid),
         }
     }

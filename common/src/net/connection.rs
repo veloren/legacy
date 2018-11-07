@@ -175,7 +175,9 @@ impl<RM: Message> Connection<RM> {
                     match packets[i][0].generate_frame(SPLIT_SIZE) {
                         Ok(frame) => {
                             // send it
-                            self.tcp.send(frame).unwrap_or_else(|e| eprintln!("{:?}", e));
+                            self.tcp
+                                .send(frame)
+                                .unwrap_or_else(|e| eprintln!("send_worker> {:?}", e));
                         },
                         Err(FrameError::SendDone) => {
                             packets[i].pop_front();
@@ -228,7 +230,7 @@ impl<RM: Message> Connection<RM> {
                             let recvd_message_write = self.recvd_message_write.lock();
                             recvd_message_write
                                 .send(Err(ConnectionError::Disconnected))
-                                .unwrap_or_else(|e| eprintln!("{:?}", e));
+                                .unwrap_or_else(|e| eprintln!("recv_worker> {:?}", e));
                         },
                     }
                 },
@@ -309,7 +311,7 @@ impl<RM: Message> Connection<RM> {
                             let recvd_message_write = self.recvd_message_write.lock();
                             recvd_message_write
                                 .send(Err(ConnectionError::Disconnected))
-                                .unwrap_or_else(|e| eprintln!("{:?}", e));
+                                .unwrap_or_else(|e| eprintln!("recv_worker_udp> {:?}", e));
                         },
                     }
                 },

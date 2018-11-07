@@ -20,7 +20,7 @@ pub struct Block {
 impl Block {
     pub const AIR: Block   = Block::from_byte(0);
     pub const GRASS: Block = Block::from_byte(26);
-    pub const SAND: Block  = Block::from_byte(159);
+    pub const SAND: Block  = Block::from_byte(131);
     pub const EARTH: Block = Block::from_byte(98);
     pub const STONE: Block = Block::from_byte(1);
     pub const WATER: Block = Block::from_byte(3);

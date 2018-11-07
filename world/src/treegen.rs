@@ -64,6 +64,13 @@ fn load_trees() -> Vec<HeterogeneousData> {
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_9.vox").unwrap()));
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_10.vox").unwrap()));
 
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/A1.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/A2.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/B1.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/B2.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/PineMK5A.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/PineMK5A_Snow.vox").unwrap()));
+
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/1.vox").unwrap()));
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/2.vox").unwrap()));
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/3.vox").unwrap()));

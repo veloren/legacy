@@ -124,11 +124,8 @@ impl Gen<OverworldOut> for BlockGen {
             if pos_f64.z < overworld.z_water {
                 Block::WATER
             } else {
-                let tree_block = self.tree_gen.sample(pos, self.overworld_gen.internal());
-
                 None
                     .or(town.block)
-                    .or(tree_block)
                     .unwrap_or(Block::AIR)
             }
         }

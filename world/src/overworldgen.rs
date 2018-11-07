@@ -56,7 +56,7 @@ impl OverworldGen {
             // Small-scale
             hill_nz: HybridMulti::new()
                 .set_seed(new_seed())
-                .set_octaves(2),
+                .set_octaves(4),
 
             temp_vari_nz: SuperSimplex::new()
                 .set_seed(new_seed()),
@@ -98,7 +98,7 @@ impl OverworldGen {
 
     // 0 = lowest, 1 = highest
     fn get_hill(&self, pos: Vec2<f64>) -> f64 {
-        let scale = 256.0;
+        let scale = 1024.0;
 
         self.hill_nz.get(pos.div(scale).into_array()).add(1.0).div(2.0)
     }
@@ -127,7 +127,7 @@ impl Gen<()> for OverworldGen {
         let river = self.get_river(dry);
 
         let hill = self.get_hill(pos_f64);
-        let z_hill = hill * 16.0 * (dry.min(land) * 10.0).min(1.0).max(0.15);
+        let z_hill = hill * 32.0 * dry.min(land).mul(4.0).min(1.0).max(0.1);
 
         let z_base = 126.0;
         let z_sea = 118.0;

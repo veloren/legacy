@@ -84,8 +84,47 @@ fn load_buildings() -> Vec<HeterogeneousData> {
     buildings
 }
 
+fn load_trees() -> Vec<HeterogeneousData> {
+    let mut trees = vec![];
+
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_1.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_2.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_3.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_4.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_5.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_6.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_7.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_8.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_9.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_10.vox").unwrap()));
+
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/A1.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/A2.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/B1.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/B2.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/PineMK5A.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/PineMK5A_Snow.vox").unwrap()));
+
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/1.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/2.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/3.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/4.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/5.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/6.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/7.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/8.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/9.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/10.vox").unwrap()));
+
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Willows/1.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Willows/2.vox").unwrap()));
+
+    trees
+}
+
 lazy_static! {
     static ref BUILDINGS: Vec<HeterogeneousData> = load_buildings();
+    static ref TREES: Vec<HeterogeneousData> = load_trees();
 }
 
 // <--- END MESS --->
@@ -98,18 +137,23 @@ pub struct Out {
 }
 
 #[derive(Copy, Clone)]
-enum BuildingResult {
-    Building {
-        base: Vec3<i64>,
-        idx: usize,
-        unit_x: Vec2<i64>,
-        unit_y: Vec2<i64>,
-    },
-    Park,
+enum CityResult {
+    Town,
+    Pyramid,
+    None,
 }
 
-type CityGenOut = Option<Vec2<i64>>;
-type BuildingGenOut = Option<BuildingResult>;
+#[derive(Copy, Clone)]
+enum BuildingResult {
+    House { idx: usize, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
+    Park,
+    Tree { idx: usize, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
+    Rock,
+    None,
+}
+
+type CityGenOut = (Vec2<i64>, CityResult);
+type BuildingGenOut = (Vec3<i64>, BuildingResult);
 
 pub struct TownGen {
     city_gen: CacheGen<StructureGen, Vec2<i64>, CityGenOut>,
@@ -139,29 +183,54 @@ impl StructureGen {
     fn gen_city(&self, pos: Vec2<i64>, overworld_gen: &OverworldGen) -> CityGenOut {
         let overworld = overworld_gen.sample(pos, &());
 
-        if overworld.land < 0.3 && overworld.land > 0.0 && self.throw_dice(pos, 0) % 50 < 10 {
-            Some(pos)
-        } else {
-            None
-        }
+        (
+            pos,
+            if overworld.dry < 0.3 && overworld.land > 0.0 && self.throw_dice(pos, 0) % 50 < 10 {
+                CityResult::Town
+            } else {
+                CityResult::None
+            }
+        )
     }
 
     fn gen_building(&self, pos: Vec2<i64>, (city_gen, overworld_gen): &(&StructureGen, &OverworldGen)) -> BuildingGenOut {
         let overworld = overworld_gen.sample(pos, &());
 
-        if let Some(city_pos) = city_gen.sample(pos, &(*overworld_gen, StructureGen::gen_city)) {
-            Some(if overworld.dry > 0.005 {
-                BuildingResult::Building {
-                    base: Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 8),
-                    idx: self.throw_dice(pos, 1) as usize % BUILDINGS.len(),
+        // Buildings
+        if let (city_pos, CityResult::Town) = city_gen.sample(pos, &(*overworld_gen, StructureGen::gen_city)) {
+            (
+                Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 8),
+                if overworld.dry > 0.005 {
+                    BuildingResult::House {
+                        idx: self.throw_dice(pos, 1) as usize % BUILDINGS.len(),
+                        unit_x: Vec2::unit_x() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
+                        unit_y: Vec2::unit_y() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
+                    }
+                } else {
+                    BuildingResult::Park
+                },
+            )
+        // Rocks
+        } else if self.throw_dice(pos, 0) % 50 < 3 {
+            (
+                Vec3::new(pos.x, pos.y, overworld.z_alt as i64),
+                BuildingResult::Rock,
+            )
+        // Trees
+        } else if self.throw_dice(pos, 0) % 50 < 30 && overworld.dry > 0.05 && overworld.dry < 0.4 && overworld.land > 0.0 {
+            (
+                Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 1),
+                BuildingResult::Tree {
+                    idx: self.throw_dice(pos, 1) as usize % TREES.len(),
                     unit_x: Vec2::unit_x() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
                     unit_y: Vec2::unit_y() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
-                }
-            } else {
-                BuildingResult::Park
-            })
+                },
+            )
         } else {
-            None
+            (
+                Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 8),
+                BuildingResult::None,
+            )
         }
     }
 }
@@ -179,25 +248,46 @@ impl Gen<OverworldGen> for TownGen {
             block: None,
         };
 
-        self.building_gen.sample(pos2d, &(&(self.city_gen.internal(), overworld_gen), StructureGen::gen_building)).map(|r| {
+        let building = self.building_gen.sample(
+            pos2d,
+            &(&(self.city_gen.internal(), overworld_gen),
+            StructureGen::gen_building)
+        );
+
+        if let (building_base, BuildingResult::House { idx, unit_x, unit_y }) = building {
             out.is_town = true;
-            match r {
-                BuildingResult::Building { base, idx, unit_x, unit_y } => {
-                    let building = &BUILDINGS[idx];
+            let building = &BUILDINGS[idx];
 
-                    let rel_offs = (pos2d - base);
+            let rel_offs = (pos2d - building_base);
 
-                    // Find distance to make path
-                    if rel_offs.map(|e| e * e).sum() > 16 * 16 {
-                        out.surface = Some(Block::SAND);
-                    }
-
-                    let vox_offs = unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(building.size()).map(|e: u32| e as i64) / 2;
-                    out.block = building.at(Vec3::new(vox_offs.x, vox_offs.y, pos.z - base.z).map(|e| e as u32));
-                },
-                BuildingResult::Park => {},
+            // Find distance to make path
+            if rel_offs.map(|e| e * e).sum() > 16 * 16 {
+                out.surface = Some(match self.building_gen.internal().throw_dice(pos.into(), 0) % 5 {
+                    0 => Block::from_byte(109),
+                    1 => Block::from_byte(110),
+                    2 => Block::from_byte(111),
+                    3 => Block::from_byte(112),
+                    4 => Block::from_byte(113),
+                    _ => Block::AIR,
+                });
             }
-        });
+
+            let vox_offs = unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(building.size()).map(|e: u32| e as i64) / 2;
+            out.block = building.at(Vec3::new(vox_offs.x, vox_offs.y, pos.z - building_base.z).map(|e| e as u32));
+        } else if let (rock_base, BuildingResult::Rock) = building {
+            if (pos - rock_base).map(|e| e * e).sum() < 64 {
+                out.block = Some(Block::STONE);
+            } else {
+                out.block = None;
+            }
+        } else if let (tree_base, BuildingResult::Tree { idx, unit_x, unit_y }) = building {
+            let tree = &TREES[idx];
+
+            let rel_offs = (pos2d - tree_base);
+
+            let vox_offs = unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(tree.size()).map(|e: u32| e as i64) / 2;
+            out.block = tree.at(Vec3::new(vox_offs.x, vox_offs.y, pos.z - tree_base.z).map(|e| e as u32));
+        }
 
         out
     }

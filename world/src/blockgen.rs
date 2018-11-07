@@ -42,13 +42,13 @@ impl BlockGen {
 
     fn get_warp(&self, pos: Vec3<f64>, dry: f64, land: f64) -> f64 {
         let scale = Vec3::new(
-            400.0,
-            400.0,
-            300.0,
+            350.0,
+            350.0,
+            250.0,
         );
 
         if dry > 0.15 && dry < 0.85 {
-            self.warp_nz.get(pos.div(scale).into_array()).abs().mul(1.0 - dry.sub(0.5).abs().mul(2.0 / 0.7)).mul(land).max(0.0)
+            self.warp_nz.get(pos.div(scale).into_array()).abs().mul((1.0 - dry.sub(0.5).abs().mul(2.0 / 0.7)).powf(0.5)).mul(land).max(0.0)
         } else {
             0.0
         }
@@ -62,7 +62,7 @@ impl Gen<OverworldOut> for BlockGen {
     fn sample<'a>(&'a self, pos: Vec3<i64>, overworld: &OverworldOut) -> Block {
         let pos_f64 = pos.map(|e| e as f64) * 1.0;
 
-        let z_warp = self.get_warp(pos_f64, overworld.dry, overworld.land).mul(100.0);
+        let z_warp = self.get_warp(pos_f64, overworld.dry, overworld.land).mul(96.0);
 
         let town = self.town_gen.sample(pos, self.overworld_gen.internal());
 

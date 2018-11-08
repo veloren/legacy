@@ -201,6 +201,20 @@ where
                 Vec3::new(0, -1, -1),
             ]
         };
+
+        /*
+        const vecs: [Vec3<i64>; 8] = [
+            Vec3 { x: 0,  y: 0,  z: 0  },
+            Vec3 { x: -1, y: 0,  z: 0  },
+            Vec3 { x: 0,  y: -1, z: 0  },
+            Vec3 { x: -1, y: -1, z: 0  },
+            Vec3 { x: 0,  y: 0,  z: -1 },
+            Vec3 { x: -1, y: 0,  z: -1 },
+            Vec3 { x: 0,  y: -1, z: -1 },
+            Vec3 { x: -1, y: -1, z: -1 },
+        ];
+        */
+
         vecs.iter().fold(0, |acc, v| {
             acc + if self
                 .at((pos + *v).map(|e| e as u32))
@@ -211,7 +225,7 @@ where
             } else {
                 1
             }
-        })
+        }).min(4)
     }
 
     fn get_ao_quad(
@@ -232,19 +246,27 @@ where
             self.get_ao_at(pos + units[3], z_unit),
         ];
 
-        if ao[0] + ao[2] > ao[1] + ao[3] {
+        const AO_MAP: [u8; 5] = [0, 1, 3, 3, 4];
+        let ao_vals = [
+            AO_MAP[ao[0] as usize],
+            AO_MAP[ao[1] as usize],
+            AO_MAP[ao[2] as usize],
+            AO_MAP[ao[3] as usize],
+        ];
+
+        if (ao[0] as i32 - ao[2] as i32).abs() < (ao[1] as i32 - ao[3] as i32).abs() {
             Quad::new(
-                Vertex::new(units[0].map(|e| e as f32).into_array(), z_unit.into(), ao[0], col, mat),
-                Vertex::new(units[1].map(|e| e as f32).into_array(), z_unit.into(), ao[1], col, mat),
-                Vertex::new(units[2].map(|e| e as f32).into_array(), z_unit.into(), ao[2], col, mat),
-                Vertex::new(units[3].map(|e| e as f32).into_array(), z_unit.into(), ao[3], col, mat),
+                Vertex::new(units[0].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[0], col, mat),
+                Vertex::new(units[1].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[1], col, mat),
+                Vertex::new(units[2].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[2], col, mat),
+                Vertex::new(units[3].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[3], col, mat),
             )
         } else {
             Quad::new(
-                Vertex::new(units[1].map(|e| e as f32).into_array(), z_unit.into(), ao[1], col, mat),
-                Vertex::new(units[2].map(|e| e as f32).into_array(), z_unit.into(), ao[2], col, mat),
-                Vertex::new(units[3].map(|e| e as f32).into_array(), z_unit.into(), ao[3], col, mat),
-                Vertex::new(units[0].map(|e| e as f32).into_array(), z_unit.into(), ao[0], col, mat),
+                Vertex::new(units[1].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[1], col, mat),
+                Vertex::new(units[2].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[2], col, mat),
+                Vertex::new(units[3].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[3], col, mat),
+                Vertex::new(units[0].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[0], col, mat),
             )
         }
     }

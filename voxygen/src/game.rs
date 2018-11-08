@@ -439,6 +439,7 @@ impl Game {
         // Calculate frame constants
         let camera_mats = self.camera.lock().get_mats();
         let cam_origin = self.camera.lock().get_pos(Some(&camera_mats));
+        let cam_zoom = self.camera.lock().get_zoom();
         let player_pos = self
             .client
             .player_entity()
@@ -498,7 +499,12 @@ impl Game {
         for (_uid, entity) in self.client.entities().iter() {
             // Choose the correct model for the entity
             let model = match self.client.player().entity_uid {
-                Some(uid) if uid == uid => &self.player_model,
+                Some(uid) if uid == uid => {
+                    if cam_zoom == 0.0 {
+                        continue;
+                    }
+                    &self.player_model
+                },
                 _ => &self.other_player_model,
             };
 

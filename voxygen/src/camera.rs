@@ -76,5 +76,7 @@ impl Camera {
     #[allow(dead_code)]
     pub fn set_focus(&mut self, focus: Vec3<f32>) { self.focus = focus; }
     #[allow(dead_code)]
+    pub fn get_zoom(&mut self) -> f32 { self.zoom }
+    #[allow(dead_code)]
     pub fn set_zoom(&mut self, zoom: f32) { self.zoom = zoom; }
 }

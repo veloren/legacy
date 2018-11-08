@@ -6,6 +6,7 @@ use vek::*;
 use common::terrain::{
     figure::{Cell, CellMaterial, Figure},
     ConstructVolume, ReadWriteVolume, VoxRel, Voxel,
+    chunk::Block,
 };
 
 pub fn vox_to_figure(vox: DotVoxData) -> Figure {
@@ -19,7 +20,7 @@ pub fn vox_to_figure(vox: DotVoxData) -> Figure {
     for ref v in vox.models.first().unwrap().voxels.iter() {
         figure.set_at(
             Vec3::new(v.x as VoxRel, v.y as VoxRel, v.z as VoxRel),
-            Cell::new(CellMaterial::MatteSmooth(v.i)),
+            Block::from_byte(v.i),
         );
     }
 

@@ -63,12 +63,12 @@ gfx_defines! {
 pub(super) type VertexBuffer = gfx::handle::Buffer<gfx_device_gl::Resources, Vertex>;
 
 impl Vertex {
-    pub fn new(pos: [f32; 3], norm: NormalDirection, ao: u8, col: u16, mat: u8) -> Vertex {
+    pub fn new(pos: [f32; 3], norm: NormalDirection, ao: u8, palette: u16, mat: u8) -> Vertex {
         let attrib: u32 = 0x00000000;
-        let attrib = attrib | (col as u32  & 0xFFFF) << 0;
-        let attrib = attrib | (ao as u32   & 0x0F) << 16;
-        let attrib = attrib | (norm as u32 & 0x0F) << 20;
-        let attrib = attrib | (mat as u32  & 0xFF) << 24;
+        let attrib = attrib | (palette as u32 & 0xFFFF) << 0;
+        let attrib = attrib | (ao as u32      & 0x0F) << 16;
+        let attrib = attrib | (norm as u32    & 0x0F) << 20;
+        let attrib = attrib | (mat as u32     & 0xFF) << 24;
         Vertex { pos, attrib }
     }
 
@@ -261,10 +261,10 @@ impl Mesh {
     where
         V::VoxelType: RenderVoxel,
     {
-        Mesh::from_with_offset(vol, Vec3::new(0.0, 0.0, 0.0))
+        Mesh::from_with_offset(vol, Vec3::new(0.0, 0.0, 0.0), true)
     }
 
-    pub fn from_with_offset<V: RenderVolume>(vol: &V, offs: Vec3<f32>) -> FnvIndexMap<MaterialKind, Mesh>
+    pub fn from_with_offset<V: RenderVolume>(vol: &V, offs: Vec3<f32>, fake_optimize: bool) -> FnvIndexMap<MaterialKind, Mesh>
     where
         V::VoxelType: RenderVoxel,
     {
@@ -283,13 +283,11 @@ impl Mesh {
                         (z as f32 + offs.z) * scale.z,
                     );
 
-                    let col = vox.get_color();
+                    let palette = vox.get_palette();
                     let render_mat = vox.get_mat();
                     let mat = render_mat.mat();
 
                     let mesh = map.entry(render_mat.kind()).or_insert(Mesh::new());
-
-                    let fake_optimize = true;
 
                     if vox.is_occupied() {
                         let opaque = vox.is_opaque();
@@ -305,7 +303,7 @@ impl Mesh {
                                     Vec3::new(0, 1, 0),
                                     Vec3::new(0, 0, 1),
                                     Vec3::new(1, 0, 0),
-                                    col,
+                                    palette,
                                     mat,
                                 )
                                 .scale(Vec3::new(scale.x, scale.y, scale.z))
@@ -323,7 +321,7 @@ impl Mesh {
                                     Vec3::new(0, 0, 1),
                                     Vec3::new(0, 1, 0),
                                     Vec3::new(-1, 0, 0),
-                                    col,
+                                    palette,
                                     mat,
                                 )
                                 .scale(Vec3::new(scale.x, scale.y, scale.z))
@@ -341,7 +339,7 @@ impl Mesh {
                                     Vec3::new(0, 0, 1),
                                     Vec3::new(1, 0, 0),
                                     Vec3::new(0, 1, 0),
-                                    col,
+                                    palette,
                                     mat,
                                 )
                                 .scale(Vec3::new(scale.x, scale.y, scale.z))
@@ -359,7 +357,7 @@ impl Mesh {
                                     Vec3::new(1, 0, 0),
                                     Vec3::new(0, 0, 1),
                                     Vec3::new(0, -1, 0),
-                                    col,
+                                    palette,
                                     mat,
                                 )
                                 .scale(Vec3::new(scale.x, scale.y, scale.z))
@@ -377,7 +375,7 @@ impl Mesh {
                                     Vec3::new(1, 0, 0),
                                     Vec3::new(0, 1, 0),
                                     Vec3::new(0, 0, 1),
-                                    col,
+                                    palette,
                                     mat,
                                 )
                                 .scale(Vec3::new(scale.x, scale.y, scale.z))
@@ -395,7 +393,7 @@ impl Mesh {
                                     Vec3::new(0, 1, 0),
                                     Vec3::new(1, 0, 0),
                                     Vec3::new(0, 0, -1),
-                                    col,
+                                    palette,
                                     mat,
                                 )
                                 .scale(Vec3::new(scale.x, scale.y, scale.z))

@@ -48,7 +48,7 @@ impl BlockGen {
         );
 
         if dry > 0.15 && dry < 0.85 {
-            self.warp_nz.get(pos.div(scale).into_array()).abs().mul((1.0 - dry.sub(0.5).abs().mul(2.0 / 0.7)).powf(0.5)).mul(land).max(0.0)
+            self.warp_nz.get(pos.div(scale).into_array()).abs().mul((1.0 - dry.sub(0.5).abs().mul(2.0 / 0.7)).powf(2.0)).mul(land).max(0.0)
         } else {
             0.0
         }
@@ -90,7 +90,8 @@ impl Gen<OverworldOut> for BlockGen {
                             .max(0.0)
                             .min(1.0)
                             .mul(32.0) as u8,
-                        ((200.0 - (overworld.z_alt - overworld.z_sea)).div(256.0)).max(0.0)
+                        ((200.0 - (overworld.z_alt - overworld.z_sea)).div(150.0))
+                            .max(0.0)
                             .min(1.0)
                             .add(overworld.alt_vari)
                             .max(0.0)
@@ -103,14 +104,11 @@ impl Gen<OverworldOut> for BlockGen {
                         Block::GRAD3_A_GRASS,
                         Block::GRAD3_B_SNOW,
                         ((1.0 - overworld.temp).sub(0.65).mul(16.0))
-                            .max(0.0)
-                            .min(1.0)
                             .add(overworld.temp_vari)
                             .max(0.0)
                             .min(1.0)
                             .mul(32.0) as u8,
-                        ((200.0 - (overworld.z_alt - overworld.z_sea)).div(256.0)).max(0.0)
-                            .min(1.0)
+                        ((200.0 - (overworld.z_alt - overworld.z_sea)).div(150.0))
                             .add(overworld.alt_vari)
                             .max(0.0)
                             .min(1.0)

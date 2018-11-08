@@ -6,7 +6,7 @@ use common::terrain::{
 use voxel::{Material, MaterialKind, RenderMaterial};
 
 pub trait RenderVoxel: Voxel {
-    fn get_color(&self) -> u16;
+    fn get_palette(&self) -> u16;
     fn get_mat(&self) -> RenderMaterial;
     fn is_opaque(&self) -> bool;
     fn is_occupied(&self) -> bool;
@@ -22,47 +22,15 @@ where
 // Implementations for common structures
 
 impl RenderVoxel for Block {
-    fn get_color(&self) -> u16 {
-        /*
-        let color_map = enum_map! {
-            BlockMaterial::Air => 255,
-            BlockMaterial::Grass => 20,
-            BlockMaterial::Sand  => 151,
-            BlockMaterial::Earth =>152,
-            BlockMaterial::Stone => 153,
-            BlockMaterial::Water => 154,
-            BlockMaterial::Snow => 155,
-            BlockMaterial::Log => 156,
-            BlockMaterial::Leaves =>157,
-            BlockMaterial::Gold => 158,
-        };
-        */
-
-        //color_map[self.material()]
-
+    fn get_palette(&self) -> u16 {
         self.material().get_palette()
     }
 
     fn get_mat(&self) -> RenderMaterial {
-        /*
-        let mat_map = enum_map! {
-            BlockMaterial::Air => RenderMaterial::new(Material::Empty, MaterialKind::Empty),
-            BlockMaterial::Grass => RenderMaterial::new(Material::Grass, MaterialKind::Solid),
-            BlockMaterial::Sand => RenderMaterial::new(Material::Sand, MaterialKind::Solid),
-            BlockMaterial::Earth => RenderMaterial::new(Material::Earth, MaterialKind::Solid),
-            BlockMaterial::Stone => RenderMaterial::new(Material::Stone, MaterialKind::Solid),
-            BlockMaterial::Water => RenderMaterial::new(Material::Water, MaterialKind::Water),
-            BlockMaterial::Snow => RenderMaterial::new(Material::Snow, MaterialKind::Solid),
-            BlockMaterial::Log => RenderMaterial::new(Material::Log, MaterialKind::Solid),
-            BlockMaterial::Leaves => RenderMaterial::new(Material::Leaves, MaterialKind::Translucent),
-            BlockMaterial::Gold => RenderMaterial::new(Material::MetallicRough, MaterialKind::Solid),
-        };
-
-        mat_map[self.material()]
-        */
-
         match self.material() {
+            // Special case for water
             BlockMat { grad: 0x80, index: 3 } => RenderMaterial::new(Material::Water as u8, MaterialKind::Water),
+            // Default material
             m => RenderMaterial::new(Material::MatteSmooth as u8, MaterialKind::Solid),
         }
     }
@@ -73,7 +41,7 @@ impl RenderVoxel for Block {
 }
 
 impl RenderVoxel for Cell {
-    fn get_color(&self) -> u16 {
+    fn get_palette(&self) -> u16 {
         match self.material() {
             CellMaterial::Empty => 0,
             CellMaterial::GlossySmooth(c)

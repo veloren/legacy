@@ -86,7 +86,7 @@ vec3 aces(vec3 color)
 
     // Do Color correction
     color = ColorGrade * color;
-    color = vibrance(color, 0.35, vec3(1.0, 1.0, 1.0));
+    color = vibrance(color, 0.45, vec3(1.0, 1.0, 1.0));
     // color = Curves(vec4(color, 1), 0, 8, 0.2).rgb;
 
     // Apply RRT and ODT

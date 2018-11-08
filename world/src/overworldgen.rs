@@ -91,7 +91,7 @@ impl OverworldGen {
 
     // 0 = cold, 0 = moderate, 1 = hot
     fn get_temp(&self, pos: Vec2<f64>) -> f64 {
-        let scale = 6000.0;
+        let scale = 10000.0;
 
         self.temp_nz.get(pos.div(scale).into_array()).add(1.0).div(2.0)
     }
@@ -127,13 +127,13 @@ impl Gen<()> for OverworldGen {
         let river = self.get_river(dry);
 
         let hill = self.get_hill(pos_f64);
-        let z_hill = hill * 32.0 * dry.min(land).mul(4.0).min(1.0).max(0.1);
+        let z_hill = hill * 32.0 * dry.min(land).mul(4.0).min(1.0).max(0.3);
 
         let z_base = 126.0;
         let z_sea = 118.0;
 
         let z_land = z_base + land * 32.0;
-        let z_height = z_land + dry * 192.0 * (1.0 - temp).mul(2.0).min(1.0).max(0.3) * (land * 2.0).min(1.0).max(0.2) + z_hill;
+        let z_height = z_land + dry * 192.0 * (1.0 - temp).mul(2.0).min(1.0).max(0.4) * (land * 2.0).min(1.0).max(0.4) + z_hill;
         let z_alt = z_height - river * 8.0;
         let z_water = (z_height - 3.0).max(z_sea);
 

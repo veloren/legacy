@@ -159,7 +159,7 @@ impl Game {
             .expect("cannot find model player6.vox. Make sure to start voxygen from its folder");
         let voxmodel = voxel::vox_to_figure(vox);
 
-        let player_meshes = voxel::Mesh::from_with_offset(&voxmodel, Vec3::new(-10.0, -4.0, 0.0));
+        let player_meshes = voxel::Mesh::from_with_offset(&voxmodel, Vec3::new(-10.0, -4.0, 0.0), false);
 
         let player_model = voxel::Model::new(&mut window.renderer_mut(), &player_meshes);
 

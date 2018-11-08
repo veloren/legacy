@@ -103,7 +103,7 @@ void main() {
 
 	float sun_level = clamp(day_cycle(1, 0.9, time_of_day), 0.0, 1);
 	float sun_intensity = sun_level * 80000;
-	float sun_illuminance = sun_intensity * NdotL;
+	float sun_illuminance = sun_intensity * 1.0;//NdotL;
 
 	vec3 lighted = ambient + ((diffuse + specular) * sun_color * sun_illuminance * ao);
 

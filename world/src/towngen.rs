@@ -98,12 +98,16 @@ fn load_trees() -> Vec<HeterogeneousData> {
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_9.vox").unwrap()));
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_10.vox").unwrap()));
 
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/A1.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/A2.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/B1.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/B2.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/PineMK5A.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/CW_Trees/Pine Trees/PineMK5A_Snow.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak1.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak2.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak3.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak4.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak5.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak6.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak7.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak8.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak9.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak10.vox").unwrap()));
 
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/1.vox").unwrap()));
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Pappeln/2.vox").unwrap()));
@@ -171,8 +175,8 @@ impl TownGen {
                 dist_by_euc, // distance function
             ), 4096),
             building_gen: CacheGen::new(StructureGen::new(
-                32, // freq
-                20, // warp
+                34, // freq
+                16, // warp
                 new_seed(), // seed
                 dist_by_euc, // distance function
             ), 4096),

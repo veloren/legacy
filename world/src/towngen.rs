@@ -191,10 +191,10 @@ impl StructureGen {
         (
             pos,
             // Town
-            if overworld.dry < 0.2 && overworld.land > 0.0 && self.throw_dice(pos, 0) % 50 < 20 {
+            if overworld.dry < 0.2 && overworld.land > 0.0 && self.throw_dice(pos, 0) % 50 < 10 {
                 CityResult::Town
             // Pyramid
-            } else if overworld.temp > 0.45 && overworld.land > 0.0 && overworld.dry > 0.05 && overworld.land < 0.5 && self.throw_dice(pos, 0) % 50 < 20 {
+            } else if overworld.temp > 0.45 && overworld.land > 0.0 && overworld.dry > 0.05 && overworld.land < 0.5 && self.throw_dice(pos, 0) % 50 < 10 {
                 CityResult::Pyramid { height: 30 + self.throw_dice(pos, 0) % 40, z: overworld.z_alt as i64 }
             // Wilderness
             } else {

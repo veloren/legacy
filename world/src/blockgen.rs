@@ -104,6 +104,8 @@ impl Gen<OverworldOut> for BlockGen {
                         Block::GRAD3_A_GRASS,
                         Block::GRAD3_B_SNOW,
                         ((1.0 - overworld.temp).sub(0.65).mul(16.0))
+                            .max(0.0)
+                            .min(1.0)
                             .add(overworld.temp_vari)
                             .max(0.0)
                             .min(1.0)

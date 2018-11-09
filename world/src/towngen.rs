@@ -171,7 +171,7 @@ enum CityResult {
 enum BuildingResult {
     House { model: &'static HeterogeneousData, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
     Park,
-    Tree { model: &'static HeterogeneousData, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
+    Tree { model: &'static HeterogeneousData, scale_inv: u64, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
     Rock,
     Pyramid { height: u64 },
     None,
@@ -276,9 +276,10 @@ impl StructureGen {
                         };
 
                         BuildingResult::Tree {
-                            model: &VOXEL_MODELS[model_group_idx][self.throw_dice(pos, 1) as usize % VOXEL_MODELS[model_group_idx].len()],
-                            unit_x: Vec2::unit_x() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
-                            unit_y: Vec2::unit_y() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
+                            model: &VOXEL_MODELS[model_group_idx][self.throw_dice(pos, 2) as usize % VOXEL_MODELS[model_group_idx].len()],
+                            scale_inv: 256 + self.throw_dice(pos, 3) % 512,
+                            unit_x: Vec2::unit_x() * if self.throw_dice(pos, 4) & 2 == 0 { 1 } else { -1 },
+                            unit_y: Vec2::unit_y() * if self.throw_dice(pos, 5) & 2 == 0 { 1 } else { -1 },
                         }
                     } else {
                         BuildingResult::None
@@ -299,6 +300,7 @@ impl StructureGen {
                         Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 1),
                         BuildingResult::Tree {
                             model: &VOXEL_MODELS[IDX_TREES_TEMPERATE][self.throw_dice(pos, 1) as usize % VOXEL_MODELS[IDX_TREES_TEMPERATE].len()],
+                            scale_inv: 256 + self.throw_dice(pos, 3) % 512,
                             unit_x: Vec2::unit_x() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
                             unit_y: Vec2::unit_y() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
                         },
@@ -359,11 +361,11 @@ impl Gen<OverworldGen> for TownGen {
                 }
             },
             // Tree
-            (tree_base, BuildingResult::Tree { model, unit_x, unit_y }) => {
+            (tree_base, BuildingResult::Tree { model, scale_inv, unit_x, unit_y }) => {
                 let rel_offs = (pos2d - tree_base);
 
-                let vox_offs = (unit_x * rel_offs.x + unit_y * rel_offs.y).mul(3).div(2) + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
-                out.block = model.at(Vec3::new(vox_offs.x, vox_offs.y, (pos.z - tree_base.z).mul(3).div(2)).map(|e| e as u32));
+                let vox_offs = (unit_x * rel_offs.x + unit_y * rel_offs.y).mul(scale_inv as i64).div(256) + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
+                out.block = model.at(Vec3::new(vox_offs.x, vox_offs.y, (pos.z - tree_base.z).mul(scale_inv as i64).div(256)).map(|e| e as u32));
             },
             // Pyramid
             (pyramid_base, BuildingResult::Pyramid { height }) => {

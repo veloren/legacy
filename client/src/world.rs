@@ -83,8 +83,8 @@ impl<P: Payloads> Client<P> {
                 player_vel = player.vel().map(|e| e as VoxAbs);
             }
 
-            const GENERATION_FACTOR: f32 = 1.7; // generate more than you see
-            const GENERATION_SUMMAND: VolOffs = 3; // generate more than you see
+            const GENERATION_FACTOR: f32 = 1.0; // generate more than you see
+            const GENERATION_SUMMAND: VolOffs = 2; // generate more than you see
             let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as VolOffs + GENERATION_SUMMAND;
             let view_dist_block = terrain::voloffs_to_voxabs(Vec3::new(view_dist, view_dist, view_dist), CHUNK_SIZE);
             let mut bl = self.chunk_mgr().block_loader_mut();

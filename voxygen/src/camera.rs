@@ -16,7 +16,7 @@ impl Camera {
             focus: Vec3::zero(),
             ori: Vec2::zero(),
             aspect_ratio: 1.618,
-            fov: 1.5,
+            fov: 1.7,
             zoom: 10.0,
         }
     }

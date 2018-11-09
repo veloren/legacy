@@ -84,19 +84,8 @@ fn load_buildings() -> Vec<HeterogeneousData> {
     buildings
 }
 
-fn load_trees() -> Vec<HeterogeneousData> {
+fn load_trees_temperate() -> Vec<HeterogeneousData> {
     let mut trees = vec![];
-
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_1.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_2.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_3.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_4.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_5.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_6.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_7.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_8.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_9.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_10.vox").unwrap()));
 
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak1.vox").unwrap()));
     trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Oaks/Oak2.vox").unwrap()));
@@ -126,9 +115,32 @@ fn load_trees() -> Vec<HeterogeneousData> {
     trees
 }
 
+fn load_trees_tropical() -> Vec<HeterogeneousData> {
+    let mut trees = vec![];
+
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_1.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_2.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_3.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_4.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_5.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_6.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_7.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_8.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_9.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birken/Birch_10.vox").unwrap()));
+
+    trees
+}
+
+const IDX_BUILDINGS: usize = 0;
+const IDX_TREES_TEMPERATE: usize = 1;
+const IDX_TREES_TROPICAL: usize = 2;
 lazy_static! {
-    static ref BUILDINGS: Vec<HeterogeneousData> = load_buildings();
-    static ref TREES: Vec<HeterogeneousData> = load_trees();
+    static ref VOXEL_MODELS: [Vec<HeterogeneousData>; 3] = [
+        load_buildings(),
+        load_trees_temperate(),
+        load_trees_tropical(),
+    ];
 }
 
 // <--- END MESS --->
@@ -141,17 +153,26 @@ pub struct Out {
 }
 
 #[derive(Copy, Clone)]
+enum ForestKind {
+    Tropical,
+    Temperate,
+    Taiga,
+    Desert,
+}
+
+#[derive(Copy, Clone)]
 enum CityResult {
     Town,
     Pyramid { height: u64, z: i64 },
+    Forest { kind: ForestKind, density: u64 },
     None,
 }
 
 #[derive(Copy, Clone)]
 enum BuildingResult {
-    House { idx: usize, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
+    House { model: &'static HeterogeneousData, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
     Park,
-    Tree { idx: usize, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
+    Tree { model: &'static HeterogeneousData, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
     Rock,
     Pyramid { height: u64 },
     None,
@@ -191,12 +212,24 @@ impl StructureGen {
         (
             pos,
             // Town
-            if overworld.dry < 0.2 && overworld.land > 0.0 && self.throw_dice(pos, 0) % 50 < 10 {
+            if overworld.dry < 0.2 && overworld.z_alt > overworld.z_sea && self.throw_dice(pos, 0) & 0xFF < 26 {
                 CityResult::Town
             // Pyramid
-            } else if overworld.temp > 0.6 && overworld.land > 0.0 && overworld.dry > 0.05 && overworld.land < 0.5 && self.throw_dice(pos, 0) % 50 < 10 {
-                CityResult::Pyramid { height: 30 + self.throw_dice(pos, 0) % 40, z: overworld.z_alt as i64 }
-            // Wilderness
+            } else if overworld.temp > 0.6 && overworld.z_alt > overworld.z_sea && overworld.dry > 0.05 && overworld.land < 0.5 && self.throw_dice(pos, 0) & 0xFF < 26 {
+                CityResult::Pyramid { height: 64 + self.throw_dice(pos, 0) % 32, z: overworld.z_alt as i64 }
+            // Forest
+            } else if overworld.dry < 0.3 && self.throw_dice(pos, 0) & 0xFF < 128 {
+                CityResult::Forest {
+                    kind: if overworld.temp > 0.5 {
+                        ForestKind::Tropical
+                    } else if overworld.temp < -0.5 {
+                        ForestKind::Taiga
+                    } else {
+                        ForestKind::Temperate
+                    },
+                    density: 50 + self.throw_dice(pos, 0) % 206,
+                }
+            // Empty
             } else {
                 CityResult::None
             }
@@ -214,9 +247,9 @@ impl StructureGen {
             (city_pos, CityResult::Town) => {
                 (
                     Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 8),
-                    if overworld.dry > 0.005 {
+                    if overworld.dry > 0.005 && overworld.z_alt > overworld.z_sea {
                         BuildingResult::House {
-                            idx: self.throw_dice(pos, 1) as usize % BUILDINGS.len(),
+                            model: &VOXEL_MODELS[IDX_BUILDINGS][self.throw_dice(pos, 1) as usize % VOXEL_MODELS[IDX_BUILDINGS].len()],
                             unit_x: Vec2::unit_x() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
                             unit_y: Vec2::unit_y() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
                         }
@@ -232,7 +265,28 @@ impl StructureGen {
                     BuildingResult::Pyramid { height },
                 )
             },
-            // Wilderness
+            // Forest
+            (city_pos, CityResult::Forest { kind, density }) => {
+                (
+                    Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 1),
+                    if overworld.dry > 0.005 && overworld.z_alt > overworld.z_sea && self.throw_dice(pos, 1) % 256 < density {
+                        let model_group_idx = match kind {
+                            ForestKind::Temperate => IDX_TREES_TEMPERATE,
+                            ForestKind::Tropical => IDX_TREES_TROPICAL,
+                            _ => IDX_TREES_TEMPERATE,
+                        };
+
+                        BuildingResult::Tree {
+                            model: &VOXEL_MODELS[model_group_idx][self.throw_dice(pos, 1) as usize % VOXEL_MODELS[model_group_idx].len()],
+                            unit_x: Vec2::unit_x() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
+                            unit_y: Vec2::unit_y() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
+                        }
+                    } else {
+                        BuildingResult::None
+                    },
+                )
+            },
+            // Empty
             (city_pos, CityResult::None) => {
                 // Rocks
                 if self.throw_dice(pos, 0) % 50 < 3 {
@@ -241,11 +295,11 @@ impl StructureGen {
                         BuildingResult::Rock,
                     )
                 // Trees
-                } else if self.throw_dice(pos, 0) % 50 < 30 && overworld.dry > 0.05 && overworld.dry < 0.4 && overworld.land > 0.0 {
+                } else if self.throw_dice(pos, 0) & 0xFF < 150 && overworld.temp < 0.35 && overworld.dry > 0.05 && overworld.dry < 0.4 && overworld.z_alt > overworld.z_sea {
                     (
                         Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 1),
                         BuildingResult::Tree {
-                            idx: self.throw_dice(pos, 1) as usize % TREES.len(),
+                            model: &VOXEL_MODELS[IDX_TREES_TEMPERATE][self.throw_dice(pos, 1) as usize % VOXEL_MODELS[IDX_TREES_TEMPERATE].len()],
                             unit_x: Vec2::unit_x() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
                             unit_y: Vec2::unit_y() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
                         },
@@ -282,10 +336,8 @@ impl Gen<OverworldGen> for TownGen {
 
         match building {
             // House
-            (building_base, BuildingResult::House { idx, unit_x, unit_y }) => {
+            (building_base, BuildingResult::House { model, unit_x, unit_y }) => {
                 out.is_town = true;
-                let building = &BUILDINGS[idx];
-
                 let rel_offs = (pos2d - building_base);
 
                 // Find distance to make path
@@ -300,8 +352,8 @@ impl Gen<OverworldGen> for TownGen {
                     });
                 }
 
-                let vox_offs = unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(building.size()).map(|e: u32| e as i64) / 2;
-                out.block = building.at(Vec3::new(vox_offs.x, vox_offs.y, pos.z - building_base.z).map(|e| e as u32));
+                let vox_offs = unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
+                out.block = model.at(Vec3::new(vox_offs.x, vox_offs.y, pos.z - building_base.z).map(|e| e as u32));
             },
             // Rock
             (rock_base, BuildingResult::Rock) => {
@@ -310,13 +362,11 @@ impl Gen<OverworldGen> for TownGen {
                 }
             },
             // Tree
-            (tree_base, BuildingResult::Tree { idx, unit_x, unit_y }) => {
-                let tree = &TREES[idx];
-
+            (tree_base, BuildingResult::Tree { model, unit_x, unit_y }) => {
                 let rel_offs = (pos2d - tree_base);
 
-                let vox_offs = unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(tree.size()).map(|e: u32| e as i64) / 2;
-                out.block = tree.at(Vec3::new(vox_offs.x, vox_offs.y, pos.z - tree_base.z).map(|e| e as u32));
+                let vox_offs = unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
+                out.block = model.at(Vec3::new(vox_offs.x, vox_offs.y, pos.z - tree_base.z).map(|e| e as u32));
             },
             // Pyramid
             (pyramid_base, BuildingResult::Pyramid { height }) => {
@@ -326,8 +376,8 @@ impl Gen<OverworldGen> for TownGen {
 
                 if
                     pos.z < pyramid_h &&
-                    !(rel_offs.map(|e| e.abs()).reduce_min() < 2 && (pos.z) % 20 < 4) &&
-                    !(pos.z < pyramid_h - 6 && (pos.z) % 20 < 16)
+                    !(rel_offs.map(|e| e.abs()).reduce_min() < 2 && (pos.z) % 25 < 4) &&
+                    !(pos.z < pyramid_h - 6 && (pos.z) % 25 < 24)
                 {
                     out.block = Some(Block::SAND);
                 }

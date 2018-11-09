@@ -147,7 +147,6 @@ lazy_static! {
 
 #[derive(Copy, Clone)]
 pub struct Out {
-    pub is_town: bool,
     pub surface: Option<Block>,
     pub block: Option<Block>,
 }
@@ -196,7 +195,7 @@ impl TownGen {
                 dist_by_euc, // distance function
             ), 4096),
             building_gen: CacheGen::new(StructureGen::new(
-                34, // freq
+                32, // freq
                 16, // warp
                 new_seed(), // seed
                 dist_by_euc, // distance function
@@ -323,7 +322,6 @@ impl Gen<OverworldGen> for TownGen {
         let pos2d = Vec2::from(pos);
 
         let mut out = Out {
-            is_town: false,
             surface: None,
             block: None,
         };
@@ -337,7 +335,6 @@ impl Gen<OverworldGen> for TownGen {
         match building {
             // House
             (building_base, BuildingResult::House { model, unit_x, unit_y }) => {
-                out.is_town = true;
                 let rel_offs = (pos2d - building_base);
 
                 // Find distance to make path
@@ -365,8 +362,8 @@ impl Gen<OverworldGen> for TownGen {
             (tree_base, BuildingResult::Tree { model, unit_x, unit_y }) => {
                 let rel_offs = (pos2d - tree_base);
 
-                let vox_offs = unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
-                out.block = model.at(Vec3::new(vox_offs.x, vox_offs.y, pos.z - tree_base.z).map(|e| e as u32));
+                let vox_offs = (unit_x * rel_offs.x + unit_y * rel_offs.y).mul(3).div(2) + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
+                out.block = model.at(Vec3::new(vox_offs.x, vox_offs.y, (pos.z - tree_base.z).mul(3).div(2)).map(|e| e as u32));
             },
             // Pyramid
             (pyramid_base, BuildingResult::Pyramid { height }) => {

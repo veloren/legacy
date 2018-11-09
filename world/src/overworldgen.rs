@@ -74,13 +74,13 @@ impl OverworldGen {
 
     // -1 = deep ocean, 0 = sea level, 1 = mountain
     fn get_land(&self, pos: Vec2<f64>) -> f64 {
-        let scale = 4000.0;
+        let scale = 3000.0;
 
         self.land_nz.get(pos.div(scale).into_array())
     }
 
     fn get_dry(&self, pos: Vec2<f64>) -> f64 {
-        let scale = 1000.0;
+        let scale = 700.0;
         let vari_scale = scale / 1.0;
         let vari_ampl = scale / 6.0;
 
@@ -142,8 +142,8 @@ impl Gen<()> for OverworldGen {
             dry,
             temp,
 
-            temp_vari: self.temp_vari_nz.get(pos_f64.div(32.0).into_array()) * 0.15,
-            alt_vari: self.alt_vari_nz.get(pos_f64.div(16.0).into_array()) * 0.15,
+            temp_vari: self.temp_vari_nz.get(pos_f64.div(48.0).into_array()) * 0.3,
+            alt_vari: self.alt_vari_nz.get(pos_f64.div(32.0).into_array()) * 0.3,
 
             z_alt,
             z_water,

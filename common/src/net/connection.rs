@@ -159,7 +159,7 @@ impl<RM: Message> Connection<RM> {
     }
 
     fn send_worker(&self) {
-        loop {
+        'thread: loop {
             if !self.running.load(Ordering::Relaxed) {
                 break;
             }
@@ -176,9 +176,26 @@ impl<RM: Message> Connection<RM> {
                     match packets[i][0].generate_frame(SPLIT_SIZE) {
                         Ok(frame) => {
                             // send it
-                            self.tcp
-                                .send(frame)
-                                .unwrap_or_else(|e| eprintln!("send_worker> {:?}", e));
+                            match self.tcp.send(frame) {
+                                Ok(_) => {},
+                                Err(e) => match e {
+                                    Error::NetworkErr(io_err) => match io_err.kind() {
+                                        /* Shut down the thread */
+                                        ErrorKind::ConnectionReset
+                                        | ErrorKind::ConnectionRefused
+                                        | ErrorKind::ConnectionAborted => {
+                                            //Close recv thread, since connection has been severed
+                                            let recvd_message_write = self.recvd_message_write.lock();
+                                            recvd_message_write
+                                                .send(Err(ConnectionError::Disconnected))
+                                                .unwrap_or_else(|e| eprintln!("send_worker> {:?}", e));
+                                            break 'thread;
+                                        },
+                                        e => panic!("{:?}", e), /* Panic on any IOError we aren't expecting here*/
+                                    },
+                                    _ => { /* Cannot (De)Serialize packet, discard */ },
+                                },
+                            }
                         },
                         Err(FrameError::SendDone) => {
                             packets[i].pop_front();
@@ -225,7 +242,6 @@ impl<RM: Message> Connection<RM> {
                 Err(e) => {
                     error!("Net Error {:?}", &e);
 
-                    // TODO: Handle errors that can be resolved locally
                     match e {
                         Error::NetworkErr(io_err) => match io_err.kind() {
                             ErrorKind::ConnectionReset //Connection reset by remote server
@@ -288,7 +304,7 @@ impl<RM: Message> Connection<RM> {
     }
 
     fn recv_worker_udp(&self) {
-        loop {
+        'thread: loop {
             if !self.running.load(Ordering::Relaxed) {
                 break;
             }
@@ -320,14 +336,27 @@ impl<RM: Message> Connection<RM> {
                 Err(e) => {
                     error!("Net Error {:?}", &e);
 
-                    // TODO: Handle errors that can be resolved locally
                     match e {
-                        _ => {
-                            let recvd_message_write = self.recvd_message_write.lock();
-                            recvd_message_write
-                                .send(Err(ConnectionError::Disconnected))
-                                .unwrap_or_else(|e| eprintln!("recv_worker_udp> {:?}", e));
+                        Error::NetworkErr(io_err) => match io_err.kind() {
+                            ErrorKind::ConnectionReset //Connection reset by remote server
+                            | ErrorKind::ConnectionAborted //Connection aborted (terminated) by remote server
+                            | ErrorKind::ConnectionRefused //Connection refused by remote server
+                            => {
+                                //Close recv thread, since connection has been severed
+                                let recvd_message_write = self.recvd_message_write.lock();
+                                recvd_message_write
+                                    .send(Err(ConnectionError::Disconnected))
+                                    .unwrap_or_else(|e| eprintln!("recv_worker_udp> {:?}", e));
+                                break 'thread;
+                            },
+                            e => {
+                                // Any other IO error
+                                // Panic until we find a suitable way to handle these
+                            	panic!("{:?}", e)
+                            },
                         },
+
+                        _ => { /* Cannot(De)Serialize, discard packet */ },
                     }
                 },
             }

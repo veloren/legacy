@@ -14,13 +14,7 @@ mod util;
 mod cachegen;
 mod blockgen;
 mod overworldgen;
-mod treegen;
 mod towngen;
-
-//mod biomegen;
-//mod overworld;
-//mod topology;
-//mod tree;
 
 // Standard
 use std::{

@@ -11,14 +11,12 @@ use common::terrain::chunk::Block;
 // Local
 use cachegen::CacheGen;
 use overworldgen::{OverworldGen, Out as OverworldOut};
-use treegen::TreeGen;
 use towngen::TownGen;
 use Gen;
 use new_seed;
 
 pub struct BlockGen {
     overworld_gen: CacheGen<OverworldGen, Vec2<i64>, OverworldOut>,
-    tree_gen: TreeGen,
     town_gen: TownGen,
     warp_nz: HybridMulti,
 }
@@ -27,7 +25,6 @@ impl BlockGen {
     pub fn new() -> Self {
         Self {
             overworld_gen: CacheGen::new(OverworldGen::new(), 4096),
-            tree_gen: TreeGen::new(),
             town_gen: TownGen::new(),
 
             warp_nz: HybridMulti::new()
@@ -64,7 +61,7 @@ impl Gen<OverworldOut> for BlockGen {
 
         let z_warp = self.get_warp(pos_f64, overworld.dry, overworld.land).mul(96.0);
 
-        let town = self.town_gen.sample(pos, self.overworld_gen.internal());
+        let town = self.town_gen.sample(pos, &(overworld, self.overworld_gen.internal()));
 
         let z_alt = overworld.z_alt + z_warp - town.surface.map(|_| 1.0).unwrap_or(0.0);
 

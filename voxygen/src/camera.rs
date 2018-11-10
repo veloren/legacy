@@ -16,7 +16,7 @@ impl Camera {
             focus: Vec3::zero(),
             ori: Vec2::zero(),
             aspect_ratio: 1.618,
-            fov: 1.7,
+            fov: 1.3,
             zoom: 10.0,
         }
     }
@@ -25,7 +25,7 @@ impl Camera {
         let mut view = Mat4::identity();
 
         view *= Mat4::<f32>::translation_3d(Vec3::new(0.0, 0.0, -self.zoom))
-            * Mat4::rotation_x(self.ori.y)
+            * Mat4::rotation_x(self.ori.y)//0.785375)
             * Mat4::rotation_y(self.ori.x);
 
         // Apply anti-OpenGL correction

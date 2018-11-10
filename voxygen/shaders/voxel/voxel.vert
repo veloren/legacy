@@ -53,5 +53,7 @@ void main() {
 	frag_mat = attr.w;
 
 	gl_Position = proj_mat * view_mat * vec4(world_pos, 1);
+	//gl_Position.xy /= 20.0;
+	//gl_Position.z /= -1000.0;
 	frag_col_attr = attr.x;
 }

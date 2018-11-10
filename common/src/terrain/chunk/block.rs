@@ -10,6 +10,11 @@ impl BlockMat {
     pub fn get_palette(&self) -> u16 {
         ((self.grad as u16) << 8) | (self.index as u16)
     }
+
+    #[allow(dead_code)]
+    pub fn grad(&self) -> u8 { self.grad }
+    #[allow(dead_code)]
+    pub fn index(&self) -> u8 { self.index }
 }
 
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -33,8 +38,10 @@ impl Block {
     pub const DARK_COBBLE: Block  = Block::from_byte(163);
 
     pub const GRAD2_A_GRASS: u8 = 0;
+    pub const GRAD2_A_LEAF0: u8 = 1;
     pub const GRAD2_B_STONE: u8 = 0;
     pub const GRAD2_B_DRY_GRASS: u8 = 1;
+    pub const GRAD2_B_LEAF1: u8 = 2;
 
     pub const GRAD3_O_STONE: u8 = 0;
     pub const GRAD3_O_EARTH: u8 = 1;

@@ -1,6 +1,6 @@
 const uint grad2_a_lut[16] = uint[16](
 	26u, // Dark grass
-	0u,
+	17u, // Leaf 0
 	0u,
 	0u,
 	0u,
@@ -20,7 +20,7 @@ const uint grad2_a_lut[16] = uint[16](
 const uint grad2_b_lut[16] = uint[16](
 	1u,   // Stone
 	133u, // Dry grass
-	0u,
+	135u, // Leaf 1
 	0u,
 	0u,
 	0u,

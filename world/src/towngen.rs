@@ -168,7 +168,7 @@ enum CityResult {
 }
 
 #[derive(Copy, Clone)]
-enum BuildingResult {
+pub enum BuildingResult {
     House { model: &'static HeterogeneousData, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
     Park,
     Tree { model: &'static HeterogeneousData, leaf_block: Block, scale_inv: u64, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
@@ -181,9 +181,11 @@ type CityGenOut = (Vec2<i64>, CityResult);
 type BuildingGenOut = (Vec3<i64>, BuildingResult);
 
 pub struct TownGen {
-    city_gen: CacheGen<StructureGen, Vec2<i64>, CityGenOut>,
-    building_gen: CacheGen<StructureGen, Vec2<i64>, BuildingGenOut>,
+    city_gen: CacheGen<StructureGen<CityGenOut>, Vec2<i64>, (CityGenOut, [CityGenOut; 9])>,
+    building_gen: CacheGen<StructureGen<BuildingGenOut>, Vec2<i64>, (BuildingGenOut, [BuildingGenOut; 9])>,
 }
+
+pub type InvariantZ = (BuildingGenOut, [BuildingGenOut; 9]);
 
 impl TownGen {
     pub fn new() -> Self {
@@ -195,16 +197,24 @@ impl TownGen {
                 dist_by_euc, // distance function
             ), 4096),
             building_gen: CacheGen::new(StructureGen::new(
-                32, // freq
-                16, // warp
+                24, // freq
+                12, // warp
                 new_seed(), // seed
                 dist_by_euc, // distance function
             ), 4096),
         }
     }
+
+    pub fn get_invariant_z<'a>(&'a self, pos: Vec2<i64>, (overworld, overworld_gen): (&'a OverworldOut, &'a OverworldGen)) -> InvariantZ {
+        self.building_gen.sample(
+            pos,
+            &(&(self.city_gen.internal(), overworld_gen),
+            StructureGen::gen_building)
+        )
+    }
 }
 
-impl StructureGen {
+impl StructureGen<CityGenOut> {
     fn gen_city(&self, pos: Vec2<i64>, overworld_gen: &OverworldGen) -> CityGenOut {
         let overworld = overworld_gen.sample(pos, &());
 
@@ -234,11 +244,13 @@ impl StructureGen {
             }
         )
     }
+}
 
-    fn gen_building(&self, pos: Vec2<i64>, (city_gen, overworld_gen): &(&StructureGen, &OverworldGen)) -> BuildingGenOut {
+impl StructureGen<BuildingGenOut> {
+    fn gen_building(&self, pos: Vec2<i64>, (city_gen, overworld_gen): &(&StructureGen<CityGenOut>, &OverworldGen)) -> BuildingGenOut {
         let overworld = overworld_gen.sample(pos, &());
 
-        let city = city_gen.sample(pos, &(*overworld_gen, StructureGen::gen_city));
+        let city = city_gen.sample(pos, &(*overworld_gen, StructureGen::gen_city)).0;
 
         // Buildings
         match city {
@@ -246,7 +258,7 @@ impl StructureGen {
             (city_pos, CityResult::Town) => {
                 (
                     Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 8),
-                    if overworld.dry > 0.005 && overworld.z_alt > overworld.z_sea {
+                    if overworld.dry > 0.005 && overworld.z_alt > overworld.z_sea && self.throw_dice(pos, 0) % 256 < 128 {
                         BuildingResult::House {
                             model: &VOXEL_MODELS[IDX_BUILDINGS][self.throw_dice(pos, 1) as usize % VOXEL_MODELS[IDX_BUILDINGS].len()],
                             unit_x: Vec2::unit_x() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
@@ -338,11 +350,11 @@ impl StructureGen {
     }
 }
 
-impl<'a> Gen<(&'a OverworldOut, &'a OverworldGen)> for TownGen {
+impl<'a> Gen<(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)> for TownGen {
     type In = Vec3<i64>;
     type Out = Out;
 
-    fn sample<'b>(&'b self, pos: Vec3<i64>, (overworld, overworld_gen): &'b(&'a OverworldOut, &'a OverworldGen)) -> Out {
+    fn sample<'b>(&'b self, pos: Vec3<i64>, (building, overworld, overworld_gen): &'b(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)) -> Out {
         let pos2d = Vec2::from(pos);
 
         let mut out = Out {
@@ -350,19 +362,67 @@ impl<'a> Gen<(&'a OverworldOut, &'a OverworldGen)> for TownGen {
             block: None,
         };
 
-        let building = self.building_gen.sample(
-            pos2d,
-            &(&(self.city_gen.internal(), *overworld_gen),
-            StructureGen::gen_building)
-        );
+        // Non-specific effects
+        for building in building.1.iter() {
+            // Exit early if we already found a suitable block for this position from the surrounding structures
+            if out.block.map(|block| block != Block::AIR).unwrap_or(false) {
+                break;
+            }
 
-        match building {
+            match building {
+                // House
+                &(building_base, BuildingResult::House { model, unit_x, unit_y }) => {
+                    let rel_offs: Vec2<i64> = (pos2d - building_base);
+
+                    let vox_offs = unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
+                    out.block = model.at(Vec3::new(vox_offs.x, vox_offs.y, pos.z - building_base.z).map(|e| e as u32));
+                },
+                // Rock
+                &(rock_base, BuildingResult::Rock) => {
+                    if (pos - rock_base).map(|e| e * e).sum() < 64 {
+                        out.block = Some(Block::STONE);
+                    }
+                },
+                // Tree
+                &(tree_base, BuildingResult::Tree { model, leaf_block, scale_inv, unit_x, unit_y }) => {
+                    let rel_offs = (pos2d - tree_base);
+
+                    let vox_offs = (unit_x * rel_offs.x + unit_y * rel_offs.y).mul(scale_inv as i64).div(256) + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
+                    let block = model.at(Vec3::new(vox_offs.x, vox_offs.y, (pos.z - tree_base.z).mul(scale_inv as i64).div(256)).map(|e| e as u32));
+
+                    out.block = match block.map(|b| b.material().index()) {
+                        Some(15) => Some(leaf_block),
+                        Some(b) => Some(Block::from_byte(b)),
+                        None => None,
+                    };
+                },
+                // Pyramid
+                &(pyramid_base, BuildingResult::Pyramid { height }) => {
+                    let rel_offs = (pos2d - pyramid_base);
+
+                    let pyramid_h = (pyramid_base.z + height as i64) - rel_offs.map(|e| e.abs()).reduce_max();
+
+                    if
+                        pos.z < pyramid_h &&
+                        !(rel_offs.map(|e| e.abs()).reduce_min() < 2 && (pos.z) % 25 < 4) &&
+                        !(pos.z < pyramid_h - 6 && (pos.z) % 25 < 24)
+                    {
+                        out.block = Some(Block::SAND);
+                    }
+                },
+                // Nothing
+                _ => {},
+            }
+        }
+
+        // Specific effects
+        match building.0 {
             // House
             (building_base, BuildingResult::House { model, unit_x, unit_y }) => {
-                let rel_offs = (pos2d - building_base);
+                let rel_offs: Vec2<i64> = (pos2d - building_base);
 
                 // Find distance to make path
-                if rel_offs.map(|e| e * e).sum() > 16 * 16 {
+                if rel_offs.map(|e| e * e).sum() > 10 * 10 {
                     out.surface = Some(match self.building_gen.internal().throw_dice(pos.into(), 0) % 5 {
                         0 => Block::from_byte(109),
                         1 => Block::from_byte(110),
@@ -372,46 +432,7 @@ impl<'a> Gen<(&'a OverworldOut, &'a OverworldGen)> for TownGen {
                         _ => Block::AIR,
                     });
                 }
-
-                let vox_offs = unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
-                out.block = model.at(Vec3::new(vox_offs.x, vox_offs.y, pos.z - building_base.z).map(|e| e as u32));
             },
-            // Rock
-            (rock_base, BuildingResult::Rock) => {
-                if (pos - rock_base).map(|e| e * e).sum() < 64 {
-                    out.block = Some(Block::STONE);
-                }
-            },
-            // Tree
-            (tree_base, BuildingResult::Tree { model, leaf_block, scale_inv, unit_x, unit_y }) => {
-                let rel_offs = (pos2d - tree_base);
-
-                let vox_offs = (unit_x * rel_offs.x + unit_y * rel_offs.y).mul(scale_inv as i64).div(256) + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
-                let block = model.at(Vec3::new(vox_offs.x, vox_offs.y, (pos.z - tree_base.z).mul(scale_inv as i64).div(256)).map(|e| e as u32));
-
-                let block = match block.map(|b| b.material().index()) {
-                    Some(15) => Some(leaf_block),
-                    Some(b) => Some(Block::from_byte(b)),
-                    None => None,
-                };
-
-                out.block = block;
-            },
-            // Pyramid
-            (pyramid_base, BuildingResult::Pyramid { height }) => {
-                let rel_offs = (pos2d - pyramid_base);
-
-                let pyramid_h = (pyramid_base.z + height as i64) - rel_offs.map(|e| e.abs()).reduce_max();
-
-                if
-                    pos.z < pyramid_h &&
-                    !(rel_offs.map(|e| e.abs()).reduce_min() < 2 && (pos.z) % 25 < 4) &&
-                    !(pos.z < pyramid_h - 6 && (pos.z) % 25 < 24)
-                {
-                    out.block = Some(Block::SAND);
-                }
-            },
-            // Nothing
             _ => {},
         }
 

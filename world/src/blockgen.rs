@@ -11,7 +11,7 @@ use common::terrain::chunk::Block;
 // Local
 use cachegen::CacheGen;
 use overworldgen::{OverworldGen, Out as OverworldOut};
-use towngen::TownGen;
+use towngen::{self, TownGen};
 use Gen;
 use new_seed;
 
@@ -33,8 +33,13 @@ impl BlockGen {
         }
     }
 
-    pub fn get_invariant_z(&self, pos: Vec2<i64>) -> OverworldOut {
-        self.overworld_gen.sample(pos, &())
+    pub fn get_invariant_z(&self, pos: Vec2<i64>) -> (OverworldOut, towngen::InvariantZ) {
+        let overworld = self.overworld_gen.sample(pos, &());
+
+        (
+            overworld,
+            self.town_gen.get_invariant_z(pos, (&overworld, &self.overworld_gen.internal())),
+        )
     }
 
     fn get_warp(&self, pos: Vec3<f64>, dry: f64, land: f64) -> f64 {
@@ -52,16 +57,16 @@ impl BlockGen {
     }
 }
 
-impl Gen<OverworldOut> for BlockGen {
+impl Gen<(OverworldOut, towngen::InvariantZ)> for BlockGen {
     type In = Vec3<i64>;
     type Out = Block;
 
-    fn sample<'a>(&'a self, pos: Vec3<i64>, overworld: &OverworldOut) -> Block {
+    fn sample<'a>(&self, pos: Vec3<i64>, (overworld, towngen_invariant_z): &(OverworldOut, towngen::InvariantZ)) -> Block {
         let pos_f64 = pos.map(|e| e as f64) * 1.0;
 
         let z_warp = self.get_warp(pos_f64, overworld.dry, overworld.land).mul(96.0);
 
-        let town = self.town_gen.sample(pos, &(overworld, self.overworld_gen.internal()));
+        let town = self.town_gen.sample(pos, &(towngen_invariant_z, overworld, self.overworld_gen.internal()));
 
         let z_alt = overworld.z_alt + z_warp - town.surface.map(|_| 1.0).unwrap_or(0.0);
 

@@ -214,7 +214,7 @@ impl StructureGen {
             if overworld.dry < 0.2 && overworld.z_alt > overworld.z_sea && self.throw_dice(pos, 0) & 0xFF < 26 {
                 CityResult::Town
             // Pyramid
-            } else if overworld.temp > 0.6 && overworld.z_alt > overworld.z_sea && overworld.dry > 0.05 && overworld.land < 0.5 && self.throw_dice(pos, 0) & 0xFF < 26 {
+            } else if overworld.temp > 0.6 && overworld.z_alt > overworld.z_sea && overworld.dry > 0.05 && overworld.land < 0.5 && self.throw_dice(pos, 1) & 0xFF < 26 {
                 CityResult::Pyramid { height: 64 + self.throw_dice(pos, 0) % 32, z: overworld.z_alt as i64 }
             // Forest
             } else if overworld.dry < 0.3 && self.throw_dice(pos, 0) & 0xFF < 128 {
@@ -283,12 +283,12 @@ impl StructureGen {
                                 (overworld.temp.sub(0.65).mul(4.0))
                                     .max(0.0)
                                     .min(1.0)
-                                    .add(overworld.temp_vari * 4.0)
+                                    .add(overworld.temp_vari * 2.0)
                                     .max(0.0)
                                     .min(1.0)
                                     .mul(32.0) as u8,
                             ),
-                            scale_inv: 256 + self.throw_dice(pos, 3) % 512,
+                            scale_inv: 256 + self.throw_dice(pos, 3) % 256,
                             unit_x: Vec2::unit_x() * if self.throw_dice(pos, 4) & 2 == 0 { 1 } else { -1 },
                             unit_y: Vec2::unit_y() * if self.throw_dice(pos, 5) & 2 == 0 { 1 } else { -1 },
                         }
@@ -322,7 +322,7 @@ impl StructureGen {
                                     .min(1.0)
                                     .mul(32.0) as u8,
                             ),
-                            scale_inv: 256 + self.throw_dice(pos, 3) % 512,
+                            scale_inv: 256 + self.throw_dice(pos, 3) % 256,
                             unit_x: Vec2::unit_x() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
                             unit_y: Vec2::unit_y() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
                         },

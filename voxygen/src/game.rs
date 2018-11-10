@@ -496,10 +496,10 @@ impl Game {
         }
 
         // Render each entity
-        for (_uid, entity) in self.client.entities().iter() {
+        for (&uid, entity) in self.client.entities().iter() {
             // Choose the correct model for the entity
             let model = match self.client.player().entity_uid {
-                Some(uid) if uid == uid => {
+                Some(player_uid) if uid == player_uid => {
                     if cam_zoom == 0.0 {
                         continue;
                     }

@@ -1,6 +1,7 @@
 // Standard
 use std::{
     collections::{vec_deque::VecDeque, HashMap},
+    io::ErrorKind,
     net::{SocketAddr, TcpStream, ToSocketAddrs, UdpSocket},
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -193,7 +194,7 @@ impl<RM: Message> Connection<RM> {
     }
 
     fn recv_worker(&self) {
-        loop {
+        'thread: loop {
             if !self.running.load(Ordering::Relaxed) {
                 break;
             }
@@ -226,12 +227,26 @@ impl<RM: Message> Connection<RM> {
 
                     // TODO: Handle errors that can be resolved locally
                     match e {
-                        _ => {
-                            let recvd_message_write = self.recvd_message_write.lock();
-                            recvd_message_write
-                                .send(Err(ConnectionError::Disconnected))
-                                .unwrap_or_else(|e| eprintln!("recv_worker> {:?}", e));
+                        Error::NetworkErr(io_err) => match io_err.kind() {
+                            ErrorKind::ConnectionReset //Connection reset by remote server
+                            | ErrorKind::ConnectionAborted //Connection aborted (terminated) by remote server
+                            | ErrorKind::ConnectionRefused //Connection refused by remote server
+                            => {
+                                //Close recv thread, since connection has been severed
+                                let recvd_message_write = self.recvd_message_write.lock();
+                                recvd_message_write
+                                    .send(Err(ConnectionError::Disconnected))
+                                    .unwrap_or_else(|e| eprintln!("recv_worker> {:?}", e));
+                                break 'thread;
+                            },
+                            e => {
+                                // Any other IO error
+                                // Panic until we find a suitable way to handle these
+                            	panic!("{:?}", e)
+                            },
                         },
+
+                        _ => { /* Cannot(De)Serialize, discard packet */ },
                     }
                 },
             }

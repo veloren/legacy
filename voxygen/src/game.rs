@@ -15,7 +15,7 @@ use fps_counter::FPSCounter;
 use glutin::ElementState;
 use indexmap::IndexMap;
 use parking_lot::Mutex;
-use vek::{Mat4, Vec2, Vec3};
+use vek::*;
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
@@ -438,6 +438,8 @@ impl Game {
     pub fn render_frame(&mut self) {
         // Calculate frame constants
         let camera_mats = self.camera.lock().get_mats();
+        let camera_fov = self.camera.lock().get_fov();
+        // TODO: Maybe rename this to cam_pos?
         let cam_origin = self.camera.lock().get_pos(Some(&camera_mats));
         let cam_zoom = self.camera.lock().get_zoom();
         let player_pos = self
@@ -470,14 +472,24 @@ impl Game {
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
         // Find the chunk the player is in
-        let player_chunk = terrain::voxabs_to_voloffs(player_pos.map(|e| e as i64), CHUNK_SIZE);
-        let squared_view_distance = (self.client.view_distance() / CHUNK_SIZE.x as f32 + 1.0).powi(2) as i32; // view_distance is vox based, but its needed vol based here
+        let squared_view_distance = self.client.view_distance().powi(2) as f32; // view_distance is vox based, but its needed vol based here
 
         // Render each chunk
         for (_pos, con) in self
             .client
             .chunk_mgr()
-            .pers(|chunk_offs| player_chunk.distance_squared(*chunk_offs) < squared_view_distance)
+            .pers(|chunk_offs| {
+                let chunk_pos = chunk_offs.map(|e| e as f32) * CHUNK_SIZE.map(|e| e as f32);
+                // This limit represents the point in the chunk that's closest to the player (0 - CHUNK_SIZE)
+                let chunk_offs_limit = Vec3::clamp(player_pos - chunk_pos, Vec3::zero(), CHUNK_SIZE.map(|e| e as f32));
+                (chunk_pos + chunk_offs_limit).distance_squared(player_pos) < squared_view_distance
+                    && ((camera_mats.0 * Vec4::from(chunk_pos + CHUNK_SIZE.map(|e| e as f32) / 2.0 - cam_origin))
+                        .normalized()
+                        .dot(-Vec4::unit_z())
+                        > camera_fov.cos()
+                        || (chunk_pos + CHUNK_SIZE.map(|e| e as f32) / 2.0 - cam_origin).magnitude()
+                            < CHUNK_SIZE.x as f32 * 2.0)
+            })
             .iter()
         {
             let trylock = &con.payload_try(); //we try to lock it, if it is already written to we just ignore this chunk for a frame

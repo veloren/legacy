@@ -130,7 +130,7 @@ impl<P: Payloads> Client<P> {
 
                 events: Mutex::new(vec![]),
 
-                view_distance: view_distance.max(1).min(10),
+                view_distance: view_distance.max(CHUNK_SIZE.x as i64),
             });
 
             client.player.write().entity_uid = player_uid;
@@ -145,7 +145,7 @@ impl<P: Payloads> Client<P> {
 
     pub fn send_cmd(&self, args: Vec<String>) { let _ = self.postoffice.send_one(ClientMsg::Cmd { args }); }
 
-    pub fn view_distance(&self) -> f32 { (CHUNK_SIZE.map(|e| e as f32) * (self.view_distance as f32)).magnitude() }
+    pub fn view_distance(&self) -> f32 { self.view_distance as f32 }
 
     pub fn chunk_mgr(&self) -> &ChunkMgr<<P as Payloads>::Chunk> { &self.chunk_mgr }
 

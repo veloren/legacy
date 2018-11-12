@@ -72,6 +72,8 @@ impl Camera {
     #[allow(dead_code)]
     pub fn set_aspect_ratio(&mut self, ratio: f32) { self.aspect_ratio = ratio; }
     #[allow(dead_code)]
+    pub fn get_fov(&mut self) -> f32 { self.fov }
+    #[allow(dead_code)]
     pub fn set_fov(&mut self, fov: f32) { self.fov = fov; }
     #[allow(dead_code)]
     pub fn set_focus(&mut self, focus: Vec3<f32>) { self.focus = focus; }

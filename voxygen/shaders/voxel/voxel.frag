@@ -151,13 +151,13 @@ void main() {
 	//vec3 lighted = ambient + ((diffuse + specular) * sun_illuminance) * ao;
 
 	// Mist
-	float mist_start = view_distance.x * 0.7;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;
+	float mist_start = view_distance.x * 0.9;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;
 	float mist_end = view_distance.x;// + snoise(vec4(world_pos, -time) * 0.02) * 50.0;
 	float mist_delta = mist_end - mist_start;
 	float play_dist = length(play_origin.xyz - frag_world_pos.xyz);
 	float dist = max(play_dist - mist_start, 0);
 	float percent = saturate(dist / mist_delta);
-	float mist_value = percent * percent * percent;
+	float mist_value = percent;
 
 	vec3 sky_chroma = get_sky_chroma(-V, time_of_day);
     float smax = max(specular.r, max(specular.g, specular.b));

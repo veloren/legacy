@@ -295,7 +295,7 @@ impl StructureGen<BuildingGenOut> {
                                 (overworld.temp.sub(0.65).mul(4.0))
                                     .max(0.0)
                                     .min(1.0)
-                                    .add(overworld.temp_vari * 2.0)
+                                    .add(overworld.temp_vari * 0.7)
                                     .max(0.0)
                                     .min(1.0)
                                     .mul(32.0) as u8,
@@ -329,7 +329,7 @@ impl StructureGen<BuildingGenOut> {
                                 (overworld.temp.sub(0.65).mul(4.0))
                                     .max(0.0)
                                     .min(1.0)
-                                    .add(overworld.temp_vari * 2.0)
+                                    .add(overworld.temp_vari * 0.7)
                                     .max(0.0)
                                     .min(1.0)
                                     .mul(32.0) as u8,

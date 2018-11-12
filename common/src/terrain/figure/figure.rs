@@ -20,6 +20,8 @@ impl Figure {
 }
 
 impl Volume for Figure {
+    // TODO: Switch this back from Block to Cell since this is a pretty
+    // dirty hack while we use a unified volume rendering pipeline.
     type VoxelType = Block;
 
     fn size(&self) -> Vec3<VoxRel> { self.size }

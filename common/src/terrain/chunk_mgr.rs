@@ -203,7 +203,9 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
             let to = terrain::voxabs_to_voloffs(pos + size, self.vol_size);
             for i in from.x..to.x + 1 {
                 for j in from.y..to.y + 1 {
-                    for k in 0..8 {
+                    // Chunks are 64 blocks, and the world limit is 512, so this is 8 chunks
+                    // TODO: Don't hard-code this
+                    for k in 0..(512i32 / self.vol_size.z as i32) {
                         let ijk = Vec3::new(i, j, k);
                         let diff = (pos_chunk - ijk).map(|e| e.abs()).sum();
                         if let Some(old_diff) = chunk_map.get(&ijk) {

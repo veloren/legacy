@@ -84,7 +84,7 @@ where
     }
 }
 
-fn get_sizes_and_offsets() -> (Vec<Vec3<u16>>, Vec<Vec3<u16>>) {
+fn get_sizes_and_offsets() -> (Vec<Vec3<u32>>, Vec<Vec3<u32>>) {
     // Volume sizes to perform the tests in
     let sizes = vec![
         Vec3::new(0, 0, 0),

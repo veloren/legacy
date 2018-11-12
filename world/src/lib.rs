@@ -55,9 +55,9 @@ pub trait Gen<S> {
 // World
 
 const CHUNK_SZ: Vec3<u32> = Vec3 {
-    x: 64,
-    y: 64,
-    z: 64,
+    x: 32,
+    y: 32,
+    z: 32,
 };
 
 // Seed - used during worldgen initiation
@@ -75,7 +75,7 @@ pub struct World;
 impl World {
     pub fn gen_chunk(offs: Vec3<i32>) -> Chunk {
         // If the chunk is out of bounds, just generate air
-        if offs.z < 0 || offs.z > 8 {
+        if offs.z < 0 || offs.z > 512 / CHUNK_SZ.z as i32 {
             return Chunk::Homo(
                 HomogeneousData::filled(CHUNK_SZ, Block::AIR)
             );

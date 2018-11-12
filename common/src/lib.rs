@@ -12,7 +12,6 @@ extern crate byteorder;
 extern crate lazy_static;
 #[macro_use]
 extern crate enum_map;
-extern crate noise;
 extern crate num;
 extern crate parking_lot;
 extern crate rand;

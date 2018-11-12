@@ -167,7 +167,7 @@ impl Game {
             .expect("cannot find model player7.vox. Make sure to start voxygen from its folder");
         let voxmodel = voxel::vox_to_figure(vox);
 
-        let other_player_meshes = voxel::Mesh::from(&voxmodel);
+        let other_player_meshes = voxel::Mesh::from_with_offset(&voxmodel, Vec3::new(-10.0, -4.0, 0.0), false);
 
         let other_player_model = voxel::Model::new(&mut window.renderer_mut(), &other_player_meshes);
 
@@ -337,7 +337,7 @@ impl Game {
 
     pub fn update_chunks(&self) {
         let mut renderer = self.window.renderer_mut();
-        // Find the chunk the camera is in
+        // Find the chunk the player is in
         let player_pos = self
             .client
             .player_entity()
@@ -469,7 +469,7 @@ impl Game {
         self.skybox_model
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
-        // Find the chunk the camera is in
+        // Find the chunk the player is in
         let player_chunk = terrain::voxabs_to_voloffs(player_pos.map(|e| e as i64), CHUNK_SIZE);
         let squared_view_distance = (self.client.view_distance() / CHUNK_SIZE.x as f32 + 1.0).powi(2) as i32; // view_distance is vox based, but its needed vol based here
 

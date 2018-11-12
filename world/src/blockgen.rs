@@ -88,14 +88,14 @@ impl Gen<(OverworldOut, towngen::InvariantZ)> for BlockGen {
                         (overworld.temp.sub(0.65).mul(16.0))
                             .max(0.0)
                             .min(1.0)
-                            .add(overworld.temp_vari)
+                            .add(overworld.temp_vari * 0.15)
                             .max(0.0)
                             .min(1.0)
                             .mul(32.0) as u8,
                         ((200.0 - (overworld.z_alt - overworld.z_sea)).div(150.0))
                             .max(0.0)
                             .min(1.0)
-                            .add(overworld.alt_vari)
+                            .add(overworld.alt_vari * 0.15)
                             .max(0.0)
                             .min(1.0)
                             .mul(64.0) as u8,
@@ -108,12 +108,12 @@ impl Gen<(OverworldOut, towngen::InvariantZ)> for BlockGen {
                         ((1.0 - overworld.temp).sub(0.65).mul(16.0))
                             .max(0.0)
                             .min(1.0)
-                            .add(overworld.temp_vari)
+                            .add(overworld.temp_vari * 0.15)
                             .max(0.0)
                             .min(1.0)
                             .mul(32.0) as u8,
                         ((200.0 - (overworld.z_alt - overworld.z_sea)).div(150.0))
-                            .add(overworld.alt_vari)
+                            .add(overworld.alt_vari * 0.15)
                             .max(0.0)
                             .min(1.0)
                             .mul(64.0) as u8,

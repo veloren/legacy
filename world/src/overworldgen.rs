@@ -142,8 +142,8 @@ impl Gen<()> for OverworldGen {
             dry,
             temp,
 
-            temp_vari: self.temp_vari_nz.get(pos_f64.div(48.0).into_array()) * 0.3,
-            alt_vari: self.alt_vari_nz.get(pos_f64.div(32.0).into_array()) * 0.3,
+            temp_vari: self.temp_vari_nz.get(pos_f64.div(48.0).into_array()),
+            alt_vari: self.alt_vari_nz.get(pos_f64.div(32.0).into_array()),
 
             z_alt,
             z_water,

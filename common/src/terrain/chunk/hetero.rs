@@ -1,5 +1,4 @@
 // Library
-use noise::{NoiseFn, SuperSimplex, HybridMulti, Seedable, MultiFractal};
 use vek::*;
 
 // Local
@@ -15,13 +14,6 @@ pub struct HeterogeneousData {
 }
 
 impl HeterogeneousData {
-    pub fn empty(size: Vec3<VoxRel>) -> Self {
-        Self {
-            size,
-            voxels: vec![Block::empty(); size.product() as usize],
-        }
-    }
-
     fn calculate_index(&self, off: Vec3<VoxRel>) -> usize {
         (off.x as usize * self.size.y as usize * self.size.z as usize
             + off.y as usize * self.size.z as usize
@@ -29,13 +21,6 @@ impl HeterogeneousData {
     }
 
     pub(crate) fn voxels_mut(&mut self) -> &mut Vec<Block> { &mut self.voxels }
-
-    pub fn new(size: Vec3<VoxRel>, voxels: Vec<Block>) -> Self {
-        Self {
-            size,
-            voxels,
-        }
-    }
 }
 
 impl Volume for HeterogeneousData {

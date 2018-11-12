@@ -761,11 +761,7 @@ fn physics_fall() {
         ))),
     );
     for _ in 0..40 {
-<<<<<<< HEAD
-        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(100))
-=======
-        physics::tick(ent.values(), &vol_mgr, 0.1)
->>>>>>> Fixed u16 overflow errors by moving to u32 for voxel sizes
+        physics::tick(ent.values(), &vol_mgr, Duration::from_millis(100))
     }
     let p = ent.get(&1);
     let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
@@ -882,7 +878,11 @@ fn physics_walk() {
     }
     {
         let p = ent.get(&1);
-        let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x*2.0-1.0 - /*player size*/0.45, CHUNK_MID.y, CHUNK_SIZE.z as f32 + 3.0);
+        let d = *p.unwrap().read().pos() - Vec3::new(
+            CHUNK_MID.x*2.0-1.0 - /*player size*/0.45,
+            CHUNK_MID.y,
+            CHUNK_SIZE.z as f32 + 3.0,
+        );
         println!("{}, physics_walk {}", d.magnitude(), *p.unwrap().read().pos());
         // TODO: *DON'T* use chunks below z=0 for these tests, fix this when physics is refactored
         //assert!(d.magnitude() < 0.01);

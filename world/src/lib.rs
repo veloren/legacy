@@ -1,43 +1,38 @@
-#![feature(nll, fn_traits, associated_type_defaults, self_struct_ctor, euclidean_division, integer_atomics)]
+#![feature(
+    nll,
+    fn_traits,
+    associated_type_defaults,
+    self_struct_ctor,
+    euclidean_division,
+    integer_atomics
+)]
 
 extern crate common;
-extern crate vek;
-extern crate noise;
 extern crate dot_vox;
+extern crate noise;
 extern crate num_traits;
+extern crate vek;
 #[macro_use]
 extern crate lazy_static;
 extern crate fnv;
 extern crate parking_lot;
 
-mod util;
-mod cachegen;
 mod blockgen;
+mod cachegen;
 mod overworldgen;
 mod towngen;
+mod util;
 
 // Standard
-use std::{
-    mem,
-    hash::Hash,
-    sync::atomic::{AtomicU32, Ordering},
-};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 // Library
 use vek::*;
 
 // Project
 use common::terrain::{
-    Volume,
-    Voxel,
-    chunk::{
-        Chunk,
-        Block,
-        HeterogeneousData,
-        HomogeneousData,
-    },
-    ConstructVolume,
-    ReadWriteVolume,
+    chunk::{Block, Chunk, HeterogeneousData, HomogeneousData},
+    ConstructVolume, ReadWriteVolume,
 };
 
 // Local
@@ -54,17 +49,11 @@ pub trait Gen<S> {
 
 // World
 
-const CHUNK_SZ: Vec3<u32> = Vec3 {
-    x: 32,
-    y: 32,
-    z: 32,
-};
+const CHUNK_SZ: Vec3<u32> = Vec3 { x: 32, y: 32, z: 32 };
 
 // Seed - used during worldgen initiation
-static seed: AtomicU32 = AtomicU32::new(0);
-pub fn new_seed() -> u32 {
-    seed.fetch_add(1, Ordering::Relaxed)
-}
+static SEED: AtomicU32 = AtomicU32::new(0);
+pub fn new_seed() -> u32 { SEED.fetch_add(1, Ordering::Relaxed) }
 
 lazy_static! {
     static ref GENERATOR: BlockGen = BlockGen::new();
@@ -76,9 +65,7 @@ impl World {
     pub fn gen_chunk(offs: Vec3<i32>) -> Chunk {
         // If the chunk is out of bounds, just generate air
         if offs.z < 0 || offs.z > 512 / CHUNK_SZ.z as i32 {
-            return Chunk::Homo(
-                HomogeneousData::filled(CHUNK_SZ, Block::AIR)
-            );
+            return Chunk::Homo(HomogeneousData::filled(CHUNK_SZ, Block::AIR));
         }
 
         let mut chunk_data = HeterogeneousData::empty(CHUNK_SZ);
@@ -95,14 +82,11 @@ impl World {
             match cblock {
                 (true, None) => cblock.1 = Some(block),
                 (true, Some(b)) if b == block => {},
-                (true, Some(b)) => cblock = (false, None),
+                (true, Some(_)) => cblock = (false, None),
                 _ => {},
             }
 
-            chunk_data.set_at(
-                Vec3::new(x, y, z),
-                block,
-            );
+            chunk_data.set_at(Vec3::new(x, y, z), block);
         };
 
         // x faces
@@ -137,25 +121,22 @@ impl World {
 
         // Can we make broad assumptions about the homogenity of the chunk?
         match cblock {
-            (true, Some(block)) => return Chunk::Homo(
-                HomogeneousData::filled(CHUNK_SZ, block)
-            ),
+            (true, Some(block)) => return Chunk::Homo(HomogeneousData::filled(CHUNK_SZ, block)),
             _ => {},
         }
 
         // Fill in everything else
         for x in 1..CHUNK_SZ.x - 1 {
             for y in 1..CHUNK_SZ.y - 1 {
-                let pos2d = Vec2::from(offs.map(|e| e as i64)) * Vec2::from(CHUNK_SZ.map(|e| e as i64)) + Vec2::new(x, y).map(|e| e as i64);
+                let pos2d = Vec2::from(offs.map(|e| e as i64)) * Vec2::from(CHUNK_SZ.map(|e| e as i64))
+                    + Vec2::new(x, y).map(|e| e as i64);
                 let invariant_z = generator.get_invariant_z(pos2d);
 
                 for z in 1..CHUNK_SZ.z - 1 {
-                    let pos = offs.map(|e| e as i64) * CHUNK_SZ.map(|e| e as i64) + Vec3::new(x, y, z).map(|e| e as i64);
+                    let pos =
+                        offs.map(|e| e as i64) * CHUNK_SZ.map(|e| e as i64) + Vec3::new(x, y, z).map(|e| e as i64);
 
-                    chunk_data.set_at(
-                        Vec3::new(x, y, z),
-                        generator.sample(pos, &invariant_z),
-                    );
+                    chunk_data.set_at(Vec3::new(x, y, z), generator.sample(pos, &invariant_z));
                 }
             }
         }

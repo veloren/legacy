@@ -1,30 +1,30 @@
-// Standard
-use std::ops::{Add, Sub, Div, Mul, Neg, Rem};
-
 // Library
 use vek::*;
 
 // Local
-use Gen;
 use cachegen::CacheGen;
+use Gen;
 
-pub fn dist_by_euc(p: Vec2<i64>) -> i64 {
-    (p * p).sum()
-}
+#[allow(dead_code)]
+pub fn dist_by_euc(p: Vec2<i64>) -> i64 { (p * p).sum() }
 
-pub fn dist_by_axis(p: Vec2<i64>) -> i64 {
-    p.map(|e| e.abs()).reduce_max()
-}
+#[allow(dead_code)]
+pub fn dist_by_axis(p: Vec2<i64>) -> i64 { p.map(|e| e.abs()).reduce_max() }
 
 struct Producer;
 
 impl<'a, F, S, O: Clone> Gen<(&'a StructureGen<O>, &'a S, &'a F)> for Producer
-    where F: Fn(&StructureGen<O>, Vec2<i64>, &S) -> O + Send + Sync + 'static
+where
+    F: Fn(&StructureGen<O>, Vec2<i64>, &S) -> O + Send + Sync + 'static,
 {
     type In = Vec2<i64>;
     type Out = O;
 
-    fn sample<'b>(&'b self, i: Self::In, (structure_gen, supplement, f): &'b(&'a StructureGen<O>, &'a S, &'a F)) -> Self::Out {
+    fn sample<'b>(
+        &'b self,
+        i: Self::In,
+        (structure_gen, supplement, f): &'b (&'a StructureGen<O>, &'a S, &'a F),
+    ) -> Self::Out {
         (**f)(structure_gen, i, supplement)
     }
 }
@@ -51,14 +51,15 @@ impl<O> StructureGen<O> {
     pub fn throw_dice(&self, pos: Vec2<i64>, seed: u32) -> u64 {
         // TODO: Make this actually good
         let next = 327387278321 ^ (self.seed + seed) as u64 * 1103515245 + 15341;
-        let next = 327387278322 ^ (pos.x + 3232782181) as u64 * 1103515245 + 12343;
+        let next = 327387278322 ^ (next + (pos.x + 3232782181) as u64) * 1103515245 + 12343;
         let next = 327387278321 ^ (next + (pos.y + 23728323237) as u64) * 1103515245 + 12541;
         next
     }
 }
 
 impl<'a, T: Clone, S, F> Gen<(&'a S, F)> for StructureGen<T>
-    where F: Fn(&Self, Vec2<i64>, &S) -> T + Send + Sync + 'static
+where
+    F: Fn(&Self, Vec2<i64>, &S) -> T + Send + Sync + 'static,
 {
     type In = Vec2<i64>;
     type Out = (T, [T; 9]);
@@ -67,10 +68,9 @@ impl<'a, T: Clone, S, F> Gen<(&'a S, F)> for StructureGen<T>
         impl<O> StructureGen<O> {
             fn cell_pos(&self, cell_coord: Vec2<i64>) -> Vec2<i64> {
                 cell_coord * self.freq as i64 + self.freq as i64 / 2 + if self.warp > 0 {
-                    Vec2::new(
-                        self.throw_dice(cell_coord, 1337),
-                        self.throw_dice(cell_coord, 1338),
-                    ).map(|e| (e.mod_euc(self.warp)) as i64) - self.warp as i64 / 2
+                    Vec2::new(self.throw_dice(cell_coord, 1337), self.throw_dice(cell_coord, 1338))
+                        .map(|e| (e.mod_euc(self.warp)) as i64)
+                        - self.warp as i64 / 2
                 } else {
                     Vec2::zero()
                 }
@@ -80,7 +80,6 @@ impl<'a, T: Clone, S, F> Gen<(&'a S, F)> for StructureGen<T>
         let pos2di = Vec2::<i64>::from(pos);
 
         let cell_coord = pos2di.map(|e| e.div_euc(self.freq as i64));
-        let cell_offs = pos2di.map(|e| e.mod_euc(self.freq as i64)) - self.freq as i64 / 2;
 
         let mut near: [[Vec2<i64>; 3]; 3] = [[Vec2::zero(); 3]; 3];
 
@@ -89,7 +88,7 @@ impl<'a, T: Clone, S, F> Gen<(&'a S, F)> for StructureGen<T>
         for x in -1..2 {
             for y in -1..2 {
                 let cell_pos = self.cell_pos(cell_coord + Vec2::new(x, y));
-                let dist = (self.dist_func)(cell_pos.sub(pos2di));
+                let dist = (self.dist_func)(cell_pos - pos2di);
                 if dist < min.1 {
                     min = (cell_pos, dist);
                 }

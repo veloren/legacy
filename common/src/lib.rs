@@ -12,6 +12,7 @@ extern crate byteorder;
 extern crate lazy_static;
 #[macro_use]
 extern crate enum_map;
+extern crate dot_vox;
 extern crate num;
 extern crate parking_lot;
 extern crate rand;
@@ -19,7 +20,6 @@ extern crate specs;
 extern crate threadpool;
 extern crate time;
 extern crate vek;
-extern crate dot_vox;
 
 pub mod ecs;
 pub mod item;

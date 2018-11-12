@@ -66,9 +66,9 @@ impl Vertex {
     pub fn new(pos: [f32; 3], norm: NormalDirection, ao: u8, palette: u16, mat: u8) -> Vertex {
         let attrib: u32 = 0x00000000;
         let attrib = attrib | (palette as u32 & 0xFFFF) << 0;
-        let attrib = attrib | (ao as u32      & 0x0F) << 16;
-        let attrib = attrib | (norm as u32    & 0x0F) << 20;
-        let attrib = attrib | (mat as u32     & 0xFF) << 24;
+        let attrib = attrib | (ao as u32 & 0x0F) << 16;
+        let attrib = attrib | (norm as u32 & 0x0F) << 20;
+        let attrib = attrib | (mat as u32 & 0xFF) << 24;
         Vertex { pos, attrib }
     }
 
@@ -215,17 +215,19 @@ where
         ];
         */
 
-        vecs.iter().fold(0, |acc, v| {
-            acc + if self
-                .at((pos + *v).map(|e| e as u32))
-                .unwrap_or_else(V::VoxelType::empty)
-                .is_opaque()
-            {
-                0
-            } else {
-                1
-            }
-        }).min(4)
+        vecs.iter()
+            .fold(0, |acc, v| {
+                acc + if self
+                    .at((pos + *v).map(|e| e as u32))
+                    .unwrap_or_else(V::VoxelType::empty)
+                    .is_opaque()
+                {
+                    0
+                } else {
+                    1
+                }
+            })
+            .min(4)
     }
 
     fn get_ao_quad(
@@ -256,17 +258,65 @@ where
 
         if (ao[0] as i32 - ao[2] as i32).abs() < (ao[1] as i32 - ao[3] as i32).abs() {
             Quad::new(
-                Vertex::new(units[0].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[0], col, mat),
-                Vertex::new(units[1].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[1], col, mat),
-                Vertex::new(units[2].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[2], col, mat),
-                Vertex::new(units[3].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[3], col, mat),
+                Vertex::new(
+                    units[0].map(|e| e as f32).into_array(),
+                    z_unit.into(),
+                    ao_vals[0],
+                    col,
+                    mat,
+                ),
+                Vertex::new(
+                    units[1].map(|e| e as f32).into_array(),
+                    z_unit.into(),
+                    ao_vals[1],
+                    col,
+                    mat,
+                ),
+                Vertex::new(
+                    units[2].map(|e| e as f32).into_array(),
+                    z_unit.into(),
+                    ao_vals[2],
+                    col,
+                    mat,
+                ),
+                Vertex::new(
+                    units[3].map(|e| e as f32).into_array(),
+                    z_unit.into(),
+                    ao_vals[3],
+                    col,
+                    mat,
+                ),
             )
         } else {
             Quad::new(
-                Vertex::new(units[1].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[1], col, mat),
-                Vertex::new(units[2].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[2], col, mat),
-                Vertex::new(units[3].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[3], col, mat),
-                Vertex::new(units[0].map(|e| e as f32).into_array(), z_unit.into(), ao_vals[0], col, mat),
+                Vertex::new(
+                    units[1].map(|e| e as f32).into_array(),
+                    z_unit.into(),
+                    ao_vals[1],
+                    col,
+                    mat,
+                ),
+                Vertex::new(
+                    units[2].map(|e| e as f32).into_array(),
+                    z_unit.into(),
+                    ao_vals[2],
+                    col,
+                    mat,
+                ),
+                Vertex::new(
+                    units[3].map(|e| e as f32).into_array(),
+                    z_unit.into(),
+                    ao_vals[3],
+                    col,
+                    mat,
+                ),
+                Vertex::new(
+                    units[0].map(|e| e as f32).into_array(),
+                    z_unit.into(),
+                    ao_vals[0],
+                    col,
+                    mat,
+                ),
             )
         }
     }
@@ -286,7 +336,11 @@ impl Mesh {
         Mesh::from_with_offset(vol, Vec3::new(0.0, 0.0, 0.0), true)
     }
 
-    pub fn from_with_offset<V: RenderVolume>(vol: &V, offs: Vec3<f32>, fake_optimize: bool) -> FnvIndexMap<MaterialKind, Mesh>
+    pub fn from_with_offset<V: RenderVolume>(
+        vol: &V,
+        offs: Vec3<f32>,
+        fake_optimize: bool,
+    ) -> FnvIndexMap<MaterialKind, Mesh>
     where
         V::VoxelType: RenderVoxel,
     {

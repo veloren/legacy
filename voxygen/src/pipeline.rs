@@ -1,7 +1,7 @@
 use gfx::{
     handle::Program,
     pso::{PipelineInit, PipelineState},
-    state::{Rasterizer, FrontFace, CullFace, RasterMethod, MultiSample},
+    state::{CullFace, FrontFace, MultiSample, RasterMethod, Rasterizer},
     traits::FactoryExt,
     Primitive,
 };

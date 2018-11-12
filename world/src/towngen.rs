@@ -1,29 +1,24 @@
 // Standard
-use std::ops::{Add, Sub, Div, Mul, Neg, Rem};
+use std::ops::{Add, Div, Mul, Sub};
 
 // Library
-use noise::{NoiseFn, SuperSimplex, Seedable, HybridMulti, MultiFractal};
-use vek::*;
 use dot_vox;
+use vek::*;
 
 // Project
 use common::terrain::chunk::Block;
 
 // Local
-use util::structure::{StructureGen, dist_by_euc, dist_by_axis};
-use overworldgen::{OverworldGen, Out as OverworldOut};
 use cachegen::CacheGen;
-use Gen;
 use new_seed;
+use overworldgen::{Out as OverworldOut, OverworldGen};
+use util::structure::{dist_by_euc, StructureGen};
+use Gen;
 
 // <--- BEGIN MESS --->
 
 // Project
-use common::terrain::{
-    Voxel,
-    chunk::HeterogeneousData,
-    Volume, ReadVolume, ReadWriteVolume, ConstructVolume,
-};
+use common::terrain::{chunk::HeterogeneousData, ConstructVolume, ReadVolume, ReadWriteVolume, Volume, Voxel};
 
 // TODO: Replace this with a superior voxel loading system
 // Maybe include_bytes! these files into the executable?
@@ -33,15 +28,17 @@ fn dot_vox_to_hetero(vox: dot_vox::DotVoxData) -> HeterogeneousData {
     match vox.models.first() {
         Some(model) => {
             let size = Vec3::new(model.size.x, model.size.y, model.size.z).map(|e| e as u32);
-            let mut voxels = vec![Block::empty(); (size.x * size.y * size.z) as usize];
             let mut chunk = HeterogeneousData::filled(size, Block::AIR);
 
             for ref v in model.voxels.iter() {
                 let pos = Vec3::new(v.x as u32, v.y as u32, v.z as u32);
-                chunk.set_at(pos, match v.i {
-                    7...9 | 224...255 => Block::AIR,
-                    i => Block::from_byte(i),
-                });
+                chunk.set_at(
+                    pos,
+                    match v.i {
+                        7...9 | 224...255 => Block::AIR,
+                        i => Block::from_byte(i),
+                    },
+                );
             }
 
             chunk
@@ -53,23 +50,45 @@ fn dot_vox_to_hetero(vox: dot_vox::DotVoxData) -> HeterogeneousData {
 fn load_buildings() -> Vec<HeterogeneousData> {
     let mut buildings = vec![];
 
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq1.vox").unwrap()));
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq2.vox").unwrap()));
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq3.vox").unwrap()));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq1.vox").unwrap(),
+    ));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq2.vox").unwrap(),
+    ));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq3.vox").unwrap(),
+    ));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq4.vox").unwrap()));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq5.vox").unwrap()));
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue1.vox").unwrap()));
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue2.vox").unwrap()));
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue3.vox").unwrap()));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue1.vox").unwrap(),
+    ));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue2.vox").unwrap(),
+    ));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue3.vox").unwrap(),
+    ));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue4.vox").unwrap()));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue5.vox").unwrap()));
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/1R.vox").unwrap()));
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/2R.vox").unwrap()));
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/3R.vox").unwrap()));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/1R.vox").unwrap(),
+    ));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/2R.vox").unwrap(),
+    ));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/3R.vox").unwrap(),
+    ));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/4R.vox").unwrap()));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/5R.vox").unwrap()));
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Green/green1.vox").unwrap()));
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Green/green2.vox").unwrap()));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Green/green1.vox").unwrap(),
+    ));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Green/green2.vox").unwrap(),
+    ));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Green/green3.vox").unwrap()));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Green/green4.vox").unwrap()));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Green/green5.vox").unwrap()));
@@ -77,8 +96,12 @@ fn load_buildings() -> Vec<HeterogeneousData> {
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/townhall.vox").unwrap()));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/tower.vox").unwrap()));
 
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_1.vox").unwrap()));
-    buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Poplars/1.vox").unwrap()));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_1.vox").unwrap(),
+    ));
+    buildings.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Poplars/1.vox").unwrap(),
+    ));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Willows/1.vox").unwrap()));
 
     buildings
@@ -87,30 +110,74 @@ fn load_buildings() -> Vec<HeterogeneousData> {
 fn load_trees_temperate() -> Vec<HeterogeneousData> {
     let mut trees = vec![];
 
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak1.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak2.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak3.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak4.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak5.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak6.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak7.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak8.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak9.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak10.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak1.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak2.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak3.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak4.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak5.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak6.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak7.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak8.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak9.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak10.vox").unwrap(),
+    ));
 
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/1.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/2.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/3.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/4.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/5.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/6.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/7.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/8.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/9.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/10.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/1.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/2.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/3.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/4.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/5.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/6.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/7.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/8.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/9.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/10.vox").unwrap(),
+    ));
 
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Willows/1.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Willows/2.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Willows/1.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Willows/2.vox").unwrap(),
+    ));
 
     trees
 }
@@ -118,16 +185,36 @@ fn load_trees_temperate() -> Vec<HeterogeneousData> {
 fn load_trees_tropical() -> Vec<HeterogeneousData> {
     let mut trees = vec![];
 
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_1.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_2.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_3.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_4.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_5.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_6.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_7.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_8.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_9.vox").unwrap()));
-    trees.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_10.vox").unwrap()));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_1.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_2.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_3.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_4.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_5.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_6.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_7.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_8.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_9.vox").unwrap(),
+    ));
+    trees.push(dot_vox_to_hetero(
+        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_10.vox").unwrap(),
+    ));
 
     trees
 }
@@ -136,11 +223,8 @@ const IDX_BUILDINGS: usize = 0;
 const IDX_TREES_TEMPERATE: usize = 1;
 const IDX_TREES_TROPICAL: usize = 2;
 lazy_static! {
-    static ref VOXEL_MODELS: [Vec<HeterogeneousData>; 3] = [
-        load_buildings(),
-        load_trees_temperate(),
-        load_trees_tropical(),
-    ];
+    static ref VOXEL_MODELS: [Vec<HeterogeneousData>; 3] =
+        [load_buildings(), load_trees_temperate(), load_trees_tropical(),];
 }
 
 // <--- END MESS --->
@@ -152,6 +236,7 @@ pub struct Out {
 }
 
 #[derive(Copy, Clone)]
+#[allow(dead_code)]
 enum ForestKind {
     Tropical,
     Temperate,
@@ -169,11 +254,23 @@ enum CityResult {
 
 #[derive(Copy, Clone)]
 pub enum BuildingResult {
-    House { model: &'static HeterogeneousData, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
+    House {
+        model: &'static HeterogeneousData,
+        unit_x: Vec2<i64>,
+        unit_y: Vec2<i64>,
+    },
     Park,
-    Tree { model: &'static HeterogeneousData, leaf_block: Block, scale_inv: u64, unit_x: Vec2<i64>, unit_y: Vec2<i64> },
+    Tree {
+        model: &'static HeterogeneousData,
+        leaf_block: Block,
+        scale_inv: u64,
+        unit_x: Vec2<i64>,
+        unit_y: Vec2<i64>,
+    },
     Rock,
-    Pyramid { height: u64 },
+    Pyramid {
+        height: u64,
+    },
     None,
 }
 
@@ -190,26 +287,35 @@ pub type InvariantZ = (BuildingGenOut, [BuildingGenOut; 9]);
 impl TownGen {
     pub fn new() -> Self {
         Self {
-            city_gen: CacheGen::new(StructureGen::new(
-                350, // freq
-                256, // warp
-                new_seed(), // seed
-                dist_by_euc, // distance function
-            ), 4096),
-            building_gen: CacheGen::new(StructureGen::new(
-                24, // freq
-                12, // warp
-                new_seed(), // seed
-                dist_by_euc, // distance function
-            ), 4096),
+            city_gen: CacheGen::new(
+                StructureGen::new(
+                    350,         // freq
+                    256,         // warp
+                    new_seed(),  // seed
+                    dist_by_euc, // distance function
+                ),
+                4096,
+            ),
+            building_gen: CacheGen::new(
+                StructureGen::new(
+                    24,          // freq
+                    12,          // warp
+                    new_seed(),  // seed
+                    dist_by_euc, // distance function
+                ),
+                4096,
+            ),
         }
     }
 
-    pub fn get_invariant_z<'a>(&'a self, pos: Vec2<i64>, (overworld, overworld_gen): (&'a OverworldOut, &'a OverworldGen)) -> InvariantZ {
+    pub fn get_invariant_z<'a>(
+        &'a self,
+        pos: Vec2<i64>,
+        (_overworld, overworld_gen): (&'a OverworldOut, &'a OverworldGen),
+    ) -> InvariantZ {
         self.building_gen.sample(
             pos,
-            &(&(self.city_gen.internal(), overworld_gen),
-            StructureGen::gen_building)
+            &(&(self.city_gen.internal(), overworld_gen), StructureGen::gen_building),
         )
     }
 }
@@ -224,8 +330,16 @@ impl StructureGen<CityGenOut> {
             if overworld.dry < 0.2 && overworld.z_alt > overworld.z_sea && self.throw_dice(pos, 0) & 0xFF < 26 {
                 CityResult::Town
             // Pyramid
-            } else if overworld.temp > 0.6 && overworld.z_alt > overworld.z_sea && overworld.dry > 0.05 && overworld.land < 0.5 && self.throw_dice(pos, 1) & 0xFF < 26 {
-                CityResult::Pyramid { height: 64 + self.throw_dice(pos, 0) % 32, z: overworld.z_alt as i64 }
+            } else if overworld.temp > 0.6
+                && overworld.z_alt > overworld.z_sea
+                && overworld.dry > 0.05
+                && overworld.land < 0.5
+                && self.throw_dice(pos, 1) & 0xFF < 26
+            {
+                CityResult::Pyramid {
+                    height: 64 + self.throw_dice(pos, 0) % 32,
+                    z: overworld.z_alt as i64,
+                }
             // Forest
             } else if overworld.dry < 0.3 && self.throw_dice(pos, 0) & 0xFF < 128 {
                 CityResult::Forest {
@@ -241,13 +355,17 @@ impl StructureGen<CityGenOut> {
             // Empty
             } else {
                 CityResult::None
-            }
+            },
         )
     }
 }
 
 impl StructureGen<BuildingGenOut> {
-    fn gen_building(&self, pos: Vec2<i64>, (city_gen, overworld_gen): &(&StructureGen<CityGenOut>, &OverworldGen)) -> BuildingGenOut {
+    fn gen_building(
+        &self,
+        pos: Vec2<i64>,
+        (city_gen, overworld_gen): &(&StructureGen<CityGenOut>, &OverworldGen),
+    ) -> BuildingGenOut {
         let overworld = overworld_gen.sample(pos, &());
 
         let city = city_gen.sample(pos, &(*overworld_gen, StructureGen::gen_city)).0;
@@ -255,74 +373,73 @@ impl StructureGen<BuildingGenOut> {
         // Buildings
         match city {
             // Town
-            (city_pos, CityResult::Town) => {
-                (
-                    Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 8),
-                    if overworld.dry > 0.005 && overworld.z_alt > overworld.z_sea && self.throw_dice(pos, 0) % 256 < 128 {
-                        BuildingResult::House {
-                            model: &VOXEL_MODELS[IDX_BUILDINGS][self.throw_dice(pos, 1) as usize % VOXEL_MODELS[IDX_BUILDINGS].len()],
-                            unit_x: Vec2::unit_x() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
-                            unit_y: Vec2::unit_y() * if self.throw_dice(pos, 3) & 2 == 0 { 1 } else { -1 },
-                        }
-                    } else {
-                        BuildingResult::Park
-                    },
-                )
-            },
+            (_city_pos, CityResult::Town) => (
+                Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 8),
+                if overworld.dry > 0.005 && overworld.z_alt > overworld.z_sea && self.throw_dice(pos, 0) % 256 < 128 {
+                    BuildingResult::House {
+                        model: &VOXEL_MODELS[IDX_BUILDINGS]
+                            [self.throw_dice(pos, 1) as usize % VOXEL_MODELS[IDX_BUILDINGS].len()],
+                        unit_x: Vec2::unit_x() * if self.throw_dice(pos, 2) & 2 == 0 { 1 } else { -1 },
+                        unit_y: Vec2::unit_y() * if self.throw_dice(pos, 3) & 2 == 0 { 1 } else { -1 },
+                    }
+                } else {
+                    BuildingResult::Park
+                },
+            ),
             // Pyramid
             (city_pos, CityResult::Pyramid { height, z }) => {
-                (
-                    Vec3::new(city_pos.x, city_pos.y, z),
-                    BuildingResult::Pyramid { height },
-                )
+                (Vec3::new(city_pos.x, city_pos.y, z), BuildingResult::Pyramid { height })
             },
             // Forest
-            (city_pos, CityResult::Forest { kind, density }) => {
-                (
-                    Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 1),
-                    if overworld.dry > 0.005 && overworld.z_alt > overworld.z_sea && self.throw_dice(pos, 1) % 256 < density {
-                        let model_group_idx = match kind {
-                            ForestKind::Temperate => IDX_TREES_TEMPERATE,
-                            ForestKind::Tropical => IDX_TREES_TROPICAL,
-                            _ => IDX_TREES_TEMPERATE,
-                        };
+            (_city_pos, CityResult::Forest { kind, density }) => (
+                Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 1),
+                if overworld.dry > 0.005 && overworld.z_alt > overworld.z_sea && self.throw_dice(pos, 1) % 256 < density
+                {
+                    let model_group_idx = match kind {
+                        ForestKind::Temperate => IDX_TREES_TEMPERATE,
+                        ForestKind::Tropical => IDX_TREES_TROPICAL,
+                        _ => IDX_TREES_TEMPERATE,
+                    };
 
-                        BuildingResult::Tree {
-                            model: &VOXEL_MODELS[model_group_idx][self.throw_dice(pos, 2) as usize % VOXEL_MODELS[model_group_idx].len()],
-                            leaf_block: Block::gradient2(
-                                Block::GRAD2_A_LEAF0,
-                                Block::GRAD2_B_LEAF1,
-                                (overworld.temp.sub(0.65).mul(4.0))
-                                    .max(0.0)
-                                    .min(1.0)
-                                    .add(overworld.temp_vari * 0.7)
-                                    .max(0.0)
-                                    .min(1.0)
-                                    .mul(32.0) as u8,
-                            ),
-                            scale_inv: 256 + self.throw_dice(pos, 3) % 256,
-                            unit_x: Vec2::unit_x() * if self.throw_dice(pos, 4) & 2 == 0 { 1 } else { -1 },
-                            unit_y: Vec2::unit_y() * if self.throw_dice(pos, 5) & 2 == 0 { 1 } else { -1 },
-                        }
-                    } else {
-                        BuildingResult::None
-                    },
-                )
-            },
+                    BuildingResult::Tree {
+                        model: &VOXEL_MODELS[model_group_idx]
+                            [self.throw_dice(pos, 2) as usize % VOXEL_MODELS[model_group_idx].len()],
+                        leaf_block: Block::gradient2(
+                            Block::GRAD2_A_LEAF0,
+                            Block::GRAD2_B_LEAF1,
+                            (overworld.temp.sub(0.65).mul(4.0))
+                                .max(0.0)
+                                .min(1.0)
+                                .add(overworld.temp_vari * 0.7)
+                                .max(0.0)
+                                .min(1.0)
+                                .mul(32.0) as u8,
+                        ),
+                        scale_inv: 256 + self.throw_dice(pos, 3) % 256,
+                        unit_x: Vec2::unit_x() * if self.throw_dice(pos, 4) & 2 == 0 { 1 } else { -1 },
+                        unit_y: Vec2::unit_y() * if self.throw_dice(pos, 5) & 2 == 0 { 1 } else { -1 },
+                    }
+                } else {
+                    BuildingResult::None
+                },
+            ),
             // Empty
-            (city_pos, CityResult::None) => {
+            (_city_pos, CityResult::None) => {
                 // Rocks
                 if self.throw_dice(pos, 0) % 50 < 3 {
-                    (
-                        Vec3::new(pos.x, pos.y, overworld.z_alt as i64),
-                        BuildingResult::Rock,
-                    )
+                    (Vec3::new(pos.x, pos.y, overworld.z_alt as i64), BuildingResult::Rock)
                 // Trees
-                } else if self.throw_dice(pos, 0) & 0xFF < 150 && overworld.temp < 0.35 && overworld.dry > 0.05 && overworld.dry < 0.4 && overworld.z_alt > overworld.z_sea {
+                } else if self.throw_dice(pos, 0) & 0xFF < 150
+                    && overworld.temp < 0.35
+                    && overworld.dry > 0.05
+                    && overworld.dry < 0.4
+                    && overworld.z_alt > overworld.z_sea
+                {
                     (
                         Vec3::new(pos.x, pos.y, overworld.z_alt as i64 - 1),
                         BuildingResult::Tree {
-                            model: &VOXEL_MODELS[IDX_TREES_TEMPERATE][self.throw_dice(pos, 1) as usize % VOXEL_MODELS[IDX_TREES_TEMPERATE].len()],
+                            model: &VOXEL_MODELS[IDX_TREES_TEMPERATE]
+                                [self.throw_dice(pos, 1) as usize % VOXEL_MODELS[IDX_TREES_TEMPERATE].len()],
                             leaf_block: Block::gradient2(
                                 Block::GRAD2_A_LEAF0,
                                 Block::GRAD2_B_LEAF1,
@@ -345,7 +462,7 @@ impl StructureGen<BuildingGenOut> {
                         BuildingResult::None,
                     )
                 }
-            }
+            },
         }
     }
 }
@@ -354,7 +471,11 @@ impl<'a> Gen<(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)> for TownGen {
     type In = Vec3<i64>;
     type Out = Out;
 
-    fn sample<'b>(&'b self, pos: Vec3<i64>, (building, overworld, overworld_gen): &'b(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)) -> Out {
+    fn sample<'b>(
+        &'b self,
+        pos: Vec3<i64>,
+        (building, _overworld, _overworld_gen): &'b (&'a InvariantZ, &'a OverworldOut, &'a OverworldGen),
+    ) -> Out {
         let pos2d = Vec2::from(pos);
 
         let mut out = Out {
@@ -372,9 +493,10 @@ impl<'a> Gen<(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)> for TownGen {
             match building {
                 // House
                 &(building_base, BuildingResult::House { model, unit_x, unit_y }) => {
-                    let rel_offs: Vec2<i64> = (pos2d - building_base);
+                    let rel_offs: Vec2<i64> = pos2d - building_base;
 
-                    let vox_offs = unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
+                    let vox_offs =
+                        unit_x * rel_offs.x + unit_y * rel_offs.y + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
                     out.block = model.at(Vec3::new(vox_offs.x, vox_offs.y, pos.z - building_base.z).map(|e| e as u32));
                 },
                 // Rock
@@ -384,11 +506,28 @@ impl<'a> Gen<(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)> for TownGen {
                     }
                 },
                 // Tree
-                &(tree_base, BuildingResult::Tree { model, leaf_block, scale_inv, unit_x, unit_y }) => {
-                    let rel_offs = (pos2d - tree_base);
+                &(
+                    tree_base,
+                    BuildingResult::Tree {
+                        model,
+                        leaf_block,
+                        scale_inv,
+                        unit_x,
+                        unit_y,
+                    },
+                ) => {
+                    let rel_offs = pos2d - tree_base;
 
-                    let vox_offs = (unit_x * rel_offs.x + unit_y * rel_offs.y).mul(scale_inv as i64).div(256) + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
-                    let block = model.at(Vec3::new(vox_offs.x, vox_offs.y, (pos.z - tree_base.z).mul(scale_inv as i64).div(256)).map(|e| e as u32));
+                    let vox_offs = (unit_x * rel_offs.x + unit_y * rel_offs.y)
+                        .mul(scale_inv as i64)
+                        .div(256)
+                        + Vec2::from(model.size()).map(|e: u32| e as i64) / 2;
+                    let block = model.at(Vec3::new(
+                        vox_offs.x,
+                        vox_offs.y,
+                        (pos.z - tree_base.z).mul(scale_inv as i64).div(256),
+                    )
+                    .map(|e| e as u32));
 
                     out.block = match block.map(|b| b.material().index()) {
                         Some(15) => Some(leaf_block),
@@ -398,14 +537,13 @@ impl<'a> Gen<(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)> for TownGen {
                 },
                 // Pyramid
                 &(pyramid_base, BuildingResult::Pyramid { height }) => {
-                    let rel_offs = (pos2d - pyramid_base);
+                    let rel_offs = pos2d - pyramid_base;
 
-                    let pyramid_h = (pyramid_base.z + height as i64) - rel_offs.map(|e| e.abs()).reduce_max();
+                    let pyramid_h = pyramid_base.z + height as i64 - rel_offs.map(|e| e.abs()).reduce_max();
 
-                    if
-                        pos.z < pyramid_h &&
-                        !(rel_offs.map(|e| e.abs()).reduce_min() < 2 && (pos.z) % 25 < 4) &&
-                        !(pos.z < pyramid_h - 6 && (pos.z) % 25 < 24)
+                    if pos.z < pyramid_h
+                        && !(rel_offs.map(|e| e.abs()).reduce_min() < 2 && (pos.z) % 25 < 4)
+                        && !(pos.z < pyramid_h - 6 && (pos.z) % 25 < 24)
                     {
                         out.block = Some(Block::SAND);
                     }
@@ -418,8 +556,15 @@ impl<'a> Gen<(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)> for TownGen {
         // Specific effects
         match building.0 {
             // House
-            (building_base, BuildingResult::House { model, unit_x, unit_y }) => {
-                let rel_offs: Vec2<i64> = (pos2d - building_base);
+            (
+                building_base,
+                BuildingResult::House {
+                    model: _,
+                    unit_x: _,
+                    unit_y: _,
+                },
+            ) => {
+                let rel_offs: Vec2<i64> = pos2d - building_base;
 
                 // Find distance to make path
                 if rel_offs.map(|e| e * e).sum() > 10 * 10 {

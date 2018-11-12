@@ -24,10 +24,10 @@ pub enum Material {
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum MaterialKind {
-    Solid       = 0,
-    Water       = 1,
+    Solid = 0,
+    Water = 1,
     Translucent = 2,
-    Empty       = 3,
+    Empty = 3,
 }
 
 impl MaterialKind {

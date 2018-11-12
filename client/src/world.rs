@@ -16,10 +16,10 @@ use common::{
 use parking_lot::{Mutex, RwLock};
 
 // Local
+use world_crate;
 use Client;
 use Payloads;
 use CHUNK_SIZE;
-use world_crate;
 
 pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<VolOffs>, con: Arc<Mutex<Option<ChunkContainer<P>>>>) {
     let filename = pos.print() + ".dat";

@@ -3,9 +3,9 @@ use vek::*;
 
 // Local
 use terrain::{
+    chunk::Block,
     figure::{Cell, CellMaterial},
     ConstructVolume, PhysicalVolume, ReadVolume, ReadWriteVolume, Volume, VoxRel, Voxel,
-    chunk::Block,
 };
 
 pub struct Figure {

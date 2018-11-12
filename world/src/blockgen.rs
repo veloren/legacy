@@ -1,19 +1,19 @@
 // Standard
-use std::ops::{Add, Sub, Div, Mul, Neg, Rem};
+use std::ops::{Add, Div, Mul, Sub};
 
 // Library
+use noise::{HybridMulti, MultiFractal, NoiseFn, Seedable};
 use vek::*;
-use noise::{NoiseFn, SuperSimplex, Seedable, HybridMulti, MultiFractal};
 
 // Project
 use common::terrain::chunk::Block;
 
 // Local
 use cachegen::CacheGen;
-use overworldgen::{OverworldGen, Out as OverworldOut};
+use new_seed;
+use overworldgen::{Out as OverworldOut, OverworldGen};
 use towngen::{self, TownGen};
 use Gen;
-use new_seed;
 
 pub struct BlockGen {
     overworld_gen: CacheGen<OverworldGen, Vec2<i64>, OverworldOut>,
@@ -27,9 +27,7 @@ impl BlockGen {
             overworld_gen: CacheGen::new(OverworldGen::new(), 4096),
             town_gen: TownGen::new(),
 
-            warp_nz: HybridMulti::new()
-                .set_seed(new_seed())
-                .set_octaves(3),
+            warp_nz: HybridMulti::new().set_seed(new_seed()).set_octaves(3),
         }
     }
 
@@ -38,22 +36,20 @@ impl BlockGen {
 
         (
             overworld,
-            self.town_gen.get_invariant_z(pos, (&overworld, &self.overworld_gen.internal())),
+            self.town_gen
+                .get_invariant_z(pos, (&overworld, &self.overworld_gen.internal())),
         )
     }
 
     fn get_warp(&self, pos: Vec3<f64>, dry: f64, land: f64) -> f64 {
-        let scale = Vec3::new(
-            350.0,
-            350.0,
-            250.0,
-        );
+        let scale = Vec3::new(350.0, 350.0, 350.0);
 
-        if dry > 0.15 && dry < 0.85 {
-            self.warp_nz.get(pos.div(scale).into_array()).abs().mul((1.0 - dry.sub(0.5).abs().mul(2.0 / 0.7)).powf(2.0)).mul(land).max(0.0)
-        } else {
-            0.0
-        }
+        self.warp_nz
+            .get(pos.div(scale).into_array())
+            .abs()
+            .powf(0.5)
+            .mul((dry - 0.2).min(land).min(0.4))
+            .max(0.0)
     }
 }
 
@@ -61,12 +57,19 @@ impl Gen<(OverworldOut, towngen::InvariantZ)> for BlockGen {
     type In = Vec3<i64>;
     type Out = Block;
 
-    fn sample<'a>(&self, pos: Vec3<i64>, (overworld, towngen_invariant_z): &(OverworldOut, towngen::InvariantZ)) -> Block {
+    fn sample<'a>(
+        &self,
+        pos: Vec3<i64>,
+        (overworld, towngen_invariant_z): &(OverworldOut, towngen::InvariantZ),
+    ) -> Block {
         let pos_f64 = pos.map(|e| e as f64) * 1.0;
 
-        let z_warp = self.get_warp(pos_f64, overworld.dry, overworld.land).mul(96.0);
+        let warp = self.get_warp(pos_f64, overworld.dry, overworld.land);
+        let z_warp = warp.mul(96.0);
 
-        let town = self.town_gen.sample(pos, &(towngen_invariant_z, overworld, self.overworld_gen.internal()));
+        let town = self
+            .town_gen
+            .sample(pos, &(towngen_invariant_z, overworld, self.overworld_gen.internal()));
 
         let z_alt = overworld.z_alt + z_warp - town.surface.map(|_| 1.0).unwrap_or(0.0);
 
@@ -126,9 +129,7 @@ impl Gen<(OverworldOut, towngen::InvariantZ)> for BlockGen {
             if pos_f64.z < overworld.z_water {
                 Block::WATER
             } else {
-                None
-                    .or(town.block)
-                    .unwrap_or(Block::AIR)
+                None.or(town.block).unwrap_or(Block::AIR)
             }
         }
     }

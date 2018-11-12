@@ -1,5 +1,5 @@
 use fnv::FnvBuildHasher;
-use gfx::{self, Slice, Primitive};
+use gfx::{self, Primitive, Slice};
 use gfx_device_gl;
 use indexmap::IndexMap;
 

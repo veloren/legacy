@@ -1,13 +1,13 @@
 // Standard
-use std::ops::{Add, Sub, Div, Mul, Neg, Rem};
+use std::ops::{Add, Div, Mul};
 
 // Library
+use noise::{HybridMulti, MultiFractal, NoiseFn, Seedable, SuperSimplex};
 use vek::*;
-use noise::{NoiseFn, SuperSimplex, Seedable, HybridMulti, MultiFractal};
 
 // Local
-use Gen;
 use new_seed;
+use Gen;
 
 pub struct OverworldGen {
     land_nz: HybridMulti,
@@ -18,10 +18,6 @@ pub struct OverworldGen {
 
     temp_vari_nz: SuperSimplex,
     alt_vari_nz: SuperSimplex,
-
-    warp_vari_nz_x: SuperSimplex,
-    warp_vari_nz_y: SuperSimplex,
-    warp_vari_nz_z: SuperSimplex,
 }
 
 #[derive(Copy, Clone)]
@@ -43,32 +39,15 @@ impl OverworldGen {
     pub fn new() -> Self {
         Self {
             // Large-scale
-            land_nz: HybridMulti::new()
-                .set_seed(new_seed())
-                .set_octaves(8),
-            dry_nz: HybridMulti::new()
-                .set_seed(new_seed())
-                .set_octaves(6),
-            temp_nz: HybridMulti::new()
-                .set_seed(new_seed())
-                .set_octaves(8),
+            land_nz: HybridMulti::new().set_seed(new_seed()).set_octaves(8),
+            dry_nz: HybridMulti::new().set_seed(new_seed()).set_octaves(7),
+            temp_nz: HybridMulti::new().set_seed(new_seed()).set_octaves(8),
 
             // Small-scale
-            hill_nz: HybridMulti::new()
-                .set_seed(new_seed())
-                .set_octaves(4),
+            hill_nz: HybridMulti::new().set_seed(new_seed()).set_octaves(4),
 
-            temp_vari_nz: SuperSimplex::new()
-                .set_seed(new_seed()),
-            alt_vari_nz: SuperSimplex::new()
-                .set_seed(new_seed()),
-
-            warp_vari_nz_x: SuperSimplex::new()
-                .set_seed(new_seed()),
-            warp_vari_nz_y: SuperSimplex::new()
-                .set_seed(new_seed()),
-            warp_vari_nz_z: SuperSimplex::new()
-                .set_seed(new_seed()),
+            temp_vari_nz: SuperSimplex::new().set_seed(new_seed()),
+            alt_vari_nz: SuperSimplex::new().set_seed(new_seed()),
         }
     }
 
@@ -133,7 +112,8 @@ impl Gen<()> for OverworldGen {
         let z_sea = 118.0;
 
         let z_land = z_base + land * 32.0;
-        let z_height = z_land + dry * 192.0 * (1.0 - temp).mul(2.0).min(1.0).max(0.4) * (land * 2.0).min(1.0).max(0.4) + z_hill;
+        let z_height =
+            z_land + dry * 192.0 * (1.0 - temp).mul(2.0).min(1.0).max(0.4) * (land * 2.0).min(1.0).max(0.4) + z_hill;
         let z_alt = z_height - river * 8.0;
         let z_water = (z_height - 3.0).max(z_sea);
 

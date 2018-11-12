@@ -4,9 +4,9 @@ use vek::*;
 
 // Project
 use common::terrain::{
+    chunk::Block,
     figure::{Cell, CellMaterial, Figure},
     ConstructVolume, ReadWriteVolume, VoxRel, Voxel,
-    chunk::Block,
 };
 
 pub fn vox_to_figure(vox: DotVoxData) -> Figure {

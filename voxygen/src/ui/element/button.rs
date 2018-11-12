@@ -154,38 +154,37 @@ impl Element for Button {
             .map(|child| child.handle_event(event, scr_res, self.bounds_for_child(scr_res, bounds)))
             .unwrap_or(false);
 
-        let used = used
-            | match event {
-                Event::CursorPosition { x, y } => {
-                    let cursor = Vec2::new(*x as f32, *y as f32) / scr_res;
-                    if cursor.x > bounds.0.x
-                        && cursor.y > bounds.0.y
-                        && cursor.x < bounds.0.x + bounds.1.x
-                        && cursor.y < bounds.0.y + bounds.1.y
-                    {
-                        if self.active_mode.get() == ActiveMode::None {
-                            self.active_mode.set(ActiveMode::Hover);
-                        }
-                    } else {
-                        self.active_mode.set(ActiveMode::None);
+        let used = used | match event {
+            Event::CursorPosition { x, y } => {
+                let cursor = Vec2::new(*x as f32, *y as f32) / scr_res;
+                if cursor.x > bounds.0.x
+                    && cursor.y > bounds.0.y
+                    && cursor.x < bounds.0.x + bounds.1.x
+                    && cursor.y < bounds.0.y + bounds.1.y
+                {
+                    if self.active_mode.get() == ActiveMode::None {
+                        self.active_mode.set(ActiveMode::Hover);
                     }
+                } else {
+                    self.active_mode.set(ActiveMode::None);
+                }
+                false
+            },
+            Event::MouseButton { state, button } => {
+                if self.active_mode.get() != ActiveMode::None && *button == MouseButton::Left {
+                    if *state == ElementState::Pressed {
+                        self.active_mode.set(ActiveMode::Click);
+                    } else {
+                        self.click_fn.borrow_mut().as_mut().map(|f| (*f)(self));
+                        self.active_mode.set(ActiveMode::Hover);
+                    }
+                    true
+                } else {
                     false
-                },
-                Event::MouseButton { state, button } => {
-                    if self.active_mode.get() != ActiveMode::None && *button == MouseButton::Left {
-                        if *state == ElementState::Pressed {
-                            self.active_mode.set(ActiveMode::Click);
-                        } else {
-                            self.click_fn.borrow_mut().as_mut().map(|f| (*f)(self));
-                            self.active_mode.set(ActiveMode::Hover);
-                        }
-                        true
-                    } else {
-                        false
-                    }
-                },
-                _ => false,
-            };
+                }
+            },
+            _ => false,
+        };
 
         used
     }

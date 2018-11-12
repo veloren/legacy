@@ -22,9 +22,7 @@ where
 // Implementations for common structures
 
 impl RenderVoxel for Block {
-    fn get_palette(&self) -> u16 {
-        self.material().get_palette()
-    }
+    fn get_palette(&self) -> u16 { self.material().get_palette() }
 
     fn get_mat(&self) -> RenderMaterial {
         match self.material() {

@@ -7,9 +7,7 @@ pub struct BlockMat {
 }
 
 impl BlockMat {
-    pub fn get_palette(&self) -> u16 {
-        ((self.grad as u16) << 8) | (self.index as u16)
-    }
+    pub fn get_palette(&self) -> u16 { ((self.grad as u16) << 8) | (self.index as u16) }
 
     #[allow(dead_code)]
     pub fn grad(&self) -> u8 { self.grad }
@@ -23,19 +21,19 @@ pub struct Block {
 }
 
 impl Block {
-    pub const AIR: Block   = Block::from_byte(0);
+    pub const AIR: Block = Block::from_byte(0);
     pub const GRASS: Block = Block::from_byte(26);
-    pub const SAND: Block  = Block::from_byte(131);
+    pub const SAND: Block = Block::from_byte(131);
     pub const EARTH: Block = Block::from_byte(98);
     pub const STONE: Block = Block::from_byte(1);
     pub const WATER: Block = Block::from_byte(3);
-    pub const SNOW: Block  = Block::from_byte(7);
-    pub const LOG: Block   = Block::from_byte(77);
-    pub const LEAF: Block  = Block::from_byte(34);
-    pub const GOLD: Block  = Block::from_byte(95);
-    pub const LIGHT_COBBLE: Block  = Block::from_byte(109);
-    pub const MID_COBBLE: Block  = Block::from_byte(83);
-    pub const DARK_COBBLE: Block  = Block::from_byte(163);
+    pub const SNOW: Block = Block::from_byte(7);
+    pub const LOG: Block = Block::from_byte(77);
+    pub const LEAF: Block = Block::from_byte(34);
+    pub const GOLD: Block = Block::from_byte(95);
+    pub const LIGHT_COBBLE: Block = Block::from_byte(109);
+    pub const MID_COBBLE: Block = Block::from_byte(83);
+    pub const DARK_COBBLE: Block = Block::from_byte(163);
 
     pub const GRAD2_A_GRASS: u8 = 0;
     pub const GRAD2_A_LEAF0: u8 = 1;
@@ -82,9 +80,7 @@ impl Voxel for Block {
 
     fn new(mat: Self::Material) -> Self { Block { mat } }
 
-    fn empty() -> Self {
-        Self::AIR
-    }
+    fn empty() -> Self { Self::AIR }
 
     fn is_solid(&self) -> bool { *self != Self::AIR }
 

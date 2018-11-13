@@ -1,5 +1,5 @@
 // Standard
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Div, Mul};
 
 // Library
 use noise::{HybridMulti, MultiFractal, NoiseFn, Seedable};
@@ -83,44 +83,8 @@ impl Gen<(OverworldOut, towngen::InvariantZ)> for BlockGen {
             } else if pos_f64.z > z_alt - GRASS_DEPTH {
                 if let Some(surface_block) = town.surface {
                     surface_block
-                } else if overworld.temp > 0.5 {
-                    Block::gradient3(
-                        Block::GRAD3_O_STONE,
-                        Block::GRAD3_A_GRASS,
-                        Block::GRAD3_B_SAND,
-                        (overworld.temp.sub(0.65).mul(16.0))
-                            .max(0.0)
-                            .min(1.0)
-                            .add(overworld.temp_vari * 0.15)
-                            .max(0.0)
-                            .min(1.0)
-                            .mul(32.0) as u8,
-                        ((200.0 - (overworld.z_alt - overworld.z_sea)).div(150.0))
-                            .max(0.0)
-                            .min(1.0)
-                            .add(overworld.alt_vari * 0.15)
-                            .max(0.0)
-                            .min(1.0)
-                            .mul(64.0) as u8,
-                    )
                 } else {
-                    Block::gradient3(
-                        Block::GRAD3_O_STONE,
-                        Block::GRAD3_A_GRASS,
-                        Block::GRAD3_B_SNOW,
-                        ((1.0 - overworld.temp).sub(0.65).mul(16.0))
-                            .max(0.0)
-                            .min(1.0)
-                            .add(overworld.temp_vari * 0.15)
-                            .max(0.0)
-                            .min(1.0)
-                            .mul(32.0) as u8,
-                        ((200.0 - (overworld.z_alt - overworld.z_sea)).div(150.0))
-                            .add(overworld.alt_vari * 0.15)
-                            .max(0.0)
-                            .min(1.0)
-                            .mul(64.0) as u8,
-                    )
+                    overworld.surface_block
                 }
             } else {
                 Block::STONE

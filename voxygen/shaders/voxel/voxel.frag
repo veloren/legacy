@@ -79,6 +79,11 @@ float sun_shine     = 0;
 
 
 void main() {
+	if (length(play_origin.xyz - frag_world_pos.xyz) > view_distance.x) {
+		target = vec4(0.0);
+		return;
+	}
+
 	vec4 frag_col = get_color(frag_col_attr);
 
 	Material mat = mat_lut[frag_mat];
@@ -156,8 +161,7 @@ void main() {
 	float mist_delta = mist_end - mist_start;
 	float play_dist = length(play_origin.xyz - frag_world_pos.xyz);
 	float dist = max(play_dist - mist_start, 0);
-	float percent = saturate(dist / mist_delta);
-	float mist_value = percent;
+	float mist_value = saturate(dist / mist_delta);
 
 	vec3 sky_chroma = get_sky_chroma(-V, time_of_day);
     float smax = max(specular.r, max(specular.g, specular.b));

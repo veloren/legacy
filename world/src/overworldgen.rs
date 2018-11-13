@@ -1,9 +1,12 @@
 // Standard
-use std::ops::{Add, Div, Mul};
+use std::ops::{Add, Sub, Div, Mul};
 
 // Library
 use noise::{HybridMulti, MultiFractal, NoiseFn, Seedable, SuperSimplex};
 use vek::*;
+
+// Project
+use common::terrain::chunk::Block;
 
 // Local
 use new_seed;
@@ -33,6 +36,8 @@ pub struct Out {
     pub z_water: f64,
     pub z_sea: f64,
     pub z_hill: f64,
+
+    pub surface_block: Block,
 }
 
 impl OverworldGen {
@@ -117,18 +122,61 @@ impl Gen<()> for OverworldGen {
         let z_alt = z_height - river * 8.0;
         let z_water = (z_height - 3.0).max(z_sea);
 
+        let temp_vari = self.temp_vari_nz.get(pos_f64.div(48.0).into_array());
+        let alt_vari = self.alt_vari_nz.get(pos_f64.div(32.0).into_array());
+
         Out {
             land,
             dry,
             temp,
 
-            temp_vari: self.temp_vari_nz.get(pos_f64.div(48.0).into_array()),
-            alt_vari: self.alt_vari_nz.get(pos_f64.div(32.0).into_array()),
+            temp_vari,
+            alt_vari,
 
             z_alt,
             z_water,
             z_sea,
             z_hill,
+
+            surface_block: if temp > 0.5 {
+                Block::gradient3(
+                    Block::GRAD3_O_STONE,
+                    Block::GRAD3_A_GRASS,
+                    Block::GRAD3_B_SAND,
+                    (temp.sub(0.65).mul(16.0))
+                        .max(0.0)
+                        .min(1.0)
+                        .add(temp_vari * 0.15)
+                        .max(0.0)
+                        .min(1.0)
+                        .mul(32.0) as u8,
+                    ((200.0 - (z_alt - z_sea)).div(150.0))
+                        .max(0.0)
+                        .min(1.0)
+                        .add(alt_vari * 0.15)
+                        .max(0.0)
+                        .min(1.0)
+                        .mul(64.0) as u8,
+                )
+            } else {
+                Block::gradient3(
+                    Block::GRAD3_O_STONE,
+                    Block::GRAD3_A_GRASS,
+                    Block::GRAD3_B_SNOW,
+                    ((1.0 - temp).sub(0.65).mul(16.0))
+                        .max(0.0)
+                        .min(1.0)
+                        .add(temp_vari * 0.15)
+                        .max(0.0)
+                        .min(1.0)
+                        .mul(32.0) as u8,
+                    ((200.0 - (z_alt - z_sea)).div(150.0))
+                        .add(alt_vari * 0.15)
+                        .max(0.0)
+                        .min(1.0)
+                        .mul(64.0) as u8,
+                )
+            },
         }
     }
 }

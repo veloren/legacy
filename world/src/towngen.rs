@@ -327,7 +327,7 @@ impl StructureGen<CityGenOut> {
         (
             pos,
             // Town
-            if overworld.dry < 0.2 && overworld.z_alt > overworld.z_sea && self.throw_dice(pos, 0) & 0xFF < 26 {
+            if overworld.dry < 0.2 && overworld.z_alt > overworld.z_sea && overworld.land < 0.5 && self.throw_dice(pos, 0) & 0xFF < 26 {
                 CityResult::Town
             // Pyramid
             } else if overworld.temp > 0.6
@@ -337,7 +337,7 @@ impl StructureGen<CityGenOut> {
                 && self.throw_dice(pos, 1) & 0xFF < 26
             {
                 CityResult::Pyramid {
-                    height: 64 + self.throw_dice(pos, 0) % 32,
+                    height: 64 + self.throw_dice(pos, 0) % 64,
                     z: overworld.z_alt as i64,
                 }
             // Forest
@@ -474,7 +474,7 @@ impl<'a> Gen<(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)> for TownGen {
     fn sample<'b>(
         &'b self,
         pos: Vec3<i64>,
-        (building, _overworld, _overworld_gen): &'b (&'a InvariantZ, &'a OverworldOut, &'a OverworldGen),
+        (building, overworld, _overworld_gen): &'b (&'a InvariantZ, &'a OverworldOut, &'a OverworldGen),
     ) -> Out {
         let pos2d = Vec2::from(pos);
 
@@ -541,9 +541,15 @@ impl<'a> Gen<(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)> for TownGen {
 
                     let pyramid_h = pyramid_base.z + height as i64 - rel_offs.map(|e| e.abs()).reduce_max();
 
+                    let tpos = pos + Vec3::new(2, 2, 2);
+                    let tunnel =
+                        (self.building_gen.internal().throw_dice(tpos / Vec3::new(96, 24, 24), 0) % 2 == 0 && tpos.x % 96 < 95 && tpos.y % 24 < 7 && tpos.z % 24 < 7) ||
+                        (self.building_gen.internal().throw_dice(tpos / Vec3::new(24, 96, 24), 1) % 2 == 0 && tpos.x % 24 < 7 && tpos.y % 96 < 95 && tpos.z % 24 < 7) ||
+                        (self.building_gen.internal().throw_dice(tpos / Vec3::new(24, 24, 48), 2) % 2 == 0 && tpos.x % 24 < 7 && tpos.y % 24 < 7 && tpos.z % 48 < 47);
+
                     if pos.z < pyramid_h
                         && !(rel_offs.map(|e| e.abs()).reduce_min() < 2 && (pos.z) % 25 < 4)
-                        && !(pos.z < pyramid_h - 6 && (pos.z) % 25 < 24)
+                        && !(pos.z < pyramid_h - 6 && tunnel)
                     {
                         out.block = Some(Block::SAND);
                     }
@@ -568,7 +574,7 @@ impl<'a> Gen<(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)> for TownGen {
 
                 // Find distance to make path
                 if rel_offs.map(|e| e * e).sum() > 10 * 10 {
-                    out.surface = Some(match self.building_gen.internal().throw_dice(pos.into(), 0) % 5 {
+                    out.surface = Some(match self.building_gen.internal().throw_dice(Vec2::from(pos), 0) % 5 {
                         0 => Block::from_byte(109),
                         1 => Block::from_byte(110),
                         2 => Block::from_byte(111),

@@ -473,6 +473,7 @@ impl Game {
 
         // Find the chunk the player is in
         let squared_view_distance = self.client.view_distance().powi(2) as f32; // view_distance is vox based, but its needed vol based here
+        let cam_vec_world = camera_mats.0.inverted() * (-Vec4::unit_z());
 
         // Render each chunk
         for (_pos, con) in self
@@ -483,9 +484,9 @@ impl Game {
                 // This limit represents the point in the chunk that's closest to the player (0 - CHUNK_SIZE)
                 let chunk_offs_limit = Vec3::clamp(player_pos - chunk_pos, Vec3::zero(), CHUNK_SIZE.map(|e| e as f32));
                 (chunk_pos + chunk_offs_limit).distance_squared(player_pos) < squared_view_distance
-                    && ((camera_mats.0 * Vec4::from(chunk_pos + CHUNK_SIZE.map(|e| e as f32) / 2.0 - cam_origin))
+                    && (Vec4::from(chunk_pos + CHUNK_SIZE.map(|e| e as f32) / 2.0 - cam_origin)
                         .normalized()
-                        .dot(-Vec4::unit_z())
+                        .dot(cam_vec_world)
                         > camera_fov.cos()
                         || (chunk_pos + CHUNK_SIZE.map(|e| e as f32) / 2.0 - cam_origin).magnitude()
                             < CHUNK_SIZE.x as f32 * 2.0)

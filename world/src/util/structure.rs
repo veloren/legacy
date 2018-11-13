@@ -48,11 +48,13 @@ impl<O> StructureGen<O> {
         }
     }
 
-    pub fn throw_dice(&self, pos: Vec2<i64>, seed: u32) -> u64 {
+    pub fn throw_dice<T: Into<Vec3<i64>>>(&self, pos: T, seed: u32) -> u64 {
         // TODO: Make this actually good
+        let pos = pos.into();
         let next = 327387278321 ^ (self.seed + seed) as u64 * 1103515245 + 15341;
         let next = 327387278322 ^ (next + (pos.x + 3232782181) as u64) * 1103515245 + 12343;
         let next = 327387278321 ^ (next + (pos.y + 23728323237) as u64) * 1103515245 + 12541;
+        let next = 327387278321 ^ (next + (pos.z + 11982942813) as u64) * 327822771 + 12541;
         next
     }
 }

@@ -32,44 +32,6 @@ uniform global_consts {
 
 out vec4 target;
 
-vec4 get_color(uint col_attr) {
-	// extract the second byte
-	uint grad = (col_attr >> 8) & 0xFFu;
-
-	// Palette mode
-	if ((grad & 0xC0u) == 0x80u) {
-		// This mode is just a simple index into a large 256-entry palette
-		return col_lut[col_attr & 0xFFu];
-	// Double gradient mode
-	} else if ((grad & 0xC0u) == 0x40u) {
-		// This mode blends between two colors: a, b
-		// a and b are blended using the grad value
-
-		// Calculate the a, b colours based on their indices
-		vec4 col_a = col_lut[grad2_a_lut[(col_attr >> 0) & 0xFu]];
-		vec4 col_b = col_lut[grad2_b_lut[(col_attr >> 4) & 0xFu]];
-
-		return mix(col_a, col_b, float(grad & 0x3Fu) / 64.0);
-	// Triple gradient mode
-	} else if ((grad & 0xC0u) == 0xC0u) {
-		// This mode blends between 3 colors: o, a, b
-		// a and b are blended first using the grad_ab value
-		// Then, the resulting color (col_ab) is blended with o
-
-		// Calculate the o, a, b colours based on their indices
-		vec4 col_o = col_lut[grad3_o_lut[(col_attr >> 0) & 0x1u]];
-		vec4 col_a = col_lut[grad3_a_lut[(col_attr >> 1) & 0x1u]];
-		vec4 col_b = col_lut[grad3_b_lut[(col_attr >> 2) & 0x1u]];
-
-		vec4 col_ab = mix(col_a, col_b, float((col_attr >> 3) & 0x1Fu) / 32.0);
-
-		return mix(col_o, col_ab, float(grad & 0x3Fu) / 64.0);
-	// Fallback
-	} else {
-		return vec4(1, 1, 1, 1);
-	}
-}
-
 float diffuse_factor = 0.5;
 float ambiant_factor = 0.2;
 vec3  sun_direction = normalize(vec3(-1.5, -0.8, -1));
@@ -84,7 +46,7 @@ void main() {
 		return;
 	}
 
-	vec4 frag_col = get_color(frag_col_attr);
+	vec4 frag_col = get_color_from_attr(frag_col_attr);
 
 	Material mat = mat_lut[frag_mat];
 	// Sunlight

@@ -31,7 +31,7 @@ use vek::*;
 
 // Project
 use common::terrain::{
-    chunk::{Block, Chunk, HeterogeneousData, HomogeneousData},
+    chunk::{Block, Chunk, HeterogeneousData, HomogeneousData, CHUNK_SIZE},
     ConstructVolume, ReadWriteVolume,
 };
 
@@ -47,10 +47,6 @@ pub trait Gen<S> {
     fn sample<'a>(&'a self, i: Self::In, supplement: &'a S) -> Self::Out;
 }
 
-// World
-
-const CHUNK_SZ: Vec3<u32> = Vec3 { x: 32, y: 32, z: 32 };
-
 // Seed - used during worldgen initiation
 static SEED: AtomicU32 = AtomicU32::new(0);
 pub fn new_seed() -> u32 { SEED.fetch_add(1, Ordering::Relaxed) }
@@ -64,18 +60,18 @@ pub struct World;
 impl World {
     pub fn gen_chunk(offs: Vec3<i32>) -> Chunk {
         // If the chunk is out of bounds, just generate air
-        if offs.z < 0 || offs.z > 512 / CHUNK_SZ.z as i32 {
-            return Chunk::Homo(HomogeneousData::filled(CHUNK_SZ, Block::AIR));
+        if offs.z < 0 || offs.z > 512 / CHUNK_SIZE.z as i32 {
+            return Chunk::Homo(HomogeneousData::filled(CHUNK_SIZE, Block::AIR));
         }
 
-        let mut chunk_data = HeterogeneousData::empty(CHUNK_SZ);
+        let mut chunk_data = HeterogeneousData::empty(CHUNK_SIZE);
         let generator = &GENERATOR; // Create a temporary for the generator here to avoid atomic operations for every block
 
         // is_homogeneous, block type
         let mut cblock = (true, None);
 
         let mut gen_block_fn = |x, y, z| {
-            let pos = offs.map(|e| e as i64) * CHUNK_SZ.map(|e| e as i64) + Vec3::new(x, y, z).map(|e| e as i64);
+            let pos = offs.map(|e| e as i64) * CHUNK_SIZE.map(|e| e as i64) + Vec3::new(x, y, z).map(|e| e as i64);
 
             let block = generator.sample(pos, &generator.get_invariant_z(Vec2::from(pos)));
 
@@ -91,9 +87,9 @@ impl World {
 
         // x faces
 
-        for x in (0..CHUNK_SZ.x).step_by(CHUNK_SZ.x as usize - 1) {
-            for y in 1..CHUNK_SZ.y - 1 {
-                for z in 1..CHUNK_SZ.z - 1 {
+        for x in (0..CHUNK_SIZE.x).step_by(CHUNK_SIZE.x as usize - 1) {
+            for y in 1..CHUNK_SIZE.y - 1 {
+                for z in 1..CHUNK_SIZE.z - 1 {
                     gen_block_fn(x, y, z);
                 }
             }
@@ -101,9 +97,9 @@ impl World {
 
         // y faces
 
-        for x in 0..CHUNK_SZ.x {
-            for y in (0..CHUNK_SZ.y).step_by(CHUNK_SZ.y as usize - 1) {
-                for z in 1..CHUNK_SZ.z - 1 {
+        for x in 0..CHUNK_SIZE.x {
+            for y in (0..CHUNK_SIZE.y).step_by(CHUNK_SIZE.y as usize - 1) {
+                for z in 1..CHUNK_SIZE.z - 1 {
                     gen_block_fn(x, y, z);
                 }
             }
@@ -111,9 +107,9 @@ impl World {
 
         // z faces
 
-        for x in 0..CHUNK_SZ.x {
-            for y in 0..CHUNK_SZ.y {
-                for z in (0..CHUNK_SZ.z).step_by(CHUNK_SZ.z as usize - 1) {
+        for x in 0..CHUNK_SIZE.x {
+            for y in 0..CHUNK_SIZE.y {
+                for z in (0..CHUNK_SIZE.z).step_by(CHUNK_SIZE.z as usize - 1) {
                     gen_block_fn(x, y, z);
                 }
             }
@@ -121,20 +117,20 @@ impl World {
 
         // Can we make broad assumptions about the homogenity of the chunk?
         match cblock {
-            (true, Some(block)) => return Chunk::Homo(HomogeneousData::filled(CHUNK_SZ, block)),
+            (true, Some(block)) => return Chunk::Homo(HomogeneousData::filled(CHUNK_SIZE, block)),
             _ => {},
         }
 
         // Fill in everything else
-        for x in 1..CHUNK_SZ.x - 1 {
-            for y in 1..CHUNK_SZ.y - 1 {
-                let pos2d = Vec2::from(offs.map(|e| e as i64)) * Vec2::from(CHUNK_SZ.map(|e| e as i64))
+        for x in 1..CHUNK_SIZE.x - 1 {
+            for y in 1..CHUNK_SIZE.y - 1 {
+                let pos2d = Vec2::from(offs.map(|e| e as i64)) * Vec2::from(CHUNK_SIZE.map(|e| e as i64))
                     + Vec2::new(x, y).map(|e| e as i64);
                 let invariant_z = generator.get_invariant_z(pos2d);
 
-                for z in 1..CHUNK_SZ.z - 1 {
+                for z in 1..CHUNK_SIZE.z - 1 {
                     let pos =
-                        offs.map(|e| e as i64) * CHUNK_SZ.map(|e| e as i64) + Vec3::new(x, y, z).map(|e| e as i64);
+                        offs.map(|e| e as i64) * CHUNK_SIZE.map(|e| e as i64) + Vec3::new(x, y, z).map(|e| e as i64);
 
                     chunk_data.set_at(Vec3::new(x, y, z), generator.sample(pos, &invariant_z));
                 }

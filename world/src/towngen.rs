@@ -327,7 +327,11 @@ impl StructureGen<CityGenOut> {
         (
             pos,
             // Town
-            if overworld.dry < 0.2 && overworld.z_alt > overworld.z_sea && overworld.land < 0.5 && self.throw_dice(pos, 0) & 0xFF < 26 {
+            if overworld.dry < 0.2
+                && overworld.z_alt > overworld.z_sea
+                && overworld.land < 0.5
+                && self.throw_dice(pos, 0) & 0xFF < 26
+            {
                 CityResult::Town
             // Pyramid
             } else if overworld.temp > 0.6
@@ -542,10 +546,18 @@ impl<'a> Gen<(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)> for TownGen {
                     let pyramid_h = pyramid_base.z + height as i64 - rel_offs.map(|e| e.abs()).reduce_max();
 
                     let tpos = pos + Vec3::new(2, 2, 2);
-                    let tunnel =
-                        (self.building_gen.internal().throw_dice(tpos / Vec3::new(96, 24, 24), 0) % 2 == 0 && tpos.x % 96 < 95 && tpos.y % 24 < 7 && tpos.z % 24 < 7) ||
-                        (self.building_gen.internal().throw_dice(tpos / Vec3::new(24, 96, 24), 1) % 2 == 0 && tpos.x % 24 < 7 && tpos.y % 96 < 95 && tpos.z % 24 < 7) ||
-                        (self.building_gen.internal().throw_dice(tpos / Vec3::new(24, 24, 48), 2) % 2 == 0 && tpos.x % 24 < 7 && tpos.y % 24 < 7 && tpos.z % 48 < 47);
+                    let tunnel = (self.building_gen.internal().throw_dice(tpos / Vec3::new(96, 24, 24), 0) % 2 == 0
+                        && tpos.x % 96 < 95
+                        && tpos.y % 24 < 7
+                        && tpos.z % 24 < 7)
+                        || (self.building_gen.internal().throw_dice(tpos / Vec3::new(24, 96, 24), 1) % 2 == 0
+                            && tpos.x % 24 < 7
+                            && tpos.y % 96 < 95
+                            && tpos.z % 24 < 7)
+                        || (self.building_gen.internal().throw_dice(tpos / Vec3::new(24, 24, 48), 2) % 2 == 0
+                            && tpos.x % 24 < 7
+                            && tpos.y % 24 < 7
+                            && tpos.z % 48 < 47);
 
                     if pos.z < pyramid_h
                         && !(rel_offs.map(|e| e.abs()).reduce_min() < 2 && (pos.z) % 25 < 4)

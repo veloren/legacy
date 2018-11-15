@@ -483,8 +483,10 @@ impl Game {
                 let chunk_pos = chunk_offs.map(|e| e as f32) * CHUNK_SIZE.map(|e| e as f32);
                 // This limit represents the point in the chunk that's closest to the player (0 - CHUNK_SIZE)
                 let chunk_offs_limit = Vec3::clamp(player_pos - chunk_pos, Vec3::zero(), CHUNK_SIZE.map(|e| e as f32));
-                (chunk_pos + chunk_offs_limit).distance_squared(player_pos) < squared_view_distance
-                    && (Vec4::from(chunk_pos + CHUNK_SIZE.map(|e| e as f32) / 2.0 - cam_origin)
+                // Check whether the chunk is within range of the view distance
+                (chunk_pos + chunk_offs_limit).distance_squared(player_pos) < squared_view_distance &&
+                // Check whether the chunk is within the frustrum of the camera (or within a certain minimum range to avoid visual artefacts)
+                (Vec4::from(chunk_pos + CHUNK_SIZE.map(|e| e as f32) / 2.0 - cam_origin)
                         .normalized()
                         .dot(cam_vec_world)
                         > camera_fov.cos()

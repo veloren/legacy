@@ -1,5 +1,5 @@
 // Standard
-use std::ops::{Add, Sub, Div, Mul};
+use std::ops::{Add, Div, Mul, Sub};
 
 // Library
 use noise::{HybridMulti, MultiFractal, NoiseFn, Seedable, SuperSimplex};

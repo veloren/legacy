@@ -202,19 +202,6 @@ where
             ]
         };
 
-        /*
-        const vecs: [Vec3<i64>; 8] = [
-            Vec3 { x: 0,  y: 0,  z: 0  },
-            Vec3 { x: -1, y: 0,  z: 0  },
-            Vec3 { x: 0,  y: -1, z: 0  },
-            Vec3 { x: -1, y: -1, z: 0  },
-            Vec3 { x: 0,  y: 0,  z: -1 },
-            Vec3 { x: -1, y: 0,  z: -1 },
-            Vec3 { x: 0,  y: -1, z: -1 },
-            Vec3 { x: -1, y: -1, z: -1 },
-        ];
-        */
-
         vecs.iter()
             .fold(0, |acc, v| {
                 acc + if self
@@ -362,6 +349,9 @@ impl Mesh {
                     let palette = vox.get_palette();
                     let render_mat = vox.get_mat();
                     let mat = render_mat.mat();
+
+                    // Override, for now
+                    let fake_optimize = false;
 
                     let mesh = map.entry(render_mat.kind()).or_insert(Mesh::new());
 

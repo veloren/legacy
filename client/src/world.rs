@@ -83,8 +83,7 @@ impl<P: Payloads> Client<P> {
                 player_vel = player.vel().map(|e| e as VoxAbs);
             }
 
-            const GENERATION_SUMMAND: f32 = 0.0 * CHUNK_SIZE.x as f32; // generate more than you see
-            let view_dist = self.view_distance as f32 + GENERATION_SUMMAND;
+            let view_dist = self.view_distance as f32;
             let mut bl = self.chunk_mgr().block_loader_mut();
             bl.clear();
             bl.push(Arc::new(RwLock::new(BlockLoader {

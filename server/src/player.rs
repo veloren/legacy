@@ -3,10 +3,11 @@ use std::sync::Arc;
 
 // Library
 use specs::{Builder, Component, EntityBuilder, VecStorage};
+use vek::*;
 
 // Project
 use common::{
-    ecs::{CreateUtil, NetComp},
+    ecs::{phys::Pos, CreateUtil, NetComp},
     util::{
         manager::Manager,
         msg::{CompStore, PlayMode, ServerPostOffice},
@@ -56,5 +57,6 @@ impl<P: Payloads> Server<P> {
         .with(Client {
             postoffice: Arc::new(po),
         })
+        .with(Pos(Vec3::new(0.0, 0.0, 215.0)))
     }
 }

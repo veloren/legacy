@@ -686,7 +686,7 @@ fn tti_diagonal_in_to_dirs_negative() {
 }
 
 // Constants
-pub const CHUNK_SIZE: Vec3<VoxRel> = Vec3 { x: 32, y: 32, z: 32 }; // TODO: Unify this using the chunk interface
+pub const CHUNK_SIZE: Vec3<VoxRel> = Vec3 { x: 64, y: 64, z: 64 }; // TODO: Unify this using the chunk interface
 pub const CHUNK_MID: Vec3<f32> = Vec3 {
     x: CHUNK_SIZE.x as f32 / 2.0,
     y: CHUNK_SIZE.y as f32 / 2.0,

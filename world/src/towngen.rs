@@ -1,5 +1,8 @@
 // Standard
-use std::ops::{Add, Div, Mul, Sub};
+use std::{
+    ops::{Add, Div, Mul, Sub},
+    process,
+};
 
 // Library
 use dot_vox;
@@ -18,7 +21,10 @@ use Gen;
 // <--- BEGIN MESS --->
 
 // Project
-use common::terrain::{chunk::HeterogeneousData, ConstructVolume, ReadVolume, ReadWriteVolume, Volume, Voxel};
+use common::{
+    get_asset_dir, get_asset_path,
+    terrain::{chunk::HeterogeneousData, ConstructVolume, ReadVolume, ReadWriteVolume, Volume, Voxel},
+};
 
 // TODO: Replace this with a superior voxel loading system
 // Maybe include_bytes! these files into the executable?
@@ -47,47 +53,113 @@ fn dot_vox_to_hetero(vox: dot_vox::DotVoxData) -> HeterogeneousData {
     }
 }
 
+fn asset_load_error(err_msg: &'static str) -> dot_vox::DotVoxData {
+    println!("{}", err_msg);
+    println!("An asset could not be found.");
+    println!(
+        "Please ensure that the asset directory is located at '{}' and is populated.",
+        get_asset_dir().to_str().unwrap()
+    );
+    println!("Veloren will now exit.");
+    process::exit(1);
+}
+
 fn load_buildings() -> Vec<HeterogeneousData> {
     let mut buildings = vec![];
 
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq1.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Structures/Human/Houses/16x16x16/Turqoise/turq1.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq2.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Structures/Human/Houses/16x16x16/Turqoise/turq2.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq3.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Structures/Human/Houses/16x16x16/Turqoise/turq3.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq4.vox").unwrap()));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Turqoise/turq5.vox").unwrap()));
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue1.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Structures/Human/Houses/16x16x16/Blue/blue1.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue2.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Structures/Human/Houses/16x16x16/Blue/blue2.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue3.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Structures/Human/Houses/16x16x16/Blue/blue3.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue4.vox").unwrap()));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Blue/blue5.vox").unwrap()));
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/1R.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Structures/Human/Houses/16x16x16/Red/1R.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/2R.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Structures/Human/Houses/16x16x16/Red/2R.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/3R.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Structures/Human/Houses/16x16x16/Red/3R.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/4R.vox").unwrap()));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Red/5R.vox").unwrap()));
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Green/green1.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Structures/Human/Houses/16x16x16/Green/green1.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Green/green2.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Structures/Human/Houses/16x16x16/Green/green2.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Green/green3.vox").unwrap()));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/Houses/16x16x16/Green/green4.vox").unwrap()));
@@ -97,10 +169,20 @@ fn load_buildings() -> Vec<HeterogeneousData> {
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Structures/Human/tower.vox").unwrap()));
 
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_1.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_1.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     buildings.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Poplars/1.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/1.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     //buildings.push(dot_vox_to_hetero(dot_vox::load("../assets/world/Trees/Veloren_Trees/Willows/1.vox").unwrap()));
 
@@ -111,72 +193,182 @@ fn load_trees_temperate() -> Vec<HeterogeneousData> {
     let mut trees = vec![];
 
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak1.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Oaks/Oak1.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak2.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Oaks/Oak2.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak3.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Oaks/Oak3.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak4.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Oaks/Oak4.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak5.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Oaks/Oak5.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak6.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Oaks/Oak6.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak7.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Oaks/Oak7.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak8.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Oaks/Oak8.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak9.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Oaks/Oak9.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Oaks/Oak10.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Oaks/Oak10.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
 
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/1.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/1.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/2.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/2.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/3.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/3.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/4.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/4.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/5.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/5.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/6.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/6.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/7.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/7.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/8.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/8.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/9.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/9.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Poplars/10.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/10.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
 
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Willows/1.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Willows/1.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees_Purple/Willows/2.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Willows/2.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
 
     trees
@@ -186,34 +378,84 @@ fn load_trees_tropical() -> Vec<HeterogeneousData> {
     let mut trees = vec![];
 
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_1.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_1.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_2.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_2.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_3.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_3.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_4.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_4.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_5.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_5.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_6.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_6.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_7.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_7.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_8.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_8.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_9.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_9.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
     trees.push(dot_vox_to_hetero(
-        dot_vox::load("../assets/world/Trees/Veloren_Trees/Birches/Birch_10.vox").unwrap(),
+        dot_vox::load(
+            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_10.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap_or_else(asset_load_error),
     ));
 
     trees

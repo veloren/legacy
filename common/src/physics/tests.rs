@@ -878,11 +878,12 @@ fn physics_walk() {
     }
     {
         let p = ent.get(&1);
-        let d = *p.unwrap().read().pos() - Vec3::new(
-            CHUNK_MID.x*2.0-1.0 - /*player size*/0.45,
-            CHUNK_MID.y,
-            CHUNK_SIZE.z as f32 + 3.0,
-        );
+        let d = *p.unwrap().read().pos()
+            - Vec3::new(
+                CHUNK_MID.x*2.0-1.0 - /*player size*/0.45,
+                CHUNK_MID.y,
+                CHUNK_SIZE.z as f32 + 3.0,
+            );
         println!("{}, physics_walk {}", d.magnitude(), *p.unwrap().read().pos());
         // TODO: *DON'T* use chunks below z=0 for these tests, fix this when physics is refactored
         //assert!(d.magnitude() < 0.01);

@@ -69,13 +69,15 @@ where
     fn sample(&self, pos: Vec2<i64>, (supplement, f): &(&S, F)) -> Self::Out {
         impl<O> StructureGen<O> {
             fn cell_pos(&self, cell_coord: Vec2<i64>) -> Vec2<i64> {
-                cell_coord * self.freq as i64 + self.freq as i64 / 2 + if self.warp > 0 {
-                    Vec2::new(self.throw_dice(cell_coord, 1337), self.throw_dice(cell_coord, 1338))
-                        .map(|e| (e.mod_euc(self.warp)) as i64)
-                        - self.warp as i64 / 2
-                } else {
-                    Vec2::zero()
-                }
+                cell_coord * self.freq as i64
+                    + self.freq as i64 / 2
+                    + if self.warp > 0 {
+                        Vec2::new(self.throw_dice(cell_coord, 1337), self.throw_dice(cell_coord, 1338))
+                            .map(|e| (e.mod_euc(self.warp)) as i64)
+                            - self.warp as i64 / 2
+                    } else {
+                        Vec2::zero()
+                    }
             }
         }
 

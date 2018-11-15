@@ -16,7 +16,7 @@ impl Camera {
             focus: Vec3::zero(),
             ori: Vec2::zero(),
             aspect_ratio: 1.618,
-            fov: 1.5,
+            fov: 1.3,
             zoom: 10.0,
         }
     }
@@ -25,7 +25,7 @@ impl Camera {
         let mut view = Mat4::identity();
 
         view *= Mat4::<f32>::translation_3d(Vec3::new(0.0, 0.0, -self.zoom))
-            * Mat4::rotation_x(self.ori.y)
+            * Mat4::rotation_x(self.ori.y)//0.785375)
             * Mat4::rotation_y(self.ori.x);
 
         // Apply anti-OpenGL correction
@@ -72,9 +72,13 @@ impl Camera {
     #[allow(dead_code)]
     pub fn set_aspect_ratio(&mut self, ratio: f32) { self.aspect_ratio = ratio; }
     #[allow(dead_code)]
+    pub fn get_fov(&mut self) -> f32 { self.fov }
+    #[allow(dead_code)]
     pub fn set_fov(&mut self, fov: f32) { self.fov = fov; }
     #[allow(dead_code)]
     pub fn set_focus(&mut self, focus: Vec3<f32>) { self.focus = focus; }
+    #[allow(dead_code)]
+    pub fn get_zoom(&mut self) -> f32 { self.zoom }
     #[allow(dead_code)]
     pub fn set_zoom(&mut self, zoom: f32) { self.zoom = zoom; }
 }

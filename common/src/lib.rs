@@ -12,7 +12,7 @@ extern crate byteorder;
 extern crate lazy_static;
 #[macro_use]
 extern crate enum_map;
-extern crate noise;
+extern crate dot_vox;
 extern crate num;
 extern crate parking_lot;
 extern crate rand;
@@ -28,8 +28,15 @@ pub mod physics;
 pub mod terrain;
 pub mod util;
 
+// Standard
+use std::path::{Path, PathBuf};
+
 pub type Uid = u64;
 
 const CARGO_VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 
 pub fn get_version() -> String { CARGO_VERSION.unwrap_or("UNKNOWN VERSION").to_string() }
+
+pub fn get_asset_dir() -> &'static Path { Path::new(option_env!("VELOREN_ASSETS").unwrap_or("../assets/")) }
+
+pub fn get_asset_path(rpath: &str) -> PathBuf { get_asset_dir().join(rpath) }

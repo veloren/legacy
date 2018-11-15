@@ -5,5 +5,10 @@ authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
 
 [dependencies]
 common = { path = "../common" }
-noise = "0.5.1"
-euler = "0.3.0"
+noise = "0.5"
+vek = "0.9"
+dot_vox = "1.0"
+num-traits = "0.2"
+lazy_static = "1.0"
+fnv = "1.0"
+parking_lot = "0.6"

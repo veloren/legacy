@@ -4,6 +4,7 @@
 extern crate common;
 extern crate parking_lot;
 extern crate vek;
+extern crate world as world_crate; // TODO: Fix this naming conflict
 #[macro_use]
 extern crate log;
 
@@ -45,8 +46,10 @@ use common::{
 use error::Error;
 use player::Player;
 
+// Reexports
+pub use common::terrain::chunk::CHUNK_SIZE;
+
 // Constants
-pub const CHUNK_SIZE: Vec3<VoxRel> = Vec3 { x: 32, y: 32, z: 32 };
 pub const CHUNK_MID: Vec3<f32> = Vec3 {
     x: CHUNK_SIZE.x as f32 / 2.0,
     y: CHUNK_SIZE.y as f32 / 2.0,
@@ -129,7 +132,7 @@ impl<P: Payloads> Client<P> {
 
                 events: Mutex::new(vec![]),
 
-                view_distance: view_distance.max(1).min(10),
+                view_distance: view_distance.max(CHUNK_SIZE.x as i64),
             });
 
             client.player.write().entity_uid = player_uid;
@@ -144,7 +147,7 @@ impl<P: Payloads> Client<P> {
 
     pub fn send_cmd(&self, args: Vec<String>) { let _ = self.postoffice.send_one(ClientMsg::Cmd { args }); }
 
-    pub fn view_distance(&self) -> f32 { (CHUNK_SIZE.map(|e| e as f32) * (self.view_distance as f32)).magnitude() }
+    pub fn view_distance(&self) -> f32 { self.view_distance as f32 }
 
     pub fn chunk_mgr(&self) -> &ChunkMgr<<P as Payloads>::Chunk> { &self.chunk_mgr }
 

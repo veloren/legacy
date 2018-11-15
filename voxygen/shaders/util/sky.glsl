@@ -43,16 +43,16 @@ float interp(float v1, float v2, float v3, float r1, float r2, float r3, float r
 
 ////// Main gradient params://////
 // Noon
-const vec3 noon_top_col = vec3(0.02, 0.3, 0.8);
+const vec3 noon_top_col = vec3(0.45, 0.45, 0.5);
 const float noon_top_strength = 20000.0;
-const vec3 noon_mid_col = vec3(0.2, 0.5, 1.0);
+const vec3 noon_mid_col = vec3(0.7, 0.8, 0.7);
 const float noon_mid_strength = 20000.0;
-const vec3 noon_bot_col = vec3(0.03, 0.15, 0.4);
+const vec3 noon_bot_col = vec3(0.25, 0.3, 0.25);
 const float noon_bot_strength = 15000.0;
 // Sunset
 const vec3 sunset_top_col = vec3(0.15, 0.1, 0.175);
 const float sunset_top_strength = 6000;
-const vec3 sunset_mid_col = vec3(1.0, 0.2, 0.025);
+const vec3 sunset_mid_col = vec3(1.0, 0.4, 0.225);
 const float sunset_mid_strength = 2000;
 const vec3 sunset_bot_col = vec3(0.075, 0.05, 0.1);
 const float sunset_bot_strength = 1900;
@@ -72,8 +72,8 @@ const float sunset_sun_strength = 100000.0 * 0.25;
 // Midnight
 const float midnight_sun_strength = 0.0;
 // Universal
-const float sun_size = 0.017; // 2 deg ang diameter
-const float sun_bloom = 1;
+const float sun_size = 0.03; // 3.5 deg ang diameter
+const float sun_bloom = 1.5;
 
 ////// Sun halo params: ///////
 // Midday
@@ -151,8 +151,9 @@ vec3 get_sky(vec3 dir, float time, bool sun) {
 	float omdt2 = omdt * omdt;
 	float omdt4 = omdt2 * omdt2;
 	float omdb = 0.6 - 0.6 * dotbot;
-	float ssdt = smoothstep(-0.01, 0.0, dottop);
-	float ssdb = smoothstep(0.0, 0.01, dotbot);
+	float ssdt = smoothstep(-0.0, 0.2, dottop);
+	float ssds = smoothstep(-0.0, 0.2, dottop);
+	float ssdb = smoothstep(-0.2, 0.0, dotbot);
 
 	#ifdef OUTPUT_GRADIENT
 	output_col += mix(top_col * top_strength, mid_col * mid_strength, omdt4) * ssdt;
@@ -166,7 +167,7 @@ vec3 get_sky(vec3 dir, float time, bool sun) {
 	float ds = dot(sun_dir, dir);
 	float dotsun = saturate(ds);
 	float d = cos(sun_size);
-	float disc_factor = smoothstep(d - sun_bloom / 1000, d, dotsun) * ssdt;
+	float disc_factor = smoothstep(d - sun_bloom / 1000, d, dotsun) * ssds;
 
 	#ifdef OUTPUT_DISC
 	output_col += sun ? sun_col * sun_strength * disc_factor : vec3(0.0);
@@ -175,7 +176,7 @@ vec3 get_sky(vec3 dir, float time, bool sun) {
 	// Sun halo builder
 	float halo_factor = pow(dotsun, 1 / (sun_halo_bloom + sun_halo_bloom * omdt4 * omdt2) * 100);
 	halo_factor += 0.5 * pow(dotsun, 1 / (sun_halo_bloom * omdt4) * 200);
-	halo_factor *= ssdt;
+	halo_factor *= ssds;
 
 	#ifdef OUTPUT_SUN_HALO
 	output_col += sun_halo_col * sun_halo_strength * saturate(halo_factor);
@@ -193,9 +194,9 @@ vec3 get_sky(vec3 dir, float time, bool sun) {
 }
 
 vec3 get_sky_chroma(vec3 dir, float time) {
-	return get_sky(dir, time, false);
+	return get_sky(dir, time, false) * 3.0 * vec3(0.4, 0.65, 1.5);
 }
 
 vec3 get_skybox(vec3 dir, float time) {
-	return get_sky(dir, time, true);
+	return get_sky(dir, time, true) * 3.0 * vec3(0.4, 0.65, 1.5);
 }

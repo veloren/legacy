@@ -1,7 +1,7 @@
 use gfx::{
     handle::Program,
     pso::{PipelineInit, PipelineState},
-    state::Rasterizer,
+    state::{CullFace, FrontFace, MultiSample, RasterMethod, Rasterizer},
     traits::FactoryExt,
     Primitive,
 };
@@ -25,7 +25,14 @@ impl<P: PipelineInit> Pipeline<P> {
                 .create_pipeline_from_program(
                     &program,
                     Primitive::TriangleList,
-                    Rasterizer::new_fill().with_cull_back(),
+                    Rasterizer {
+                        front_face: FrontFace::CounterClockwise,
+                        cull_face: CullFace::Back,
+                        method: RasterMethod::Fill,
+                        offset: None,
+                        samples: Some(MultiSample),
+                    },
+                    //Rasterizer::new_fill().with_cull_back(),
                     pipe,
                 )
                 .expect("Failed to create rendering pipeline"),

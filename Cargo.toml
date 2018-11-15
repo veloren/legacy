@@ -14,3 +14,7 @@ members = [
 
 [profile.release]
 debug = true
+
+# TODO: Enable upon version release
+#lto = true
+#overflow-checks = false

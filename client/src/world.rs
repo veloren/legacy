@@ -16,6 +16,7 @@ use common::{
 use parking_lot::{Mutex, RwLock};
 
 // Local
+use world_crate;
 use Client;
 use Payloads;
 use CHUNK_SIZE;
@@ -43,9 +44,7 @@ pub(crate) fn gen_chunk<P: Send + Sync + 'static>(pos: Vec3<VolOffs>, con: Arc<M
                 pos
             );
         }
-        let vol = HeterogeneousData::test(terrain::voloffs_to_voxabs(pos, CHUNK_SIZE), CHUNK_SIZE);
-        let mut c = Chunk::Hetero(vol);
-        c.convert(PersState::Homo); //TODO: not so performant, do check directly in chunk generation
+        let c = world_crate::World::gen_chunk(pos.map(|e| e as i32));
         *con.lock() = Some(ChunkContainer::<P>::new(c));
     }
 }
@@ -84,19 +83,16 @@ impl<P: Payloads> Client<P> {
                 player_vel = player.vel().map(|e| e as VoxAbs);
             }
 
-            const GENERATION_FACTOR: f32 = 1.7; // generate more than you see
-            const GENERATION_SUMMAND: VolOffs = 3; // generate more than you see
-            let view_dist = (self.view_distance as f32 * GENERATION_FACTOR) as VolOffs + GENERATION_SUMMAND;
-            let view_dist_block = terrain::voloffs_to_voxabs(Vec3::new(view_dist, view_dist, view_dist), CHUNK_SIZE);
+            let view_dist = self.view_distance as f32;
             let mut bl = self.chunk_mgr().block_loader_mut();
             bl.clear();
             bl.push(Arc::new(RwLock::new(BlockLoader {
                 pos: player_pos,
-                size: view_dist_block,
+                size: Vec3::broadcast(view_dist as VoxAbs),
             }))); //player
             bl.push(Arc::new(RwLock::new(BlockLoader {
                 pos: player_pos + player_vel * 5,
-                size: view_dist_block,
+                size: Vec3::broadcast(view_dist as VoxAbs),
             }))); // player in 5 sec
         }
         //TODO: maybe remove this from CHUNMGR, and just pass it here

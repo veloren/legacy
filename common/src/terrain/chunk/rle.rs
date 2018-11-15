@@ -15,7 +15,7 @@ pub struct BlockRle {
     pub block: Block,
     pub num_minus_one: u8, // num_minus_one = 0 --> num is 1 and 255->256
 }
-pub const BLOCK_RLE_MAX_NUM: u16 = u8::MAX as u16 + 1;
+pub const BLOCK_RLE_MAX_NUM: VoxRel = u8::MAX as VoxRel + 1;
 
 impl BlockRle {
     pub fn new(block: Block, num_minus_one: u8) -> Self { BlockRle { block, num_minus_one } }
@@ -43,9 +43,9 @@ impl Volume for RleData {
 impl ReadVolume for RleData {
     fn at_unchecked(&self, pos: Vec3<VoxRel>) -> Block {
         let col = &self.voxels[pos.x as usize * self.size.y as usize + pos.y as usize];
-        let mut oldz: u16 = 0;
+        let mut oldz: VoxRel = 0;
         for brle in col {
-            let z: u16 = oldz + brle.num_minus_one as u16 + 1;
+            let z: VoxRel = oldz + brle.num_minus_one as VoxRel + 1;
             if pos.z >= oldz && pos.z < z {
                 return brle.block;
             }
@@ -61,7 +61,7 @@ impl ConstructVolume for RleData {
             size,
             voxels: vec![Vec::new(); size.x as usize * size.y as usize],
         };
-        let high = ((size.z as u16) / (BLOCK_RLE_MAX_NUM)) as usize;
+        let high = ((size.z as VoxRel) / (BLOCK_RLE_MAX_NUM)) as usize;
         let lastsize = size.z % (BLOCK_RLE_MAX_NUM);
 
         for xy in rle.voxels.iter_mut() {

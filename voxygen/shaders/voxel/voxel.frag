@@ -5,13 +5,15 @@
 #include <luts.glsl>
 #include <sky.glsl>
 #include <bsdf.glsl>
+#include <luts.glsl>
 
 in vec3 frag_pos;
 in vec3 frag_world_pos;
-in vec4 frag_col;
+//in vec4 frag_col;
 in float frag_ao;
 flat in vec3 frag_norm;
 flat in uint frag_mat;
+flat in uint frag_col_attr;
 
 layout (std140)
 uniform model_consts {
@@ -30,7 +32,22 @@ uniform global_consts {
 
 out vec4 target;
 
+float diffuse_factor = 0.5;
+float ambiant_factor = 0.2;
+vec3  sun_direction = normalize(vec3(-1.5, -0.8, -1));
+vec3  sun_colorr     = vec3(1, 1, 1);
+float sun_factor    = 50;
+float sun_shine     = 0;
+
+
 void main() {
+	if (length(play_origin.xyz - frag_world_pos.xyz) > view_distance.x) {
+		target = vec4(0.0);
+		return;
+	}
+
+	vec4 frag_col = get_color_from_attr(frag_col_attr);
+
 	Material mat = mat_lut[frag_mat];
 	// Sunlight
 	float sunAngularRadius = 0.017; // 1 degree radius, 2 degree diameter (not realistic, irl sun is ~0.5 deg diameter)
@@ -56,7 +73,7 @@ void main() {
 	float LdotH = saturate(dot(L, H));
 	float NdotH = clamp(dot(N, H), 0.0, 0.99999995);// fix artifact
 
-	vec3 atmos_color = get_sky_chroma(N, time_of_day);
+	vec3 atmos_color = get_sky(N, time_of_day, false);
 
 	vec3 col_noise = vec3(0,0,0);
 
@@ -70,7 +87,7 @@ void main() {
 	// 	) * mat.color_variance;
 	// }
 
-	vec3 col = frag_col.rgb + col_noise;
+	vec3 col = frag_col.rgb;// + col_noise;
 
 	float smoothness = mat.smoothness;
 	float roughness_linear = saturate(1 - (smoothness - 0.01));
@@ -87,30 +104,29 @@ void main() {
 	vec3 specular = fresnel * ndf * geo / PI;
 
 	float fD = fr_DisneyDiffuse(NdotV, NdotL, LdotH, roughness_linear) / PI;
-	vec3 diffuse = fD * col.rgb * omm;
+	float ao = (frag_ao / 3.0);
+	vec3 diffuse = fD * col.rgb * omm * ao;
 
 	float sun_level = saturate(day_cycle(1, 0.9, time_of_day));
 	float sun_intensity = sun_level * 80000;
 	vec3 sun_illuminance = sun_color * sun_intensity;
 
-    float ao = (frag_ao / 3.0);
-	float ambient_intensity = 0.05 + 0.25 * omm; // TODO: have specular ambient so that we don't have to hack this
-	vec3 ambient = col.rgb * ambient_intensity * ao * atmos_color;
+    float ambient_intensity = 2.0 * omm; // TODO: have specular ambient so that we don't have to hack this
+	vec3 ambient = col.rgb * ambient_intensity * atmos_color;
 
-	vec3 lighted = ambient + (saturate((diffuse + specular) * NdotL) * sun_illuminance * ao);
+	vec3 lighted = ambient * ao + (saturate((diffuse + specular) * NdotL) * sun_illuminance * ao);
+	//vec3 lighted = ambient + ((diffuse + specular) * sun_illuminance) * ao;
 
 	// Mist
-	float mist_start = view_distance.x * 0.7;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;
+	float mist_start = view_distance.x * 0.9;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;
 	float mist_end = view_distance.x;// + snoise(vec4(world_pos, -time) * 0.02) * 50.0;
 	float mist_delta = mist_end - mist_start;
-	float play_dist = length(play_origin.xy - frag_world_pos.xy);
+	float play_dist = length(play_origin.xyz - frag_world_pos.xyz);
 	float dist = max(play_dist - mist_start, 0);
-	float percent = saturate(dist / mist_delta);
-	float mist_value = percent * percent * percent;
+	float mist_value = saturate(dist / mist_delta);
 
 	vec3 sky_chroma = get_sky_chroma(-V, time_of_day);
     float smax = max(specular.r, max(specular.g, specular.b));
     float a = clamp(smax + frag_col.a, 0, 1);
 	target = mix(vec4(lighted, a), vec4(sky_chroma, 1.0), mist_value);
-	// target = frag_col;
 }

@@ -82,7 +82,7 @@ void main() {
 
 	float ao = (frag_ao / 3.0);
 	ao *= 1 - bump.w;
-	float ambient_intensity = 0.2;
+	float ambient_intensity = 0.4;
 	vec3 ambient = frag_col.rgb * ambient_intensity * ao * atmos_color;
 
 	float smoothness = mat.smoothness;
@@ -103,7 +103,7 @@ void main() {
 
 	float sun_level = clamp(day_cycle(1, 0.9, time_of_day), 0.0, 1);
 	float sun_intensity = sun_level * 80000;
-	float sun_illuminance = sun_intensity * NdotL;
+	float sun_illuminance = sun_intensity * 1.0;//NdotL;
 
 	vec3 lighted = ambient + ((diffuse + specular) * sun_color * sun_illuminance * ao);
 
@@ -111,7 +111,7 @@ void main() {
 	float mist_start = view_distance.x * 0.7;// + snoise(vec4(world_pos, time) * 0.02) * 50.0;
 	float mist_end = view_distance.x;// + snoise(vec4(world_pos, -time) * 0.02) * 50.0;
 	float mist_delta = mist_end - mist_start;
-	float play_dist = length(play_origin.xy - frag_world_pos.xy);
+	float play_dist = length(play_origin.xyz - frag_world_pos.xyz);
 	float dist = max(play_dist - mist_start, 0);
 	float percent = clamp(dist / mist_delta, 0, 1);
 	float mist_value = percent * percent * percent;

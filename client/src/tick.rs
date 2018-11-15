@@ -1,6 +1,9 @@
 // Standard
 use std::time::Duration;
 
+// Library
+use vek::*;
+
 // Project
 use common::{physics::physics, util::manager::Manager};
 
@@ -8,6 +11,7 @@ use common::{physics::physics, util::manager::Manager};
 use Client;
 use ClientStatus;
 use Payloads;
+use CHUNK_SIZE;
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn tick(&self, dt: Duration, _mgr: &mut Manager<Self>) -> bool {
@@ -17,7 +21,13 @@ impl<P: Payloads> Client<P> {
         {
             // Take the physics lock to sync client and frontend updates
             let _ = self.take_phys_lock();
-            physics::tick(entities.iter(), &self.chunk_mgr, dt);
+            //physics::tick(entities.iter(), &self.chunk_mgr, dt);
+
+            // TODO: Fix this
+            if let Some(entity) = self.player_entity() {
+                let e = [entity.clone()];
+                physics::tick(e.into_iter(), &self.chunk_mgr, dt);
+            }
         }
 
         self.update_server();

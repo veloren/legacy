@@ -52,13 +52,13 @@ const mat3 ACESOutput = mat3 (
 // [ 1.0 ]
 // [ 1.5 ]
 // [ 2.0 ]
-// Then the resulting R value for the pixel would be 
+// Then the resulting R value for the pixel would be
 // (current R * 1.0) + (current B * 1.5) + (current G * 2.0)
 // Currently this just desaturates reds slightly
 const mat3 ColorGrade = mat3 (
      0.95000,  0.00000,  0.00000,
-     0.02500,  1.00000,  0.00000,
-     0.02500,  0.00000,  1.00000
+     0.05000,  1.00000,  0.00000,
+     0.00000,  0.00000,  1.00000
 );
 
 vec3 lumCoeff = vec3( 0.212600, 0.715200, 0.0722000);
@@ -86,7 +86,7 @@ vec3 aces(vec3 color)
 
     // Do Color correction
     color = ColorGrade * color;
-    color = vibrance(color, 0.25, vec3(1.0, 1.0, 1.0));
+    color = vibrance(color, 0.45, vec3(1.0, 1.0, 1.0));
     // color = Curves(vec4(color, 1), 0, 8, 0.2).rgb;
 
     // Apply RRT and ODT
@@ -114,7 +114,7 @@ vec3 linear_to_srgb(in vec3 color)
 
 out vec4 target;
 
-void main() {             
+void main() {
     vec3 hdrColor = texture(t_Hdr, uv.xy).rgb;
 
     // exposure correction. Varies between F/16 at midday and F/2.8 at night.
@@ -125,13 +125,13 @@ void main() {
     float denom = 3.0 + (0.2 + 0.8 * day_part - 0.2 * night_part) * 60000.0;
     float exposure = 1.0 / denom;
     vec3 mapped = hdrColor * exposure;
-  
+
     // tone map
     mapped = aces(mapped);
 
-    // gamma correction 
-    mapped = linear_to_srgb(mapped);
-  
+    // gamma correction
+    //mapped = linear_to_srgb(mapped);
+
     target = vec4(mapped, 1.0);
-    // target = vec4(hdrColor, 1.0);
-}    
+    //target = vec4(hdrColor, 1.0);
+}

@@ -15,13 +15,14 @@ use fps_counter::FPSCounter;
 use glutin::ElementState;
 use indexmap::IndexMap;
 use parking_lot::Mutex;
-use vek::{Mat4, Vec2, Vec3};
+use vek::*;
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 // Project
 use client::{self, Client, ClientEvent, PlayMode, CHUNK_SIZE};
 use common::{
+    get_asset_path,
     terrain::{
         self,
         chunk::{Chunk, ChunkContainer},
@@ -155,19 +156,27 @@ impl Game {
         let skybox_model = skybox::Model::new(&mut window.renderer_mut(), &skybox_mesh);
 
         info!("trying to load model files");
-        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player6.vox")
-            .expect("cannot find model player6.vox. Make sure to start voxygen from its folder");
+        let vox = dot_vox::load(
+            get_asset_path("voxygen/cosmetic/creature/friendly/knight.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .expect("cannot find model player6.vox. Make sure to start voxygen from its folder");
         let voxmodel = voxel::vox_to_figure(vox);
 
-        let player_meshes = voxel::Mesh::from_with_offset(&voxmodel, Vec3::new(-10.0, -4.0, 0.0));
+        let player_meshes = voxel::Mesh::from_with_offset(&voxmodel, Vec3::new(-10.0, -4.0, 0.0), false);
 
         let player_model = voxel::Model::new(&mut window.renderer_mut(), &player_meshes);
 
-        let vox = dot_vox::load("assets/cosmetic/creature/friendly/player7.vox")
-            .expect("cannot find model player7.vox. Make sure to start voxygen from its folder");
+        let vox = dot_vox::load(
+            get_asset_path("voxygen/cosmetic/creature/friendly/knight.vox")
+                .to_str()
+                .unwrap(),
+        )
+        .expect("cannot find model player7.vox. Make sure to start voxygen from its folder");
         let voxmodel = voxel::vox_to_figure(vox);
 
-        let other_player_meshes = voxel::Mesh::from(&voxmodel);
+        let other_player_meshes = voxel::Mesh::from_with_offset(&voxmodel, Vec3::new(-10.0, -4.0, 0.0), false);
 
         let other_player_model = voxel::Model::new(&mut window.renderer_mut(), &other_player_meshes);
 
@@ -337,7 +346,7 @@ impl Game {
 
     pub fn update_chunks(&self) {
         let mut renderer = self.window.renderer_mut();
-        // Find the chunk the camera is in
+        // Find the chunk the player is in
         let player_pos = self
             .client
             .player_entity()
@@ -438,7 +447,10 @@ impl Game {
     pub fn render_frame(&mut self) {
         // Calculate frame constants
         let camera_mats = self.camera.lock().get_mats();
+        let camera_fov = self.camera.lock().get_fov();
+        // TODO: Maybe rename this to cam_pos?
         let cam_origin = self.camera.lock().get_pos(Some(&camera_mats));
+        let cam_zoom = self.camera.lock().get_zoom();
         let player_pos = self
             .client
             .player_entity()
@@ -468,15 +480,28 @@ impl Game {
         self.skybox_model
             .render(&mut renderer, &self.skybox_pipeline, &self.global_consts);
 
-        // Find the chunk the camera is in
-        let player_chunk = terrain::voxabs_to_voloffs(player_pos.map(|e| e as i64), CHUNK_SIZE);
-        let squared_view_distance = (self.client.view_distance() / CHUNK_SIZE.x as f32 + 1.0).powi(2) as i32; // view_distance is vox based, but its needed vol based here
+        // Find the chunk the player is in
+        let squared_view_distance = self.client.view_distance().powi(2) as f32; // view_distance is vox based, but its needed vol based here
+        let cam_vec_world = camera_mats.0.inverted() * (-Vec4::unit_z());
 
         // Render each chunk
         for (_pos, con) in self
             .client
             .chunk_mgr()
-            .pers(|chunk_offs| player_chunk.distance_squared(*chunk_offs) < squared_view_distance)
+            .pers(|chunk_offs| {
+                let chunk_pos = chunk_offs.map(|e| e as f32) * CHUNK_SIZE.map(|e| e as f32);
+                // This limit represents the point in the chunk that's closest to the player (0 - CHUNK_SIZE)
+                let chunk_offs_limit = Vec3::clamp(player_pos - chunk_pos, Vec3::zero(), CHUNK_SIZE.map(|e| e as f32));
+                // Check whether the chunk is within range of the view distance
+                (chunk_pos + chunk_offs_limit).distance_squared(player_pos) < squared_view_distance &&
+                // Check whether the chunk is within the frustrum of the camera (or within a certain minimum range to avoid visual artefacts)
+                (Vec4::from(chunk_pos + CHUNK_SIZE.map(|e| e as f32) / 2.0 - cam_origin)
+                        .normalized()
+                        .dot(cam_vec_world)
+                        > camera_fov.cos()
+                        || (chunk_pos + CHUNK_SIZE.map(|e| e as f32) / 2.0 - cam_origin).magnitude()
+                            < CHUNK_SIZE.x as f32 * 2.0)
+            })
             .iter()
         {
             let trylock = &con.payload_try(); //we try to lock it, if it is already written to we just ignore this chunk for a frame
@@ -495,10 +520,15 @@ impl Game {
         }
 
         // Render each entity
-        for (_uid, entity) in self.client.entities().iter() {
+        for (&uid, entity) in self.client.entities().iter() {
             // Choose the correct model for the entity
             let model = match self.client.player().entity_uid {
-                Some(uid) if uid == uid => &self.player_model,
+                Some(player_uid) if uid == player_uid => {
+                    if cam_zoom == 0.0 {
+                        continue;
+                    }
+                    &self.player_model
+                },
                 _ => &self.other_player_model,
             };
 

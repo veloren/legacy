@@ -1,5 +1,5 @@
 use fnv::FnvBuildHasher;
-use gfx::{self, Slice};
+use gfx::{self, Primitive, Slice};
 use gfx_device_gl;
 use indexmap::IndexMap;
 
@@ -77,12 +77,15 @@ impl VolumePipeline {
         model.vbufs().iter().for_each(|(mat, data)| {
             let queued = self.draw_queue.entry(*mat).or_insert(Vec::new());
             let (vbuf, slice) = data;
-            queued.push(DrawPacket {
-                vbuf: vbuf.clone(),
-                slice: slice.clone(),
-                model_consts: model_consts.buffer().clone(),
-                global_consts: global_consts.buffer().clone(),
-            })
+            // Don't draw models with no vertices TODO: For primitives other TriangleList
+            if slice.get_prim_count(Primitive::TriangleList) > 0 {
+                queued.push(DrawPacket {
+                    vbuf: vbuf.clone(),
+                    slice: slice.clone(),
+                    model_consts: model_consts.buffer().clone(),
+                    global_consts: global_consts.buffer().clone(),
+                })
+            }
         });
     }
 

@@ -63,9 +63,9 @@ fn get_nearby(
 fn calc_vel(old_vel: Vec3<f32>, wanted_ctrl_acc: Vec3<f32>, dt: f32, fric_fac: Vec3<f32>) -> Vec3<f32> {
     // Gravity
     const ENTITY_ACC: Vec3<f32> = Vec3 {
-        x: 32.0 / LENGTH_OF_BLOCK,
-        y: 32.0 / LENGTH_OF_BLOCK,
-        z: 350.0 / LENGTH_OF_BLOCK,
+        x: 24.0 / LENGTH_OF_BLOCK,
+        y: 24.0 / LENGTH_OF_BLOCK,
+        z: 250.0 / LENGTH_OF_BLOCK,
     };
     const GRAVITY_ACC: Vec3<f32> = Vec3 {
         x: 0.0 / LENGTH_OF_BLOCK,
@@ -96,7 +96,7 @@ pub fn tick<
     'a,
     CP: Send + Sync + 'static,
     EP: Send + Sync + 'static,
-    I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)>,
+    I: Iterator<Item = &'a Arc<RwLock<Entity<EP>>>>,
 >(
     entities: I,
     chunk_mgr: &ChunkMgr<CP>,
@@ -131,7 +131,7 @@ pub fn tick<
 
     let dt = dt.as_float_secs() as f32;
 
-    for (.., entity) in entities {
+    for entity in entities {
         let mut entity = entity.write();
 
         // Gravity

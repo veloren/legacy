@@ -1,6 +1,3 @@
-[submodule "voxygen/assets"]
-	path = voxygen/assets
-	url = ../../veloren/assets/voxygen.git
 [submodule "client/assets"]
 	path = client/assets
 	url = ../../veloren/assets/client.git

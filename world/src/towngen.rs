@@ -170,7 +170,7 @@ fn load_buildings() -> Vec<HeterogeneousData> {
 
     buildings.push(dot_vox_to_hetero(
         dot_vox::load(
-            get_asset_path("world/Trees/Veloren_Trees_Purple/Birches/Birch_1.vox")
+            get_asset_path("world/Trees/Veloren_Trees/Birches/Birch_1.vox")
                 .to_str()
                 .unwrap(),
         )
@@ -178,7 +178,7 @@ fn load_buildings() -> Vec<HeterogeneousData> {
     ));
     buildings.push(dot_vox_to_hetero(
         dot_vox::load(
-            get_asset_path("world/Trees/Veloren_Trees_Purple/Poplars/1.vox")
+            get_asset_path("world/Trees/Veloren_Trees/Poplars/1.vox")
                 .to_str()
                 .unwrap(),
         )

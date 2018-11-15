@@ -157,7 +157,7 @@ impl Game {
 
         info!("trying to load model files");
         let vox = dot_vox::load(
-            get_asset_path("voxygen/cosmetic/creature/friendly/player3.vox")
+            get_asset_path("voxygen/cosmetic/creature/friendly/knight.vox")
                 .to_str()
                 .unwrap(),
         )
@@ -169,7 +169,7 @@ impl Game {
         let player_model = voxel::Model::new(&mut window.renderer_mut(), &player_meshes);
 
         let vox = dot_vox::load(
-            get_asset_path("voxygen/cosmetic/creature/friendly/player3.vox")
+            get_asset_path("voxygen/cosmetic/creature/friendly/knight.vox")
                 .to_str()
                 .unwrap(),
         )

@@ -403,7 +403,11 @@ impl Game {
         let mut events = self.hud.get_events();
 
         events.drain(..).for_each(|event| match event {
-            HudEvent::ChatMsgSent { text } => self.client.send_chat_msg(text),
+            HudEvent::ChatMsgSent { text } => {
+                if text.len() > 0 {
+                    self.client.send_chat_msg(text);
+                }
+            },
         });
     }
 

@@ -166,16 +166,16 @@ fn main() {
 
     println!("");
     println!("What view distance do you want to use?");
-    println!("For a smooth experience on slower hardware, we recommend 2.");
-    println!("For faster computers, 10 is advised.");
+    println!("For a smooth experience on slower hardware, we recommend 80.");
+    println!("For faster computers, 400 is advised.");
     println!("If you experience lag, restart Veloren and change this setting again.");
     println!("");
     let mut view_distance_choice = String::new();
     io::stdout().flush().expect("Failed to flush");
     io::stdin().read_line(&mut view_distance_choice).unwrap();
     let view_distance = view_distance_choice.trim().parse::<i64>().unwrap_or_else(|_| {
-        println!("Invalid input, defaulting to 4.");
-        4
+        println!("Invalid input, defaulting to 80.");
+        80
     });
     println!("using a view distance of {}.", view_distance);
 

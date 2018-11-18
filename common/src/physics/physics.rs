@@ -22,8 +22,7 @@ use crate::terrain::{ChunkMgr, Entity};
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 const GROUND_GRAVITY: f32 = -9.81;
 const BLOCK_SIZE_PLUS_SMALL: f32 = 1.0 + PLANCK_LENGTH;
-const BLOCK_HOP_SPEED: f32 = 15.0;
-const BLOCK_HOP_MAX: f32 = 0.34;
+const BLOCK_HOP_SPEED: f32 = 13.0;
 
 fn adjust_box(low: &mut Vec3<f32>, high: &mut Vec3<f32>, dir: Vec3<f32>) {
     *low = low.map2(dir, |l, n| if n < 0.0 { l + n } else { l });
@@ -88,6 +87,11 @@ pub fn tick<
         y: 0.17,
         z: 0.0,
     };
+    const CONTROL_IN_WATER: Vec3<f32> = Vec3 {
+        x: 0.05,
+        y: 0.05,
+        z: 0.09,
+    };
     const FRICTION_ON_GROUND: Vec3<f32> = Vec3 {
         x: 0.0015,
         y: 0.0015,
@@ -96,7 +100,12 @@ pub fn tick<
     const FRICTION_IN_AIR: Vec3<f32> = Vec3 {
         x: 0.2,
         y: 0.2,
-        z: 0.88,
+        z: 0.95,
+    };
+    const FRICTION_IN_WATER: Vec3<f32> = Vec3 {
+        x: 0.60,
+        y: 0.60,
+        z: 0.30,
     };
 
     let dt = dt.as_float_secs() as f32;
@@ -139,6 +148,17 @@ pub fn tick<
             }
         }
 
+        let mut nearby_primitives_fluid = Vec::new();
+        for (pos, b) in volsample.iter() {
+            if b.is_fluid() {
+                let entity = Primitive::new_cuboid(
+                    pos.map(|e| e as f32) + Vec3::new(0.5, 0.5, 0.5),
+                    Vec3::new(0.5, 0.5, 0.5),
+                );
+                nearby_primitives_fluid.push(entity);
+            }
+        }
+
         // is standing on ground to jump
         let mut on_ground = false;
         for prim in &nearby_primitives {
@@ -152,16 +172,34 @@ pub fn tick<
             }
         }
 
+        // is standing in water
+        let mut in_water = false;
+        for prim in &nearby_primitives_fluid {
+            let mut entity_prim_water = entity_prim.clone();
+            entity_prim_water.move_by(&Vec3::new(0.0, 0.0, 1.0));
+            let res = prim.time_to_impact(&entity_prim_water, &SMALLER_THAN_BLOCK_GOING_DOWN);
+            if let Some(ResolutionTti::Overlapping { .. }) = res {
+                in_water = true;
+                break;
+            }
+        }
+
         //adjust movement
         let mut vel = *entity.vel()
-            + gravity * dt
-            + if on_ground {
+            + if in_water {
+                gravity * 0.1
+            } else {
+                gravity
+            } * dt
+            + if in_water {
+                wanted_offs_vel * CONTROL_IN_WATER
+            } else if on_ground {
                 // calculate jump in vel not acc! assume 0.2 sec jump time
                 Vec3::new(wanted_ctrl_acc.x * dt, wanted_ctrl_acc.y * dt, wanted_ctrl_acc.z * 0.2)
             } else {
                 wanted_offs_vel * CONTROL_IN_AIR
             };
-        vel *= (if on_ground { FRICTION_ON_GROUND } else { FRICTION_IN_AIR }).map(|e| e.powf(dt));
+        vel *= (if in_water { FRICTION_IN_WATER } else if on_ground { FRICTION_ON_GROUND } else { FRICTION_IN_AIR }).map(|e| e.powf(dt));
 
         let mut movable = Moveable::new(*id, entity_prim, 80.0);
         movable.old_velocity = vel;
@@ -197,8 +235,11 @@ pub fn tick<
                         && (hopmov.velocity.x != 0.0 || hopmov.velocity.y != 0.0)
                     {
                         //println!("vel diff {} and {}", hopmov.velocity,  mov.velocity);
-                        mov.primitive = hopmov.primitive.clone();
+                        //mov.primitive = hopmov.primitive.clone();
+                        let up = (BLOCK_HOP_SPEED * dt).min(BLOCK_SIZE_PLUS_SMALL);
+                        mov.primitive.move_by(&Vec3::new(0.0, 0.0, up));
                         mov.velocity = hopmov.velocity;
+                        mov.velocity.z = 0.0;
                     }
                 }
 

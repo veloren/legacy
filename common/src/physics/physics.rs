@@ -22,7 +22,7 @@ use crate::terrain::{ChunkMgr, Entity};
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 const GROUND_GRAVITY: f32 = -9.81;
 const BLOCK_SIZE_PLUS_SMALL: f32 = 1.0 + PLANCK_LENGTH;
-const BLOCK_HOP_SPEED: f32 = 13.0;
+const BLOCK_HOP_SPEED: f32 = 11.0;
 
 fn adjust_box(low: &mut Vec3<f32>, high: &mut Vec3<f32>, dir: Vec3<f32>) {
     *low = low.map2(dir, |l, n| if n < 0.0 { l + n } else { l });
@@ -59,10 +59,9 @@ pub fn tick<
     'a,
     CP: Send + Sync + 'static,
     EP: Send + Sync + 'static,
-    I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)>,
+    I: Iterator<Item = (&'a Uid, &'a Arc<RwLock<Entity<EP>>>)> + Clone,
 >(
     entities: I,
-    entities2: I,
     chunk_mgr: &ChunkMgr<CP>,
     dt: Duration,
 ) {
@@ -111,6 +110,7 @@ pub fn tick<
     let dt = dt.as_float_secs() as f32;
     let mut primitives = Vec::new(); // This function will check every colidable against all other colidable and against their own Vector of primitives
     let mut old_primitives = Vec::new();
+    let entities2 = entities.clone();
 
     for (id, entity) in entities {
         let entity = entity.read();
@@ -138,24 +138,19 @@ pub fn tick<
         }
         let volsample = volsample.unwrap();
         let mut nearby_primitives = Vec::new();
-        for (pos, b) in volsample.iter() {
-            if b.is_solid() {
-                let entity = Primitive::new_cuboid(
-                    pos.map(|e| e as f32) + Vec3::new(0.5, 0.5, 0.5),
-                    Vec3::new(0.5, 0.5, 0.5),
-                );
-                nearby_primitives.push(entity);
-            }
-        }
-
         let mut nearby_primitives_fluid = Vec::new();
         for (pos, b) in volsample.iter() {
-            if b.is_fluid() {
-                let entity = Primitive::new_cuboid(
+            if b.is_solid() {
+                nearby_primitives.push(Primitive::new_cuboid(
                     pos.map(|e| e as f32) + Vec3::new(0.5, 0.5, 0.5),
                     Vec3::new(0.5, 0.5, 0.5),
-                );
-                nearby_primitives_fluid.push(entity);
+                ));
+            }
+            if b.is_fluid() {
+                nearby_primitives_fluid.push(Primitive::new_cuboid(
+                    pos.map(|e| e as f32) + Vec3::new(0.5, 0.5, 0.5),
+                    Vec3::new(0.5, 0.5, 0.5),
+                ));
             }
         }
 
@@ -165,7 +160,6 @@ pub fn tick<
             let res = prim.time_to_impact(&entity_prim, &SMALLER_THAN_BLOCK_GOING_DOWN);
             if let Some(ResolutionTti::WillCollide { tti, .. }) = res {
                 if tti < PLANCK_LENGTH * 2.0 {
-                    // something really small
                     on_ground = true;
                     break;
                 }
@@ -174,9 +168,9 @@ pub fn tick<
 
         // is standing in water
         let mut in_water = false;
+        let mut entity_prim_water = entity_prim.clone();
+        entity_prim_water.move_by(&Vec3::new(0.0, 0.0, 1.0));
         for prim in &nearby_primitives_fluid {
-            let mut entity_prim_water = entity_prim.clone();
-            entity_prim_water.move_by(&Vec3::new(0.0, 0.0, 1.0));
             let res = prim.time_to_impact(&entity_prim_water, &SMALLER_THAN_BLOCK_GOING_DOWN);
             if let Some(ResolutionTti::Overlapping { .. }) = res {
                 in_water = true;
@@ -186,11 +180,7 @@ pub fn tick<
 
         //adjust movement
         let mut vel = *entity.vel()
-            + if in_water {
-                gravity * 0.1
-            } else {
-                gravity
-            } * dt
+            + if in_water { gravity * 0.1 } else { gravity } * dt
             + if in_water {
                 wanted_offs_vel * CONTROL_IN_WATER
             } else if on_ground {
@@ -199,7 +189,14 @@ pub fn tick<
             } else {
                 wanted_offs_vel * CONTROL_IN_AIR
             };
-        vel *= (if in_water { FRICTION_IN_WATER } else if on_ground { FRICTION_ON_GROUND } else { FRICTION_IN_AIR }).map(|e| e.powf(dt));
+        vel *= (if in_water {
+            FRICTION_IN_WATER
+        } else if on_ground {
+            FRICTION_ON_GROUND
+        } else {
+            FRICTION_IN_AIR
+        })
+        .map(|e| e.powf(dt));
 
         let mut movable = Moveable::new(*id, entity_prim, 80.0);
         movable.old_velocity = vel;
@@ -234,8 +231,6 @@ pub fn tick<
                     if (hopmov.velocity.x != mov.velocity.x || hopmov.velocity.y != mov.velocity.y)
                         && (hopmov.velocity.x != 0.0 || hopmov.velocity.y != 0.0)
                     {
-                        //println!("vel diff {} and {}", hopmov.velocity,  mov.velocity);
-                        //mov.primitive = hopmov.primitive.clone();
                         let up = (BLOCK_HOP_SPEED * dt).min(BLOCK_SIZE_PLUS_SMALL);
                         mov.primitive.move_by(&Vec3::new(0.0, 0.0, up));
                         mov.velocity = hopmov.velocity;

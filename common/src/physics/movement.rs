@@ -28,6 +28,27 @@ impl Moveable {
     }
 }
 
+fn handle_res(r: Option<ResolutionTti>, tti: &mut f32, normal: &mut Vec3<f32>) {
+    if let Some(r) = r {
+        if let ResolutionTti::WillCollide {
+            tti: ltti,
+            normal: lnormal,
+        } = r
+        {
+            if ltti <= *tti {
+                //debug!("colliding in tti: {}, normal {}", ltti, lnormal);
+                if lnormal.magnitude() < normal.magnitude() || normal.magnitude() < 0.1 || ltti < *tti {
+                    // when tti is same but we have less normal we switch
+                    //info!("set normal to: {}", lnormal);
+                    // if there is a collission with 2 and one with 1 block we first solve the single one
+                    *normal = lnormal;
+                }
+                *tti = ltti;
+            }
+        }
+    }
+}
+
 pub fn movement_tick(
     primitives: &mut Vec<(Moveable, Vec<Primitive>)>, // This function will check every colidable against all other colidable and against their own Vector of primitives
     old_primitives: &Vec<Moveable>,
@@ -49,24 +70,7 @@ pub fn movement_tick(
 
             for prim in local.iter() {
                 let r = prim.time_to_impact(&c.primitive, &length);
-                if let Some(r) = r {
-                    if let ResolutionTti::WillCollide {
-                        tti: ltti,
-                        normal: lnormal,
-                    } = r
-                    {
-                        if ltti <= tti {
-                            //debug!("colliding in tti: {}, normal {}", ltti, lnormal);
-                            if lnormal.magnitude() < normal.magnitude() || normal.magnitude() < 0.1 || ltti < tti {
-                                // when tti is same but we have less normal we switch
-                                //info!("set normal to: {}", lnormal);
-                                // if there is a collission with 2 and one with 1 block we first solve the single one
-                                normal = lnormal;
-                            }
-                            tti = ltti;
-                        }
-                    }
-                }
+                handle_res(r, &mut tti, &mut normal);
             }
 
             for op in old_primitives.iter() {
@@ -75,24 +79,7 @@ pub fn movement_tick(
                 }
                 let length = length - op.velocity * dt; // add op vel to calculate the relative velocity between both
                 let r = op.primitive.time_to_impact(&c.primitive, &length);
-                if let Some(r) = r {
-                    if let ResolutionTti::WillCollide {
-                        tti: ltti,
-                        normal: lnormal,
-                    } = r
-                    {
-                        if ltti <= tti {
-                            //debug!("colliding in tti: {}, normal {}", ltti, lnormal);
-                            if lnormal.magnitude() < normal.magnitude() || normal.magnitude() < 0.1 || ltti < tti {
-                                // when tti is same but we have less normal we switch
-                                //info!("set normal to: {}", lnormal);
-                                // if there is a collission with 2 and one with 1 block we first solve the single one
-                                normal = lnormal;
-                            }
-                            tti = ltti;
-                        }
-                    }
-                }
+                handle_res(r, &mut tti, &mut normal);
             }
 
             if tti > 0.0 {

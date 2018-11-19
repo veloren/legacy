@@ -5,7 +5,7 @@ use std::time::Duration;
 use common::{physics::physics, util::manager::Manager};
 
 // Local
-use crate::{Client, ClientStatus, Payloads, CHUNK_SIZE};
+use crate::{Client, ClientStatus, Payloads};
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn tick(&self, dt: Duration, _mgr: &mut Manager<Self>) -> bool {
@@ -15,7 +15,7 @@ impl<P: Payloads> Client<P> {
         {
             // Take the physics lock to sync client and frontend updates
             let _ = self.take_phys_lock();
-            physics::tick(entities.iter(), entities.iter(), &self.chunk_mgr, dt);
+            physics::tick(entities.iter(), &self.chunk_mgr, dt);
         }
 
         self.update_server();

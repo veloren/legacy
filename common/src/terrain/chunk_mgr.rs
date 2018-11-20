@@ -235,7 +235,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
             }
         }
 
-        let diff_till_unload_square: VoxAbs = (self.vol_size.x as i64)*(self.vol_size.x as i64)*2*2 /*3 chunks away from everything*/;
+        let diff_till_unload_square: VoxAbs = ((self.vol_size.x as i64)*2).pow(2) /*3 chunks away from everything*/;
         // unload all chunks which have a distance of DIFF_TILL_UNLOAD to a loaded area
 
         // drop old chunks

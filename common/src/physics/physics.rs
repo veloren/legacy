@@ -1,5 +1,5 @@
 // Standard
-use std::{f64::consts::E, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 // Library
 use parking_lot::RwLock;
@@ -9,7 +9,7 @@ use vek::*;
 use crate::{
     physics::{
         collision::{Primitive, ResolutionTti, PLANCK_LENGTH},
-        movement::{movement_tick, Moveable},
+        movement::{limit_entity_movement, movement_tick, MovingBody},
     },
     terrain::{VoxAbs, Voxel},
 };
@@ -22,9 +22,10 @@ use crate::terrain::{ChunkMgr, Entity};
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 const GROUND_GRAVITY: f32 = -9.81;
 const BLOCK_SIZE_PLUS_SMALL: f32 = 1.0 + PLANCK_LENGTH;
-const BLOCK_HOP_SPEED: f32 = 11.0;
+const BLOCK_HOP_SPEED: f32 = 15.0;
 
 fn adjust_box(low: &mut Vec3<f32>, high: &mut Vec3<f32>, dir: Vec3<f32>) {
+    // if dir is lower that low adjust low so that dir fits in. Accordingly if dir is higher than high.
     *low = low.map2(dir, |l, n| if n < 0.0 { l + n } else { l });
     *high = high.map2(dir, |h, n| if n > 0.0 { h + n } else { h });
 }
@@ -40,8 +41,7 @@ fn adjust_primitive(col: &Primitive, low: &mut Vec3<f32>, high: &mut Vec3<f32>) 
 // estimates the blocks around a entity that are needed during physics calculation.
 fn get_nearby(col: &Primitive, velocities: &[Vec3<f32>]) -> (/*low:*/ Vec3<VoxAbs>, /*high:*/ Vec3<VoxAbs>) {
     let center = col.col_center();
-    let mut low = center;
-    let mut high = center;
+    let (mut low, mut high) = (center, center);
     for v in velocities.iter() {
         adjust_box(&mut low, &mut high, *v);
     }
@@ -71,6 +71,7 @@ pub fn tick<
         y: 0.45,
         z: 0.9,
     };
+    const BLOCK_MIDDLE: Vec3<f32> = Vec3 { x: 0.5, y: 0.5, z: 0.5 };
     const ENTITY_ACC: Vec3<f32> = Vec3 {
         x: 24.0 / LENGTH_OF_BLOCK,
         y: 24.0 / LENGTH_OF_BLOCK,
@@ -108,28 +109,21 @@ pub fn tick<
     };
 
     let dt = dt.as_float_secs() as f32;
-    let mut primitives = Vec::new(); // This function will check every colidable against all other colidable and against their own Vector of primitives
-    let mut old_primitives = Vec::new();
-    let entities2 = entities.clone();
+    let mut moving_bodies = HashMap::new(); // This function will check every colidable against all other colidable and against their own Vector of primitives
+    let mut obstacles = HashMap::new();
 
-    for (id, entity) in entities {
+    for (id, entity) in entities.clone() {
         let entity = entity.read();
 
         let middle = *entity.pos() + ENTITY_MIDDLE_OFFSET;
         let entity_prim = Primitive::new_cuboid(middle, ENTITY_RADIUS);
 
-        let mut wanted_ctrl_acc = *entity.ctrl_acc();
-        let wanted_ctrl_acc_length = Vec3::new(wanted_ctrl_acc.x, wanted_ctrl_acc.y, 0.0).magnitude();
-        if wanted_ctrl_acc_length > 1.0 {
-            wanted_ctrl_acc.x /= wanted_ctrl_acc_length;
-            wanted_ctrl_acc.y /= wanted_ctrl_acc_length;
-        }
-        wanted_ctrl_acc *= ENTITY_ACC;
+        let wanted_ctrl_acc = limit_entity_movement(*entity.ctrl_acc()) * ENTITY_ACC;
         let wanted_offs_vel = wanted_ctrl_acc * dt;
-        let wanted_vel = *entity.vel() + wanted_offs_vel;
 
-        let gravity = Vec3::new(0.0,0.0,GROUND_GRAVITY/(1.0+E.powf(middle.z as f64 / 120.0/*adjust this to make gravity last longer in the upper areas*/-3.5/*constant move 1/(1+e^x) to the 1-0 range*/) as f32) / LENGTH_OF_BLOCK );
-        let velocities = [wanted_vel, gravity * dt];
+        let gravity = Vec3::new(0.0, 0.0, GROUND_GRAVITY / LENGTH_OF_BLOCK);
+        //let gravity = Vec3::new(0.0,0.0,GROUND_GRAVITY/(1.0+E.powf(middle.z as f64 / 120.0/*adjust this to make gravity last longer in the upper areas*/-3.5/*constant move 1/(1+e^x) to the 1-0 range*/) as f32) / LENGTH_OF_BLOCK );
+        let velocities = [*entity.vel() + wanted_offs_vel, gravity * dt];
 
         let (low, high) = get_nearby(&entity_prim, &velocities);
         let volsample = chunk_mgr.try_get_sample(low, high);
@@ -142,41 +136,47 @@ pub fn tick<
         for (pos, b) in volsample.iter() {
             if b.is_solid() {
                 nearby_primitives.push(Primitive::new_cuboid(
-                    pos.map(|e| e as f32) + Vec3::new(0.5, 0.5, 0.5),
-                    Vec3::new(0.5, 0.5, 0.5),
+                    pos.map(|e| e as f32) + BLOCK_MIDDLE,
+                    BLOCK_MIDDLE,
                 ));
             }
             if b.is_fluid() {
                 nearby_primitives_fluid.push(Primitive::new_cuboid(
-                    pos.map(|e| e as f32) + Vec3::new(0.5, 0.5, 0.5),
-                    Vec3::new(0.5, 0.5, 0.5),
+                    pos.map(|e| e as f32) + BLOCK_MIDDLE,
+                    BLOCK_MIDDLE,
                 ));
             }
         }
 
         // is standing on ground to jump
-        let mut on_ground = false;
-        for prim in &nearby_primitives {
-            let res = prim.time_to_impact(&entity_prim, &SMALLER_THAN_BLOCK_GOING_DOWN);
-            if let Some(ResolutionTti::WillCollide { tti, .. }) = res {
-                if tti < PLANCK_LENGTH * 2.0 {
-                    on_ground = true;
-                    break;
+        let on_ground = nearby_primitives
+            .iter()
+            .find(|prim| {
+                if let Some(ResolutionTti::WillCollide { tti, .. }) =
+                    prim.time_to_impact(&entity_prim, &SMALLER_THAN_BLOCK_GOING_DOWN)
+                {
+                    tti < PLANCK_LENGTH * 2.0
+                } else {
+                    false
                 }
-            }
-        }
+            })
+            .is_some();
 
         // is standing in water
-        let mut in_water = false;
         let mut entity_prim_water = entity_prim.clone();
         entity_prim_water.move_by(&Vec3::new(0.0, 0.0, 1.0));
-        for prim in &nearby_primitives_fluid {
-            let res = prim.time_to_impact(&entity_prim_water, &SMALLER_THAN_BLOCK_GOING_DOWN);
-            if let Some(ResolutionTti::Overlapping { .. }) = res {
-                in_water = true;
-                break;
-            }
-        }
+        let in_water = nearby_primitives_fluid
+            .iter()
+            .find(|prim| {
+                if let Some(ResolutionTti::Overlapping { .. }) =
+                    prim.time_to_impact(&entity_prim_water, &SMALLER_THAN_BLOCK_GOING_DOWN)
+                {
+                    true
+                } else {
+                    false
+                }
+            })
+            .is_some();
 
         //adjust movement
         let mut vel = *entity.vel()
@@ -198,52 +198,69 @@ pub fn tick<
         })
         .map(|e| e.powf(dt));
 
-        let mut movable = Moveable::new(*id, entity_prim, 80.0);
-        movable.old_velocity = vel;
-        old_primitives.push(movable.clone());
-        primitives.push((movable, nearby_primitives));
+        let m = MovingBody {
+            id: *id,
+            mass: 80.0,
+            primitive: entity_prim,
+            velocity: vel,
+        };
+        moving_bodies.insert(*id, (m.clone(), nearby_primitives));
+        obstacles.insert(*id, m);
     }
 
-    movement_tick(&mut primitives, &old_primitives, dt);
+    movement_tick(moving_bodies.values_mut(), obstacles.values(), dt);
 
-    for (id, entity) in entities2 {
-        for (mov, local) in primitives.iter_mut() {
-            if mov.id == *id {
-                // am i stuck check
-                let mut entity_prim_stuck = mov.primitive.clone();
-                entity_prim_stuck.scale_by(0.9);
-                for prim in local.iter() {
-                    let res = prim.resolve_col(&entity_prim_stuck);
-                    if let Some(..) = res {
-                        warn!("entity is stuck!");
-                        mov.primitive.move_by(&Vec3::new(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
-                        break;
-                    }
+    for (id, entity) in entities {
+        if let (Some((mov, nearby)), Some(old_mov)) = (moving_bodies.get_mut(id), obstacles.get(id)) {
+            // am i stuck check
+            let mut entity_prim_stuck = mov.primitive.clone();
+            entity_prim_stuck.scale_by(0.9);
+            for prim in nearby.iter() {
+                if let Some(..) = prim.resolve_col(&entity_prim_stuck) {
+                    warn!("entity is stuck!");
+                    mov.primitive.move_by(&(Vec3::unit_z() * BLOCK_SIZE_PLUS_SMALL));
+                    break;
                 }
+            }
 
-                if mov.velocity.x != mov.old_velocity.x || mov.velocity.y != mov.old_velocity.y {
-                    // something got stoped, try block hopping
-                    let mut hopmov = mov.clone();
-                    hopmov.primitive.move_by(&Vec3::new(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
-                    let mut mov_vec = vec![(hopmov, local.clone())];
-                    movement_tick(&mut mov_vec, &old_primitives, dt);
-                    let hopmov = &mov_vec[0].0;
+            if mov.velocity.x != old_mov.velocity.x || mov.velocity.y != old_mov.velocity.y {
+                // something got stoped, try block hopping
+                //check top first
+                if nearby
+                    .iter()
+                    .find(|prim| {
+                        match prim.time_to_impact(&mov.primitive, &Vec3::new(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL)) {
+                            Some(ResolutionTti::WillCollide { tti, .. }) => tti < 1.0,
+                            _ => false,
+                        }
+                    })
+                    .is_none()
+                {
+                    let mut mov_arr = [(mov.clone(), nearby.clone())]; //TODO: remove these clones
+                    mov_arr[0]
+                        .0
+                        .primitive
+                        .move_by(&Vec3::new(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
+                    mov_arr[0].0.velocity = old_mov.velocity;
+                    movement_tick(mov_arr.iter_mut(), obstacles.values(), dt);
+
+                    let hopmov = &mov_arr[0].0;
                     if (hopmov.velocity.x != mov.velocity.x || hopmov.velocity.y != mov.velocity.y)
                         && (hopmov.velocity.x != 0.0 || hopmov.velocity.y != 0.0)
                     {
                         let up = (BLOCK_HOP_SPEED * dt).min(BLOCK_SIZE_PLUS_SMALL);
-                        mov.primitive.move_by(&Vec3::new(0.0, 0.0, up));
+                        mov.primitive.move_by(&(Vec3::unit_z() * up));
                         mov.velocity = hopmov.velocity;
                         mov.velocity.z = 0.0;
                     }
                 }
-
-                let mut entity = entity.write();
-                *entity.pos_mut() = mov.primitive.col_center() - ENTITY_MIDDLE_OFFSET;
-                *entity.vel_mut() = mov.velocity;
-
-                break;
             }
+
+            let mut entity = entity.write();
+            *entity.pos_mut() = mov.primitive.col_center() - ENTITY_MIDDLE_OFFSET;
+            *entity.vel_mut() = mov.velocity;
+
+            break;
         }
     }
 }

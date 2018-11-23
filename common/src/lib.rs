@@ -21,6 +21,7 @@ extern crate threadpool;
 extern crate time;
 extern crate vek;
 
+pub mod audio;
 pub mod ecs;
 pub mod item;
 pub mod net;

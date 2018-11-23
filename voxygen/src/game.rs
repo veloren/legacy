@@ -32,6 +32,7 @@ use common::{
 };
 
 // Local
+use audio::openal::OpenAl;
 use camera::Camera;
 use consts::{ConstHandle, GlobalConsts};
 use hud::{Hud, HudEvent};
@@ -57,6 +58,7 @@ pub struct Payloads {}
 impl client::Payloads for Payloads {
     type Chunk = ChunkPayload;
     type Entity = ConstHandle<voxel::ModelConsts>;
+    type Audio = OpenAl;
 }
 
 pub struct Game {
@@ -76,6 +78,7 @@ pub struct Game {
     tonemapper_pipeline: Pipeline<tonemapper::pipeline::Init<'static>>,
 
     hud: Hud,
+    audio: Manager<OpenAl>,
 
     fps: FPSCounter,
     last_fps: usize,
@@ -119,12 +122,15 @@ impl Game {
         );
         *RENDERER_INFO.lock() = Some(info);
 
+        let audio = OpenAl::new();
+
         let client = Client::new(
             mode,
             alias.to_string(),
             remote_addr,
             gen_payload,
             drop_payload,
+            Manager::<OpenAl>::internal(&audio).clone(),
             view_distance,
         )
         .expect("Could not create new client");
@@ -197,6 +203,7 @@ impl Game {
             tonemapper_pipeline,
 
             hud: Hud::new(),
+            audio,
 
             fps: FPSCounter::new(),
             last_fps: 60,
@@ -455,11 +462,20 @@ impl Game {
         // TODO: Maybe rename this to cam_pos?
         let cam_origin = self.camera.lock().get_pos(Some(&camera_mats));
         let cam_zoom = self.camera.lock().get_zoom();
-        let player_pos = self
-            .client
-            .player_entity()
-            .map(|p| *p.read().pos())
-            .unwrap_or(Vec3::new(0.0, 0.0, 0.0));
+        let (player_pos, player_vel, player_ori) = {
+            let e = self.client.player_entity();
+            if let Some(e) = e {
+                let lock = e.read();
+                let ld = lock.look_dir();
+                (*lock.pos(), *lock.vel(), Vec3::new(ld.x, ld.y, 0.0))
+            } else {
+                (
+                    Vec3::new(0.0, 0.0, 0.0),
+                    Vec3::new(0.0, 0.0, 0.0),
+                    Vec3::new(0.0, 0.0, 0.0),
+                )
+            }
+        };
         let play_origin = [player_pos.x, player_pos.y, player_pos.z, 1.0];
         let time = self.client.time().as_float_secs() as f32;
 
@@ -544,6 +560,9 @@ impl Game {
 
         // flush voxel pipeline draws
         self.volume_pipeline.flush(&mut renderer);
+
+        //update audio
+        self.audio.set_pos(player_pos, player_vel, player_ori);
 
         tonemapper::render(&mut renderer, &self.tonemapper_pipeline, &self.global_consts);
 

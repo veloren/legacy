@@ -10,6 +10,7 @@ extern crate log;
 
 // Modules
 mod error;
+mod music;
 mod net;
 mod player;
 mod tick;
@@ -33,6 +34,8 @@ use vek::*;
 
 // Project
 use common::{
+    audio::{AudioGen, AudioMgr, Buffer},
+    get_asset_path,
     terrain::{chunk::ChunkContainer, ChunkMgr, Entity, FnDropFunc, FnGenFunc, VolGen, VolOffs, VoxRel},
     util::{
         clock::Clock,
@@ -67,6 +70,7 @@ pub enum ClientStatus {
 pub trait Payloads: 'static {
     type Chunk: Send + Sync + 'static;
     type Entity: Send + Sync + 'static;
+    type Audio: AudioGen + Send + Sync + 'static;
 }
 
 pub enum ClientEvent {
@@ -84,9 +88,12 @@ pub struct Client<P: Payloads> {
     phys_lock: Mutex<()>,
 
     chunk_mgr: ChunkMgr<<P as Payloads>::Chunk>,
+    audio_mgr: AudioMgr<<P as Payloads>::Audio>,
 
     events: Mutex<Vec<ClientEvent>>,
 
+    next_ambient: RwLock<Duration>,
+    next_steps: RwLock<Duration>,
     view_distance: i64,
 }
 
@@ -101,6 +108,7 @@ impl<P: Payloads> Client<P> {
         remote_addr: S,
         gen_payload: GP,
         drop_payload: DP,
+        audio_gen: Arc<<P as Payloads>::Audio>,
         view_distance: i64,
     ) -> Result<Manager<Client<P>>, Error> {
         // Attempt to connect to the server
@@ -129,8 +137,11 @@ impl<P: Payloads> Client<P> {
                     CHUNK_SIZE,
                     VolGen::new(world::gen_chunk, gen_payload, world::drop_chunk, drop_payload),
                 ),
+                audio_mgr: AudioMgr::new(audio_gen),
 
                 events: Mutex::new(vec![]),
+                next_ambient: RwLock::new(time),
+                next_steps: RwLock::new(time),
 
                 view_distance: view_distance.max(CHUNK_SIZE.x as i64),
             });
@@ -235,6 +246,30 @@ impl<P: Payloads> Managed for Client<P> {
             let mut clock = Clock::new(Duration::from_millis(5000));
             while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
                 client.debug(&mut mgr);
+                clock.tick();
+            }
+        });
+
+        // Audio worker
+        Manager::add_worker(manager, |client, running, mut mgr| {
+            client
+                .audio_mgr
+                .gen_buffer(Buffer::File(get_asset_path("voxygen/audio/ambient/ambient1.ogg")));
+            client
+                .audio_mgr
+                .gen_buffer(Buffer::File(get_asset_path("voxygen/audio/ambient/ambient2.ogg")));
+            client
+                .audio_mgr
+                .gen_buffer(Buffer::File(get_asset_path("voxygen/audio/effects/step_lth1.ogg")));
+            client
+                .audio_mgr
+                .gen_buffer(Buffer::File(get_asset_path("voxygen/audio/effects/step_lth2.ogg")));
+            client.audio_mgr.gen_buffer(Buffer::File(get_asset_path(
+                "voxygen/audio/music/Snowtop_with_Celesta.ogg",
+            )));
+            let mut clock = Clock::new(Duration::from_millis(100));
+            while running.load(Ordering::Relaxed) && *client.status() == ClientStatus::Connected {
+                client.manage_audio(&mut mgr);
                 clock.tick();
             }
         });

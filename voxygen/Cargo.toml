@@ -20,6 +20,10 @@ glutin = "0.17.0"
 lyon = "0.11"
 gfx_glyph = "0.13"
 
+#Audio
+alto = "3.0.3"
+lewton = "0.9.3"
+
 # Mathematics
 nalgebra = "0.16"
 vek = "0.9.5"
@@ -42,6 +46,7 @@ fnv = "1.0.3"
 indexmap = "1.0.1"
 parking_lot = { version = "0.6.4", features = ["nightly"] }
 tempfile = "3.0"
+byteorder = "1.2.3"
 
 # Time
 time = "0.1.40"

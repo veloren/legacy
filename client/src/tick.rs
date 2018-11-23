@@ -1,9 +1,6 @@
 // Standard
 use std::time::Duration;
 
-// Library
-use vek::*;
-
 // Project
 use common::{physics::physics, util::manager::Manager};
 
@@ -11,7 +8,6 @@ use common::{physics::physics, util::manager::Manager};
 use Client;
 use ClientStatus;
 use Payloads;
-use CHUNK_SIZE;
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn tick(&self, dt: Duration, _mgr: &mut Manager<Self>) -> bool {
@@ -42,6 +38,11 @@ impl<P: Payloads> Client<P> {
 
     pub(crate) fn debug(&self, _mgr: &mut Manager<Self>) -> bool {
         self.chunk_mgr().debug();
+        *self.status() != ClientStatus::Disconnected
+    }
+
+    pub(crate) fn manage_audio(&self, mgr: &mut Manager<Self>) -> bool {
+        self.maintain_music(mgr);
         *self.status() != ClientStatus::Disconnected
     }
 }

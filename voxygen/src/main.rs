@@ -12,6 +12,10 @@ extern crate fps_counter;
 extern crate gfx_glyph;
 extern crate lyon;
 
+//audio
+extern crate alto;
+extern crate lewton;
+
 // Mathematics
 extern crate alga;
 extern crate vek;
@@ -32,6 +36,7 @@ extern crate serde_derive;
 extern crate serde;
 #[macro_use]
 extern crate enum_map;
+extern crate byteorder;
 extern crate fnv;
 extern crate indexmap;
 extern crate parking_lot;
@@ -61,6 +66,7 @@ mod renderer;
 mod shader;
 
 // > Pipelines
+mod audio;
 mod skybox;
 mod tonemapper;
 mod voxel;

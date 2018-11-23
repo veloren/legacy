@@ -21,12 +21,27 @@ use vek::*;
 
 // Project
 use client::{Client, ClientEvent, PlayMode};
-use common::terrain::{chunk::ChunkContainer, VolOffs};
+use common::{
+    audio::{AudioGen, Buffer, Stream},
+    terrain::{chunk::ChunkContainer, VolOffs},
+};
+
+struct NoAudio {}
+impl AudioGen for NoAudio {
+    fn gen_stream(&self, id: u64, buffer: &Buffer, stream: &Stream) {}
+
+    fn gen_buffer(&self, id: u64, buffer: &Buffer) {}
+
+    fn drop_stream(&self, id: u64, buffer: &Buffer, stream: &Stream) {}
+
+    fn drop_buffer(&self, id: u64, buffer: &Buffer) {}
+}
 
 struct Payloads {}
 impl client::Payloads for Payloads {
     type Chunk = ();
     type Entity = ();
+    type Audio = NoAudio;
 }
 
 fn gen_payload(_key: Vec3<VolOffs>, _con: Arc<Mutex<Option<ChunkContainer<<Payloads as client::Payloads>::Chunk>>>>) {}
@@ -61,6 +76,7 @@ fn main() {
         &remote_addr.trim(),
         gen_payload,
         drop_payload,
+        Arc::new(NoAudio {}),
         0,
     )
     .expect("error when attempting to initiate the client");

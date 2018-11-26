@@ -68,7 +68,9 @@ mod voxel;
 // Standard
 use std::{
     io::{self, Write},
-    panic, thread,
+    panic,
+    path::{Path, PathBuf},
+    thread,
     time::Duration,
 };
 
@@ -95,7 +97,10 @@ pub fn get_git_time() -> DateTime<Utc> { Utc.timestamp(GIT_TIME.unwrap_or("-1").
 pub fn get_profile() -> &'static str { PROFILE.unwrap_or("UNKNOWN PROFILE") }
 
 pub fn get_build_time() -> DateTime<Utc> { Utc.timestamp(BUILD_TIME.unwrap_or("-1").to_string().parse().unwrap(), 0) }
+pub fn get_shader_dir() -> &'static Path { Path::new(option_env!("VOXYGEN_SHADERS").unwrap_or("shaders/")) }
 // END Environment variables
+
+pub fn get_shader_path(rpath: &str) -> PathBuf { get_shader_dir().join(rpath) }
 
 static RENDERER_INFO: Mutex<Option<RendererInfo>> = Mutex::new(None);
 

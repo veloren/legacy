@@ -34,6 +34,7 @@ use common::{
 // Local
 use camera::Camera;
 use consts::{ConstHandle, GlobalConsts};
+use get_shader_path;
 use hud::{Hud, HudEvent};
 use key_state::KeyState;
 use keybinds::{Keybinds, VKeyCode};
@@ -139,15 +140,17 @@ impl Game {
         let skybox_pipeline = Pipeline::new(
             window.renderer_mut().factory_mut(),
             skybox::pipeline::new(),
-            &Shader::from_file("shaders/skybox/skybox.vert").expect("Could not load skybox vertex shader"),
-            &Shader::from_file("shaders/skybox/skybox.frag").expect("Could not load skybox fragment shader"),
+            &Shader::from_file(get_shader_path("skybox/skybox.vert")).expect("Could not load skybox vertex shader"),
+            &Shader::from_file(get_shader_path("skybox/skybox.frag")).expect("Could not load skybox fragment shader"),
         );
 
         let tonemapper_pipeline = Pipeline::new(
             window.renderer_mut().factory_mut(),
             tonemapper::pipeline::new(),
-            &Shader::from_file("shaders/tonemapper/tonemapper.vert").expect("Could not load skybox vertex shader"),
-            &Shader::from_file("shaders/tonemapper/tonemapper.frag").expect("Could not load skybox fragment shader"),
+            &Shader::from_file(get_shader_path("tonemapper/tonemapper.vert"))
+                .expect("Could not load skybox vertex shader"),
+            &Shader::from_file(get_shader_path("tonemapper/tonemapper.frag"))
+                .expect("Could not load skybox fragment shader"),
         );
 
         let global_consts = ConstHandle::new(&mut window.renderer_mut());

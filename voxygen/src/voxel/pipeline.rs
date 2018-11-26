@@ -1,4 +1,5 @@
 use fnv::FnvBuildHasher;
+use get_shader_path;
 use gfx::{self, Primitive, Slice};
 use gfx_device_gl;
 use indexmap::IndexMap;
@@ -50,15 +51,15 @@ impl VolumePipeline {
         let voxel_pipeline = Pipeline::new(
             renderer.factory_mut(),
             voxel_pipeline::new(),
-            &Shader::from_file("shaders/voxel/voxel.vert").expect("Could not load voxel vertex shader"),
-            &Shader::from_file("shaders/voxel/voxel.frag").expect("Could not load voxel fragment shader"),
+            &Shader::from_file(get_shader_path("voxel/voxel.vert")).expect("Could not load voxel vertex shader"),
+            &Shader::from_file(get_shader_path("voxel/voxel.frag")).expect("Could not load voxel fragment shader"),
         );
 
         let water_pipeline = Pipeline::new(
             renderer.factory_mut(),
             water_pipeline::new(),
-            &Shader::from_file("shaders/voxel/water.vert").expect("Could not load voxel vertex shader"),
-            &Shader::from_file("shaders/voxel/water.frag").expect("Could not load voxel fragment shader"),
+            &Shader::from_file(get_shader_path("voxel/water.vert")).expect("Could not load voxel vertex shader"),
+            &Shader::from_file(get_shader_path("voxel/water.frag")).expect("Could not load voxel fragment shader"),
         );
 
         VolumePipeline {

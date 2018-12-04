@@ -10,7 +10,7 @@ use vek::*;
 
 // Local
 use super::{primitive::draw_rectangle, Bounds, Element, Event, ResCache, Span};
-use renderer::Renderer;
+use crate::renderer::Renderer;
 
 #[derive(Copy, Clone, PartialEq)]
 enum ActiveMode {

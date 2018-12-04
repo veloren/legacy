@@ -1,3 +1,5 @@
+use serde_derive::{Deserialize, Serialize};
+
 use super::super::Voxel;
 
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]

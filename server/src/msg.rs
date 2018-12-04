@@ -9,11 +9,7 @@ use vek::*;
 use common::{ecs::phys::Pos, util::manager::Manager};
 
 // Local
-use api::Api;
-use player::Player;
-use Payloads;
-use Server;
-use Wrapper;
+use crate::{api::Api, player::Player, Payloads, Server, Wrapper};
 
 pub(crate) fn process_chat_msg<P: Payloads>(
     srv: &Wrapper<Server<P>>,

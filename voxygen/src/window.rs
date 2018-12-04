@@ -9,7 +9,7 @@ use glutin::{
 };
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use renderer::{ColorFormat, DepthFormat, Renderer, RendererInfo};
+use crate::renderer::{ColorFormat, DepthFormat, Renderer, RendererInfo};
 
 use std::sync::atomic::{AtomicBool, Ordering};
 

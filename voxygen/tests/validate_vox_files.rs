@@ -1,9 +1,8 @@
-extern crate dot_vox;
 use std::fs;
 
 #[test]
 fn validate_vox_files() {
-    let paths = fs::read_dir("./assets/cosmetic/creature/friendly").unwrap();
+    let paths = fs::read_dir("../assets/voxygen/cosmetic/creature/friendly").unwrap();
     let mut files_checked = 0;
 
     for path in paths {
@@ -18,5 +17,8 @@ fn validate_vox_files() {
         files_checked += 1;
     }
 
-    assert_ne!(0, files_checked, "No files found in assets/cosmetic/creature/friendly");
+    assert_ne!(
+        0, files_checked,
+        "No files found in assets/voxygen/cosmetic/creature/friendly"
+    );
 }

@@ -2,7 +2,9 @@
 use vek::*;
 
 // Local
-use terrain::{chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, ReadWriteVolume, Volume, VoxRel, Voxel};
+use crate::terrain::{
+    chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, ReadWriteVolume, Volume, VoxRel, Voxel,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct HeterogeneousData {

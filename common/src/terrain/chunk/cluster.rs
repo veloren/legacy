@@ -1,4 +1,4 @@
-use terrain::{
+use crate::terrain::{
     chunk::{
         rle::{BlockRle, BLOCK_RLE_MAX_NUM},
         Block, HeterogeneousData, HomogeneousData, RleData,

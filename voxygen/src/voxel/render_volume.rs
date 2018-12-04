@@ -1,9 +1,12 @@
+// Project
 use common::terrain::{
     chunk::{Block, BlockMat},
     figure::{Cell, CellMaterial},
     PhysicalVolume, ReadVolume, Voxel,
 };
-use voxel::{Material, MaterialKind, RenderMaterial};
+
+// Local
+use crate::voxel::{Material, MaterialKind, RenderMaterial};
 
 pub trait RenderVoxel: Voxel {
     fn get_palette(&self) -> u16;
@@ -29,7 +32,7 @@ impl RenderVoxel for Block {
             // Special case for water
             BlockMat { grad: 0x80, index: 3 } => RenderMaterial::new(Material::Water as u8, MaterialKind::Water),
             // Default material
-            m => RenderMaterial::new(Material::MatteSmooth as u8, MaterialKind::Solid),
+            _m => RenderMaterial::new(Material::MatteSmooth as u8, MaterialKind::Solid),
         }
     }
 

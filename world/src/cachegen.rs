@@ -6,7 +6,7 @@ use fnv::FnvHasher;
 use parking_lot::RwLock;
 
 // Local
-use Gen;
+use crate::Gen;
 
 pub struct CacheGen<T, I, O>
 where

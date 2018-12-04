@@ -2,12 +2,13 @@
 use std::{collections::HashMap, sync::Arc, thread, time::Duration};
 
 // Library
+use lazy_static::lazy_static;
 use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use threadpool::ThreadPool;
 use vek::*;
 
 // Local
-use terrain::{
+use crate::terrain::{
     self,
     chunk::{Block, ChunkContainer, ChunkSample},
     Container, Key, PersState, VolCluster, VolGen, VolOffs, VoxAbs, VoxRel,

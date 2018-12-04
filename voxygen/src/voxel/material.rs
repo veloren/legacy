@@ -1,5 +1,7 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 
+use enum_map::EnumMap;
+
 /// The indices (order) here should correspond to the ones found in shaders/util/luts.glsl
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Eq, Hash, EnumMap, PartialOrd, Ord)]

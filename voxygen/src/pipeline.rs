@@ -7,7 +7,7 @@ use gfx::{
 };
 use gfx_device_gl;
 
-use shader::Shader;
+use crate::shader::Shader;
 
 pub struct Pipeline<P: PipelineInit> {
     #[allow(dead_code)]

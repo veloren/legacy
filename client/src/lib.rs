@@ -1,9 +1,6 @@
 #![feature(nll, euclidean_division, duration_as_u128, label_break_value)]
 
 // Crates
-extern crate common;
-extern crate parking_lot;
-extern crate vek;
 extern crate world as world_crate; // TODO: Fix this naming conflict
 #[macro_use]
 extern crate log;
@@ -43,8 +40,7 @@ use common::{
 };
 
 // Local
-use error::Error;
-use player::Player;
+use crate::{error::Error, player::Player};
 
 // Reexports
 pub use common::terrain::chunk::CHUNK_SIZE;

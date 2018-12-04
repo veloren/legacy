@@ -9,8 +9,8 @@ mod tests;
 use std::collections::HashMap;
 
 // Library
+use crate::util::msg::CompStore;
 use specs::{saveload::MarkedBuilder, Builder, Component, EntityBuilder, World};
-use util::msg::CompStore;
 use vek::*;
 
 // Local

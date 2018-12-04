@@ -7,6 +7,7 @@ use std::{
 
 use glutin::VirtualKeyCode;
 use serde::{Deserializer, Serializer};
+use serde_derive::{Deserialize, Serialize};
 use toml;
 
 const KEYS_PATH: &str = "keybinds.toml";

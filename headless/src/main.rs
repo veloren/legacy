@@ -1,13 +1,6 @@
 #![feature(nll)]
 
 // Crates
-extern crate client;
-extern crate common;
-extern crate get_if_addrs;
-extern crate parking_lot;
-extern crate pretty_env_logger;
-extern crate syrup;
-extern crate vek;
 #[macro_use]
 extern crate log;
 

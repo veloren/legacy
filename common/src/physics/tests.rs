@@ -12,16 +12,18 @@ use rand::prelude::*;
 use vek::*;
 
 // Parent
-use physics::{
-    collision::{Primitive, ResolutionCol, ResolutionTti},
-    physics,
+use crate::{
+    physics::{
+        collision::{Primitive, ResolutionCol, ResolutionTti},
+        physics,
+    },
+    terrain::{
+        chunk::{Block, Chunk, ChunkContainer, HeterogeneousData},
+        BlockLoader, ChunkMgr, ConstructVolume, Container, Entity, ReadWriteVolume, VolCluster, VolGen, VolOffs,
+        VoxRel, Voxel,
+    },
+    Uid,
 };
-use terrain::{
-    chunk::{Block, Chunk, ChunkContainer, HeterogeneousData},
-    BlockLoader, ChunkMgr, ConstructVolume, Container, Entity, ReadWriteVolume, VolCluster, VolGen, VolOffs, VoxRel,
-    Voxel,
-};
-use Uid;
 
 #[test]
 fn collide_simple() {

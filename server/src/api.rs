@@ -5,10 +5,11 @@ use specs::{prelude::*, saveload::Marker};
 use common::{ecs::net::UidMarker, util::msg::ServerMsg};
 
 // Local
-use net::{Client, DisconnectReason};
-use player::Player;
-use Payloads;
-use Server;
+use crate::{
+    net::{Client, DisconnectReason},
+    player::Player,
+    Payloads, Server,
+};
 
 pub trait Api {
     fn disconnect_player(&mut self, player: Entity, reason: DisconnectReason);

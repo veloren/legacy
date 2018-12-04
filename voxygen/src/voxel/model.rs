@@ -5,8 +5,10 @@ use indexmap::IndexMap;
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
-use renderer::Renderer;
-use voxel::{mesh::VertexBuffer, MaterialKind, Mesh};
+use crate::{
+    renderer::Renderer,
+    voxel::{mesh::VertexBuffer, MaterialKind, Mesh},
+};
 
 gfx_defines! {
     constant ModelConsts {

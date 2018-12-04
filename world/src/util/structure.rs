@@ -2,8 +2,7 @@
 use vek::*;
 
 // Local
-use cachegen::CacheGen;
-use Gen;
+use crate::{cachegen::CacheGen, Gen};
 
 #[allow(dead_code)]
 pub fn dist_by_euc(p: Vec2<i64>) -> i64 { (p * p).sum() }

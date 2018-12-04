@@ -1,9 +1,7 @@
 #![feature(test)]
 
-extern crate common;
-extern crate parking_lot;
 extern crate test;
-extern crate vek;
+
 // Standard
 
 // Library
@@ -19,7 +17,7 @@ use common::terrain::{
 /* Reference Chunk
 
 ^
-|
+|z
 y
   x -->
 

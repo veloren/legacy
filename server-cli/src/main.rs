@@ -1,6 +1,3 @@
-// Crates
-extern crate server;
-
 // Project
 use server::{api::Api, net::DisconnectReason, player::Player, specs::Entity, Manager, Server};
 

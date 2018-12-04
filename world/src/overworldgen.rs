@@ -9,8 +9,7 @@ use vek::*;
 use common::terrain::chunk::Block;
 
 // Local
-use new_seed;
-use Gen;
+use crate::{new_seed, Gen};
 
 pub struct OverworldGen {
     land_nz: HybridMulti,

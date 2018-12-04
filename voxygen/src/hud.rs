@@ -10,12 +10,14 @@ use std::{
 use vek::*;
 
 // Local
-use renderer::Renderer;
-use ui::{
-    element::{HBox, Label, Rect, TextBox, VBox, WinBox},
-    Span, Ui,
+use crate::{
+    renderer::Renderer,
+    ui::{
+        element::{HBox, Label, Rect, TextBox, VBox, WinBox},
+        Span, Ui,
+    },
+    window::Event,
 };
-use window::Event;
 
 pub enum HudEvent {
     ChatMsgSent { text: String },

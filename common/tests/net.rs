@@ -1,10 +1,8 @@
-// Crates
-extern crate common;
-#[macro_use]
-extern crate serde_derive;
-
 // Standard
 use std::{net::TcpListener, sync::Arc, thread, time::Duration};
+
+// Library
+use serde_derive::{Deserialize, Serialize};
 
 // Project
 use common::{

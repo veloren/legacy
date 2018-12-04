@@ -1,4 +1,4 @@
-use terrain::Voxel;
+use crate::terrain::Voxel;
 
 #[repr(u16)]
 #[derive(Copy, Clone, PartialEq)]

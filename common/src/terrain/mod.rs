@@ -5,7 +5,7 @@ pub mod figure;
 mod vol_gen;
 
 // Reexports
-pub use terrain::{
+pub use crate::terrain::{
     chunk_mgr::{BlockLoader, ChunkMgr},
     entity::Entity,
     vol_gen::{FnDropFunc, FnGenFunc, VolGen},

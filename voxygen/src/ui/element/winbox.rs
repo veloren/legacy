@@ -9,7 +9,7 @@ use vek::*;
 
 // Local
 use super::{primitive::draw_rectangle, Bounds, Element, Event, ResCache, Span};
-use renderer::Renderer;
+use crate::renderer::Renderer;
 
 pub struct WinBoxChild {
     offset: Vec2<Span>,

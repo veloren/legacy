@@ -4,7 +4,7 @@ use gfx::{
 };
 use gfx_device_gl;
 
-use renderer::Renderer;
+use crate::renderer::Renderer;
 
 gfx_defines! {
     constant GlobalConsts {

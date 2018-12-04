@@ -14,8 +14,10 @@ use lyon::tessellation::{self, geometry_builder::VertexConstructor};
 use vek::*;
 
 // Local
-use renderer::{ColorFormat, Renderer};
-use shader::Shader;
+use crate::{
+    renderer::{ColorFormat, Renderer},
+    shader::Shader,
+};
 
 // Vertex
 

@@ -6,13 +6,15 @@ use parking_lot::RwLock;
 use vek::*;
 
 // Project
-use physics::collision::{Primitive, ResolutionTti, PLANCK_LENGTH};
-use terrain::{VoxAbs, Voxel};
+use crate::{
+    physics::collision::{Primitive, ResolutionTti, PLANCK_LENGTH},
+    terrain::{VoxAbs, Voxel},
+};
 
-use Uid;
+use crate::Uid;
 
 // Local
-use terrain::{ChunkMgr, Entity};
+use crate::terrain::{ChunkMgr, Entity};
 
 pub const LENGTH_OF_BLOCK: f32 = 0.3;
 const GROUND_GRAVITY: f32 = -9.81;

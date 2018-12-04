@@ -1,21 +1,15 @@
 // Standard
 use std::time::Duration;
 
-// Library
-use vek::*;
-
 // Project
 use common::{physics::physics, util::manager::Manager};
 
 // Local
-use Client;
-use ClientStatus;
-use Payloads;
-use CHUNK_SIZE;
+use crate::{Client, ClientStatus, Payloads, CHUNK_SIZE};
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn tick(&self, dt: Duration, _mgr: &mut Manager<Self>) -> bool {
-        let entities = self.entities.read();
+        let _entities = self.entities.read();
 
         // Physics tick
         {

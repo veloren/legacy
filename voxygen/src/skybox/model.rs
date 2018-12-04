@@ -1,10 +1,12 @@
 use gfx::{self, traits::FactoryExt, IndexBuffer, Slice};
 use gfx_device_gl;
 
-use consts::{ConstHandle, GlobalConsts};
-use pipeline::Pipeline;
-use renderer::{HdrDepthFormat, HdrFormat, Renderer};
-use skybox::{Mesh, Vertex};
+use crate::{
+    consts::{ConstHandle, GlobalConsts},
+    pipeline::Pipeline,
+    renderer::{HdrDepthFormat, HdrFormat, Renderer},
+    skybox::{Mesh, Vertex},
+};
 
 type PipelineData = pipeline::Data<gfx_device_gl::Resources>;
 type VertexBuffer = gfx::handle::Buffer<gfx_device_gl::Resources, Vertex>;

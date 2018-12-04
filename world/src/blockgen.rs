@@ -9,11 +9,13 @@ use vek::*;
 use common::terrain::chunk::Block;
 
 // Local
-use cachegen::CacheGen;
-use new_seed;
-use overworldgen::{Out as OverworldOut, OverworldGen};
-use towngen::{self, TownGen};
-use Gen;
+use crate::{
+    cachegen::CacheGen,
+    new_seed,
+    overworldgen::{Out as OverworldOut, OverworldGen},
+    towngen::{self, TownGen},
+    Gen,
+};
 
 pub struct BlockGen {
     overworld_gen: CacheGen<OverworldGen, Vec2<i64>, OverworldOut>,

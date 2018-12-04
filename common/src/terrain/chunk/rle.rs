@@ -2,10 +2,11 @@
 use std::u8;
 
 // Library
+use serde_derive::{Deserialize, Serialize};
 use vek::*;
 
 // Local
-use terrain::{chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, Volume, VoxRel, Voxel};
+use crate::terrain::{chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, Volume, VoxRel, Voxel};
 
 //TODO: optimizations:
 // currently even empty blocks generate a BlockRle, one could say that if the 3rd vector is empty that all blocks are empty

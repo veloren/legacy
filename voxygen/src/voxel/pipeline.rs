@@ -1,16 +1,18 @@
+use crate::get_shader_path;
 use fnv::FnvBuildHasher;
-use get_shader_path;
 use gfx::{self, Primitive, Slice};
 use gfx_device_gl;
 use indexmap::IndexMap;
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
-use consts::{ConstHandle, GlobalConsts};
-use pipeline::Pipeline;
-use renderer::{HdrDepthFormat, HdrFormat, Renderer};
-use shader::Shader;
-use voxel::{mesh::VertexBuffer, MaterialKind, Model, ModelConsts, Vertex};
+use crate::{
+    consts::{ConstHandle, GlobalConsts},
+    pipeline::Pipeline,
+    renderer::{HdrDepthFormat, HdrFormat, Renderer},
+    shader::Shader,
+    voxel::{mesh::VertexBuffer, MaterialKind, Model, ModelConsts, Vertex},
+};
 
 type VoxelPipelineData = voxel_pipeline::Data<gfx_device_gl::Resources>;
 type WaterPipelineData = water_pipeline::Data<gfx_device_gl::Resources>;

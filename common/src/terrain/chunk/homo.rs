@@ -1,8 +1,9 @@
 // Library
+use serde_derive::{Deserialize, Serialize};
 use vek::*;
 
 // Local
-use terrain::{chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, Volume, VoxRel, Voxel};
+use crate::terrain::{chunk::Block, ConstructVolume, PhysicalVolume, ReadVolume, Volume, VoxRel, Voxel};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct HomogeneousData {

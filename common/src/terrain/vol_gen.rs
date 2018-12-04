@@ -1,5 +1,5 @@
 // Local
-use terrain::{Container, Key};
+use crate::terrain::{Container, Key};
 
 // Standard
 use std::sync::Arc;

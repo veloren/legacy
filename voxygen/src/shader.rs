@@ -1,4 +1,4 @@
-use get_shader_path;
+use crate::get_shader_path;
 use glsl_include;
 use std::{env, fs, io};
 

@@ -1,9 +1,11 @@
 use gfx::{self, IndexBuffer, Slice};
 use gfx_device_gl;
 
-use consts::{ConstHandle, GlobalConsts};
-use pipeline::Pipeline;
-use renderer::{ColorFormat, Renderer};
+use crate::{
+    consts::{ConstHandle, GlobalConsts},
+    pipeline::Pipeline,
+    renderer::{ColorFormat, Renderer},
+};
 
 pub type PipelineData = pipeline::Data<gfx_device_gl::Resources>;
 

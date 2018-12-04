@@ -3,7 +3,8 @@ use std::{io, net::SocketAddr};
 
 // Library
 use bincode;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::de::DeserializeOwned;
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub enum Error {
@@ -16,7 +17,7 @@ impl From<io::Error> for Error {
     fn from(e: io::Error) -> Error { Error::NetworkErr(e) }
 }
 
-pub trait Message: Send + Sync + 'static + Serialize + DeserializeOwned {
+pub trait Message: Send + Sync + 'static + serde::Serialize + DeserializeOwned {
     fn to_bytes(&self) -> Result<Vec<u8>, Error> { bincode::serialize(&self).map_err(|_e| Error::CannotSerialize) }
 
     fn from_bytes(data: &[u8]) -> Result<Self, Error>

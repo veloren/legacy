@@ -32,19 +32,19 @@ use common::{
 };
 
 // Local
-use camera::Camera;
-use consts::{ConstHandle, GlobalConsts};
-use get_shader_path;
-use hud::{Hud, HudEvent};
-use key_state::KeyState;
-use keybinds::{Keybinds, VKeyCode};
-use pipeline::Pipeline;
-use shader::Shader;
-use skybox;
-use tonemapper;
-use voxel;
-use window::{Event, RenderWindow};
-use RENDERER_INFO;
+use crate::{
+    camera::Camera,
+    consts::{ConstHandle, GlobalConsts},
+    get_shader_path,
+    hud::{Hud, HudEvent},
+    key_state::KeyState,
+    keybinds::{Keybinds, VKeyCode},
+    pipeline::Pipeline,
+    shader::Shader,
+    skybox, tonemapper, voxel,
+    window::{Event, RenderWindow},
+    RENDERER_INFO,
+};
 
 pub enum ChunkPayload {
     Meshes(FnvIndexMap<voxel::MaterialKind, voxel::Mesh>),
@@ -550,8 +550,7 @@ impl Game {
 
         tonemapper::render(&mut renderer, &self.tonemapper_pipeline, &self.global_consts);
 
-        use get_build_time;
-        use get_git_hash;
+        use crate::{get_build_time, get_git_hash};
 
         // TODO: Use a HudEvent to pass this in!
         self.hud

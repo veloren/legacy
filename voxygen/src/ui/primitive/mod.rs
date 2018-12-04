@@ -16,7 +16,7 @@ use super::{
     render::{create_fill_pso, fill_pipeline, FillVertex, VertexFactory},
     rescache::{GlyphBrushRes, RectVboRes, ResCache},
 };
-use renderer::Renderer;
+use crate::renderer::Renderer;
 
 fn create_rect_vbo(renderer: &mut Renderer, pos: Vec2<f32>, sz: Vec2<f32>, col: Rgba<f32>) -> RectVboRes {
     let mut mesh: VertexBuffers<FillVertex, u16> = VertexBuffers::new();

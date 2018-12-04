@@ -3,46 +3,9 @@
 // Graphics
 #[macro_use]
 extern crate gfx;
-extern crate gfx_device_gl;
-extern crate gfx_window_glutin;
-extern crate glutin;
 
-// Ui
-extern crate fps_counter;
-extern crate gfx_glyph;
-extern crate lyon;
-
-// Mathematics
-extern crate alga;
-extern crate vek;
-
-// File loading
-extern crate dot_vox;
-extern crate glsl_include;
-extern crate toml;
-
-// I/O
 #[macro_use]
 extern crate log;
-extern crate pretty_env_logger;
-
-// Utility
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-#[macro_use]
-extern crate enum_map;
-extern crate fnv;
-extern crate indexmap;
-extern crate parking_lot;
-extern crate tempfile;
-
-// Time
-extern crate chrono;
-extern crate time;
-
-extern crate client;
-extern crate common;
 
 // Modules
 mod camera;
@@ -83,8 +46,7 @@ use client::PlayMode;
 use common::get_version;
 
 // Local
-use game::Game;
-use renderer::RendererInfo;
+use crate::{game::Game, renderer::RendererInfo};
 
 // START Environment variables
 const GIT_HASH: Option<&'static str> = option_env!("GIT_HASH");

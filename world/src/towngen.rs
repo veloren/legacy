@@ -6,17 +6,20 @@ use std::{
 
 // Library
 use dot_vox;
+use lazy_static::lazy_static;
 use vek::*;
 
 // Project
 use common::terrain::chunk::Block;
 
 // Local
-use cachegen::CacheGen;
-use new_seed;
-use overworldgen::{Out as OverworldOut, OverworldGen};
-use util::structure::{dist_by_euc, StructureGen};
-use Gen;
+use crate::{
+    cachegen::CacheGen,
+    new_seed,
+    overworldgen::{Out as OverworldOut, OverworldGen},
+    util::structure::{dist_by_euc, StructureGen},
+    Gen,
+};
 
 // <--- BEGIN MESS --->
 
@@ -720,7 +723,7 @@ impl<'a> Gen<(&'a InvariantZ, &'a OverworldOut, &'a OverworldGen)> for TownGen {
     fn sample<'b>(
         &'b self,
         pos: Vec3<i64>,
-        (building, overworld, _overworld_gen): &'b (&'a InvariantZ, &'a OverworldOut, &'a OverworldGen),
+        (building, _overworld, _overworld_gen): &'b (&'a InvariantZ, &'a OverworldOut, &'a OverworldGen),
     ) -> Out {
         let pos2d = Vec2::from(pos);
 

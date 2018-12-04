@@ -15,9 +15,7 @@ use common::{
 };
 
 // Local
-use net::Client;
-use Payloads;
-use Server;
+use crate::{net::Client, Payloads, Server};
 
 // Player
 

@@ -6,6 +6,9 @@ use std::{
     time::Duration,
 };
 
+// Library
+use serde_derive::{Deserialize, Serialize};
+
 // Parent
 use super::{
     message::{Error::NetworkErr, Message},
@@ -16,7 +19,7 @@ use super::{
 };
 
 // Local
-use util::testutils::PORTS;
+use crate::util::testutils::PORTS;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TestMessage {

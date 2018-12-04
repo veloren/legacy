@@ -9,7 +9,7 @@ use vek::*;
 
 // Local
 use super::{primitive::draw_text, Bounds, Element, ResCache, Span};
-use renderer::Renderer;
+use crate::renderer::Renderer;
 
 #[allow(dead_code)]
 #[derive(Clone)]

@@ -2,6 +2,7 @@
 use std::{collections::HashMap, ops::Range};
 
 // Library
+use serde_derive::{Deserialize, Serialize};
 use specs::{
     saveload::{Marker, MarkerAllocator},
     world::EntitiesRes,

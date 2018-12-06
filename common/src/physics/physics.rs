@@ -225,22 +225,19 @@ pub fn tick<
 
             if mov.velocity.x != old_mov.velocity.x || mov.velocity.y != old_mov.velocity.y {
                 // something got stoped, try block hopping
+                let cur_percent_of_hop = (mov.primitive.col_center().z - ENTITY_MIDDLE_OFFSET.z).fract();
+                let needed_for_step = Vec3::unit_z() * (BLOCK_SIZE_PLUS_SMALL - cur_percent_of_hop);
                 //check top first
                 if nearby
                     .iter()
-                    .find(|prim| {
-                        match prim.time_to_impact(&mov.primitive, &Vec3::new(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL)) {
-                            Some(ResolutionTti::WillCollide { tti, .. }) => tti < 1.0,
-                            _ => false,
-                        }
+                    .find(|prim| match prim.time_to_impact(&mov.primitive, &needed_for_step) {
+                        Some(ResolutionTti::WillCollide { tti, .. }) => tti < 1.0,
+                        _ => false,
                     })
                     .is_none()
                 {
                     let mut mov_arr = [(mov.clone(), nearby.clone())]; //TODO: remove these clones
-                    mov_arr[0]
-                        .0
-                        .primitive
-                        .move_by(&Vec3::new(0.0, 0.0, BLOCK_SIZE_PLUS_SMALL));
+                    mov_arr[0].0.primitive.move_by(&needed_for_step);
                     mov_arr[0].0.velocity = old_mov.velocity;
                     movement_tick(mov_arr.iter_mut(), obstacles.values(), dt);
 
@@ -248,7 +245,7 @@ pub fn tick<
                     if (hopmov.velocity.x != mov.velocity.x || hopmov.velocity.y != mov.velocity.y)
                         && (hopmov.velocity.x != 0.0 || hopmov.velocity.y != 0.0)
                     {
-                        let up = (BLOCK_HOP_SPEED * dt).min(BLOCK_SIZE_PLUS_SMALL);
+                        let up = (BLOCK_HOP_SPEED * dt).min(needed_for_step.z);
                         mov.primitive.move_by(&(Vec3::unit_z() * up));
                         mov.velocity = hopmov.velocity;
                         mov.velocity.z = 0.0;

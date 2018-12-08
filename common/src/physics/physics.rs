@@ -225,8 +225,8 @@ pub fn tick<
 
             if mov.velocity.x != old_mov.velocity.x || mov.velocity.y != old_mov.velocity.y {
                 // something got stoped, try block hopping
-                let cur_percent_of_hop = (mov.primitive.col_center().z - ENTITY_MIDDLE_OFFSET.z).fract();
-                let needed_for_step = Vec3::unit_z() * (BLOCK_SIZE_PLUS_SMALL - cur_percent_of_hop);
+                let cur_percent_of_hop = (mov.primitive.col_center().z + PLANCK_LENGTH /*needs to be done before substract because of f32 percision CPU inaccurate for 128.9 - 0.9 = 127.9999 */- ENTITY_MIDDLE_OFFSET.z).fract();
+                let needed_for_step = Vec3::unit_z() * (BLOCK_SIZE_PLUS_SMALL - cur_percent_of_hop + PLANCK_LENGTH);
                 //check top first
                 if nearby
                     .iter()
@@ -239,6 +239,7 @@ pub fn tick<
                     let mut mov_arr = [(mov.clone(), nearby.clone())]; //TODO: remove these clones
                     mov_arr[0].0.primitive.move_by(&needed_for_step);
                     mov_arr[0].0.velocity = old_mov.velocity;
+
                     movement_tick(mov_arr.iter_mut(), obstacles.values(), dt);
 
                     let hopmov = &mov_arr[0].0;

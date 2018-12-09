@@ -51,9 +51,18 @@ impl<O> StructureGen<O> {
         // TODO: Make this actually good
         let pos = pos.into();
         let next = 327387278321 ^ ((self.seed + seed) as u64).wrapping_mul(1103515245).wrapping_add(15341);
-        let next = 327387278322 ^ (next.wrapping_add((pos.x + 3232782181) as u64)).wrapping_mul(1103515223245).wrapping_add(12343);
-        let next = 327387278321 ^ (next.wrapping_add((pos.y + 23728323237) as u64)).wrapping_mul(110351535245).wrapping_add(12541);
-        let next = 327387278321 ^ (next.wrapping_add((pos.z + 11982942813) as u64)).wrapping_mul(3278433222771).wrapping_add(12541);
+        let next = 327387278322
+            ^ (next.wrapping_add((pos.x + 3232782181) as u64))
+                .wrapping_mul(1103515223245)
+                .wrapping_add(12343);
+        let next = 327387278321
+            ^ (next.wrapping_add((pos.y + 23728323237) as u64))
+                .wrapping_mul(110351535245)
+                .wrapping_add(12541);
+        let next = 327387278321
+            ^ (next.wrapping_add((pos.z + 11982942813) as u64))
+                .wrapping_mul(3278433222771)
+                .wrapping_add(12541);
         next
     }
 }

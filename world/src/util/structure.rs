@@ -50,10 +50,10 @@ impl<O> StructureGen<O> {
     pub fn throw_dice<T: Into<Vec3<i64>>>(&self, pos: T, seed: u32) -> u64 {
         // TODO: Make this actually good
         let pos = pos.into();
-        let next = 327387278321 ^ (self.seed + seed) as u64 * 1103515245 + 15341;
-        let next = 327387278322 ^ (next + (pos.x + 3232782181) as u64) * 1103515245 + 12343;
-        let next = 327387278321 ^ (next + (pos.y + 23728323237) as u64) * 1103515245 + 12541;
-        let next = 327387278321 ^ (next + (pos.z + 11982942813) as u64) * 327822771 + 12541;
+        let next = 327387278321 ^ ((self.seed + seed) as u64).wrapping_mul(1103515245).wrapping_add(15341);
+        let next = 327387278322 ^ (next.wrapping_add((pos.x + 3232782181) as u64)).wrapping_mul(1103515223245).wrapping_add(12343);
+        let next = 327387278321 ^ (next.wrapping_add((pos.y + 23728323237) as u64)).wrapping_mul(110351535245).wrapping_add(12541);
+        let next = 327387278321 ^ (next.wrapping_add((pos.z + 11982942813) as u64)).wrapping_mul(3278433222771).wrapping_add(12541);
         next
     }
 }

@@ -13,8 +13,8 @@ extern crate gfx_glyph;
 extern crate lyon;
 
 //audio
-extern crate alto;
 extern crate lewton;
+extern crate rodio;
 
 // Mathematics
 extern crate alga;

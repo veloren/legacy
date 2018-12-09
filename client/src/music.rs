@@ -56,7 +56,7 @@ impl<P: Payloads> Client<P> {
                 buffer,
                 start_tick: clock_tick_time,
                 duration,
-                volume: 0.3,
+                volume: 0.5,
                 repeat: None,
                 positional: None,
                 fading: None,
@@ -92,13 +92,13 @@ impl<P: Payloads> Client<P> {
                         });
                     }
                 }
-                if vel.magnitude_squared() > 0.12 && vel.z.abs() < 0.6 {
+                if vel.magnitude_squared() > 0.07 && vel.z.abs() < 3.8 {
                     //some movement on ground
                     self.audio_mgr.gen_stream(Stream {
                         buffer: 2,
                         start_tick: clock_tick_time,
                         duration,
-                        volume: 1.0,
+                        volume: 0.3,
                         repeat: None,
                         positional,
                         fading: None,

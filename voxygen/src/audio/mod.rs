@@ -1,9 +1,8 @@
-extern crate alto;
 extern crate byteorder;
 extern crate lewton;
+extern crate rodio;
 
 use std::time::Duration;
 use vek::*;
 
-mod ogg;
-pub mod openal;
+pub mod frontend;

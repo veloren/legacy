@@ -32,7 +32,7 @@ use common::{
 };
 
 // Local
-use audio::openal::OpenAl;
+use audio::frontend::AudioFrontend;
 use camera::Camera;
 use consts::{ConstHandle, GlobalConsts};
 use hud::{Hud, HudEvent};
@@ -58,7 +58,7 @@ pub struct Payloads {}
 impl client::Payloads for Payloads {
     type Chunk = ChunkPayload;
     type Entity = ConstHandle<voxel::ModelConsts>;
-    type Audio = OpenAl;
+    type Audio = AudioFrontend;
 }
 
 pub struct Game {
@@ -78,7 +78,7 @@ pub struct Game {
     tonemapper_pipeline: Pipeline<tonemapper::pipeline::Init<'static>>,
 
     hud: Hud,
-    audio: Manager<OpenAl>,
+    audio: Manager<AudioFrontend>,
 
     fps: FPSCounter,
     last_fps: usize,
@@ -122,7 +122,7 @@ impl Game {
         );
         *RENDERER_INFO.lock() = Some(info);
 
-        let audio = OpenAl::new();
+        let audio = AudioFrontend::new();
 
         let client = Client::new(
             mode,
@@ -130,7 +130,7 @@ impl Game {
             remote_addr,
             gen_payload,
             drop_payload,
-            Manager::<OpenAl>::internal(&audio).clone(),
+            Manager::<AudioFrontend>::internal(&audio).clone(),
             view_distance,
         )
         .expect("Could not create new client");
@@ -562,7 +562,8 @@ impl Game {
         self.volume_pipeline.flush(&mut renderer);
 
         //update audio
-        self.audio.set_pos(player_pos, player_vel, player_ori);
+        self.audio
+            .set_pos(player_pos, player_vel, camera_mats.0 * camera_mats.1);
 
         tonemapper::render(&mut renderer, &self.tonemapper_pipeline, &self.global_consts);
 

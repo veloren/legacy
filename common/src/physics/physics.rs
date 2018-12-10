@@ -257,8 +257,6 @@ pub fn tick<
             let mut entity = entity.write();
             *entity.pos_mut() = mov.primitive.col_center() - ENTITY_MIDDLE_OFFSET;
             *entity.vel_mut() = mov.velocity;
-
-            break;
         }
     }
 }

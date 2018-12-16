@@ -110,7 +110,7 @@ fn main() {
             io::stdout().flush().expect("Failed to flush");
             io::stdin().read_line(&mut remote_addr).unwrap();
         } else {
-            remote_addr = "91.67.21.222:38888".to_string();
+            remote_addr = "veloren.pftclan.de:38888".to_string();
         }
 
         remote_addr = remote_addr.trim().to_string();

@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use vek::*;
 
 // Local
-use terrain::{
+use crate::terrain::{
     chunk::{Block, BlockRle, Chunk, ChunkContainer, HeterogeneousData, HomogeneousData, RleData},
     ConstructVolume, Container, PersState, ReadVolume, ReadWriteVolume, VolCluster, Volume, Voxel,
 };

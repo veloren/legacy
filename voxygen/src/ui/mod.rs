@@ -18,8 +18,7 @@ use vek::*;
 
 // Local
 use self::{element::Element, rescache::ResCache};
-use renderer::Renderer;
-use window::Event;
+use crate::{renderer::Renderer, window::Event};
 
 #[allow(dead_code)]
 pub struct Ui {

@@ -5,7 +5,7 @@ pub mod audio_gen;
 pub mod audio_mgr;
 
 // Reexports
-pub use audio::{audio_gen::AudioGen, audio_mgr::AudioMgr};
+pub use crate::audio::{audio_gen::AudioGen, audio_mgr::AudioMgr};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Position {

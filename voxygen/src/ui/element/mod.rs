@@ -18,7 +18,7 @@ use vek::*;
 
 // Local
 use super::*;
-use window::Event;
+use crate::window::Event;
 
 // Utility aliases
 type Bounds = (Vec2<f32>, Vec2<f32>);

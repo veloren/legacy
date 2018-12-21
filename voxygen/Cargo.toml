@@ -1,6 +1,7 @@
 [package]
 name = "voxygen"
 version = "0.1.0"
+edition = "2018"
 authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
 build = "build.rs"
 

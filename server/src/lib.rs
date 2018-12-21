@@ -1,10 +1,7 @@
 #![feature(integer_atomics, duration_as_u128, label_break_value, specialization)]
 
 // Crates
-extern crate common;
-extern crate parking_lot;
 pub extern crate specs;
-extern crate vek;
 
 // Modules
 pub mod api;
@@ -15,8 +12,8 @@ pub mod player;
 mod tick;
 
 // Reexports
+pub use crate::error::Error;
 pub use common::util::manager::Manager;
-pub use error::Error;
 
 // Standard
 use std::{
@@ -36,9 +33,11 @@ use common::{
 };
 
 // Local
-use api::Api;
-use net::{Client, DisconnectReason};
-use player::Player;
+use crate::{
+    api::Api,
+    net::{Client, DisconnectReason},
+    player::Player,
+};
 
 pub trait Payloads: Send + Sync + 'static {
     type Chunk: Send + Sync + 'static;

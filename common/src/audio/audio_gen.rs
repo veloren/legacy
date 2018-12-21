@@ -1,9 +1,9 @@
 // Local
-use audio::{Buffer, Stream};
+use crate::audio::{Buffer, Stream};
 
 pub trait AudioGen {
-    fn gen_stream(&self, u64, &Buffer, &Stream);
-    fn gen_buffer(&self, u64, &Buffer);
-    fn drop_stream(&self, u64, &Buffer, &Stream);
-    fn drop_buffer(&self, u64, &Buffer);
+    fn gen_stream(&self, id: u64, buffer: &Buffer, stream: &Stream);
+    fn gen_buffer(&self, id: u64, buffer: &Buffer);
+    fn drop_stream(&self, id: u64, buffer: &Buffer, stream: &Stream);
+    fn drop_buffer(&self, id: u64, buffer: &Buffer);
 }

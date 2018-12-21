@@ -16,10 +16,7 @@ use common::{
 };
 
 // Local
-use Client;
-use ClientEvent;
-use ClientStatus;
-use Payloads;
+use crate::{Client, ClientEvent, ClientStatus, Payloads};
 
 // Constants
 const PING_TIMEOUT: Duration = Duration::from_secs(10);

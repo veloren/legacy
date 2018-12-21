@@ -12,8 +12,7 @@ use common::{
 };
 
 // Local
-use Client;
-use Payloads;
+use crate::{Client, Payloads};
 
 impl<P: Payloads> Client<P> {
     pub(crate) fn maintain_music(&self, _mgr: &mut Manager<Self>) {
@@ -92,13 +91,13 @@ impl<P: Payloads> Client<P> {
                         });
                     }
                 }
-                if vel.magnitude_squared() > 0.07 && vel.z.abs() < 3.8 {
+                if vel.magnitude_squared() > 0.17 && vel.z.abs() < 3.0 {
                     //some movement on ground
                     self.audio_mgr.gen_stream(Stream {
                         buffer: 2,
                         start_tick: clock_tick_time,
                         duration,
-                        volume: 0.3,
+                        volume: 0.25,
                         repeat: None,
                         positional,
                         fading: None,

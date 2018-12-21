@@ -2,7 +2,7 @@
 use vek::*;
 
 // Local
-use terrain::{
+use crate::terrain::{
     chunk::Block,
     figure::{Cell, CellMaterial},
     ConstructVolume, PhysicalVolume, ReadVolume, ReadWriteVolume, Volume, VoxRel, Voxel,

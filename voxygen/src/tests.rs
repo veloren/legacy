@@ -12,11 +12,7 @@ mod tests {
     use chrono::Datelike;
     use tempfile;
 
-    use get_build_time;
-    use get_git_hash;
-    use get_git_time;
-    use get_profile;
-    use shader::Shader;
+    use crate::{get_build_time, get_git_hash, get_git_time, get_profile, shader::Shader};
 
     fn visit_dirs(dir: &Path, cb: &Fn(&DirEntry)) -> io::Result<()> {
         if dir.is_dir() {

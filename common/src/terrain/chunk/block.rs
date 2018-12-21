@@ -1,3 +1,5 @@
+use serde_derive::{Deserialize, Serialize};
+
 use super::super::Voxel;
 
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -73,6 +75,8 @@ impl Block {
             },
         }
     }
+
+    pub fn is_fluid(&self) -> bool { *self == Self::WATER }
 }
 
 impl Voxel for Block {
@@ -82,7 +86,7 @@ impl Voxel for Block {
 
     fn empty() -> Self { Self::AIR }
 
-    fn is_solid(&self) -> bool { *self != Self::AIR }
+    fn is_solid(&self) -> bool { *self != Self::AIR && !self.is_fluid() }
 
     fn material(&self) -> Self::Material { self.mat }
 }

@@ -24,12 +24,7 @@ use common::{
 };
 
 // Local
-use api::Api;
-use msg::process_chat_msg;
-use Error;
-use Payloads;
-use Server;
-use Wrapper;
+use crate::{api::Api, msg::process_chat_msg, Error, Payloads, Server, Wrapper};
 
 // Constants
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);

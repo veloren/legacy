@@ -11,7 +11,7 @@ type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 use common::terrain::Voxel;
 
 // Local
-use voxel::{Material, MaterialKind, RenderVolume, RenderVoxel};
+use crate::voxel::{Material, MaterialKind, RenderVolume, RenderVoxel};
 
 #[derive(Debug, Clone, Copy)]
 pub enum NormalDirection {
@@ -326,7 +326,7 @@ impl Mesh {
     pub fn from_with_offset<V: RenderVolume>(
         vol: &V,
         offs: Vec3<f32>,
-        fake_optimize: bool,
+        _fake_optimize: bool,
     ) -> FnvIndexMap<MaterialKind, Mesh>
     where
         V::VoxelType: RenderVoxel,

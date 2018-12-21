@@ -1,6 +1,5 @@
 // Local
-use Payloads;
-use Server;
+use crate::{Payloads, Server};
 
 use std::time::Duration;
 

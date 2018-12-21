@@ -12,7 +12,7 @@ use std::{
 use parking_lot::RwLock;
 
 // Local
-use audio::{audio_gen::AudioGen, Buffer, Stream};
+use crate::audio::{audio_gen::AudioGen, Buffer, Stream};
 
 pub struct AudioMgr<G: AudioGen> {
     //pending: Arc<RwLock<HashMap<Vec3<VolOffs>, Arc<Mutex<Option<ChunkContainer<P>>>>>>>, // Mutex is only needed for compiler, we dont acces it in multiple threads

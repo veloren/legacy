@@ -23,6 +23,6 @@ pub use self::{
 };
 
 // Local
-use terrain::VoxRel;
+use crate::terrain::VoxRel;
 
 pub const CHUNK_SIZE: Vec3<VoxRel> = Vec3 { x: 32, y: 32, z: 32 };

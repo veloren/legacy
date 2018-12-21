@@ -1,3 +1,4 @@
+use crate::get_shader_path;
 use fnv::FnvBuildHasher;
 use gfx::{self, Primitive, Slice};
 use gfx_device_gl;
@@ -5,11 +6,13 @@ use indexmap::IndexMap;
 
 type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
-use consts::{ConstHandle, GlobalConsts};
-use pipeline::Pipeline;
-use renderer::{HdrDepthFormat, HdrFormat, Renderer};
-use shader::Shader;
-use voxel::{mesh::VertexBuffer, MaterialKind, Model, ModelConsts, Vertex};
+use crate::{
+    consts::{ConstHandle, GlobalConsts},
+    pipeline::Pipeline,
+    renderer::{HdrDepthFormat, HdrFormat, Renderer},
+    shader::Shader,
+    voxel::{mesh::VertexBuffer, MaterialKind, Model, ModelConsts, Vertex},
+};
 
 type VoxelPipelineData = voxel_pipeline::Data<gfx_device_gl::Resources>;
 type WaterPipelineData = water_pipeline::Data<gfx_device_gl::Resources>;
@@ -50,15 +53,15 @@ impl VolumePipeline {
         let voxel_pipeline = Pipeline::new(
             renderer.factory_mut(),
             voxel_pipeline::new(),
-            &Shader::from_file("shaders/voxel/voxel.vert").expect("Could not load voxel vertex shader"),
-            &Shader::from_file("shaders/voxel/voxel.frag").expect("Could not load voxel fragment shader"),
+            &Shader::from_file(get_shader_path("voxel/voxel.vert")).expect("Could not load voxel vertex shader"),
+            &Shader::from_file(get_shader_path("voxel/voxel.frag")).expect("Could not load voxel fragment shader"),
         );
 
         let water_pipeline = Pipeline::new(
             renderer.factory_mut(),
             water_pipeline::new(),
-            &Shader::from_file("shaders/voxel/water.vert").expect("Could not load voxel vertex shader"),
-            &Shader::from_file("shaders/voxel/water.frag").expect("Could not load voxel fragment shader"),
+            &Shader::from_file(get_shader_path("voxel/water.vert")).expect("Could not load voxel vertex shader"),
+            &Shader::from_file(get_shader_path("voxel/water.frag")).expect("Could not load voxel fragment shader"),
         );
 
         VolumePipeline {

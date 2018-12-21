@@ -9,7 +9,7 @@ use parking_lot::RwLockReadGuard;
 use vek::*;
 
 // Local
-use terrain::{
+use crate::terrain::{
     self,
     chunk::{Block, Chunk},
     ReadVolume, VolOffs, Volume, VoxAbs, VoxRel,

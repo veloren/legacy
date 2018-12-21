@@ -2,12 +2,13 @@
 use std::{collections::HashMap, sync::Arc, thread, time::Duration};
 
 // Library
+use lazy_static::lazy_static;
 use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use threadpool::ThreadPool;
 use vek::*;
 
 // Local
-use terrain::{
+use crate::terrain::{
     self,
     chunk::{Block, ChunkContainer, ChunkSample},
     Container, Key, PersState, VolCluster, VolGen, VolOffs, VoxAbs, VoxRel,
@@ -23,8 +24,8 @@ impl Key for Vec3<VolOffs> {
 
 #[derive(Debug, PartialEq)]
 pub enum ChunkSampleError {
-    ChunkMissing,
-    CannotGetLock,
+    ChunkMissing { key: Vec3<VolOffs> },
+    CannotGetLock { key: Vec3<VolOffs> },
     NoContent,
 }
 
@@ -78,16 +79,17 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
         loop {
             match self.get_sample(from, to) {
                 Ok(sample) => return Ok(sample),
-                Err(e) => {
-                    if e == ChunkSampleError::CannotGetLock {
+                Err(e) => match e {
+                    ChunkSampleError::CannotGetLock { .. } => {
                         c += 1;
                         if c > 10 {
                             warn!("Long waiting chunk sample {}", c)
                         }
                         thread::sleep(Duration::from_millis(1));
-                    } else {
+                    },
+                    _ => {
                         return Err(e);
-                    }
+                    },
                 },
             }
         }
@@ -110,12 +112,13 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                             .map(|value| map.insert(key, Arc::new(value)))
                             .is_none()
                         {
-                            return Err(ChunkSampleError::CannotGetLock);
+                            debug!("Cannot get lock: {}", &key);
+                            return Err(ChunkSampleError::CannotGetLock { key });
                         }
                         let _ = map.get(&key).unwrap();
                     } else {
                         debug!("Chunk does not exist: {}", &key);
-                        return Err(ChunkSampleError::ChunkMissing);
+                        return Err(ChunkSampleError::ChunkMissing { key });
                     }
                 }
             }
@@ -232,7 +235,7 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
             }
         }
 
-        const DIFF_TILL_UNLOAD: VoxAbs = 5;
+        let diff_till_unload_square: VoxAbs = ((self.vol_size.x as i64)*2).pow(2) /*3 chunks away from everything*/;
         // unload all chunks which have a distance of DIFF_TILL_UNLOAD to a loaded area
 
         // drop old chunks
@@ -243,20 +246,21 @@ impl<P: Send + Sync + 'static> ChunkMgr<P> {
                 continue;
             }
             let k_mid = terrain::voloffs_to_voxabs(*k, self.vol_size) + self.vol_size.map(|e| e as i64 / 2);
-            let mut lowest_dist = DIFF_TILL_UNLOAD + 1; // bigger than DIFF_TILL_UNLOAD
-                                                        // get block distance to nearest blockloader
+            let mut lowest_dist = diff_till_unload_square - 1; // bigger than DIFF_TILL_UNLOAD
+                                                               // get block distance to nearest blockloader
             for bl in block_loader.iter() {
                 let pos = bl.pos;
                 let size = bl.size;
-                let dist = (pos - k_mid).distance_squared(size);
-                if dist < lowest_dist {
+                let dist = pos.distance_squared(k_mid);
+                if dist - size.magnitude_squared() < lowest_dist {
                     lowest_dist = dist;
                 }
             }
-            if lowest_dist > DIFF_TILL_UNLOAD {
+            if lowest_dist > diff_till_unload_square {
                 to_remove.push(*k);
             }
         }
+
         for k in to_remove.iter() {
             self.drop(*k);
         }

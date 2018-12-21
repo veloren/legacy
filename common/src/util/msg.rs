@@ -1,11 +1,14 @@
 use std::time::Duration;
 
 // Library
+use serde_derive::{Deserialize, Serialize};
 use vek::*;
 
 // Project
-use net::Message;
-use util::post::{PostBox, PostOffice};
+use crate::{
+    net::Message,
+    util::post::{PostBox, PostOffice},
+};
 
 // SessionKind
 

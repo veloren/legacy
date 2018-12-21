@@ -7,16 +7,6 @@
     integer_atomics
 )]
 
-extern crate common;
-extern crate dot_vox;
-extern crate noise;
-extern crate num_traits;
-extern crate vek;
-#[macro_use]
-extern crate lazy_static;
-extern crate fnv;
-extern crate parking_lot;
-
 mod blockgen;
 mod cachegen;
 mod overworldgen;
@@ -27,6 +17,7 @@ mod util;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 // Library
+use lazy_static::lazy_static;
 use vek::*;
 
 // Project
@@ -36,7 +27,7 @@ use common::terrain::{
 };
 
 // Local
-use blockgen::BlockGen;
+use crate::blockgen::BlockGen;
 
 // Generator
 

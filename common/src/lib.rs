@@ -1,25 +1,14 @@
-#![feature(nll, specialization, euclidean_division, integer_atomics, duration_float)]
+#![feature(
+    nll,
+    specialization,
+    euclidean_division,
+    integer_atomics,
+    duration_float,
+    extern_crate_item_prelude
+)]
 
-extern crate bincode;
-extern crate get_if_addrs;
 #[macro_use]
 extern crate log;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate byteorder;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate enum_map;
-extern crate dot_vox;
-extern crate num;
-extern crate parking_lot;
-extern crate rand;
-extern crate specs;
-extern crate threadpool;
-extern crate time;
-extern crate vek;
 
 pub mod audio;
 pub mod ecs;

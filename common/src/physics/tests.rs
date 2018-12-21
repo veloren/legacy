@@ -12,16 +12,18 @@ use rand::prelude::*;
 use vek::*;
 
 // Parent
-use physics::{
-    collision::{Primitive, ResolutionCol, ResolutionTti},
-    physics,
+use crate::{
+    physics::{
+        collision::{Primitive, ResolutionCol, ResolutionTti},
+        physics,
+    },
+    terrain::{
+        chunk::{Block, Chunk, ChunkContainer, HeterogeneousData},
+        BlockLoader, ChunkMgr, ConstructVolume, Container, Entity, ReadWriteVolume, VolCluster, VolGen, VolOffs,
+        VoxRel, Voxel,
+    },
+    Uid,
 };
-use terrain::{
-    chunk::{Block, Chunk, ChunkContainer, HeterogeneousData},
-    BlockLoader, ChunkMgr, ConstructVolume, Container, Entity, ReadWriteVolume, VolCluster, VolGen, VolOffs, VoxRel,
-    Voxel,
-};
-use Uid;
 
 #[test]
 fn collide_simple() {
@@ -745,6 +747,7 @@ fn physics_fall() {
         pos: Vec3::new(0, 0, 0),
         size: CHUNK_SIZE.map(|e| e as i64 * 10),
     })));
+    vol_mgr.gen(Vec3::new(0, 0, 1));
     vol_mgr.gen(Vec3::new(0, 0, 0));
     vol_mgr.gen(Vec3::new(0, 0, -1));
     thread::sleep(time::Duration::from_millis(200)); // because this spawns a thread :/
@@ -761,7 +764,7 @@ fn physics_fall() {
         ))),
     );
     for _ in 0..40 {
-        physics::tick(ent.values(), &vol_mgr, Duration::from_millis(100))
+        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(100))
     }
     let p = ent.get(&1);
     let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
@@ -779,8 +782,10 @@ fn physics_fallfast() {
         pos: Vec3::new(0, 0, 0),
         size: CHUNK_SIZE.map(|e| e as i64 * 10),
     })));
-    vol_mgr.gen(Vec3::new(0, 0, 0));
     vol_mgr.gen(Vec3::new(0, 0, 1));
+    vol_mgr.gen(Vec3::new(0, 0, 0));
+    vol_mgr.gen(Vec3::new(0, 0, -1));
+    vol_mgr.gen(Vec3::new(0, 0, -2));
     thread::sleep(time::Duration::from_millis(200)); // because this spawns a thread :/
                                                      //touch
     vol_mgr.maintain();
@@ -795,12 +800,50 @@ fn physics_fallfast() {
         ))),
     );
     for _ in 0..100 {
-        physics::tick(ent.values(), &vol_mgr, Duration::from_millis(100))
+        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(100))
     }
     let p = ent.get(&1);
     let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, CHUNK_SIZE.z as f32 + 3.0);
     println!("{}, physics_fallfast {}", d.magnitude(), *p.unwrap().read().pos());
     assert!(d.magnitude() < 0.01);
+}
+
+#[test]
+fn physics_fallfastunloaded() {
+    let vol_mgr = ChunkMgr::new(
+        CHUNK_SIZE,
+        VolGen::new(gen_chunk_flat, gen_payload, drop_chunk, drop_payload),
+    );
+    vol_mgr.block_loader_mut().push(Arc::new(RwLock::new(BlockLoader {
+        pos: Vec3::new(0, 0, 0),
+        size: CHUNK_SIZE.map(|e| e as i64 * 10),
+    })));
+    vol_mgr.gen(Vec3::new(0, 0, 0));
+    vol_mgr.gen(Vec3::new(0, 0, -1));
+    thread::sleep(time::Duration::from_millis(200)); // because this spawns a thread :/
+                                                     //touch
+    vol_mgr.maintain();
+    let mut ent: HashMap<Uid, Arc<RwLock<Entity<()>>>> = HashMap::new();
+    ent.insert(
+        1,
+        Arc::new(RwLock::new(Entity::new(
+            Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 10.0),
+            Vec3::new(0.0, 0.0, -100.0),
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec2::new(0.0, 0.0),
+        ))),
+    );
+    for _ in 0..100 {
+        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(100))
+    }
+    let p = ent.get(&1);
+    let d = *p.unwrap().read().pos() - Vec3::new(CHUNK_MID.x, CHUNK_MID.y, 3.0);
+    println!(
+        "{}, physics_fallfastunloaded {}",
+        d.magnitude(),
+        *p.unwrap().read().pos()
+    );
+    assert_eq!(d.magnitude(), 7.0);
 }
 
 #[test]
@@ -829,14 +872,14 @@ fn physics_jump() {
         ))),
     );
     for _ in 0..3 {
-        physics::tick(ent.values(), &vol_mgr, Duration::from_millis(40))
+        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(40))
     }
     {
         let p = ent.get(&1);
         assert!(p.unwrap().read().pos().z > 10.2);
     }
     for _ in 0..50 {
-        physics::tick(ent.values(), &vol_mgr, Duration::from_millis(100))
+        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(100))
     }
     {
         let p = ent.get(&1);
@@ -874,7 +917,7 @@ fn physics_walk() {
         ))),
     );
     for _ in 0..80 {
-        physics::tick(ent.values(), &vol_mgr, Duration::from_millis(50))
+        physics::tick(ent.iter(), &vol_mgr, Duration::from_millis(50))
     }
     {
         let p = ent.get(&1);

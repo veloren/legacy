@@ -1,3 +1,6 @@
+extern crate clap;
+use clap::{App, Arg};
+
 // Project
 use server::{api::Api, net::DisconnectReason, player::Player, specs::Entity, Manager, Server};
 
@@ -41,7 +44,33 @@ impl server::Payloads for Payloads {
 }
 
 fn main() {
-    let addr = "0.0.0.0:59003";
+    let args = App::new("Veloren CLI server")
+        .version(
+            (option_env!("CARGO_PKG_VERSION").unwrap_or("UNKNOWN_VERSION").to_owned()
+                + "."
+                + option_env!("GIT_HASH").unwrap_or("UNKNOWN_GIT_HASH"))
+            .as_str(),
+        )
+        .arg(
+            Arg::with_name("addr")
+                .short("a")
+                .long("address")
+                .value_name("ADDR")
+                .help("Sets the listening address")
+                .takes_value(true)
+                .default_value("0.0.0.0"),
+        )
+        .arg(
+            Arg::with_name("port")
+                .short("p")
+                .long("port")
+                .value_name("PORT")
+                .help("Sets the listening port")
+                .takes_value(true)
+                .default_value("59003"),
+        )
+        .get_matches();
+    let addr = args.value_of("addr").unwrap().to_owned() + ":" + args.value_of("port").unwrap();
     println!("[INFO] Starting server on {}", addr);
     Manager::await_shutdown(Server::<Payloads>::new(Payloads, addr).expect("Could not start server"));
 }

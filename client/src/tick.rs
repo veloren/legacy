@@ -32,4 +32,9 @@ impl<P: Payloads> Client<P> {
         self.chunk_mgr().debug();
         *self.status() != ClientStatus::Disconnected
     }
+
+    pub(crate) fn manage_audio(&self, mgr: &mut Manager<Self>) -> bool {
+        self.maintain_music(mgr);
+        *self.status() != ClientStatus::Disconnected
+    }
 }

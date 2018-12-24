@@ -10,6 +10,7 @@
 #[macro_use]
 extern crate log;
 
+pub mod audio;
 pub mod ecs;
 pub mod item;
 pub mod net;

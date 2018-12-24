@@ -24,6 +24,7 @@ mod renderer;
 mod shader;
 
 // > Pipelines
+mod audio;
 mod skybox;
 mod tonemapper;
 mod voxel;

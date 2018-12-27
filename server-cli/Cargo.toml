@@ -2,8 +2,9 @@
 name = "server-cli"
 version = "0.1.0"
 edition = "2018"
-authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>", "Terah <terah.dev@gmail.com>"]
+authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>", "Terah <terah.dev@gmail.com>", "Mckol <mckol363@gmail.com>"]
 
 [dependencies]
 common = { path = "../common" }
 server = { path = "../server" }
+clap = "2.32"

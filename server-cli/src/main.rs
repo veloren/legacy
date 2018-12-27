@@ -70,7 +70,7 @@ fn main() {
                 .default_value("59003"),
         )
         .get_matches();
-    let addr = args.value_of("addr").unwrap().to_owned() + ":" + args.value_of("port").unwrap();
+    let addr = args.value_of("addr").unwrap().to_owned() + ":" + args.value_of("port").unwrap(); //safe because of default_value
     println!("[INFO] Starting server on {}", addr);
     Manager::await_shutdown(Server::<Payloads>::new(Payloads, addr).expect("Could not start server"));
 }

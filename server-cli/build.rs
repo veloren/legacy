@@ -1,7 +1,4 @@
-use std::{
-    env,
-    process::Command,
-};
+use std::{env, process::Command};
 
 fn main() {
     // Git hash

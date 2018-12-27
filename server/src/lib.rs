@@ -12,8 +12,9 @@ pub mod player;
 mod tick;
 
 // Reexports
-pub use crate::error::Error;
 pub use common::util::manager::Manager;
+// Crate Reexports
+pub use crate::error::Error;
 
 // Standard
 use std::{

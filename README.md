@@ -53,7 +53,7 @@ Currently the communication of contributors happens mainly on our [official disc
 
 ### **Q:** What platforms are supported?
 
-**A:** Currently we support **Windows and Linux** on **x86** computers. Mac should work too but we do not provide builds for it yet. Feel free to compile it yourself there though.
+**A:** Currently we support **Windows and Linux** on **x86** computers. Mac should work too but we do not provide builds for it yet. Feel free to compile it there yourself though.
 
 ### **Q:** Do you accept donations?
 

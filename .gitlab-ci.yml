@@ -75,17 +75,18 @@ unittests:
 nightly-linux-debug:
   stage: deploy
   script:
-    - (cd voxygen && VELOREN_ASSETS=assets cargo build)
-    - (cd server-cli && VELOREN_ASSETS=assets cargo build)
-    - (cd headless && VELOREN_ASSETS=assets cargo build)
+    - (cd voxygen && cargo build)
+    - (cd server-cli && cargo build)
+    - (cd headless && cargo build)
+    - rm -r -f nightly/client
     - rm -r -f nightly
     - mkdir nightly
-    - cp target/debug/server-cli nightly
-    - cp target/debug/voxygen nightly
-    - cp target/debug/headless nightly
-    - cp -r assets nightly/
-    - cp -r voxygen/shaders nightly/
-    - cp -r voxygen/fonts nightly/
+    - mkdir nightly/client
+    - cp target/debug/server-cli nightly/client/
+    - cp target/debug/voxygen nightly/client/
+    - cp target/debug/headless nightly/client/
+    - cp -r voxygen/assets nightly/
+    - cp -r voxygen/shaders nightly/client/
     - rm -f nightly-linux-debug.tar.bz2
     - tar -cvjSf nightly-linux-debug.tar.bz2 nightly
   when: always
@@ -100,17 +101,18 @@ nightly-linux-debug:
 nightly-windows-debug:
   stage: deploy
   script:
-    - (cd voxygen && VELOREN_ASSETS=assets cargo build --target=x86_64-pc-windows-gnu)
-    - (cd server-cli && VELOREN_ASSETS=assets cargo build --target=x86_64-pc-windows-gnu)
-    - (cd headless && VELOREN_ASSETS=assets cargo build --target=x86_64-pc-windows-gnu)
+    - (cd voxygen && cargo build --target=x86_64-pc-windows-gnu)
+    - (cd server-cli && cargo build --target=x86_64-pc-windows-gnu)
+    - (cd headless && cargo build --target=x86_64-pc-windows-gnu)
+    - rm -r -f nightly/client
     - rm -r -f nightly
     - mkdir nightly
-    - cp target/x86_64-pc-windows-gnu/debug/server-cli.exe nightly
-    - cp target/x86_64-pc-windows-gnu/debug/voxygen.exe nightly
-    - cp target/x86_64-pc-windows-gnu/debug/headless.exe nightly
-    - cp -r assets nightly/
-    - cp -r voxygen/shaders nightly/
-    - cp -r voxygen/fonts nightly/
+    - mkdir nightly/client
+    - cp target/x86_64-pc-windows-gnu/debug/server-cli.exe nightly/client/
+    - cp target/x86_64-pc-windows-gnu/debug/voxygen.exe nightly/client/
+    - cp target/x86_64-pc-windows-gnu/debug/headless.exe nightly/client/
+    - cp -r voxygen/assets nightly/
+    - cp -r voxygen/shaders nightly/client/
     - rm -f nightly-windows-debug.zip
     - zip -r nightly-windows-debug.zip nightly
   artifacts:
@@ -124,17 +126,18 @@ nightly-windows-debug:
 nightly-linux-optimized:
   stage: deploy
   script:
-    - (cd voxygen && VELOREN_ASSETS=assets cargo build --release)
-    - (cd server-cli && VELOREN_ASSETS=assets cargo build --release)
-    - (cd headless && VELOREN_ASSETS=assets cargo build --release)
+    - (cd voxygen && cargo build --release)
+    - (cd server-cli && cargo build --release)
+    - (cd headless && cargo build --release)
+    - rm -r -f nightly/client
     - rm -r -f nightly
     - mkdir nightly
-    - cp target/release/server-cli nightly
-    - cp target/release/voxygen nightly
-    - cp target/release/headless nightly
-    - cp -r assets nightly/
-    - cp -r voxygen/shaders nightly/
-    - cp -r voxygen/fonts nightly/
+    - mkdir nightly/client
+    - cp target/release/server-cli nightly/client/
+    - cp target/release/voxygen nightly/client/
+    - cp target/release/headless nightly/client/
+    - cp -r voxygen/assets nightly/
+    - cp -r voxygen/shaders nightly/client/
     - rm -f nightly-linux-optimized.tar.bz2
     - tar -cvjSf nightly-linux-optimized.tar.bz2 nightly
   when: manual
@@ -149,17 +152,18 @@ nightly-linux-optimized:
 nightly-windows-optimized:
   stage: deploy
   script:
-    - (cd voxygen && VELOREN_ASSETS=assets cargo build --release --target=x86_64-pc-windows-gnu)
-    - (cd server-cli && VELOREN_ASSETS=assets cargo build --release --target=x86_64-pc-windows-gnu)
-    - (cd headless && VELOREN_ASSETS=assets cargo build --release --target=x86_64-pc-windows-gnu)
+    - (cd voxygen && cargo build --release --target=x86_64-pc-windows-gnu)
+    - (cd server-cli && cargo build --release --target=x86_64-pc-windows-gnu)
+    - (cd headless && cargo build --release --target=x86_64-pc-windows-gnu)
+    - rm -r -f nightly/client
     - rm -r -f nightly
     - mkdir nightly
-    - cp target/x86_64-pc-windows-gnu/release/server-cli.exe nightly
-    - cp target/x86_64-pc-windows-gnu/release/voxygen.exe nightly
-    - cp target/x86_64-pc-windows-gnu/release/headless.exe nightly
-    - cp -r assets nightly/
-    - cp -r voxygen/shaders nightly/
-    - cp -r voxygen/fonts nightly/
+    - mkdir nightly/client
+    - cp target/x86_64-pc-windows-gnu/release/server-cli.exe nightly/client/
+    - cp target/x86_64-pc-windows-gnu/release/voxygen.exe nightly/client/
+    - cp target/x86_64-pc-windows-gnu/release/headless.exe nightly/client/
+    - cp -r voxygen/assets nightly/
+    - cp -r voxygen/shaders nightly/client/
     - rm -f nightly-windows-optimized.zip
     - zip -r nightly-windows-optimized.zip nightly
   when: manual
@@ -174,17 +178,18 @@ nightly-windows-optimized:
 stable-linux-optimized:
   stage: deploy
   script:
-    - (cd voxygen && VELOREN_ASSETS=assets cargo build --release)
-    - (cd server-cli && VELOREN_ASSETS=assets cargo build --release)
-    - (cd headless && VELOREN_ASSETS=assets cargo build --release)
+    - (cd voxygen && cargo build --release)
+    - (cd server-cli && cargo build --release)
+    - (cd headless && cargo build --release)
+    - rm -r -f stable/client
     - rm -r -f stable
     - mkdir stable
-    - cp target/release/server-cli stable
-    - cp target/release/voxygen stable
-    - cp target/release/headless stable
-    - cp -r assets nightly/
-    - cp -r voxygen/shaders nightly/
-    - cp -r voxygen/fonts nightly/
+    - mkdir stable/client
+    - cp target/release/server-cli stable/client/
+    - cp target/release/voxygen stable/client/
+    - cp target/release/headless stable/client/
+    - cp -r voxygen/assets stable/
+    - cp -r voxygen/shaders nightly/client/
     - rm -f stable-linux-optimized.tar.bz2
     - tar -cvjSf stable-linux-optimized.tar.bz2 stable
   artifacts:
@@ -198,17 +203,18 @@ stable-linux-optimized:
 stable-windows-optimized:
   stage: deploy
   script:
-    - (cd voxygen && VELOREN_ASSETS=assets cargo build --release --target=x86_64-pc-windows-gnu)
-    - (cd server-cli && VELOREN_ASSETS=assets cargo build --release --target=x86_64-pc-windows-gnu)
-    - (cd headless && VELOREN_ASSETS=assets cargo build --release --target=x86_64-pc-windows-gnu)
+    - (cd voxygen && cargo build --release --target=x86_64-pc-windows-gnu)
+    - (cd server-cli && cargo build --release --target=x86_64-pc-windows-gnu)
+    - (cd headless && cargo build --release --target=x86_64-pc-windows-gnu)
+    - rm -r -f stable/client
     - rm -r -f stable
     - mkdir stable
-    - cp target/x86_64-pc-windows-gnu/release/server-cli.exe stable
-    - cp target/x86_64-pc-windows-gnu/release/voxygen.exe stable
-    - cp target/x86_64-pc-windows-gnu/release/headless.exe stable
-    - cp -r assets nightly/
-    - cp -r voxygen/shaders nightly/
-    - cp -r voxygen/fonts nightly/
+    - mkdir stable/client
+    - cp target/x86_64-pc-windows-gnu/release/server-cli.exe stable/client/
+    - cp target/x86_64-pc-windows-gnu/release/voxygen.exe stable/client/
+    - cp target/x86_64-pc-windows-gnu/release/headless.exe stable/client/
+    - cp -r voxygen/assets stable/
+    - cp -r voxygen/shaders nightly/client/
     - rm -f stable-windows-optimized.zip
     - zip -r stable-windows-optimized.zip stable
   artifacts:
@@ -222,17 +228,15 @@ stable-windows-optimized:
 # nightly-windows-release:
 #   stage: deploy
 #   script:
-#     - (cd voxygen && VELOREN_ASSETS=assets cargo build --release --target=x86_64-pc-windows-gnu)
-#     - (cd server-cli && VELOREN_ASSETS=assets cargo build --release --target=x86_64-pc-windows-gnu)
-#     - (cd headless && VELOREN_ASSETS=assets cargo build --release --target=x86_64-pc-windows-gnu)
+#     - (cd voxygen && cargo build --release --target=x86_64-pc-windows-gnu)
+#     - (cd server-cli && cargo build --release --target=x86_64-pc-windows-gnu)
+#     - (cd headless && cargo build --release --target=x86_64-pc-windows-gnu)
 #     - rm -r -f nightly
 #     - mkdir nightly
 #     - cp target/x86_64-pc-windows-gnu/debug/server-cli.exe nightly
 #     - cp target/x86_64-pc-windows-gnu/debug/voxygen.exe nightly
 #     - cp target/x86_64-pc-windows-gnu/debug/headless.exe nightly
-#     - cp -r assets nightly/
-#     - cp -r voxygen/shaders nightly/
-#     - cp -r voxygen/fonts nightly/
+#     - cp -r voxygen/assets nightly/
 #     - rm -f nightly-windows-release.zip
 #     - zip -r nightly-windows-release.zip nightly
 #   artifacts:
